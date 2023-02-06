@@ -1,0 +1,66 @@
+define 
+
+# Shared
+id sub attribute, value string;
+name sub attribute, value string;
+email sub attribute, abstract, value string, regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$';
+
+# User
+User·email sub email;
+Color·name sub attribute, value string;
+
+Space sub entity,
+    owns id @key,
+    owns name,
+    plays Space-User:spaces; 
+
+
+User sub entity,
+    owns id @key,
+    owns name,
+    owns User·email,
+    plays User-Accounts:user,
+    plays Space-User:users,
+    plays UserTag:users;
+
+
+# Account
+Account·provider sub attribute, value string;
+Account sub entity,
+    owns id @key,
+    owns Account·provider,
+    plays User-Accounts:accounts;
+
+# Post
+Post·mentions sub attribute, value string;
+Post sub entity,
+  owns id @key,
+  owns Post·mentions;
+
+# UserAccounts
+User-Accounts sub relation,
+    owns id @key,
+    relates user,
+    relates accounts;
+
+    # UserAccounts
+Space-User sub relation,
+    owns id @key,
+    relates users,
+    relates spaces;
+
+UserTag sub relation,
+    owns id @key,
+    owns name,
+    relates users,
+    plays UserTagGroup:tags;
+
+UserTagGroup sub relation,
+  owns id @key,
+  relates tags, #cardinality: Many
+  relates color;
+
+Color sub entity,
+  #owns Color·name @key,
+  owns id @key,
+  plays UserTagGroup:color;
