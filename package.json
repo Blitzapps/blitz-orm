@@ -1,6 +1,6 @@
 {
-  "name": "@blitzapps/blitz-orm",
-  "version": "0.0.38",
+  "name": "@blitznocode/blitz-orm",
+  "version": "0.0.39",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -59,10 +59,6 @@
     "essentials": {
       "optional": true
     }
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
   },
   "description": "Blitz-orm is a public package that can be open-sourced",
   "bugs": {
