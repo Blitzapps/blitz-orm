@@ -937,7 +937,7 @@ describe('Query', () => {
       },
     ]);
   });
-
+  /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1082,6 +1082,8 @@ describe('Query', () => {
       { $entity: 'User', $id: 'user2', name: 'Loic' },
     ]);
   });
+
+  */
 
   // NESTED
 

@@ -7,7 +7,12 @@ import {
 import { isObject, listify, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
+import {
+  oFilter,
+  getCurrentFields,
+  getCurrentSchema,
+  oFind,
+} from '../../helpers';
 import type {
   BQLMutationBlock,
   EnrichedBormRelation,
@@ -74,8 +79,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               'roles' in currentSchema
                 ? (oFind(
                     currentSchema.roles,
-                    // @ts-expect-error
-                    ([k]) => k === currentField.path
+                    (k) => k === currentField.path
                   ) as EnrichedRoleField)
                 : null;
 
@@ -123,7 +127,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
             const currentFieldRole = oFind(
               relationSchema.roles,
-              ([k, _v]) => k === currentField.path
+              (k, _v) => k === currentField.path
             );
 
             // console.log('currentFieldRole', currentFieldRole);
@@ -386,7 +390,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
               const currentRoleDef =
                 'roles' in currentSchema
-                  ? oFind(currentSchema.roles, ([k, _v]) => k === fieldPath)
+                  ? oFind(currentSchema.roles, (k, _v) => k === fieldPath)
                   : undefined;
               const currentDef =
                 currentFieldDef || currentLinkedDef || currentRoleDef;
@@ -547,9 +551,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               'An id must be specified either in the mutation or has tu have a default value in the schema'
             );
           }
-
-          // @ts-expect-error
-          const rolesObjFiltered = oFilter(val, ([k, _v]) =>
+          const rolesObjFiltered = oFilter(val, (k, _v) =>
             roleFieldPaths.includes(k)
           ) as BQLMutationBlock;
 
@@ -561,8 +563,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           });
 
           // console.log('rolesObjOnlyIds', rolesObjOnlyIds);
-          // @ts-expect-error
-          const objWithMetaDataOnly = oFilter(val, ([k, _v]) => {
+          const objWithMetaDataOnly = oFilter(val, (k, _v) => {
+            // @ts-expect-error
             return k.startsWith('$') || k.startsWith('Symbol');
           });
 
@@ -591,8 +593,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               return;
             }
             if (val.$op === 'noop') {
-              // @ts-expect-error
-              const rolesWithLinks = oFilter(rolesObjOnlyIds, ([_k, v]) =>
+              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) =>
                 v.some(
                   (
                     x: BQLMutationBlock // string arrays are always replaces
@@ -608,8 +609,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                     .map((y) => y.$id),
                 ]
               );
-              // @ts-expect-error
-              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, ([_k, v]) =>
+              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) =>
                 v.some(
                   (x: BQLMutationBlock) =>
                     x.$op === 'unlink' || x.$op === 'delete'
