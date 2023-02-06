@@ -40,5 +40,5 @@ You can help us adding adapters (mongo, postgres, neo4j...), a BQL<>graphQL mapp
 ## Warning
 - This package is in alpha version, not yet ready for production. Most key queries and mutations do work, but a lot is missing and performance has to be enhanced also in the future. One of the biggest performance drops is on nested queries as they currently require as many calls to typeDB as levels of depth 
 
-## Working
+## What is currently working
 - To check what is working and some examples, please feel free to check the test folder, where there are a bunch of queries and mutations.
