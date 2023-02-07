@@ -35,7 +35,7 @@ Follow official instructions: https://docs.vaticle.com/docs/running-typedb/insta
 We advice to run TypeDB studio, define the schema there and do some tests with pure typeQL before using borm.
 
 ## Collaborate / Contact
-You can help us adding adapters (mongo, postgres, neo4j...), a BQL<>graphQL mapper, performance enhancements, or contributing with our public roadmap for this package (not yet published). Please feel free to send an email to loic@blitnocode.com 
+You can help us adding adapters (mongo, postgres, neo4j...), a BQL<>graphQL mapper, performance enhancements, or contributing with our public roadmap for this package (not yet published). Please feel free to send an email to loic@blitznocode.com 
 
 ## Warning
 - This package is in alpha version, not yet ready for production. Most key queries and mutations do work, but a lot is missing and performance has to be enhanced also in the future. One of the biggest performance drops is on nested queries as they currently require as many calls to typeDB as levels of depth 
