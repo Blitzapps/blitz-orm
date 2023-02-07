@@ -1,15 +1,18 @@
-Similar to Prisma, it's used to interpret a BQL schema and provide the client and the server with tools to ensure they are "speaking the same language"
+# Blitz-orm
+Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings.
+
+Blitz-orm is similar to other ORM packages such as Prisma. You define a BQL schema and it gets translated to different databases (currently only compatible with TypeDB).
 
 ## Compatibility
-The only database that is currently compatible with borm is TypeDB. We want to build adapters in the future for other graph databases like dgraph and neo4j, as well as classic dbs like postgres and mongoDB. 
+Currently, the only database that is compatible with Blitz-orm is TypeDB. The goal is to build adapters for other graph databases such as Dgraph and Neo4j, as well as classic databases like PostgreSQL and MongoDB in the future.
 
-## How to use
-- Install the package with your packages manager, like this: 
+## How to Use
+1. Install the package using your package manager, for example:
 `yarn add @blitznocode/blitz-orm`
-- Create a borm schema, ou have an example in the test folder
-- borm.define() is still not working, this means you will need to translate your bql schema into a typeQL schema manually (an example in test folder)
-- Create a configuration file with the database name that you have created in typeDB
-- Init borm in a file like this
+2. Create a Borm schema. You can find an example in the test folder. 
+3. The borm.define() function is currently not working, so you will need to manually translate your BQL schema into a TypeQL schema (an example can be found in the test folder).
+4. Create a configuration file with the database name that you have created in TypeDB.
+5. Initialize Blitz-orm in a file like this:
 ```
 import BormClient from '@blitznocode/blitz-orm';
 
@@ -23,20 +26,25 @@ const bormClient = new BormClient({
 
 export default bormClient;
 ```
-- And now you can run queries and mutations like this
+6. You can then run queries and mutations like this:
 ```
-const res = await bormClient.mutate({$entity: 'User', name: 'Ann'} { noMetadata: true });
+const res = await bormClient.mutate({$entity: 'User', name: 'Ann'}, { noMetadata: true });
 ```
 
-## How to run typeDB locally
-Follow official instructions: https://docs.vaticle.com/docs/running-typedb/install-and-run
-We advice to run TypeDB studio, define the schema there and do some tests with pure typeQL before using borm.
+## How to Run TypeDB Locally
+To run TypeDB locally, follow the official instructions at https://docs.vaticle.com/docs/running-typedb/install-and-run. It is recommended to run TypeDB Studio, define the schema there, and test with pure TypeQL before using Blitz-orm.
 
-## Collaborate / Contact
-You can help us adding adapters (mongo, postgres, neo4j...), a BQL<>graphQL mapper, performance enhancements, or contributing with our public roadmap for this package (not yet published). Please feel free to send an email to loic@blitznocode.com 
+## Collaboration & Contact
+You can contribute to the project by adding adapters for other databases, developing a BQL-to-GraphQL mapper, enhancing performance, or contributing to the public roadmap for this package (not yet published). To get in touch, please send an email to loic@blitznocode.com.
 
 ## Warning
-- This package is in alpha version, not yet ready for production. Most key queries and mutations do work, but a lot is missing and performance has to be enhanced also in the future. One of the biggest performance drops is on nested queries as they currently require as many calls to typeDB as levels of depth 
+Blitz-orm is currently in alpha version and not ready for production use. Some key queries and mutations do work, but there is still much that needs to be done and performance improvements are needed. One of the biggest performance issues is with nested queries, as they currently require a call to TypeDB for each level of depth.
 
-## What is currently working
-- To check what is working and some examples, please feel free to check the test folder, where there are a bunch of queries and mutations.
+## What is Currently Working
+To see what is currently working and find examples, please check the test folder, where you will find a variety of queries and mutations.
+
+## The future of this package
+- Achieve 100% compatibility with typeDB functions
+- Enhance functionality with new features such as, cardinality management, ordered attributes, Vectors (ordered relations)...
+- Expand compatibility to other graph databases and traditional databases such as PostgreSQL or MongoDB
+- Enable the ability to split queries and mutations across multiple databases (for example, some data stored in PostgreSQL and other data in typeQL, all queried from a single point)
