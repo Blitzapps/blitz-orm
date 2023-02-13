@@ -1,6 +1,6 @@
 {
   "name": "@blitznocode/blitz-orm",
-  "version": "0.0.41",
+  "version": "0.0.42",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -17,8 +17,7 @@
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blitz/blitz.git",
-    "directory": "packages/blitz-orm"
+    "url": "https://github.com/Blitzapps/blitz-orm"
   },
   "files": [
     "README.md",
@@ -62,9 +61,9 @@
   },
   "description": "Blitz-orm is a public package that can be open-sourced",
   "bugs": {
-    "url": "https://github.com/blitz/blitz/issues"
+    "url": "https://github.com/Blitzapps/blitz-orm/issues"
   },
-  "homepage": "https://github.com/blitz/blitz#readme",
+  "homepage": "https://github.com/Blitzapps/blitz-orm#readme",
   "directories": {
     "test": "tests"
   },
