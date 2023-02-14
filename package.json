@@ -68,7 +68,7 @@
     "test": "tests"
   },
   "keywords": [
-    "ORM", "database","graph-database"
+    "ORM", "database", "graph-database"
   ],
   "author": "blitznocode"
 }
