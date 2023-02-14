@@ -53,12 +53,6 @@
     "tsup": "^6.5.0",
     "typescript": "^4.9.5"
   },
-  "peerDependencies": {},
-  "peerDependenciesMeta": {
-    "essentials": {
-      "optional": true
-    }
-  },
   "description": "Blitz-orm is a public package that can be open-sourced",
   "bugs": {
     "url": "https://github.com/Blitzapps/blitz-orm/issues"
