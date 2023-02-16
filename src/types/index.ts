@@ -72,20 +72,28 @@ export type BormRelation = BormEntity & {
   roles?: { [key: string]: RoleField };
 };
 
-export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields'> & {
+export type EnrichedBormEntity = Omit<
+  BormEntity,
+  'linkFields' | 'idFields' | 'dataFields'
+> & {
   extends?: string;
   idFields: string[];
   thingType: 'entity';
   name: string;
   computedFields: string[];
   linkFields?: EnrichedLinkField[];
+  dataFields?: EnrichedDataField[];
 };
 
-export type EnrichedBormRelation = Omit<BormRelation, 'linkFields'> & {
+export type EnrichedBormRelation = Omit<
+  BormRelation,
+  'linkFields' | 'dataFields'
+> & {
   thingType: 'relation';
   name: string;
   computedFields: string[];
   linkFields?: EnrichedLinkField[];
+  dataFields?: EnrichedDataField[];
   roles: { [key: string]: EnrichedRoleField };
 };
 
@@ -138,15 +146,15 @@ export type EnrichedLinkField = BormField & {
 } & (
     | {
         target: 'role';
-        filter?: Filter | Filter[]; // if specified, filters the things, if not, we get every entity playing the opposite role
-        oppositeLinkFieldsPlayedBy: LinkedFieldWithThing[]; // these are all the linkfields that play the
+        filter?: Filter | Filter[]; // * if specified, filters the things, if not, we get every entity playing the opposite role
+        oppositeLinkFieldsPlayedBy: LinkedFieldWithThing[]; // * these are all the linkfields that play the
       }
     | {
         target: 'relation';
         oppositeLinkFieldsPlayedBy: Pick<
           LinkedFieldWithThing,
           'thing' | 'thingType' | 'plays'
-        >[]; // just a copy of the information already in base level
+        >[]; // * just a copy of the information already in base level
       }
   );
 
@@ -179,6 +187,11 @@ export type DataField = BormField & {
   validations?: any; // todo
   dbConnectors?: [DBConnector, ...DBConnector[]];
 };
+
+export type EnrichedDataField = DataField & {
+  dbPath: string;
+};
+
 export type ThingType = 'entity' | 'relation' | 'attribute';
 
 export type RightType = 'CREATE' | 'DELETE' | 'UPDATE' | 'LINK' | 'UNLINK';

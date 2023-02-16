@@ -937,6 +937,20 @@ describe('Query', () => {
       },
     ]);
   });
+  it('inheritedAttributes', async () => {
+    expect(client).toBeDefined();
+    const res = await client.query(
+      { $entity: 'God', $id: 'god1' },
+      { noMetadata: true }
+    );
+    expect(res).toEqual({
+      id: 'god1',
+      name: 'Richard David James',
+      email: 'afx@rephlex.com',
+      power: 'mind control',
+      isEvil: true,
+    });
+  });
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();

@@ -9,6 +9,12 @@ email sub attribute, abstract, value string, regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(
 User·email sub email;
 Color·name sub attribute, value string;
 
+# SuperUser
+SuperUser·power sub attribute, value string;
+
+# God
+God·isEvil sub attribute, value boolean;
+
 Space sub entity,
     owns id @key,
     owns name,
@@ -23,6 +29,11 @@ User sub entity,
     plays Space-User:users,
     plays UserTag:users;
 
+SuperUser sub User,
+		owns SuperUser·power;
+
+God sub SuperUser,
+		owns God·isEvil;
 
 # Account
 Account·provider sub attribute, value string;

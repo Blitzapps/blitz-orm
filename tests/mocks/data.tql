@@ -6,7 +6,9 @@ $user-3 isa User, has id "user3", has name "Ann", has User·email "ann@test.com"
 $user-4 isa User, has id "user4", has name "Ben", has User·email "ben@test.com";
 $user-5 isa User, has id "user5", has name "Charlize", has User·email "charlize@test.com";
 
+$superuser-1 isa SuperUser, has id "superuser1", has name "Beatrix Kiddo", has User·email "black.mamba@deadly-viper.com", has SuperUser·power "katana";
 
+$god-1 isa God, has id "god1", has name "Richard David James", has User·email "afx@rephlex.com", has SuperUser·power "mind control", has God·isEvil true;
 
 $post-1 isa Post, has id "post1", has Post·mentions "@Antoine";
 $post-2 isa Post, has id "post2", has Post·mentions "@Antoine", has Post·mentions "@Loic";

@@ -1,6 +1,7 @@
 import { isArray, isString, listify, mapEntries } from 'radash';
 import { ConceptMapGroup } from 'typedb-client';
 
+import { getPath } from '../../helpers';
 import { BQLMutationBlock, EnrichedBormSchema } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation } from '../pipeline';
 
@@ -28,9 +29,7 @@ const extractEntities = (
       if (!attribute) {
         return [];
       }
-      const nameParts = attribute.type.label.name.split('·');
-      const attributeName = nameParts[nameParts.length - 1];
-      return [attributeName, attribute.value];
+      return [getPath(attribute.type.label.name), attribute.value];
     });
     const entity = Object.fromEntries(entityAttributes);
     return {

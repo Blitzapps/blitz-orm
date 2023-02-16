@@ -5,7 +5,6 @@ import { listify } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
-  BormEntity,
   BormSchema,
   BormRelation,
   BQLMutationBlock,
@@ -15,7 +14,17 @@ import type {
   LinkedFieldWithThing,
   ParsedBQLQuery,
   RawBQLQuery,
+  DataField,
+  BormEntity,
 } from './types';
+
+export const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
+  shared ? attribute : `${thing}·${attribute}`;
+
+export const getPath = (dbPath: string) => {
+  const parts = dbPath.split('·');
+  return parts[parts.length - 1];
+};
 
 export const oFind = <
   RemovedKeys extends string,
@@ -45,18 +54,49 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
   const withExtensionsSchema = produce(schema, (draft) =>
     traverse(
       draft,
-      ({ value, meta }: TraversalCallbackContext) => {
-        if (meta.depth === 2 && value.extends) {
+      ({ key, value, meta }: TraversalCallbackContext) => {
+        if (meta.depth !== 2) {
+          return;
+        }
+        if (key) {
+          // * Adding dbPath of local dataFields
+          value.dataFields = value.dataFields?.map((df: DataField) => ({
+            ...df,
+            dbPath: getDbPath(key, df.path, df.shared),
+          }));
+        }
+        if (value.extends) {
           const extendedSchema =
             draft.entities[value.extends] || draft.relations[value.extends];
-
           value as BormEntity | BormRelation;
 
           value.idFields = extendedSchema.idFields
             ? (value.idFields || []).concat(extendedSchema.idFields)
             : value.idFields;
           value.dataFields = extendedSchema.dataFields
-            ? (value.dataFields || []).concat(extendedSchema.dataFields)
+            ? (value.dataFields || []).concat(
+                extendedSchema.dataFields.map((df: DataField) => {
+                  // * Adding dbPath of extended dataFields
+                  let deepExtendedThing = value.extends;
+                  let deepSchema =
+                    schema.entities[deepExtendedThing] ||
+                    schema.relations[deepExtendedThing];
+                  while (
+                    !deepSchema.dataFields?.find(
+                      (deepDf: DataField) => deepDf.path === df.path
+                    )
+                  ) {
+                    deepExtendedThing = deepSchema.extends;
+                    deepSchema =
+                      schema.entities[deepExtendedThing] ||
+                      schema.relations[deepExtendedThing];
+                  }
+                  return {
+                    ...df,
+                    dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+                  };
+                })
+              )
             : value.dataFields;
           value.linkFields = extendedSchema.linkFields
             ? (value.linkFields || []).concat(extendedSchema.linkFields)
@@ -79,30 +119,22 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
       { traversalType: 'breadth-first' }
     )
   );
-
   // #endregion
-  /* console.log(
-    'withExtensionsSchema',
-    JSON.stringify(withExtensionsSchema, null, 2)
-  ); */
 
-  // Gather linkfields
+  // * Gather linkfields
   traverse(schema, ({ key, value, meta }: TraversalCallbackContext) => {
     if (key === 'linkFields') {
       const getThingTypes = () => {
         if (!meta.nodePath) {
           throw new Error('No path');
         }
-        const pathArray = meta.nodePath.split('.');
-        const thingPath = pathArray[0];
-        const thing = pathArray[1];
+        const [thingPath, thing] = meta.nodePath.split('.');
         const thingType =
           thingPath === 'entities'
             ? 'entity'
             : thingPath === 'relations'
             ? 'relation'
             : '';
-
         return {
           thing,
           thingType,
@@ -122,7 +154,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
     }
   });
 
-  // enrich the schema
+  // * Enrich the schema
 
   const enrichedSchema = produce(withExtensionsSchema, (draft) =>
     traverse(draft, ({ value, key, meta }: TraversalCallbackContext) => {
@@ -178,13 +210,11 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 
             // #region FILTERING OPPOSITE LINKFIELDS
             const { filter } = linkField;
-
             // todo: not sure about this
             linkField.oppositeLinkFieldsPlayedBy =
               linkField.oppositeLinkFieldsPlayedBy.filter(
                 (x) => x.target === 'role'
               );
-
             if (filter && Array.isArray(filter)) {
               linkField.oppositeLinkFieldsPlayedBy =
                 linkField.oppositeLinkFieldsPlayedBy.filter((lf) =>
@@ -204,7 +234,6 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
                   // @ts-expect-error
                   (lf) => lf.$role === filter.$role
                 );
-
               linkField.oppositeLinkFieldsPlayedBy =
                 linkField.oppositeLinkFieldsPlayedBy.filter(
                   // @ts-expect-error
@@ -248,7 +277,6 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
   ) as EnrichedBormSchema;
 
   // console.log('enrichedShema', JSON.stringify(enrichedSchema, null, 3));
-
   return enrichedSchema;
 };
 
@@ -279,10 +307,8 @@ export const getCurrentFields = (
   const availableDataFields = currentSchema.dataFields?.map((x) => x.path);
   const availableLinkFields =
     currentSchema.linkFields?.map((x) => x.path) || [];
-
   const availableRoleFields =
     'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
-
   const availableFields = [
     ...(availableDataFields || []),
     ...(availableLinkFields || []),
@@ -319,13 +345,11 @@ export const getCurrentFields = (
         throw new Error(' Wrongly structured query');
       })
     : (listify(node, (k) => k) as string[]);
-
   const localFilterFields = !node.$filter
     ? []
     : listify(node.$filter, (k: string) =>
         k.toString().startsWith('$') ? undefined : k.toString()
       ).filter((x) => x && availableDataFields?.includes(x));
-
   const nestedFilterFields = !node.$filter
     ? []
     : listify(node.$filter, (k: string) =>
@@ -342,11 +366,9 @@ export const getCurrentFields = (
   const unidentifiedFields = [...usedFields, ...localFilterFields].filter(
     (x) => !allowedFields.includes(x)
   );
-
   const localFilters = !node.$filter
     ? {}
     : oFilter(node.$filter, (k, _v) => localFilterFields.includes(k));
-
   const nestedFilters = !node.$filter
     ? {}
     : oFilter(node.$filter, (k, _v) => nestedFilterFields.includes(k));
@@ -368,24 +390,17 @@ export const getLocalFilters = (
   // todo: node?: BQLMutationBlock | ParsedBQLQuery
   node: ParsedBQLQuery
 ) => {
-  const thingPath = currentSchema.defaultDBConnector.path || currentSchema.name;
-
   const localFilters =
     node.$localFilters &&
     listify(node.$localFilters, (k: string, v) => {
       const currentDataField = currentSchema.dataFields?.find(
         (x) => x.path === k
       );
-      const dbField: string = currentDataField?.shared
-        ? k
-        : `${thingPath}·${k}`;
-
-      return `has ${dbField} '${v}'`;
+      return `has ${currentDataField?.dbPath} '${v}'`;
     });
   const localFiltersTql = localFilters?.length
     ? `, ${localFilters.join(',')}`
     : '';
-
   return localFiltersTql;
 };
 

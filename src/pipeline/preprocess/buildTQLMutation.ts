@@ -29,7 +29,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const op = node.$op as string;
     const id = node.$tempId || node.$id; // by default is $id but we use tempId when client specified one
     const currentSchema = getCurrentSchema(schema, node);
-
     const thingDbPath =
       currentSchema.defaultDBConnector?.path || node.$entity || node.$relation;
 
@@ -53,9 +52,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         // throw new Error('noFieldDbPath');
         return ``;
       }
-      const dbField: string = currentDataField.shared
-        ? fieldDbPath
-        : `${thingDbPath}·${fieldDbPath}`;
+      const dbField = currentDataField.dbPath;
 
       if (['TEXT', 'ID', 'EMAIL'].includes(currentDataField.contentType)) {
         return `has ${dbField} '${v}'`;
@@ -93,9 +90,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         // throw new Error('noFieldDbPath');
         return ``;
       }
-      const dbField: string = currentDataField.shared
-        ? fieldDbPath
-        : `${thingDbPath}·${fieldDbPath}`;
+      const dbField = currentDataField.dbPath;
 
       return `{${attributesVar} isa ${dbField};}`;
     }).filter((x) => x);
