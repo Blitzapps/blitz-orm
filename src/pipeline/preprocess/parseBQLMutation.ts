@@ -1,6 +1,6 @@
 import produce from 'immer';
 import { getNodeByPath, TraversalCallbackContext, traverse } from 'object-traversal';
-import { isObject, listify, mapEntries, pick, shake } from 'radash';
+import { isArray, isObject, listify, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
@@ -437,7 +437,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           // console.log('rolesObjFiltered', rolesObjFiltered);
 
           const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
-            // todo cardinality = MANY
+            if (isArray(v)) {
+              // * Replace the array of objects with an array of ids
+              return [k, v.map((vNested: any) => vNested.$id || vNested)];
+            }
             return [k, v.$id || v];
           });
 

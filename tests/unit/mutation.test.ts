@@ -420,6 +420,19 @@ describe('Mutation init', () => {
       isEvil: false,
     });
   });
+  it('multipleRolesInsertion', async () => {
+    expect(bormClient).toBeDefined();
+    await bormClient.mutate(
+      { $relation: 'Space-User', id: 'u1-s1-s2', users: 'user1', spaces: ['space-1', 'space-2'] },
+      { noMetadata: true }
+    );
+    const res = await bormClient.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
+    expect(res).toEqual({
+      id: 'u1-s1-s2',
+      spaces: ['space-1', 'space-2'],
+      users: ['user1'],
+    });
+  });
 
   /* it('l6 [unlink, all, nested] unlink all', async () => {
     expect(bormClient).toBeDefined();
