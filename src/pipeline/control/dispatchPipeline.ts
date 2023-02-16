@@ -32,9 +32,7 @@ export const dispatchPipeline: PipelineOperation = async (req, res) => {
     return;
   }
 
-  const expandedLinkAndRoleFields = $fields.filter(
-    (f) => typeof f !== 'string' && f.$path
-  );
+  const expandedLinkAndRoleFields = $fields.filter((f) => typeof f !== 'string' && f.$path);
 
   // Filter by field in query that has $path == should be expanded
   const nestedThingsByLF =
@@ -89,28 +87,18 @@ export const dispatchPipeline: PipelineOperation = async (req, res) => {
       ) as Partial<RawBQLQuery>;
 
       const localIdsTemp = $FieldsObj?.$id;
-      const localIds = !localIdsTemp
-        ? []
-        : Array.isArray(localIdsTemp)
-        ? localIdsTemp
-        : [localIdsTemp];
+      const localIds = !localIdsTemp ? [] : Array.isArray(localIdsTemp) ? localIdsTemp : [localIdsTemp];
       const localFilters = $FieldsObj?.$filter;
 
       // use only common ids between localIds and ids arrays
-      const commonIds = !localIds.length
-        ? resultIds
-        : localIds.filter((id) => resultIds.includes(id));
+      const commonIds = !localIds.length ? resultIds : localIds.filter((id) => resultIds.includes(id));
 
       const newBqlRequest = {
         query: {
           $id: commonIds,
           $fields: $FieldsObj?.$fields,
-          ...(currentSchema.thingType === 'entity'
-            ? { $entity: currentSchema }
-            : {}),
-          ...(currentSchema.thingType === 'relation'
-            ? { $relation: currentSchema }
-            : {}),
+          ...(currentSchema.thingType === 'entity' ? { $entity: currentSchema } : {}),
+          ...(currentSchema.thingType === 'relation' ? { $relation: currentSchema } : {}),
           ...(localFilters ? { $localFilters: localFilters } : {}),
           // ...(nestedFilter ? { $nestedFilters: nestedFilters } : {}),
         },

@@ -9,11 +9,9 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     throw new Error('BQL query not parsed');
   }
   const { query } = bqlRequest;
-  const currentThingSchema =
-    '$entity' in query ? query.$entity : query.$relation;
+  const currentThingSchema = '$entity' in query ? query.$entity : query.$relation;
 
-  const thingPath =
-    currentThingSchema.defaultDBConnector.path || currentThingSchema.name;
+  const thingPath = currentThingSchema.defaultDBConnector.path || currentThingSchema.name;
 
   // todo: composite Ids
   if (!currentThingSchema.idFields) {
@@ -47,13 +45,8 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
   const rolesObj = allRoles.map((role) => {
     // todo role played by multiple linkfields
     // if all roles are played by the same thing, thats fine
-    if (
-      !role.schema.playedBy ||
-      [...new Set(role.schema.playedBy?.map((x) => x.thing))].length !== 1
-    ) {
-      throw new Error(
-        'Unsupported: Role played by multiple linkfields or none'
-      );
+    if (!role.schema.playedBy || [...new Set(role.schema.playedBy?.map((x) => x.thing))].length !== 1) {
+      throw new Error('Unsupported: Role played by multiple linkfields or none');
     }
     const roleThingName = role.schema.playedBy[0].thing;
     return {
@@ -69,20 +62,14 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     const tarRel = linkField.relation;
     const relVar = `$${tarRel}`;
 
-    const relationMatchStart = `${dirRel ? relVar : ''} (${
-      linkField.plays
-    }: $${thingPath}`;
-    const relationMatchOpposite = linkField.oppositeLinkFieldsPlayedBy.map(
-      (link) => (!dirRel ? `${link.plays}: $${link.thing}` : null)
+    const relationMatchStart = `${dirRel ? relVar : ''} (${linkField.plays}: $${thingPath}`;
+    const relationMatchOpposite = linkField.oppositeLinkFieldsPlayedBy.map((link) =>
+      !dirRel ? `${link.plays}: $${link.thing}` : null
     );
 
-    const roles = [relationMatchStart, ...relationMatchOpposite]
-      .filter((x) => x)
-      .join(',');
+    const roles = [relationMatchStart, ...relationMatchOpposite].filter((x) => x).join(',');
 
-    const relationPath =
-      schema.relations[linkField.relation].defaultDBConnector.path ||
-      linkField.relation;
+    const relationPath = schema.relations[linkField.relation].defaultDBConnector.path || linkField.relation;
 
     const relationMatchEnd = `) isa ${relationPath};`;
     const relationIdFilters = linkField.oppositeLinkFieldsPlayedBy

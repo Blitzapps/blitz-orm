@@ -1,22 +1,18 @@
 import { isArray, isString, listify, mapEntries } from 'radash';
 import { ConceptMapGroup } from 'typedb-client';
 
+import { getPath } from '../../helpers';
 import { BQLMutationBlock, EnrichedBormSchema } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation } from '../pipeline';
 
-const extractEntities = (
-  conceptMapGroups: ConceptMapGroup[],
-  schema: EnrichedBormSchema
-): Entity[] => {
+const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
   // * Construct entities from the concept map group array. Each concept map group refers to a single BORM entity
   const bormEntities = conceptMapGroups.map((conceptMapGroup) => {
     // * Match the group as the main entity
     const conceptMaps = [...conceptMapGroup.conceptMaps];
     const typeDBEntity = conceptMapGroup.owner.asThing();
     const thingName = typeDBEntity.type.label.name;
-    const currentSchema = schema.entities[thingName]
-      ? schema.entities[thingName]
-      : schema.relations[thingName];
+    const currentSchema = schema.entities[thingName] ? schema.entities[thingName] : schema.relations[thingName];
 
     if (!currentSchema.idFields) {
       throw new Error(`No idFields defined for ${thingName}`);
@@ -28,9 +24,7 @@ const extractEntities = (
       if (!attribute) {
         return [];
       }
-      const nameParts = attribute.type.label.name.split('·');
-      const attributeName = nameParts[nameParts.length - 1];
-      return [attributeName, attribute.value];
+      return [getPath(attribute.type.label.name), attribute.value];
     });
     const entity = Object.fromEntries(entityAttributes);
     return {
@@ -42,18 +36,12 @@ const extractEntities = (
   return bormEntities;
 };
 
-const extractRelations = (
-  conceptMapGroups: ConceptMapGroup[],
-  entityNames: string[]
-): Map<EntityName, ID>[] => {
+const extractRelations = (conceptMapGroups: ConceptMapGroup[], entityNames: string[]): Map<EntityName, ID>[] => {
   const relations = conceptMapGroups.flatMap((conceptMapGroup) => {
     const relationsInGroup = conceptMapGroup.conceptMaps.map((conceptMap) => {
       const link = new Map();
       entityNames.forEach((entityName) => {
-        const id = conceptMap
-          .get(`${entityName}_id`)
-          ?.asAttribute()
-          .value.toString();
+        const id = conceptMap.get(`${entityName}_id`)?.asAttribute().value.toString();
 
         if (id) link.set(entityName, id);
       });
@@ -71,14 +59,8 @@ const extractRoles = (
 ): { ownerId: string; path: string; roleId: string }[] => {
   const roles = conceptMapGroups.flatMap((conceptMapGroup) => {
     const rolesInGroup = conceptMapGroup.conceptMaps.map((conceptMap) => {
-      const ownerId = conceptMap
-        .get(`${ownerPath}_id`)
-        ?.asAttribute()
-        .value.toString();
-      const roleId = conceptMap
-        .get(`${rolePath}_id`)
-        ?.asAttribute()
-        .value.toString();
+      const ownerId = conceptMap.get(`${ownerPath}_id`)?.asAttribute().value.toString();
+      const roleId = conceptMap.get(`${rolePath}_id`)?.asAttribute().value.toString();
       return {
         ownerId,
         path: rolePath,
@@ -104,9 +86,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   if (!query) {
     if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
       // if no insertions and no delete operations
-      throw new Error(
-        'Nothing has changed in DB, probably one of the ids specified in the mutation does not exist'
-      );
+      throw new Error('Nothing has changed in DB, probably one of the ids specified in the mutation does not exist');
     }
     const { mutation } = bqlRequest;
     if (!mutation) {
@@ -118,18 +98,14 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     const expected = [...mutation.things, ...mutation.edges];
     const result = expected
       .map((x) => {
-        const currentNode = rawTqlRes.insertions?.[0].get(
-          `${x.$tempId || x.$id}`
-        );
+        const currentNode = rawTqlRes.insertions?.[0].get(`${x.$tempId || x.$id}`);
         // console.log('current:', JSON.stringify(x));
         if (x.$op === 'create' || x.$op === 'update' || x.$op === 'link') {
           if (
             !currentNode?.asThing().iid
             // deletions are not confirmed in typeDB
           ) {
-            throw new Error(
-              `Thing not received on mutation: ${JSON.stringify(x)}`
-            );
+            throw new Error(`Thing not received on mutation: ${JSON.stringify(x)}`);
           }
 
           const dbIdd = currentNode?.asThing().iid;
@@ -177,9 +153,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
       // TODO: Multiple inverse roles
       (_k, v) => {
         if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
-          throw new Error(
-            'a role can be played by two entities throws the same relation'
-          );
+          throw new Error('a role can be played by two entities throws the same relation');
         }
         if (!v.playedBy) throw new Error('Role not being played by nobody');
         return v.playedBy[0].thing;
@@ -255,8 +229,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   });
 
   roles?.forEach((role) => {
-    const ownerSchema =
-      schema.relations[role.name] || schema.entities[role.name];
+    const ownerSchema = schema.relations[role.name] || schema.entities[role.name];
     role.links.forEach((link) => {
       // Role caching - role step
       const cachedLinks = cache.roleLinks.get(link.ownerId) || {};

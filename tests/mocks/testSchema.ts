@@ -83,6 +83,28 @@ export const testSchema: BormSchema = {
         },
       ],
     },
+    SuperUser: {
+      extends: 'User',
+      defaultDBConnector: { id: 'default' },
+      dataFields: [
+        {
+          path: 'power',
+          contentType: 'TEXT',
+          cardinality: 'ONE',
+        },
+      ],
+    },
+    God: {
+      extends: 'SuperUser',
+      defaultDBConnector: { id: 'default' },
+      dataFields: [
+        {
+          path: 'isEvil',
+          contentType: 'BOOLEAN',
+          cardinality: 'ONE',
+        },
+      ],
+    },
     Space: {
       idFields: ['id'],
       defaultDBConnector: { id: 'default' },

@@ -3,6 +3,39 @@ import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
 import { deepSort } from '../helpers/matchers';
 
+const firstUser = {
+  $entity: 'User',
+  name: 'John Doe',
+  email: 'wrong email',
+  id: undefined,
+};
+
+const secondUser = {
+  $entity: 'User',
+  name: 'Jane Doe',
+  email: 'jane@test.com',
+  id: undefined,
+};
+
+const godUser = {
+  $entity: 'God',
+  id: 'squarepusher',
+  name: 'Tom Jenkinson',
+  email: 'tom@warp.com',
+  power: 'rhythm',
+  isEvil: false,
+};
+
+const spaceOne = {
+  id: undefined,
+  name: 'Space 1',
+};
+
+const spaceTwo = {
+  id: undefined,
+  name: 'Space 2',
+};
+
 describe('Mutation init', () => {
   let dbName: string;
   let bormClient: BormClient;
@@ -15,30 +48,6 @@ describe('Mutation init', () => {
     dbName = config.dbName;
     bormClient = config.bormClient;
   }, 15000);
-
-  const firstUser = {
-    $entity: 'User',
-    name: 'John Doe',
-    email: 'wrong email',
-    id: undefined,
-  };
-
-  const secondUser = {
-    $entity: 'User',
-    name: 'Jane Doe',
-    email: 'jane@test.com',
-    id: undefined,
-  };
-
-  const spaceOne = {
-    id: undefined,
-    name: 'Space 1',
-  };
-
-  const spaceTwo = {
-    id: undefined,
-    name: 'Space 2',
-  };
 
   it('b1[create] Basic', async () => {
     expect(bormClient).toBeDefined();
@@ -246,9 +255,7 @@ describe('Mutation init', () => {
     expect(resUser).toBeDefined();
     expect(resUser).toEqual({
       id: 'user5',
-      'user-tags': [
-        { id: expect.any(String), name: 'a tag', group: { color: 'purple' } },
-      ],
+      'user-tags': [{ id: expect.any(String), name: 'a tag', group: { color: 'purple' } }],
     });
   });
   it('l2[link, nested, relation] Create and update 3-level nested', async () => {
@@ -402,6 +409,17 @@ describe('Mutation init', () => {
       color: 'yellow',
     });
   });
+  it('inheritedAttributesMutation', async () => {
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.mutate(godUser, { noMetadata: true });
+    expect(res).toEqual({
+      id: 'squarepusher',
+      name: 'Tom Jenkinson',
+      email: 'tom@warp.com',
+      power: 'rhythm',
+      isEvil: false,
+    });
+  });
 
   /* it('l6 [unlink, all, nested] unlink all', async () => {
     expect(bormClient).toBeDefined();
@@ -437,10 +455,7 @@ describe('Mutation init', () => {
         $entity: 'User',
         name: 'Peter',
         email: 'Peter@test.ru',
-        accounts: [
-          { provider: 'google' },
-          { $op: 'create', $tempId: 'acc1', provider: 'facebook' },
-        ],
+        accounts: [{ provider: 'google' }, { $op: 'create', $tempId: 'acc1', provider: 'facebook' }],
       },
       {
         $tempId: 'us1',

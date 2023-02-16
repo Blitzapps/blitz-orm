@@ -4,13 +4,7 @@ import { TypeDB, SessionType } from 'typedb-client';
 import { defaultConfig } from './default.config';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
-import {
-  BormConfig,
-  BormSchema,
-  DBHandles,
-  RawBQLMutation,
-  RawBQLQuery,
-} from './types';
+import { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
 
 export * from './types';
 
@@ -53,9 +47,7 @@ class BormClient {
           } catch (sessionErr: any) {
             const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
               // eslint-disable-next-line no-underscore-dangle
-              (sessionErr.messageTemplate?._messageBody() ||
-                sessionErr.message) ??
-              "Can't create TypeDB Session"
+              (sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
             }`;
             throw new Error(message);
           }
@@ -91,10 +83,7 @@ class BormClient {
     return queryPipeline(query, qConfig, this.schema, this.dbHandles);
   };
 
-  mutate = async (
-    mutation: RawBQLMutation | RawBQLMutation[],
-    mutationConfig?: any
-  ) => {
+  mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any) => {
     await this.#enforceConnection();
     const mConfig = {
       ...this.config,

@@ -3,18 +3,10 @@ import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
 import { getCurrentFields, oFilter } from '../../helpers';
-import {
-  BormConfig,
-  BQLFieldObj,
-  BQLMutationBlock,
-  RawBQLQuery,
-} from '../../types';
+import { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
 
-const cleanOutput = (
-  obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[],
-  config: BormConfig
-) =>
+const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
   produce(obj, (draft) =>
     traverse(
       draft,
@@ -48,21 +40,14 @@ const cleanOutput = (
     )
   );
 
-const filterChildrenEntities = (
-  things: [string, Entity][],
-  ids: string | string[],
-  node: RawBQLQuery,
-  path: string
-) =>
+const filterChildrenEntities = (things: [string, Entity][], ids: string | string[], node: RawBQLQuery, path: string) =>
   things
     .map(([id, entity]) => {
       if (!ids) return null;
       if (!ids.includes(id)) return null;
       if (!node.$fields) return id;
       if (node.$fields.includes(path)) return id;
-      const currentFieldConf = node.$fields.find(
-        (f) => isObject(f) && f.$path === path
-      ) as BQLFieldObj;
+      const currentFieldConf = node.$fields.find((f) => isObject(f) && f.$path === path) as BQLFieldObj;
 
       if (currentFieldConf) {
         const onlyMetadataEntity = {
@@ -120,14 +105,12 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
   // @ts-expect-error
   const filterFields = listify(query.$filter, (x) => x);
   const atLeastOneUnique = filterFields.some(
-    (x) =>
-      thingSchema.dataFields?.find((y) => y.path === x)?.validations?.unique
+    (x) => thingSchema.dataFields?.find((y) => y.path === x)?.validations?.unique
   );
 
   const monoOutput =
     !Array.isArray(bqlRequest.query) &&
-    ((bqlRequest.query?.$id && !Array.isArray(bqlRequest.query?.$id)) ||
-      atLeastOneUnique);
+    ((bqlRequest.query?.$id && !Array.isArray(bqlRequest.query?.$id)) || atLeastOneUnique);
   // todo: add the other two cases
   // || bqlRequest.query?.$filter?.[filtered by an id field]);
   // || !bqlRequest.query.limit !== 1;
@@ -155,10 +138,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
       if (thingName) {
         // INIT
         const currentIds = Array.isArray(value.$id) ? value.$id : [value.$id];
-        const currentSchema =
-          '$relation' in value
-            ? schema.relations[value.$relation]
-            : schema.entities[value.$entity];
+        const currentSchema = '$relation' in value ? schema.relations[value.$relation] : schema.entities[value.$entity];
 
         const { dataFields, roleFields } = getCurrentFields(currentSchema);
 
@@ -169,9 +149,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
         [...currentEntities].forEach(([id, entity]) => {
           if (currentIds.includes(id)) {
             // if $fields is present, only return those fields, if not, everything
-            const queriedDataFields = value.$fields
-              ? value.$fields
-              : dataFields;
+            const queriedDataFields = value.$fields ? value.$fields : dataFields;
 
             listify(entity, (k, v) => {
               if (k.startsWith('$')) return;
@@ -183,9 +161,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
             // #endregion
             // #region ROLE FIELDS
             const links = cache.roleLinks.get(id);
-            const flatRoleFields = value.$fields
-              ? value.$fields.filter((x) => typeof x === 'string')
-              : roleFields;
+            const flatRoleFields = value.$fields ? value.$fields.filter((x) => typeof x === 'string') : roleFields;
 
             const embeddedRoleFields =
               value.$fields
@@ -195,16 +171,11 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 
             Object.entries(links || {}).forEach(([rolePath, linkedIds]) => {
               // if not listed, skip
-              if (
-                ![...flatRoleFields, ...embeddedRoleFields].includes(rolePath)
-              ) {
+              if (![...flatRoleFields, ...embeddedRoleFields].includes(rolePath)) {
                 return;
               }
-              if (!('roles' in currentSchema))
-                throw new Error('No roles in schema');
-              const uniqueLinkedIds = !Array.isArray(linkedIds)
-                ? [linkedIds]
-                : [...new Set(linkedIds)];
+              if (!('roles' in currentSchema)) throw new Error('No roles in schema');
+              const uniqueLinkedIds = !Array.isArray(linkedIds) ? [linkedIds] : [...new Set(linkedIds)];
 
               const { cardinality, playedBy } = currentSchema.roles[rolePath];
 
@@ -213,12 +184,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
               const children = thingNames?.flatMap((x) => {
                 const thingEntities = cache.entities.get(x);
                 if (!thingEntities) return [];
-                return filterChildrenEntities(
-                  [...thingEntities],
-                  uniqueLinkedIds,
-                  value,
-                  rolePath
-                );
+                return filterChildrenEntities([...thingEntities], uniqueLinkedIds, value, rolePath);
               });
 
               if (children?.length) {
@@ -257,9 +223,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 
             if (linkField.target === 'relation') {
               const targetRelation = tunnel[0];
-              const targetRelationThings = cache.relations.get(
-                linkField.relation
-              );
+              const targetRelationThings = cache.relations.get(linkField.relation);
               // console.log('currentIds', currentIds);
               const matchedLinks = !targetRelationThings
                 ? []
@@ -271,9 +235,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     })
                     .map((x) => x.get(targetRelation.thing));
               // console.log('matchedLinks', matchedLinks);
-              const targetRelationEntities = cache.entities.get(
-                targetRelation.thing
-              );
+              const targetRelationEntities = cache.entities.get(targetRelation.thing);
 
               if (!targetRelationEntities) return null;
               const children = filterChildrenEntities(

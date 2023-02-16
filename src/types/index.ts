@@ -31,10 +31,7 @@ export type DBConnector = {
   as?: string;
 };
 
-type TypeDBHandles = Map<
-  string,
-  { client: TypeDBClient; session: TypeDBSession }
->;
+type TypeDBHandles = Map<string, { client: TypeDBClient; session: TypeDBSession }>;
 
 export type DBHandles = {
   typeDB: TypeDBHandles;
@@ -72,20 +69,22 @@ export type BormRelation = BormEntity & {
   roles?: { [key: string]: RoleField };
 };
 
-export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields'> & {
+export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
   extends?: string;
   idFields: string[];
   thingType: 'entity';
   name: string;
   computedFields: string[];
   linkFields?: EnrichedLinkField[];
+  dataFields?: EnrichedDataField[];
 };
 
-export type EnrichedBormRelation = Omit<BormRelation, 'linkFields'> & {
+export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields'> & {
   thingType: 'relation';
   name: string;
   computedFields: string[];
   linkFields?: EnrichedLinkField[];
+  dataFields?: EnrichedDataField[];
   roles: { [key: string]: EnrichedRoleField };
 };
 
@@ -108,8 +107,7 @@ export type LinkedFieldWithThing = LinkField & {
 };
 
 type RequireAtLeastOne<T> = {
-  [K in keyof T]-?: Required<Pick<T, K>> &
-    Partial<Pick<T, Exclude<keyof T, K>>>;
+  [K in keyof T]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<keyof T, K>>>;
 }[keyof T];
 
 export type LinkFilter = {
@@ -138,15 +136,12 @@ export type EnrichedLinkField = BormField & {
 } & (
     | {
         target: 'role';
-        filter?: Filter | Filter[]; // if specified, filters the things, if not, we get every entity playing the opposite role
-        oppositeLinkFieldsPlayedBy: LinkedFieldWithThing[]; // these are all the linkfields that play the
+        filter?: Filter | Filter[]; // * if specified, filters the things, if not, we get every entity playing the opposite role
+        oppositeLinkFieldsPlayedBy: LinkedFieldWithThing[]; // * these are all the linkfields that play the
       }
     | {
         target: 'relation';
-        oppositeLinkFieldsPlayedBy: Pick<
-          LinkedFieldWithThing,
-          'thing' | 'thingType' | 'plays'
-        >[]; // just a copy of the information already in base level
+        oppositeLinkFieldsPlayedBy: Pick<LinkedFieldWithThing, 'thing' | 'thingType' | 'plays'>[]; // * just a copy of the information already in base level
       }
   );
 
@@ -179,6 +174,11 @@ export type DataField = BormField & {
   validations?: any; // todo
   dbConnectors?: [DBConnector, ...DBConnector[]];
 };
+
+export type EnrichedDataField = DataField & {
+  dbPath: string;
+};
+
 export type ThingType = 'entity' | 'relation' | 'attribute';
 
 export type RightType = 'CREATE' | 'DELETE' | 'UPDATE' | 'LINK' | 'UNLINK';
@@ -214,8 +214,7 @@ export type RelationClassType = 'SYMMETRICAL' | 'OWNED';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
-type WithRequired<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> &
-  RequiredKey<T, K>;
+type WithRequired<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & RequiredKey<T, K>;
 
 export type BQLMutationBlock = {
   [key: string]: any;
@@ -224,15 +223,9 @@ export type BQLMutationBlock = {
   $tempId?: string;
   $op?: string;
 } & ({ $entity: string } | { $relation: string }); // | { $attribute: string });
-export type FilledBQLMutationBlock = WithRequired<
-  BQLMutationBlock,
-  '$tempId' | '$op'
->;
+export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'>;
 
-export type BQLFieldObj = { $path: string } & Omit<
-  RawBQLQuery,
-  '$entity' | '$relation'
->;
+export type BQLFieldObj = { $path: string } & Omit<RawBQLQuery, '$entity' | '$relation'>;
 export type BQLField = string | BQLFieldObj;
 
 export type RawBQLQuery = {
@@ -279,10 +272,7 @@ export type TQLEntityMutation = {
   relations?: { relation: string; entity: string; request: string }[];
 };
 
-export type BQLResponseSingle =
-  | (({ $entity: string; $id: string } | undefined) & Record<string, any>)
-  | string
-  | null;
+export type BQLResponseSingle = (({ $entity: string; $id: string } | undefined) & Record<string, any>) | string | null;
 
 export type BQLResponseMulti = BQLResponseSingle[];
 

@@ -1,11 +1,11 @@
 {
   "name": "@blitznocode/blitz-orm",
-  "version": "0.0.43",
+  "version": "0.0.45",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsup --watch",
-    "build": "tsup",
+    "build": "tsup --minify",
     "lint": "eslint . --ext .ts,.cjs",
     "lint-staged": "lint-staged --concurrent false",
     "types": "tsc --noEmit",
@@ -62,7 +62,9 @@
     "test": "tests"
   },
   "keywords": [
-    "ORM", "database", "graph-database"
+    "ORM",
+    "database",
+    "graph-database"
   ],
   "author": "blitznocode"
 }

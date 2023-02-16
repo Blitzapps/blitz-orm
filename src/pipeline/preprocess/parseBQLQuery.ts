@@ -18,17 +18,10 @@ export const parseBQLQuery: PipelineOperation = async (req) => {
   }
 
   // @ts-expect-error
-  const { unidentifiedFields, localFilters, nestedFilters } = getCurrentFields(
-    currentSchema,
-    rawBqlQuery
-  );
+  const { unidentifiedFields, localFilters, nestedFilters } = getCurrentFields(currentSchema, rawBqlQuery);
 
   if (unidentifiedFields && unidentifiedFields.length > 0) {
-    throw new Error(
-      `Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(
-        rawBqlQuery
-      )}`
-    );
+    throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(rawBqlQuery)}`);
   }
 
   req.bqlRequest = {
@@ -37,12 +30,8 @@ export const parseBQLQuery: PipelineOperation = async (req) => {
     query: {
       ...req.rawBqlRequest,
       // $entity: { name: defaultPath, definition: bormEntity },
-      ...(currentSchema.thingType === 'entity'
-        ? { $entity: currentSchema }
-        : {}),
-      ...(currentSchema.thingType === 'relation'
-        ? { $relation: currentSchema }
-        : {}),
+      ...(currentSchema.thingType === 'entity' ? { $entity: currentSchema } : {}),
+      ...(currentSchema.thingType === 'relation' ? { $relation: currentSchema } : {}),
       ...(localFilters ? { $localFilters: localFilters } : {}),
       ...(nestedFilters ? { $nestedFilters: nestedFilters } : {}),
     },
