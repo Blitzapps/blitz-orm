@@ -29,8 +29,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const op = node.$op as string;
     const id = node.$tempId || node.$id; // by default is $id but we use tempId when client specified one
     const currentSchema = getCurrentSchema(schema, node);
-    const thingDbPath =
-      currentSchema.defaultDBConnector?.path || node.$entity || node.$relation;
+    const thingDbPath = currentSchema.defaultDBConnector?.path || node.$entity || node.$relation;
 
     const { idFields } = currentSchema;
 
@@ -42,9 +41,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // @ts-expect-error
       if (k.startsWith('$') || k === idField || !v) return '';
       // if (k.startsWith('$') || !v) return '';
-      const currentDataField = currentSchema.dataFields?.find(
-        (x) => x.path === k
-      );
+      const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
       // console.log('currentDataField', currentDataField);
       const fieldDbPath = currentDataField?.path;
 
@@ -69,9 +66,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         }
         return `has ${dbField} ${new Date(v).toISOString().replace('Z', '')}`;
       }
-      throw new Error(
-        `Unsupported contentType ${currentDataField.contentType}`
-      );
+      throw new Error(`Unsupported contentType ${currentDataField.contentType}`);
     }).filter((x) => x);
 
     const attributesVar = `$${id}-atts`;
@@ -80,9 +75,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // @ts-expect-error
       if (k.startsWith('$') || k === idField || !v) return '';
       // if (k.startsWith('$') || !v) return '';
-      const currentDataField = currentSchema.dataFields?.find(
-        (x) => x.path === k
-      );
+      const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
       // console.log('currentDataField', currentDataField);
       const fieldDbPath = currentDataField?.path;
 
@@ -97,13 +90,10 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
     // todo: composite ids
     const idFieldValue = node[idField] || node.$id;
-    const idDataField = currentSchema.dataFields?.find(
-      (x) => x.path === idField
-    );
+    const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
 
     // todo default could be just a value, using the function by default
-    const idDefaultValue =
-      node.$op === 'create' ? idDataField?.default?.value() : null;
+    const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
 
     const idValue = idFieldValue || idDefaultValue;
 
@@ -112,21 +102,16 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         [`has ${idField} '${idValue}'`]
       : [];
 
-    const allAttributes = [...idAttributes, ...attributes]
-      .filter((x) => x)
-      .join(',');
+    const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
 
     const getDeletionMatch = () => {
       if (node.$tempId) return '';
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
       if (op === 'delete' || op === 'unlink' || op === 'noop') {
-        return `$${id} isa ${[thingDbPath, ...idAttributes]
-          .filter((x) => x)
-          .join(',')};`;
+        return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       if (op === 'update') {
-        if (!matchAttributes.length)
-          throw new Error('update without attributes');
+        if (!matchAttributes.length) throw new Error('update without attributes');
         return `$${id} isa ${thingDbPath}, ${
           idAttributes[0] // todo: Multiple attributes
         }, has ${attributesVar};
@@ -140,9 +125,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
       if (node.$tempId) return '';
       if (op === 'update' || op === 'link' || op === 'noop') {
-        return `$${id} isa ${[thingDbPath, ...idAttributes]
-          .filter((x) => x)
-          .join(',')};`;
+        return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       return '';
     };
@@ -154,9 +137,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         insertionMatch: getInsertionMatch(),
         insertion:
           op === 'create'
-            ? `$${id} isa ${[thingDbPath, allAttributes]
-                .filter((x) => x)
-                .join(',')};`
+            ? `$${id} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};`
             : op === 'update' && attributes.length
             ? `$${id} ${attributes.join(',')};`
             : '',
@@ -185,11 +166,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const id = node.$tempId || node.$id; // by default is $id but we use tempId when client specified one
     const currentSchema = getCurrentSchema(schema, node);
 
-    const relationDbPath =
-      currentSchema.defaultDBConnector?.path || node.$relation;
+    const relationDbPath = currentSchema.defaultDBConnector?.path || node.$relation;
 
-    const roleFields =
-      'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
+    const roleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
 
     const roleDbPaths =
       node.$relation &&
@@ -212,22 +191,15 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       .filter((x) => x)
       .flat();
 
-    const fromRoleFieldsTql = fromRoleFields.map((x) =>
-      x ? `${x.path}: $${x.id}` : ''
-    );
+    const fromRoleFieldsTql = fromRoleFields.map((x) => (x ? `${x.path}: $${x.id}` : ''));
 
-    const roles =
-      fromRoleFields.length > 0 ? `( ${fromRoleFieldsTql.join(' , ')} )` : '';
+    const roles = fromRoleFields.length > 0 ? `( ${fromRoleFieldsTql.join(' , ')} )` : '';
 
     // console.log('roles', roles);
 
     const relationTql = !roles
       ? ''
-      : `$${id} ${roles} ${
-          node[Symbol.for('edgeType') as any] === 'linkField'
-            ? `isa ${relationDbPath}`
-            : ''
-        }`;
+      : `$${id} ${roles} ${node[Symbol.for('edgeType') as any] === 'linkField' ? `isa ${relationDbPath}` : ''}`;
 
     const getInsertions = () => {
       if (!relationTql) return '';
@@ -271,32 +243,20 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     if (Array.isArray(nodes)) {
       return nodes
         .map((x) => {
-          const { insertionMatch, deletionMatch, insertion, deletion } =
-            typeQL(x);
-          return shake(
-            { insertionMatch, deletionMatch, insertion, deletion },
-            (z) => !z
-          );
+          const { insertionMatch, deletionMatch, insertion, deletion } = typeQL(x);
+          return shake({ insertionMatch, deletionMatch, insertion, deletion }, (z) => !z);
         })
         .filter((y) => y);
     }
-    const { insertionMatch, deletionMatch, insertion, deletion } =
-      typeQL(nodes);
+    const { insertionMatch, deletionMatch, insertion, deletion } = typeQL(nodes);
 
-    return shake(
-      { insertionMatch, deletionMatch, insertion, deletion },
-      (z) => !z
-    );
+    return shake({ insertionMatch, deletionMatch, insertion, deletion }, (z) => !z);
   };
 
   const nodeOperations = toTypeQL(mutation.things);
-  const arrayNodeOperations = Array.isArray(nodeOperations)
-    ? nodeOperations
-    : [nodeOperations];
+  const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
   const edgeOperations = toTypeQL(mutation.edges, 'edges');
-  const arrayEdgeOperations = Array.isArray(edgeOperations)
-    ? edgeOperations
-    : [edgeOperations];
+  const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
   const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
   // console.log('allOperations', allOperations);
 

@@ -13,17 +13,11 @@ export const processIdOperator: PipelineOperation = async (req, res) => {
   if (query.$id && Array.isArray(bqlRes)) {
     if (Array.isArray(query.$id)) {
       const filtered = bqlRes.filter(
-        (row) =>
-          row !== null &&
-          query.$id?.includes(typeof row === 'string' ? row : row.$id)
+        (row) => row !== null && query.$id?.includes(typeof row === 'string' ? row : row.$id)
       );
       res.bqlRes = filtered;
     } else {
-      const found = bqlRes.find(
-        (row) =>
-          row !== null &&
-          (typeof row === 'string' ? row : row.$id) === query.$id
-      );
+      const found = bqlRes.find((row) => row !== null && (typeof row === 'string' ? row : row.$id) === query.$id);
       res.bqlRes = found ?? null;
     }
   }

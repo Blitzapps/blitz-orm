@@ -17,17 +17,13 @@ export const init = async () => {
   try {
     const schemaSession = await client.session(dbName, SessionType.SCHEMA);
     const dataSession = await client.session(dbName, SessionType.DATA);
-    const schemaTransaction = await schemaSession.transaction(
-      TransactionType.WRITE
-    );
+    const schemaTransaction = await schemaSession.transaction(TransactionType.WRITE);
 
     await schemaTransaction.query.define(tqlSchema);
     await schemaTransaction.commit();
     await schemaTransaction.close();
     await schemaSession.close();
-    const dataTransaction = await dataSession.transaction(
-      TransactionType.WRITE
-    );
+    const dataTransaction = await dataSession.transaction(TransactionType.WRITE);
     await dataTransaction.query.insert(tqlData);
     await dataTransaction.commit();
     await dataTransaction.close();

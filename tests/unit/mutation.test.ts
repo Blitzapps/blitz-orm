@@ -255,9 +255,7 @@ describe('Mutation init', () => {
     expect(resUser).toBeDefined();
     expect(resUser).toEqual({
       id: 'user5',
-      'user-tags': [
-        { id: expect.any(String), name: 'a tag', group: { color: 'purple' } },
-      ],
+      'user-tags': [{ id: expect.any(String), name: 'a tag', group: { color: 'purple' } }],
     });
   });
   it('l2[link, nested, relation] Create and update 3-level nested', async () => {
@@ -457,10 +455,7 @@ describe('Mutation init', () => {
         $entity: 'User',
         name: 'Peter',
         email: 'Peter@test.ru',
-        accounts: [
-          { provider: 'google' },
-          { $op: 'create', $tempId: 'acc1', provider: 'facebook' },
-        ],
+        accounts: [{ provider: 'google' }, { $op: 'create', $tempId: 'acc1', provider: 'facebook' }],
       },
       {
         $tempId: 'us1',

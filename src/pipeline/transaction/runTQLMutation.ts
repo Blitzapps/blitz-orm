@@ -7,12 +7,7 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
   if (!tqlRequest) {
     throw new Error('TQL request not built');
   }
-  if (
-    !(
-      (tqlRequest.deletions && tqlRequest.deletionMatches) ||
-      tqlRequest.insertions
-    )
-  ) {
+  if (!((tqlRequest.deletions && tqlRequest.deletionMatches) || tqlRequest.insertions)) {
     throw new Error('TQL request error, no things');
   }
   if (!bqlRequest?.mutation) {
@@ -38,19 +33,14 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
   const tqlInsertion =
     tqlRequest.insertions &&
-    `${
-      tqlRequest.insertionMatches ? `match ${tqlRequest.insertionMatches}` : ''
-    } insert ${tqlRequest.insertions}`;
+    `${tqlRequest.insertionMatches ? `match ${tqlRequest.insertionMatches}` : ''} insert ${tqlRequest.insertions}`;
 
   // does not receive a result
   if (tqlDeletion) mutateTransaction.query.delete(tqlDeletion);
 
-  const insertionsStream =
-    tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
+  const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 
-  const insertionsRes = insertionsStream
-    ? await insertionsStream.collect()
-    : undefined;
+  const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
 
   await mutateTransaction.commit();
   await mutateTransaction.close();

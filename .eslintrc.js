@@ -34,6 +34,7 @@ module.exports = {
           {
             singleQuote: true,
             endOfLine: 'auto',
+            printWidth: 120,
           },
         ],
         'no-nested-ternary': 'off',

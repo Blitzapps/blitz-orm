@@ -66,21 +66,12 @@ type NextPipeline = {
   pipeline: PipelineOperation[];
 };
 
-export type PipelineOperation = (
-  req: Request,
-  res: Response
-) => Promise<void | NextPipeline[]>;
+export type PipelineOperation = (req: Request, res: Response) => Promise<void | NextPipeline[]>;
 
 export type Pipeline = PipelineOperation[];
 
 export const Pipelines: Record<string, Pipeline> = {
-  query: [
-    parseBQLQuery,
-    buildTQLQuery,
-    runTQLQuery,
-    parseTQLRes,
-    dispatchPipeline,
-  ],
+  query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
   mutation: [parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };
 
@@ -105,12 +96,7 @@ const runPipeline = async (
     if (next && Array.isArray(next)) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextPipeline of next) {
-        await runPipeline(
-          nextPipeline.pipeline,
-          nextPipeline.req,
-          nextPipeline.res,
-          false
-        );
+        await runPipeline(nextPipeline.pipeline, nextPipeline.req, nextPipeline.res, false);
       }
     }
   }

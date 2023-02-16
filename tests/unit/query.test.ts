@@ -169,9 +169,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r1[relation] - basic', async () => {
@@ -339,9 +337,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r4[relation, nested, direct] - nested relation direct on relation', async () => {
@@ -393,9 +389,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
@@ -428,9 +422,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
@@ -473,21 +465,14 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r7[relation, nested, direct] - nested on nested', async () => {
     expect(client).toBeDefined();
     const query = {
       $relation: 'UserTag',
-      $fields: [
-        'id',
-        { $path: 'users', $fields: ['id', 'spaces'] },
-        { $path: 'group' },
-        { $path: 'color' },
-      ],
+      $fields: ['id', { $path: 'users', $fields: ['id', 'spaces'] }, { $path: 'group' }, { $path: 'color' }],
     };
     const expectedRes = [
       {
@@ -582,9 +567,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r8[relation, nested, deep] - deep nested', async () => {
@@ -632,9 +615,7 @@ describe('Query', () => {
       noMetadata: true,
     });
     // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      deepRemoveMetaData(expectedRes)
-    );
+    expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
   it('r8[relation, nested, ids]', async () => {
@@ -926,9 +907,7 @@ describe('Query', () => {
         $entity: 'User',
         $id: 'user2',
         name: 'Loic',
-        accounts: [
-          { $entity: 'Account', $id: 'account2-1', provider: 'google' },
-        ],
+        accounts: [{ $entity: 'Account', $id: 'account2-1', provider: 'google' }],
       },
       {
         $entity: 'User',
@@ -939,10 +918,7 @@ describe('Query', () => {
   });
   it('inheritedAttributes', async () => {
     expect(client).toBeDefined();
-    const res = await client.query(
-      { $entity: 'God', $id: 'god1' },
-      { noMetadata: true }
-    );
+    const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
     expect(res).toEqual({
       id: 'god1',
       name: 'Richard David James',

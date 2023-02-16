@@ -3,27 +3,16 @@ import { isObject } from 'radash';
 import type { BormConfig, BQLField, BQLResponseSingle } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
-const filterBQLRes = (
-  row: BQLResponseSingle,
-  config: BormConfig,
-  fields: BQLField[] | undefined
-) =>
+const filterBQLRes = (row: BQLResponseSingle, config: BormConfig, fields: BQLField[] | undefined) =>
   row === null || typeof row === 'string'
     ? row
     : Object.entries(row).reduce((acc, [k, v]): any => {
-        const isMetadataDisabled = !!(
-          config.query?.noMetadata || config.mutation?.noMetadata
-        );
-        const isWhitelisted =
-          !fields || fields.length === 0 || fields.includes(k);
+        const isMetadataDisabled = !!(config.query?.noMetadata || config.mutation?.noMetadata);
+        const isWhitelisted = !fields || fields.length === 0 || fields.includes(k);
         const nestedFields = fields?.find((f) => isObject(f) && f.$path === k);
         const isMetadata = k.startsWith('$');
         const isSymbol = typeof k === 'symbol';
-        if (
-          isSymbol ||
-          (isMetadataDisabled && isMetadata) ||
-          (!isMetadata && !isWhitelisted && !nestedFields)
-        ) {
+        if (isSymbol || (isMetadataDisabled && isMetadata) || (!isMetadata && !isWhitelisted && !nestedFields)) {
           // * Drop property
           return acc;
         }
@@ -66,9 +55,7 @@ export const processFieldsOperator: PipelineOperation = async (req, res) => {
   const initialFields = bqlRequest?.query?.$fields;
   filtered = Array.isArray(filtered)
     ? // @ts-expect-error - isArray checks for array
-      res.bqlRes.map((r: BQLResponseSingle) =>
-        filterBQLRes(r, config, initialFields)
-      )
+      res.bqlRes.map((r: BQLResponseSingle) => filterBQLRes(r, config, initialFields))
     : filterBQLRes(filtered, config, initialFields);
 
   res.bqlRes = filtered;

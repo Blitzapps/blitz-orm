@@ -1,27 +1,20 @@
 import { produce } from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 
-function getCommonKey(
-  obj1: Record<string, any>,
-  obj2: Record<string, any>
-): string | undefined {
+function getCommonKey(obj1: Record<string, any>, obj2: Record<string, any>): string | undefined {
   const keys1 = Object.keys(obj1);
   const keys2 = Object.keys(obj2);
   const commonKeys = keys1.filter((key) => keys2.includes(key));
 
   const commonKeysWithStringOrNumber = commonKeys
-    .find(
-      (key) => typeof obj1[key] === 'string' || typeof obj1[key] === 'number'
-    )
+    .find((key) => typeof obj1[key] === 'string' || typeof obj1[key] === 'number')
     ?.toString();
   if (commonKeysWithStringOrNumber) {
     return commonKeysWithStringOrNumber;
   }
   // todo: skip and filter by children keys?
   if (commonKeys) {
-    throw new Error(
-      'Todo. Meanwhile get id of everything so you can sort by id(or other prop)'
-    );
+    throw new Error('Todo. Meanwhile get id of everything so you can sort by id(or other prop)');
   }
   return undefined;
 }
@@ -38,11 +31,7 @@ const sortArrByIdOrString = (arr: any[], key?: string) =>
       if (cKey) {
         return a[cKey].localeCompare(b[cKey]);
       }
-      throw new Error(
-        `Sorting objects that don't have a common key ${JSON.stringify(
-          a
-        )} ${JSON.stringify(b)}`
-      );
+      throw new Error(`Sorting objects that don't have a common key ${JSON.stringify(a)} ${JSON.stringify(b)}`);
     }
     throw new Error(`in sortArrByIdOrString a:${a} b:${b}`);
   });
