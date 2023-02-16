@@ -1,6 +1,6 @@
 {
   "name": "@blitznocode/blitz-orm",
-  "version": "0.0.43",
+  "version": "0.0.44",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -62,7 +62,9 @@
     "test": "tests"
   },
   "keywords": [
-    "ORM", "database", "graph-database"
+    "ORM",
+    "database",
+    "graph-database"
   ],
   "author": "blitznocode"
 }
