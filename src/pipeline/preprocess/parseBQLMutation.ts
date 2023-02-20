@@ -1,6 +1,6 @@
 import produce from 'immer';
 import { getNodeByPath, TraversalCallbackContext, traverse } from 'object-traversal';
-import { isArray, isObject, listify, mapEntries, pick, shake } from 'radash';
+import { isObject, listify, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
@@ -436,11 +436,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
           // console.log('rolesObjFiltered', rolesObjFiltered);
 
+          /// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
           const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
-            if (isArray(v)) {
-              // * Replace the array of objects with an array of ids
-              return [k, v.map((vNested: any) => vNested.$id || vNested)];
-            }
             return [k, v.$id || v];
           });
 
@@ -451,26 +448,38 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           });
 
           if (Object.keys(rolesObjFiltered).filter((x) => !x.startsWith('$')).length > 0) {
+            // #region 2.1) relations on creation/deletion
             if (val.$op === 'create' || val.$op === 'delete') {
-              // if the relation is being created, then all objects in the roles are actually add
+              /// if the relation is being created, then all objects in the roles are actually add
               const getEdgeOp = () => {
                 if (val.$op === 'create') return 'link';
                 if (val.$op === 'delete') return 'unlink';
                 throw new Error('Unsupported parent of edge op');
               };
 
+              /// group ids when cardinality MANY
+              const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k, v) => {
+                if (Array.isArray(v)) {
+                  /// Replace the array of objects with an array of ids
+                  return [k, v.map((vNested: any) => vNested.$id || vNested)];
+                }
+                return [k, v];
+              });
+
               // todo: validations
-              // 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
+              /// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
               edges.push({
                 ...objWithMetaDataOnly,
                 $relation: val.$relation,
                 $op: getEdgeOp(),
-                ...rolesObjOnlyIds, // override role fields by ids or tempIDs
+                ...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
                 [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
                 [Symbol.for('info')]: 'coming from created or deleted relation',
               });
               return;
             }
+            // #endregion
+            // region 2.2 relations on nested stuff
             if (val.$op === 'noop') {
               const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) =>
                 v.some(
@@ -510,6 +519,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               });
               // return;
             }
+            // #endregion
             // throw new Error('Unsupported direct relation operation');
           }
         }

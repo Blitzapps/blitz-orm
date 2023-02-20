@@ -409,6 +409,37 @@ describe('Mutation init', () => {
       color: 'yellow',
     });
   });
+
+  it('l6 [link] explicit link', async () => {
+    expect(bormClient).toBeDefined();
+    await bormClient.mutate(
+      {
+        $relation: 'UserTagGroup',
+        $id: 'utg-2',
+        tags: [
+          { $op: 'link', $id: 'tag-2' }, // link by id
+        ],
+      },
+      { noMetadata: true }
+    );
+
+    const userTagGroup = await bormClient.query(
+      {
+        $relation: 'UserTagGroup',
+        $id: 'utg-2',
+        $fields: ['id', 'tags'],
+      },
+      { noMetadata: true }
+    );
+    expect(userTagGroup).toBeDefined();
+    // @ts-expect-error
+    expect(deepSort(userTagGroup, 'id')).toMatchObject({
+      id: 'utg-2',
+      tags: ['tag-2', 'tag-3'], // user2 linked in l4
+      // group: undefined,
+      // color: undefined,
+    });
+  });
   it('inheritedAttributesMutation', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.mutate(godUser, { noMetadata: true });
