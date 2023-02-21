@@ -440,6 +440,33 @@ describe('Mutation init', () => {
       // color: undefined,
     });
   });
+
+  it('l8 [unlink,relation] unlink, where edge is the relation', async () => {
+    /// this test depends on other tests, to run independently, comment 'user2'
+    expect(bormClient).toBeDefined();
+
+    await bormClient.mutate(
+      {
+        $relation: 'UserTag',
+        $id: 'tag-2',
+        users: [
+          { $op: 'unlink', $id: ['user3', 'user1', 'user2'] }, // unlink everything
+        ],
+      },
+      { noMetadata: true }
+    );
+
+    const userTags = await bormClient.query(
+      {
+        $relation: 'UserTag',
+        $id: 'tag-2',
+        $fields: ['id', 'users'],
+      },
+      { noMetadata: true }
+    );
+    expect(userTags).toBeDefined();
+    expect(userTags).toBeNull(); // a relation with no edges is null
+  });
   it('inheritedAttributesMutation', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.mutate(godUser, { noMetadata: true });

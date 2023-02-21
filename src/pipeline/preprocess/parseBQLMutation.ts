@@ -501,7 +501,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               // filters the array of objects, taking only those where x.$op === 'unlink'
               const rolesWithUnlinksFiltered = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => [
                 k,
-                v.filter((x) => x.$op === 'unlink' || x.$op === 'delete').map((y) => y.$id),
+                v.filter((x) => x.$op === 'unlink' || x.$op === 'delete').flatMap((y) => y.$id),
               ]);
               const rolesWithReplaces = {};
               [
