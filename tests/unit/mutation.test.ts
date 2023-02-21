@@ -359,7 +359,7 @@ describe('Mutation init', () => {
     // @ts-expect-error
     expect(deepSort(user, 'id')).toMatchObject({
       id: 'user2',
-      'user-tags': ['tag-2', 'tag-3'], // equivalent to $op: link, $id: 'space-1';
+      'user-tags': ['tag-2', 'tag-3', 'tag-4'], // equivalent to $op: link, $id: 'space-1';
     });
   });
 
@@ -410,14 +410,14 @@ describe('Mutation init', () => {
     });
   });
 
-  it('l6 [link] explicit link', async () => {
+  it('l6 [link, many] explicit link to many', async () => {
     expect(bormClient).toBeDefined();
     await bormClient.mutate(
       {
         $relation: 'UserTagGroup',
         $id: 'utg-2',
         tags: [
-          { $op: 'link', $id: 'tag-2' }, // link by id
+          { $op: 'link', $id: ['tag-2', 'tag-4'] }, // link by id
         ],
       },
       { noMetadata: true }
@@ -435,7 +435,7 @@ describe('Mutation init', () => {
     // @ts-expect-error
     expect(deepSort(userTagGroup, 'id')).toMatchObject({
       id: 'utg-2',
-      tags: ['tag-2', 'tag-3'], // user2 linked in l4
+      tags: ['tag-2', 'tag-3', 'tag-4'], // user2 linked in l4
       // group: undefined,
       // color: undefined,
     });
@@ -465,7 +465,7 @@ describe('Mutation init', () => {
     });
   });
 
-  /* it('l6 [unlink, all, nested] unlink all', async () => {
+  /* it('l7 [unlink, all, nested] unlink all', async () => {
     expect(bormClient).toBeDefined();
     await bormClient.mutate(
       {

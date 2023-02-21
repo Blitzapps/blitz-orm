@@ -351,16 +351,19 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           ...(value.$id && { $id: value.$id }),
           ...(value.$tempId && { $tempId: value.$tempId }),
           ...shake(pick(value, dataFieldPaths || [''])),
-          $op: value.$op,
+          $op: value.$op === 'create' || value.$op === 'update' || value.$op === 'delete' ? value.$op : 'noop',
           [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot')],
         };
 
-        if (value.$op === 'create' || value.$op === 'update' || value.$op === 'delete') {
-          nodes.push(dataObj);
+        /// split nodes with multiple ids
+        // ? maybe as todo, to enhance the reasoner parsedBQL to consider multiple ids there, and use "like a|b|c" instead of repeating a lot of ids
+        if (Array.isArray(dataObj.$id)) {
+          dataObj.$id.forEach((id: string) => {
+            nodes.push({ ...dataObj, $id: id });
+          });
         } else {
-          // link and unlink are added as no-op in order to be included in the matches
-          nodes.push({ ...dataObj, $op: 'noop' });
+          nodes.push(dataObj);
         }
 
         // console.log('value', isDraft(value) ? current(value) : value);
@@ -490,7 +493,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               );
               const rolesWithLinksFiltered = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => [
                 k,
-                v.filter((x) => x.$op === 'link' || x.$op === 'create').map((y) => y.$id),
+                v.filter((x) => x.$op === 'link' || x.$op === 'create').flatMap((y) => y.$id),
               ]);
               const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) =>
                 v.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete')
