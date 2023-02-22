@@ -9,6 +9,18 @@ export const name: DataField = {
   contentType: 'TEXT',
 };
 
+export const description: DataField = {
+  shared: true,
+  path: 'description',
+  contentType: 'TEXT',
+  cardinality: 'ONE',
+};
+
+export const string: Omit<DataField, 'path'> = {
+  cardinality: 'ONE',
+  contentType: 'TEXT',
+};
+
 export const id: DataField = {
   shared: true,
   path: 'id',
@@ -47,13 +59,11 @@ export const testSchema: BormSchema = {
       idFields: ['id'], // could be a namecomposite key
       defaultDBConnector: { id: 'default' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
       dataFields: [
-        // dbConnector: {db: TypeDB, type: 'attribute', value: 'User.id'} // each field could be configured with a dbConnectors array, but if it is specified at top level, the id used directly
         { ...id },
         { ...name, rights: ['CREATE', 'UPDATE'] },
         {
           path: 'email',
           cardinality: 'ONE',
-          // dbConnectors: [{ id: 'tbc', path: 'email' }], //no need, if no specified it usses the name
           contentType: 'EMAIL',
           validations: { unique: true },
           rights: ['CREATE'],
@@ -108,11 +118,7 @@ export const testSchema: BormSchema = {
     Space: {
       idFields: ['id'],
       defaultDBConnector: { id: 'default' },
-      dataFields: [
-        // dbConnector: {db: TypeDB, type: 'attribute', value: 'User.id'} // each field could be configured with a dbConnectors array, but if it is specified at top level, the id used directly
-        { ...id },
-        { ...name, rights: ['CREATE', 'UPDATE'] },
-      ],
+      dataFields: [{ ...id }, { ...name, rights: ['CREATE', 'UPDATE'] }],
       linkFields: [
         {
           path: 'users',
@@ -120,6 +126,41 @@ export const testSchema: BormSchema = {
           relation: 'Space-User',
           plays: 'spaces',
           target: 'role',
+        },
+        {
+          path: 'objects',
+          cardinality: 'MANY',
+          relation: 'SpaceObj',
+          plays: 'space',
+          target: 'relation',
+        },
+        {
+          path: 'definitions',
+          cardinality: 'MANY',
+          relation: 'SpaceDef',
+          plays: 'space',
+          target: 'relation',
+        },
+        {
+          path: 'kinds',
+          cardinality: 'MANY',
+          relation: 'Kind',
+          plays: 'space',
+          target: 'relation',
+        },
+        {
+          path: 'fields',
+          cardinality: 'MANY',
+          relation: 'Field',
+          plays: 'space',
+          target: 'relation',
+        },
+        {
+          path: 'dataFields',
+          cardinality: 'MANY',
+          relation: 'DataField',
+          plays: 'space',
+          target: 'relation',
         },
       ],
     },
@@ -156,9 +197,6 @@ export const testSchema: BormSchema = {
   },
   relations: {
     'User-Accounts': {
-      // id: 'User·Accounts',
-      // name: "User·Accounts",
-      // class: 'OWNED',
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'User-Accounts' },
       // defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
@@ -166,23 +204,9 @@ export const testSchema: BormSchema = {
       roles: {
         accounts: {
           cardinality: 'MANY',
-
-          // path: 'accounts', // path for json reference
-          // key: 'account', // replaced by path in the dbConnector
-          // cardinality: 'MANY',
-          // ordered: false,
-          // embedded: true, // this means that accounts are removed when their user is removed.
-          // rights: ['CREATE', 'UPDATE', 'DELETE'],
-          // dbConnector: { id: 'typeDB', as: 'owned', path: 'account' }, // can specify a path here db key if different from path
         },
-
         user: {
           cardinality: 'ONE',
-
-          // path: 'user',
-          // cardinality: 'ONE',
-          // rights: ['LINK'],
-          // dbConnector: { id: 'typeDB', as: 'owner', path: 'user' },
         },
       },
     },
@@ -191,21 +215,8 @@ export const testSchema: BormSchema = {
       defaultDBConnector: { id: 'default', path: 'Space-User' },
       dataFields: [{ ...id }],
       roles: {
-        spaces: {
-          cardinality: 'MANY',
-          /* path: 'spaces', // path for json reference
-          cardinality: 'MANY',
-          rights: ['CREATE', 'UPDATE', 'DELETE'],
-          dbConnector: { id: 'typeDB', as: 'reling', path: 'space' }, */
-        },
-        users: {
-          cardinality: 'MANY',
-          /*
-          path: 'users',
-          cardinality: 'MANY',
-          rights: ['LINK'],
-          dbConnector: { id: 'typeDB', as: 'reling', path: 'user' }, */
-        },
+        spaces: { cardinality: 'MANY' },
+        users: { cardinality: 'MANY' },
       },
     },
     UserTag: {
@@ -246,6 +257,63 @@ export const testSchema: BormSchema = {
           cardinality: 'ONE',
         },
       },
+    },
+    SpaceObj: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default', path: 'SpaceObj' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+      dataFields: [id],
+      roles: {
+        space: {
+          cardinality: 'ONE',
+        },
+      },
+    },
+    SpaceDef: {
+      extends: 'SpaceObj',
+      defaultDBConnector: { id: 'default', as: 'SpaceObj', path: 'SpaceDef' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+      dataFields: [description],
+    },
+    Kind: {
+      extends: 'SpaceDef',
+      dataFields: [{ ...string, path: 'name', rights: ['CREATE', 'UPDATE'] }],
+      linkFields: [
+        {
+          path: 'fields',
+          relation: 'Field',
+          cardinality: 'MANY',
+          plays: 'kinds',
+          target: 'role',
+        },
+        {
+          path: 'dataFields',
+          relation: 'DataField',
+          cardinality: 'MANY',
+          plays: 'kinds',
+          target: 'role',
+        },
+      ],
+      defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Kind' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+    },
+    Field: {
+      extends: 'SpaceDef',
+      dataFields: [
+        { ...string, path: 'name' },
+        { ...string, path: 'cardinality' },
+      ],
+      roles: {
+        kinds: {
+          cardinality: 'MANY',
+        },
+      },
+      defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Field' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+    },
+    DataField: {
+      extends: 'Field',
+      dataFields: [
+        { ...string, path: 'type' },
+        { ...string, path: 'computeType' },
+      ],
+      defaultDBConnector: { id: 'default', as: 'Field', path: 'DataField' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
     },
   },
 };

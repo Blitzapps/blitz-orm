@@ -4,6 +4,8 @@ define
 id sub attribute, value string;
 name sub attribute, value string;
 email sub attribute, abstract, value string, regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$';
+description sub attribute, value string;
+
 
 # User
 User·email sub email;
@@ -15,9 +17,22 @@ SuperUser·power sub attribute, value string;
 # God
 God·isEvil sub attribute, value boolean;
 
+# Kind
+Kind·name sub attribute, value string;
+
+# Field
+Field·cardinality sub attribute, value string;
+Field·name sub attribute, value string;
+
+# DataField
+DataField·computeType sub attribute, value string;
+DataField·type sub attribute, value string;
+
+
 Space sub entity,
     owns id @key,
     owns name,
+		plays SpaceObj:space,
     plays Space-User:spaces; 
 
 
@@ -75,3 +90,23 @@ Color sub entity,
   #owns Color·name @key,
   owns id @key,
   plays UserTagGroup:color;
+
+SpaceObj sub relation,
+    owns id,
+    relates space;
+
+SpaceDef sub SpaceObj,
+    owns description;
+
+Kind sub SpaceDef,
+    owns Kind·name,
+    plays Field:kinds;
+
+Field sub SpaceDef,
+    owns Field·cardinality,
+    owns Field·name,
+    relates kinds;
+
+DataField sub Field,
+    owns DataField·computeType,
+    owns DataField·type;

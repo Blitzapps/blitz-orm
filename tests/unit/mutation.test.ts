@@ -442,30 +442,64 @@ describe('Mutation init', () => {
   });
 
   it('l8 [unlink,relation] unlink, where edge is the relation', async () => {
-    /// this test depends on other tests, to run independently, comment 'user2'
     expect(bormClient).toBeDefined();
-
+    const newRelation = {
+      meta: { $relation: 'UserTag', $id: 'tmp-user-tag' },
+      fields: { users: ['user1', 'user3'], color: 'yellow', group: 'utg-1' },
+    };
+    await bormClient.mutate({ ...newRelation.meta, ...newRelation.fields, $op: 'create' });
     await bormClient.mutate(
-      {
-        $relation: 'UserTag',
-        $id: 'tag-2',
-        users: [
-          { $op: 'unlink', $id: ['user3', 'user1', 'user2'] }, // unlink everything
-        ],
-      },
+      { ...newRelation.meta, users: [{ $op: 'unlink', $id: newRelation.fields.users }] },
       { noMetadata: true }
     );
-
-    const userTags = await bormClient.query(
-      {
-        $relation: 'UserTag',
-        $id: 'tag-2',
-        $fields: ['id', 'users'],
-      },
-      { noMetadata: true }
-    );
+    const userTags = await bormClient.query({ ...newRelation.meta, $fields: ['id', 'users'] }, { noMetadata: true });
     expect(userTags).toBeDefined();
-    expect(userTags).toBeNull(); // a relation with no edges is null
+    expect(userTags).toBeNull(); /// A relation with no edges is null
+  });
+
+  it('l9 [unlink,relation] nestedArrayUnlink', async () => {
+    expect(bormClient).toBeDefined();
+    const newRelationPayload = {
+      $entity: 'User',
+      $id: 'user2',
+      spaces: {
+        $id: 'space-2',
+        dataFields: {
+          id: '',
+          name: 'testField',
+          description: '',
+          type: 'TEXT',
+          cardinality: 'ONE',
+          computeType: 'EDITABLE',
+          kinds: ['kind-book'],
+        },
+      },
+    };
+    const newRelRes = await bormClient.mutate(newRelationPayload);
+    if (!newRelRes || !Array.isArray(newRelRes) || typeof newRelRes[0] === 'string') {
+      throw new Error('Mutation failed');
+    }
+    const dataFieldId = newRelRes[0]?.$id;
+    const unlinkPayload = {
+      $entity: 'User',
+      $id: 'user2',
+      spaces: {
+        $id: 'space-2',
+        dataFields: {
+          $id: dataFieldId,
+          kinds: [
+            {
+              $op: 'unlink',
+              $id: 'kind-book',
+            },
+          ],
+        },
+      },
+    };
+    await bormClient.mutate(unlinkPayload);
+    const queryRes = await bormClient.query({ $relation: 'DataField', $id: dataFieldId }, { noMetadata: true });
+    expect(queryRes).toBeDefined();
+    expect(queryRes).not.toBeNull();
   });
   it('inheritedAttributesMutation', async () => {
     expect(bormClient).toBeDefined();

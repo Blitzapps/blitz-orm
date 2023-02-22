@@ -52,4 +52,4 @@ $group-2 (tags: $tag-3, color:$blue) isa UserTagGroup, has id 'utg-2';
 $yellow isa Color, has id 'yellow';
 $blue isa Color, has id 'blue';
 
-
+$kind-book (space: $space-2) isa Kind, has id 'kind-book', has Kind·name 'book';
