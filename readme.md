@@ -30,6 +30,15 @@ export default bormClient;
 ```
 const res = await bormClient.mutate({$entity: 'User', name: 'Ann'}, { noMetadata: true });
 ```
+## Gotchas
+1) There is no borm.define() method yet. This means you will need to translate your borm schema into typeQL schema manually
+2) Private (non shared) attributes are defined in typeDB as "nameOfTheThing·nameOfTheAttribute", where "·" is a mid-do. As an example:
+```
+#shared attribute (shared: true) :
+title sub attribute, value string;
+#as a private attribute (shared: false), default behaviour:
+book·title sub attribute, value string;
+```
 
 ## How to Run TypeDB Locally
 To run TypeDB locally, follow the official instructions at https://docs.vaticle.com/docs/running-typedb/install-and-run. It is recommended to run TypeDB Studio, define the schema there, and test with pure TypeQL before using Blitz-orm.
