@@ -36,7 +36,7 @@ export const oFilter = <RemovedKeys extends string, T extends Record<string | nu
   obj: T,
   fn: (k: keyof T, v: any) => boolean
 ): Omit<T, RemovedKeys> =>
-  // @ts-expect-error
+  // @ts-expect-error //todo
   Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k, v)));
 
 export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
