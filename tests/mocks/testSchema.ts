@@ -66,7 +66,7 @@ export const testSchema: BormSchema = {
           cardinality: 'ONE',
           contentType: 'EMAIL',
           validations: { unique: true },
-          rights: ['CREATE'],
+          rights: ['CREATE', 'DELETE', 'UPDATE'],
         },
       ],
       linkFields: [

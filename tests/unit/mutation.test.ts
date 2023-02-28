@@ -222,6 +222,18 @@ describe('Mutation init', () => {
     ]);
   });
 
+  it('b7[create, inherited] inheritedAttributesMutation', async () => {
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.mutate(godUser, { noMetadata: true });
+    expect(res).toEqual({
+      id: 'squarepusher',
+      name: 'Tom Jenkinson',
+      email: 'tom@warp.com',
+      power: 'rhythm',
+      isEvil: false,
+    });
+  });
+
   it('l1[link, add, nested, relation] Update entity by adding a new created relation children', async () => {
     expect(bormClient).toBeDefined();
     await bormClient.mutate(
@@ -501,18 +513,8 @@ describe('Mutation init', () => {
     expect(queryRes).toBeDefined();
     expect(queryRes).not.toBeNull();
   });
-  it('inheritedAttributesMutation', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.mutate(godUser, { noMetadata: true });
-    expect(res).toEqual({
-      id: 'squarepusher',
-      name: 'Tom Jenkinson',
-      email: 'tom@warp.com',
-      power: 'rhythm',
-      isEvil: false,
-    });
-  });
-  it('multipleRolesInsertion', async () => {
+
+  it('l10[link,many] multipleRolesInsertion', async () => {
     expect(bormClient).toBeDefined();
     await bormClient.mutate(
       { $relation: 'Space-User', id: 'u1-s1-s2', users: 'user1', spaces: ['space-1', 'space-2'] },
@@ -552,8 +554,26 @@ describe('Mutation init', () => {
       'user-tags': ['tag-2'], // equivalent to $op: link, $id: 'space-1';
     });
   }); */
+  it('f1[json] Basic nested json-like field', async () => {
+    /// In general, this json-like is used only as a way to group properties that actually belong to the entity
+    /// So Address is maybe not the best example, it should probably be a node itself.
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.mutate([
+      {
+        $entity: 'User',
+        $id: 'user3',
+        address: {
+          $embeddedObject: true,
+          city: 'Moscow',
+          street: 'Lenina',
+          house: 1,
+        },
+      },
+    ]);
+    expect(res?.length).toBe(17);
+  });
 
-  it('[Create,delete] Complex', async () => {
+  it('c1[create,delete] Complex', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.mutate([
       {
