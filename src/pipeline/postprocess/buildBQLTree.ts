@@ -2,7 +2,7 @@ import produce from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
-import { getCurrentFields, oFilter } from '../../helpers';
+import { getCurrentFields, notNull, oFilter } from '../../helpers';
 import { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
 
@@ -218,7 +218,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 
             const currentRelation = cache.relations.get(linkField.relation);
             // console.log('currentRelation', currentRelation);
-
+            // FIX: show get the related entity, not the parent one
             const tunnel = linkField.oppositeLinkFieldsPlayedBy;
 
             if (linkField.target === 'relation') {
@@ -271,39 +271,50 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
             if (linkField.target === 'role') {
               const linkFieldPlayers = tunnel
                 .flatMap((t) => {
-                  const allCurrentLinkFieldThings = cache.entities.get(t.thing);
+                  const childEntities = Object.values(schema.entities).reduce((acc: string[], schemaEntity) => {
+                    if (schemaEntity.extends === t.thing) {
+                      acc.push(schemaEntity.name);
+                    }
+                    return acc;
+                  }, []);
+                  return [t.thing, ...childEntities]
+                    .flatMap((entityThing) => {
+                      // FIX: this creates an issue with self referential relationship. Because
+                      // we don't know which entity is playing each role
+                      const allCurrentLinkFieldThings = cache.entities.get(entityThing);
+                      const linkedIds = currentRelation
+                        ? [...currentRelation]
+                            .filter((rel) => rel.get(thingName) === currentIds[0])
+                            .map((x) => x.get(entityThing))
+                        : [];
+                      // Remove if id is refers to the same entity
+                      const uniqueLinkedIds = [...new Set(linkedIds)].filter((id) => !currentIds.includes(id));
+                      if (!allCurrentLinkFieldThings) return null;
 
-                  const linkedIds = currentRelation
-                    ? [...currentRelation]
-                        .filter((rel) => rel.get(thingName) === currentIds[0])
-                        .map((x) => x.get(t.thing))
-                    : [];
-                  const uniqueLinkedIds = [...new Set(linkedIds)];
-
-                  if (!allCurrentLinkFieldThings) return null;
-
-                  // const $id = $fieldConf ? $fieldConf.$id : null;
-                  // const childrenCurrentIds = Array.isArray($id) ? $id : [$id];
-                  const children = filterChildrenEntities(
-                    [...allCurrentLinkFieldThings],
-                    // todo:
-                    // @ts-expect-error
-                    uniqueLinkedIds,
-                    value,
-                    linkField.path
-                  );
-
-                  if (children.length) {
-                    return children.filter(
-                      (x) =>
-                        typeof x === 'string' ||
+                      // const $id = $fieldConf ? $fieldConf.$id : null;
+                      // const childrenCurrentIds = Array.isArray($id) ? $id : [$id];
+                      const children = filterChildrenEntities(
+                        [...allCurrentLinkFieldThings],
+                        // todo:
                         // @ts-expect-error
-                        (typeof x === 'object' && x?.$show)
-                    );
-                  }
-                  return null;
+                        uniqueLinkedIds,
+                        value,
+                        linkField.path
+                      );
+
+                      if (children.length) {
+                        return children.filter(
+                          (x) =>
+                            typeof x === 'string' ||
+                            // @ts-expect-error
+                            (typeof x === 'object' && x?.$show)
+                        );
+                      }
+                      return null;
+                    })
+                    .filter(notNull);
                 })
-                .filter((x) => x);
+                .filter(notNull);
 
               if (linkFieldPlayers && linkFieldPlayers.length) {
                 if (linkField.cardinality === 'ONE') {
