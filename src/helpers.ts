@@ -351,3 +351,16 @@ export const arrayAt = <T>(arr: T[] | undefined, index: number): T | undefined =
   }
   return arr[index < 0 ? arr.length + index : index];
 };
+
+export function notNull<TValue>(value: TValue | null): value is TValue {
+  return value !== null;
+}
+
+export const extractChildEntities = (entities: EnrichedBormSchema['entities'], parentEntity: string) => {
+  return Object.values(entities).reduce((acc: string[], value) => {
+    if (value.extends === parentEntity) {
+      acc.push(value.name);
+    }
+    return acc;
+  }, []);
+};
