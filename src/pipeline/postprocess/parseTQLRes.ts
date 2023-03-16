@@ -1,8 +1,8 @@
-import { isArray, isString, listify, mapEntries } from 'radash';
+import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
 import { ConceptMapGroup } from 'typedb-client';
 
-import { getPath } from '../../helpers';
-import { BQLMutationBlock, EnrichedBormSchema } from '../../types';
+import { extractChildEntities, getPath } from '../../helpers';
+import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
@@ -42,8 +42,8 @@ const extractRelations = (conceptMapGroups: ConceptMapGroup[], entityNames: stri
       const link = new Map();
       entityNames.forEach((entityName) => {
         const id = conceptMap.get(`${entityName}_id`)?.asAttribute().value.toString();
-
-        if (id) link.set(entityName, id);
+        const trueEntityName = conceptMap.get(entityName)?.asEntity().type.label.name;
+        if (id) link.set(trueEntityName ?? entityName, id);
       });
       return link;
     });
@@ -70,6 +70,26 @@ const extractRoles = (
     return rolesInGroup;
   });
   return roles;
+};
+
+const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: EnrichedBormSchema) => {
+  const currentRelroles = listify(
+    currentRelSchema.roles,
+    // TODO: Multiple inverse roles
+    (_k, v) => {
+      if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
+        throw new Error('a role can be played by two entities throws the same relation');
+      }
+      if (!v.playedBy) throw new Error('Role not being played by nobody');
+      const playedBy = v.playedBy[0].thing;
+      // TODO: should recursively get child of childs
+      const childEntities = extractChildEntities(schema.entities, playedBy);
+
+      return [playedBy, ...childEntities];
+    }
+  );
+
+  return unique(flat(currentRelroles));
 };
 
 export const parseTQLRes: PipelineOperation = async (req, res) => {
@@ -148,17 +168,8 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   const relations = rawTqlRes.relations?.map((relation) => {
     const currentRelSchema = schema.relations[relation.relation];
 
-    const currentRelroles = listify(
-      currentRelSchema.roles,
-      // TODO: Multiple inverse roles
-      (_k, v) => {
-        if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
-          throw new Error('a role can be played by two entities throws the same relation');
-        }
-        if (!v.playedBy) throw new Error('Role not being played by nobody');
-        return v.playedBy[0].thing;
-      }
-    );
+    const currentRelroles = extractRelRoles(currentRelSchema, schema);
+
     const links = extractRelations(relation.conceptMapGroups, [
       ...currentRelroles,
       currentRelSchema.name, // for cases where the relation is the actual thing fetched
