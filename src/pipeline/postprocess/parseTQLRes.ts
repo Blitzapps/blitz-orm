@@ -3,7 +3,7 @@ import { ConceptMapGroup } from 'typedb-client';
 
 import { extractChildEntities, getPath } from '../../helpers';
 import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
-import type { Entity, EntityName, ID, PipelineOperation } from '../pipeline';
+import type { Entity, EntityName, ID, PipelineOperation, RelationName } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
   // * Construct entities from the concept map group array. Each concept map group refers to a single BORM entity
@@ -36,14 +36,24 @@ const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBo
   return bormEntities;
 };
 
-const extractRelations = (conceptMapGroups: ConceptMapGroup[], entityNames: string[]): Map<EntityName, ID>[] => {
+const extractRelations = (
+  conceptMapGroups: ConceptMapGroup[],
+  relationNames: string[]
+  // Extract to type
+): Map<RelationName, { id: ID; entityName: EntityName }>[] => {
   const relations = conceptMapGroups.flatMap((conceptMapGroup) => {
     const relationsInGroup = conceptMapGroup.conceptMaps.map((conceptMap) => {
       const link = new Map();
-      entityNames.forEach((entityName) => {
-        const id = conceptMap.get(`${entityName}_id`)?.asAttribute().value.toString();
-        const trueEntityName = conceptMap.get(entityName)?.asEntity().type.label.name;
-        if (id) link.set(trueEntityName ?? entityName, id);
+      relationNames.forEach((relationName) => {
+        const id = conceptMap.get(`${relationName}_id`)?.asAttribute().value.toString();
+        const entity = conceptMap.get(relationName);
+        const entityName = entity?.isEntity() ? entity.asEntity().type.label.name : relationName;
+        // Because we changed the key to be the relationName, we need the entityName in the value
+        const val = {
+          id,
+          entityName,
+        };
+        if (id) link.set(relationName, val);
       });
       return link;
     });
@@ -81,8 +91,10 @@ const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: Enriche
         throw new Error('a role can be played by two entities throws the same relation');
       }
       if (!v.playedBy) throw new Error('Role not being played by nobody');
-      const playedBy = v.playedBy[0].thing;
+      // We extract the role that it plays
+      const playedBy = v.playedBy[0].plays;
       // TODO: should recursively get child of childs
+
       const childEntities = extractChildEntities(schema.entities, playedBy);
 
       return [playedBy, ...childEntities];
@@ -218,7 +230,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     cache.relations.set(relationName, relationCache);
 
     relation.links.forEach((link) => {
-      [...link.entries()].forEach(([entityName, entityId]) => {
+      [...link.entries()].forEach(([_, { entityName, id }]) => {
         const entityCache = cache.entities.get(entityName) || new Map();
 
         const getEntityThingType = () => {
@@ -230,10 +242,10 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
         const entity = {
           [entityThingType]: entityName,
-          $id: entityId,
-          ...entityCache.get(entityId),
+          $id: id,
+          ...entityCache.get(id),
         };
-        entityCache.set(entityId, entity);
+        entityCache.set(id, entity);
         cache.entities.set(entityName, entityCache);
       });
     });
