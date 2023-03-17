@@ -215,12 +215,14 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
         if (currentLinkFields) {
           currentLinkFields.forEach((linkField) => {
             // console.log('linkField', linkField);
-
-            const currentRelation = cache.relations.get(linkField.relation);
+            // Should update type
+            const currentRelation = cache.relations.get(linkField.relation) as
+              | undefined
+              | Map<string, { entityName: string; id: string }>[];
             // console.log('currentRelation', currentRelation);
-            // FIX: show get the related entity, not the parent one
             const tunnel = linkField.oppositeLinkFieldsPlayedBy;
 
+            // FIX: should be fixed to match new relation object type
             if (linkField.target === 'relation') {
               const targetRelation = tunnel[0];
               const targetRelationThings = cache.relations.get(linkField.relation);
@@ -269,64 +271,61 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
               return null;
             }
             if (linkField.target === 'role') {
-              const linkFieldPlayers = tunnel
-                .flatMap((t) => {
-                  const childEntities = Object.values(schema.entities).reduce((acc: string[], schemaEntity) => {
-                    if (schemaEntity.extends === t.thing) {
-                      acc.push(schemaEntity.name);
+              // Maybe should iterate over role and then get opposing entityIds
+              tunnel.flatMap((t) => {
+                if (!currentRelation) return null;
+                // Now linkedEntities are grouped by the entityName, and has a set of all ids
+                const linkedEntities = [...currentRelation].reduce((acc: Record<string, Set<string>>, relation) => {
+                  // @ts-ignore
+                  const id = relation.get(t.path)?.id;
+                  if (id && id === currentIds[0]) {
+                    // TODO: should never be undefined, relation implies at least 2 roles
+                    const opposingRole = relation.get(linkField.path);
+                    if (!opposingRole) throw new Error('Missing opposing role');
+
+                    if (!(opposingRole.entityName in acc)) {
+                      acc[opposingRole.entityName] = new Set();
                     }
-                    return acc;
-                  }, []);
-                  return [t.thing, ...childEntities]
-                    .flatMap((entityThing) => {
-                      // FIX: this creates an issue with self referential relationship. Because
-                      // we don't know which entity is playing each role
-                      const allCurrentLinkFieldThings = cache.entities.get(entityThing);
-                      const linkedIds = currentRelation
-                        ? [...currentRelation]
-                            .filter((rel) => rel.get(thingName) === currentIds[0])
-                            .map((x) => x.get(entityThing))
-                        : [];
-                      // Remove if id is refers to the same entity
-                      const uniqueLinkedIds = [...new Set(linkedIds)].filter((id) => !currentIds.includes(id));
-                      if (!allCurrentLinkFieldThings) return null;
+                    acc[opposingRole.entityName].add(opposingRole.id);
+                  }
+                  return acc;
+                }, {});
 
-                      // const $id = $fieldConf ? $fieldConf.$id : null;
-                      // const childrenCurrentIds = Array.isArray($id) ? $id : [$id];
-                      const children = filterChildrenEntities(
-                        [...allCurrentLinkFieldThings],
-                        // todo:
-                        // @ts-expect-error
-                        uniqueLinkedIds,
-                        value,
-                        linkField.path
-                      );
+                Object.entries(linkedEntities).map(([key, linkedEntityVal]) => {
+                  const allCurrentLinkFieldThings = cache.entities.get(key);
+                  if (!allCurrentLinkFieldThings) return null;
 
-                      if (children.length) {
-                        return children.filter(
-                          (x) =>
-                            typeof x === 'string' ||
-                            // @ts-expect-error
-                            (typeof x === 'object' && x?.$show)
-                        );
-                      }
+                  const children = filterChildrenEntities(
+                    [...allCurrentLinkFieldThings],
+                    [...linkedEntityVal.values()],
+                    value,
+                    linkField.path
+                  );
+                  if (children.length === 0) return null;
+                  children.filter(
+                    (x) =>
+                      typeof x === 'string' ||
+                      // @ts-expect-error
+                      (typeof x === 'object' && x?.$show)
+                  );
+
+                  children.filter(notNull);
+                  if (children && children.length) {
+                    if (linkField.cardinality === 'ONE') {
+                      // @ts-expect-error
+                      // eslint-disable-next-line prefer-destructuring
+                      value[linkField.path] = children[0];
                       return null;
-                    })
-                    .filter(notNull);
-                })
-                .filter(notNull);
-
-              if (linkFieldPlayers && linkFieldPlayers.length) {
-                if (linkField.cardinality === 'ONE') {
-                  // @ts-expect-error
-                  // eslint-disable-next-line prefer-destructuring
-                  value[linkField.path] = linkFieldPlayers[0];
+                    }
+                    // @ts-expect-error
+                    value[linkField.path] = children;
+                  }
                   return null;
-                }
-                // @ts-expect-error
-                value[linkField.path] = linkFieldPlayers;
-              }
-              return null;
+                });
+                return null;
+                // const $id = $fieldConf ? $fieldConf.$id : null;
+                // const childrenCurrentIds = Array.isArray($id) ? $id : [$id];
+              });
             }
             return null;
           });
