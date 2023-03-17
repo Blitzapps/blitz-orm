@@ -85,9 +85,9 @@ export const dispatchPipeline: PipelineOperation = async (req, res) => {
           }, []);
           if (resultIds.length === 0) return null;
 
-          const currentSchema = schema.entities[thing]
-            ? { ...schema.entities[thing], thingType: 'entity' }
-            : { ...schema.relations[thing], thingType: 'relation' };
+          const currentSchema = schema.entities[childEntity]
+            ? { ...schema.entities[childEntity], thingType: 'entity' }
+            : { ...schema.relations[childEntity], thingType: 'relation' };
 
           const $FieldsObj = $fields.find(
             (x) => typeof x === 'object' && x.$path === linkField.plays
