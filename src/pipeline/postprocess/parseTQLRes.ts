@@ -1,5 +1,5 @@
 import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
-import { ConceptMapGroup } from 'typedb-client';
+import { Concept, ConceptMapGroup } from 'typedb-client';
 
 import { extractChildEntities, getPath } from '../../helpers';
 import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
@@ -46,12 +46,15 @@ const extractRelations = (
       const link = new Map();
       relationNames.forEach((relationName) => {
         const id = conceptMap.get(`${relationName}_id`)?.asAttribute().value.toString();
-        const entity = conceptMap.get(relationName);
-        const entityName = entity?.isEntity() ? entity.asEntity().type.label.name : relationName;
-        // Because we changed the key to be the relationName, we need the entityName in the value
+        const concept = conceptMap.get(relationName) as Concept | undefined;
+        // Because we changed the key to be the path, we need the entityName in the value
+
+        const entityName = concept?.isEntity()
+          ? concept.asEntity().type.label.name
+          : concept?.asRelation().type.label.name;
         const val = {
           id,
-          entityName,
+          entityName: entityName ?? relationName,
         };
         if (id) link.set(relationName, val);
       });

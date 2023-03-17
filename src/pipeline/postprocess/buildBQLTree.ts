@@ -215,11 +215,12 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
         if (currentLinkFields) {
           currentLinkFields.forEach((linkField) => {
             // console.log('linkField', linkField);
-            // Should update type
+
             const currentRelation = cache.relations.get(linkField.relation) as
               | undefined
               | Map<string, { entityName: string; id: string }>[];
             // console.log('currentRelation', currentRelation);
+            // FIX: show get the related entity, not the parent one
             const tunnel = linkField.oppositeLinkFieldsPlayedBy;
 
             // FIX: should be fixed to match new relation object type
@@ -272,21 +273,27 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
             }
             if (linkField.target === 'role') {
               // Maybe should iterate over role and then get opposing entityIds
-              tunnel.flatMap((t) => {
+              tunnel.flatMap((_) => {
                 if (!currentRelation) return null;
-                // Now linkedEntities are grouped by the entityName, and has a set of all ids
-                const linkedEntities = [...currentRelation].reduce((acc: Record<string, Set<string>>, relation) => {
-                  // @ts-ignore
-                  const id = relation.get(t.path)?.id;
-                  if (id && id === currentIds[0]) {
-                    // TODO: should never be undefined, relation implies at least 2 roles
-                    const opposingRole = relation.get(linkField.path);
-                    if (!opposingRole) throw new Error('Missing opposing role');
 
+                const linkedEntities = [...currentRelation].reduce((acc: Record<string, string[]>, relation) => {
+                  // Check why I need to use t.
+                  // @ts-ignore
+                  const id = relation.get(linkField.plays)?.id;
+                  if (id && id === currentIds[0]) {
+                    // TODO: should never undefined, relation implies at least 2 roles
+                    // check why some relations have size 1
+                    const opposingRole = relation.get(linkField.path) as
+                      | {
+                          entityName: string;
+                          id: string;
+                        }
+                      | undefined;
+                    if (!opposingRole) return acc;
                     if (!(opposingRole.entityName in acc)) {
-                      acc[opposingRole.entityName] = new Set();
+                      acc[opposingRole.entityName] = [];
                     }
-                    acc[opposingRole.entityName].add(opposingRole.id);
+                    acc[opposingRole.entityName].push(opposingRole.id);
                   }
                   return acc;
                 }, {});
@@ -297,7 +304,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 
                   const children = filterChildrenEntities(
                     [...allCurrentLinkFieldThings],
-                    [...linkedEntityVal.values()],
+                    [...new Set(linkedEntityVal)],
                     value,
                     linkField.path
                   );
