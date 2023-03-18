@@ -364,3 +364,7 @@ export const extractChildEntities = (entities: EnrichedBormSchema['entities'], p
     return acc;
   }, []);
 };
+
+export function isStringOrHasShow<TValue extends { $show?: boolean }>(value: TValue | string): value is TValue {
+  return typeof value === 'string' || !!value.$show;
+}
