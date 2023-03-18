@@ -55,9 +55,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
       request: `match $${thingPath} (${role.path}: ${role.var} ) isa ${thingPath} ${idFilter} ${role.var} isa ${roleThingName}, has id ${role.var}_id; group $${thingPath};`,
     };
   });
-  // The relations are now build according to the role they play
   const relations = currentThingSchema.linkFields?.flatMap((linkField) => {
-    // TODO: repeated code, extract to new function
     const relationIdParam = `$${linkField.plays}_id`;
     let relationIdFilter = `, has ${idField} ${relationIdParam};`;
     if (query.$id) {
@@ -83,11 +81,13 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     const relationPath = schema.relations[linkField.relation].defaultDBConnector.path || linkField.relation;
 
     const relationMatchEnd = `) isa ${relationPath};`;
+
     const relationIdFilters = linkField.oppositeLinkFieldsPlayedBy
       .map(
         // TODO: composite ids.
         // TODO: Also id is not always called id
-        (link) => `$${link.plays} isa ${link.thing}, has id $${link.plays}_id;`
+        (link) =>
+          `$${dirRel ? link.thing : link.plays} isa ${link.thing}, has id $${dirRel ? link.thing : link.plays}_id;`
       )
       .join(', ');
 
