@@ -2,7 +2,7 @@ import produce from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
-import { getCurrentFields, notNull, oFilter } from '../../helpers';
+import { getCurrentFields, isStringOrHasShow, notNull, oFilter } from '../../helpers';
 import { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
 
@@ -222,78 +222,79 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
             // console.log('currentRelation', currentRelation);
             // FIX: show get the related entity, not the parent one
             const tunnel = linkField.oppositeLinkFieldsPlayedBy;
+            if (!currentRelation) return null;
 
             // FIX: should be fixed to match new relation object type
             if (linkField.target === 'relation') {
-              const targetRelation = tunnel[0];
-              const targetRelationThings = cache.relations.get(linkField.relation);
-              // console.log('currentIds', currentIds);
-              const matchedLinks = !targetRelationThings
-                ? []
-                : [...targetRelationThings]
-                    .filter((link) => {
-                      // console.log('link', link);
-                      // console.log('currentIds', currentIds);
-                      return currentIds.includes(link.get(thingName));
-                    })
-                    .map((x) => x.get(targetRelation.thing));
-              // console.log('matchedLinks', matchedLinks);
-              const targetRelationEntities = cache.entities.get(targetRelation.thing);
-
-              if (!targetRelationEntities) return null;
-              const children = filterChildrenEntities(
-                [...targetRelationEntities],
-                // @ts-expect-error
-                matchedLinks,
-                value,
-                linkField.path
-              );
-              // console.log('children', children);
-
-              if (children.length) {
-                // if the only children is the current entity, don't return it
-                if (children.length === 1 && children[0] === value.$id) {
-                  return null;
+              const linkedEntities = [...currentRelation].reduce((acc: Record<string, Set<string>>, relation) => {
+                const id = relation.get(linkField.plays)?.id;
+                if (id && id === currentIds[0]) {
+                  // TODO: should never undefined, relation implies at least 2 roles
+                  // check why some relations have size 1
+                  const opposingRole = relation.get(linkField.relation) as
+                    | {
+                        entityName: string;
+                        id: string;
+                      }
+                    | undefined;
+                  if (!opposingRole) return acc;
+                  if (!acc[opposingRole.entityName]) acc[opposingRole.entityName] = new Set();
+                  acc[opposingRole.entityName].add(opposingRole.id);
                 }
+                return acc;
+              }, {});
 
-                if (linkField.cardinality === 'ONE') {
-                  // @ts-expect-error
-                  // eslint-disable-next-line prefer-destructuring
-                  value[linkField.path] = children[0];
-                  return null;
-                }
-                // @ts-expect-error
-                value[linkField.path] = children.filter(
-                  (x) =>
+              Object.entries(linkedEntities).map(([key, linkedEntityVal]) => {
+                const allCurrentLinkFieldThings = cache.entities.get(key);
+                if (!allCurrentLinkFieldThings) return null;
+
+                const children = filterChildrenEntities(
+                  [...allCurrentLinkFieldThings],
+                  [...linkedEntityVal.values()],
+                  value,
+                  linkField.path
+                )
+                  .filter(notNull)
+                  .filter(isStringOrHasShow);
+                if (children.length === 0) return null;
+
+                if (children && children.length) {
+                  if (linkField.cardinality === 'ONE') {
                     // @ts-expect-error
-                    typeof x === 'string' || (typeof x === 'object' && x?.$show)
-                );
-              }
+                    // eslint-disable-next-line prefer-destructuring
+                    value[linkField.path] = children[0];
+                    return null;
+                  }
+                  // @ts-expect-error
+                  value[linkField.path] = children;
+                }
+                return null;
+              });
+
+              // console.log('children', children);
               return null;
             }
             if (linkField.target === 'role') {
               // Maybe should iterate over role and then get opposing entityIds
-              tunnel.flatMap((_) => {
+              tunnel.flatMap((t) => {
                 if (!currentRelation) return null;
 
-                const linkedEntities = [...currentRelation].reduce((acc: Record<string, string[]>, relation) => {
+                const linkedEntities = [...currentRelation].reduce((acc: Record<string, Set<string>>, relation) => {
                   // Check why I need to use t.
                   // @ts-ignore
                   const id = relation.get(linkField.plays)?.id;
                   if (id && id === currentIds[0]) {
                     // TODO: should never undefined, relation implies at least 2 roles
                     // check why some relations have size 1
-                    const opposingRole = relation.get(linkField.path) as
+                    const opposingRole = relation.get(t.plays) as
                       | {
                           entityName: string;
                           id: string;
                         }
                       | undefined;
                     if (!opposingRole) return acc;
-                    if (!(opposingRole.entityName in acc)) {
-                      acc[opposingRole.entityName] = [];
-                    }
-                    acc[opposingRole.entityName].push(opposingRole.id);
+                    if (!acc[opposingRole.entityName]) acc[opposingRole.entityName] = new Set();
+                    acc[opposingRole.entityName].add(opposingRole.id);
                   }
                   return acc;
                 }, {});
@@ -304,19 +305,14 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 
                   const children = filterChildrenEntities(
                     [...allCurrentLinkFieldThings],
-                    [...new Set(linkedEntityVal)],
+                    [...linkedEntityVal.values()],
                     value,
                     linkField.path
-                  );
+                  )
+                    .filter(notNull)
+                    .filter(isStringOrHasShow);
                   if (children.length === 0) return null;
-                  children.filter(
-                    (x) =>
-                      typeof x === 'string' ||
-                      // @ts-expect-error
-                      (typeof x === 'object' && x?.$show)
-                  );
 
-                  children.filter(notNull);
                   if (children && children.length) {
                     if (linkField.cardinality === 'ONE') {
                       // @ts-expect-error
