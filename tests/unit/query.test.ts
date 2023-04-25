@@ -927,6 +927,7 @@ describe('Query', () => {
       isEvil: true,
     });
   });
+
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();

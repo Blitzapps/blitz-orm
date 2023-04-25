@@ -12,12 +12,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
   const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
     return produce(blocks, (draft) =>
-      traverse(draft, ({ value: val, meta }: TraversalCallbackContext) => {
+      traverse(draft, ({ value: val, meta, key }: TraversalCallbackContext) => {
         if (isObject(val)) {
           // <---------------mutating all objects---------------->
           // @ts-expect-error
           if (val.$arrayOp) {
             throw new Error('Array op not supported yet');
+          }
+          /// ignore filters. In the future maybe transform the shortcuts of filters here (like $eq being a default)
+          if (key === '$filter' || meta.nodePath?.includes('.$filter.')) {
+            return;
           }
           const value = val as BQLMutationBlock;
 
@@ -28,14 +32,20 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           */
           const currentSchema = getCurrentSchema(schema, val);
 
+          const nodePathArray = meta.nodePath?.split('.');
+
+          const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
+
           if (!currentSchema) {
             throw new Error(
               // @ts-expect-error
               `Schema not found for ${val.$entity || val.$relation}`
             );
           }
-
-          value[Symbol.for('thingType') as any] = currentSchema.thingType;
+          value[Symbol.for('bzId') as any] = uuidv4();
+          if (!notRoot) {
+            // value[Symbol.for('dependencies') as any] = [];
+          }
           value[Symbol.for('schema') as any] = currentSchema;
           value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
 
@@ -126,26 +136,41 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                 )}. Schema: ${JSON.stringify(currentFieldSchema)}`
               );
 
-            // null means unlink everything
-            if (currentValue === null) {
-              value[currentField.path] = { $op: 'unlink' };
-            }
-
             if (currentFieldSchema.cardinality === 'ONE' && Array.isArray(currentValue)) {
               throw new Error(`Can't have an array in a cardinality === ONE link field`);
             }
+            // cardinality many are always arrays, unless it's an object that specifies an arrayOp like
+            if (
+              currentFieldSchema.cardinality === 'MANY' &&
+              currentValue !== null &&
+              !Array.isArray(currentValue) &&
+              !currentValue.$arrayOp
+            ) {
+              throw new Error(
+                `${currentFieldSchema.name} is a cardinality === MANY thing. Use an array or a $arrayOp object`
+              );
+            }
             // ignore those properly configured. Todo: migrate to $thing
-            if (currentValue.$entity || currentValue.$relation) return;
+            if (currentValue?.$entity || currentValue?.$relation) return;
 
             const childrenLinkField = oppositeFields[0];
 
+            /// now we have the parent, so we can add the dependencies
+            // const parentMeta = value[Symbol.for('parent') as any];
+            // const parentPath = parentMeta.path;
+            // const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
+
+            /// this is the child object, so these Symbol.for... don't belong to the current node
             const childrenThingObj = {
               [`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
+              // [Symbol.for('dependencies')]: [value[Symbol.for('bzId') as any],...value[Symbol.for('dependencies') as any],],
               [Symbol.for('relation') as any]: relation,
               [Symbol.for('edgeType') as any]: 'plays' in currentFieldSchema ? 'linkField' : 'roleField',
               [Symbol.for('parent') as any]: {
                 path: currentPath,
-                id: value.$id || value.$tempId,
+                ...(value.$id ? { $id: value.$id } : {}),
+                ...(value.$tempId ? { $tempId: value.$tempId } : {}),
+                ...(value.filter ? { filter: value.filter } : {}),
                 links: oppositeFields,
               },
               [Symbol.for('role') as any]: childrenLinkField.plays, // this is the currentChildren
@@ -172,11 +197,18 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
               // console.log('[obj]value', value[field as string]);
             }
+            // todo: this does not allow the case accounts: ['id1','id2',{$tempId:'temp1'}] ideally tempIds should have some indicator like :_temp1 later so we can do ['id1','id2',':_tempid'] instead
             if (Array.isArray(currentValue) && currentValue.every((x) => isObject(x))) {
-              value[currentField.path] = currentValue.map((y) => ({
-                ...childrenThingObj,
-                ...y,
-              }));
+              value[currentField.path] = currentValue.map((y) => {
+                /// when a tempId is specified, in a relation, same as with $id, is a link by default
+                if (y.$tempId && currentSchema.thingType === 'relation' && (y.$op === 'link' || !y.$op)) {
+                  return y.$tempId;
+                }
+                return {
+                  ...childrenThingObj,
+                  ...y,
+                };
+              });
               // console.log('[obj-arr]value', value[field as string]);
             }
             if (typeof currentValue === 'string') {
@@ -193,13 +225,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                 $id: y,
               }));
             }
+            if (currentValue === null) {
+              const neutralObject = {
+                ...childrenThingObj,
+                $op: 'unlink', // todo: embedded => delete
+              };
+              value[currentField.path] = currentFieldSchema.cardinality === 'MANY' ? [neutralObject] : neutralObject;
+            }
           });
 
           // console.log('value', current(value));
-
-          const nodePathArray = meta.nodePath?.split('.');
-
-          const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
 
           if (!notRoot && !value.$entity && !value.$relation) {
             throw new Error('Root things must specify $entity or $relation');
@@ -214,7 +249,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   };
 
   const withObjects = stringToObjects(rawBqlRequest);
-  // console.log('withObjects', JSON.stringify(withObjects, null, 2);
+  console.log('withObjects', JSON.stringify(withObjects, null, 2));
 
   const fillBlocks = (
     blocks: BQLMutationBlock | BQLMutationBlock[]
@@ -226,6 +261,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           if (Object.keys(val).length === 0) {
             throw new Error('Empty object!');
           }
+          if (key === '$filter' || meta.nodePath?.includes('.$filter.')) {
+            return;
+          }
           const value = val as BQLMutationBlock;
           // console.log('value', value);
           // const currentTempId = value.$tempId || uuidv4();
@@ -233,6 +271,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           const nodePathArray = meta.nodePath?.split('.');
 
           const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
+
+          const currentPath = !notRoot
+            ? meta.nodePath || '' /// keep the number in the root or set to root ''
+            : Array.isArray(parent)
+            ? nodePathArray?.slice(0, -1).join('.')
+            : meta.nodePath;
 
           const currentSchema = getCurrentSchema(schema, value);
           // todo:
@@ -244,10 +288,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           const hasUpdatedChildren = Object.keys(value).some((x) => [...roleFields, ...linkFields]?.includes(x));
           const getOp = () => {
             if (value.$op) return value.$op; // if there is an op, then thats the one
+            if (value.$tempId && notRoot) return 'link'; // if there is a tempId is always a link,or it's the root unless an unlink op has been set
+            if (value.$tempId && !notRoot) return 'create';
             // todo: can move these to the first level traversal
-            if ((value.$id || value.$filter) && hasUpdatedDataFields) return 'update'; // if there is an id or  afilter, is an update. If it was a delete,it has been specified
-            if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) return 'link'; // if there is an id or  afilter, is an update. If it was a delete,it has been specified
-            if (!value.$filter && !value.$id) return 'create'; // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
+            if ((value.$id || value.$filter) && hasUpdatedDataFields) return 'update'; // if there is an id or a filter, is an update. If it was a delete,it has been specified
+            if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) return 'link';
+            if (!value.$filter && !value.$id && !value.$tempId) return 'create'; // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
             if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'noop';
             throw new Error('Wrong op');
           };
@@ -257,19 +303,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
           // console.log('value', current(value));
           // errors
-          if (
-            !(value.$id || value.$tempId || value.$filter) &&
-            ['delete', 'link', 'update', 'unlink'].includes(value.$op)
-          ) {
-            throw new Error('Targeted operations (update, delete, link & unlink) require an $id or a $filter');
-          }
+          /* if (!(value.$id || value.$tempId || value.$filter) && ['delete', 'link', 'update'].includes(value.$op)) {
+            throw new Error('Targeted operations (update, delete, link) require an $id or a $filter');
+          } */
           if (typeof parent === 'object') {
             // spot rights conflicts
 
             // modify current
             const ArParent = Array.isArray(parent);
             if (ArParent) value[Symbol.for('index') as any] = key; // nodePathArray.at(-1);
-            value[Symbol.for('path') as any] = meta.nodePath;
+            value[Symbol.for('path') as any] = currentPath;
             value[Symbol.for('isRoot') as any] = !notRoot;
             value[Symbol.for('depth') as any] = notRoot?.split('.').length;
           }
@@ -283,11 +326,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           if (!idFields) throw new Error('No idFields found');
           const idField = idFields[0];
           // console.log('computedFields', computedFields);
-
-          // if a valid id is setup, move it to $id
-          if (value[idField] && !value.$id) {
-            value.$id = value[idField];
-          }
 
           const filledFields = listify(value, (attKey, v) => (v ? attKey : undefined));
           const missingComputedFields = computedFields.filter((x) => !filledFields.includes(x));
@@ -319,6 +357,20 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             }
           });
 
+          // if a valid id is setup, move it to $id
+          if (!value.$id) {
+            if (value[idField]) {
+              /// this is in creation when adding an id
+              value.$id = value[idField];
+            } else {
+              if (value.$op === 'create') {
+                throw new Error(`No id found for ${JSON.stringify(value)}`);
+              }
+              /// link, update, unlink or delete, without id, it gets a generic
+              value.$tempId = `all-${uuidv4()}`;
+            }
+          }
+
           if (unidentifiedFields.length > 0) {
             throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
           }
@@ -328,31 +380,71 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   };
 
   const filledBQLMutation = fillBlocks(withObjects);
-  // console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 2));
+  console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 2));
+  console.log('filledBQLMutation', filledBQLMutation);
 
   const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
     // todo: make immutable
 
     const nodes: BQLMutationBlock[] = [];
     const edges: BQLMutationBlock[] = [];
+
+    const toNodes = (node: BQLMutationBlock) => {
+      if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
+      nodes.push(node);
+    };
     const listOp = ({ value }: TraversalCallbackContext) => {
       if (value.$entity || value.$relation) {
-        if (!value.$id && !['link', 'unlink'].includes(value.$op)) {
+        if (!value.$id && !value.$tempId && !['link', 'unlink'].includes(value.$op)) {
           throw new Error(
             'An id must be specified either in the mutation or has tu have a default value in the schema'
           );
         }
+        /// this is used to group the right delete/unlink operations with the involved things
+
         const currentThingSchema = getCurrentSchema(schema, value);
-        const { dataFields: dataFieldPaths, roleFields: roleFieldPaths } = getCurrentFields(currentThingSchema);
+        const {
+          dataFields: dataFieldPaths,
+          roleFields: roleFieldPaths,
+          linkFields: linkFieldPaths,
+          // @ts-expect-error
+          usedFields,
+        } = getCurrentFields(currentThingSchema, value);
+
+        const getChildOp = () => {
+          if (value.$op === 'create' || value.$op === 'delete') {
+            return value.$op;
+          }
+          // if its un update because linkfields or rolefields updated, but no attributes, then it a noop
+          if (value.$op === 'update') {
+            const usedDataFields = usedFields.filter((x: string) => dataFieldPaths?.includes(x));
+            const usedRoleFields = usedFields.filter((x: string) => roleFieldPaths?.includes(x));
+            const usedLinkFields = usedFields.filter((x: string) => linkFieldPaths?.includes(x));
+            if (usedDataFields.length > 0) {
+              return 'update';
+            }
+            if (usedRoleFields.length > 0 || usedLinkFields.length > 0) {
+              return 'noop';
+            }
+            throw new Error(`No fields on an $op:"update" for node ${JSON.stringify(value)}`);
+          }
+
+          return 'noop';
+        };
 
         const dataObj = {
           ...(value.$entity && { $entity: value.$entity }),
           ...(value.$relation && { $relation: value.$relation }),
           ...(value.$id && { $id: value.$id }),
           ...(value.$tempId && { $tempId: value.$tempId }),
+          ...(value.$filter && { $filter: value.$filter }),
           ...shake(pick(value, dataFieldPaths || [''])),
-          $op: value.$op === 'create' || value.$op === 'update' || value.$op === 'delete' ? value.$op : 'noop',
+          $op: getChildOp(),
+          [Symbol.for('bzId')]: value[Symbol.for('bzId')],
           [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+          // [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
+          [Symbol.for('path')]: value[Symbol.for('path')],
+          [Symbol.for('parent')]: value[Symbol.for('parent')],
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot')],
         };
 
@@ -360,10 +452,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         // ? maybe as todo, to enhance the reasoner parsedBQL to consider multiple ids there, and use "like a|b|c" instead of repeating a lot of ids
         if (Array.isArray(dataObj.$id)) {
           dataObj.$id.forEach((id: string) => {
-            nodes.push({ ...dataObj, $id: id });
+            toNodes({ ...dataObj, $id: id });
           });
         } else {
-          nodes.push(dataObj);
+          toNodes(dataObj);
         }
 
         // console.log('value', isDraft(value) ? current(value) : value);
@@ -413,35 +505,36 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             }
             return 'noop';
           };
-          const linkObj = {
+          const edgeType1 = {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
             [value[Symbol.for('role')]]: value.$tempId || value.$id,
             [value[Symbol.for('oppositeRole')]]: parentId,
-            [Symbol.for('isRoot')]: false,
+            [Symbol.for('bzId')]: uuidv4(),
+            // [Symbol.for('dependencies')]: [parentNode[Symbol.for('path')], ...parentNode[Symbol.for('dependencies')]],
+            // [Symbol.for('isRoot')]: false,
             [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation')]].defaultDBConnector.id,
             [Symbol.for('edgeType')]: 'linkField',
+            [Symbol.for('path')]: value[Symbol.for('path')],
+            [Symbol.for('parent')]: value[Symbol.for('parent')],
           };
           // todo: stuff 😂
-          edges.push(linkObj);
+          edges.push(edgeType1);
         }
 
         // CASE 2: IS RELATION AND HAS THINGS IN THEIR ROLES
         if (value.$relation) {
           const val = value as BQLMutationBlock;
-          if (!val.$id && !['link', 'unlink'].includes(value.$op)) {
-            throw new Error(
-              'An id must be specified either in the mutation or has tu have a default value in the schema'
-            );
-          }
+
+          // @ts-expect-error
           const rolesObjFiltered = oFilter(val, (k, _v) => roleFieldPaths.includes(k)) as BQLMutationBlock;
 
           // console.log('rolesObjFiltered', rolesObjFiltered);
 
           /// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
           const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
-            return [k, v.$id || v];
+            return [k, v];
           });
 
           // console.log('rolesObjOnlyIds', rolesObjOnlyIds);
@@ -466,58 +559,82 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                   /// Replace the array of objects with an array of ids
                   return [k, v.map((vNested: any) => vNested.$id || vNested)];
                 }
-                return [k, v];
+                return [k, v.$id || v];
               });
 
               // todo: validations
               /// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
-              edges.push({
+              const edgeType2 = {
                 ...objWithMetaDataOnly,
                 $relation: val.$relation,
                 $op: getEdgeOp(),
                 ...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
                 [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+                [Symbol.for('path')]: value[Symbol.for('path')],
                 [Symbol.for('info')]: 'coming from created or deleted relation',
-              });
+              };
+              edges.push(edgeType2);
               return;
             }
             // #endregion
             // region 2.2 relations on nested stuff
-            if (val.$op === 'noop') {
-              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) =>
-                v.some(
+            // todo: probably remove the noop here
+            if (val.$op === 'noop' || (val.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
+              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return currentRoleObj.some(
                   (
                     x: BQLMutationBlock // string arrays are always replaces
                   ) => x.$op === 'link' || x.$op === 'create'
-                )
-              );
-              const rolesWithLinksFiltered = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => [
-                k,
-                v.filter((x) => x.$op === 'link' || x.$op === 'create').flatMap((y) => y.$id),
-              ]);
-              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) =>
-                v.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete')
-              );
+                );
+              });
+              const rolesWithLinksIds = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return [
+                  k,
+                  currentRoleObj
+                    .filter((x) => x.$op === 'link' || x.$op === 'create')
+                    .flatMap((y) => y.$id || y.$tempId),
+                ];
+              });
+              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v]; /// cardinality is tested in previous steps
+                return currentRoleObj.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete');
+              });
               // filters the array of objects, taking only those where x.$op === 'unlink'
-              const rolesWithUnlinksFiltered = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => [
-                k,
-                v.filter((x) => x.$op === 'unlink' || x.$op === 'delete').flatMap((y) => y.$id),
-              ]);
+              const rolesWithUnlinksIds = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return [
+                  k,
+                  currentRoleObj
+                    .filter((x) => x.$op === 'unlink' || x.$op === 'delete')
+                    .flatMap((y) => y.$id || y.$tempId),
+                ];
+              });
               const rolesWithReplaces = {};
               [
-                { op: 'link', obj: rolesWithLinksFiltered },
-                { op: 'unlink', obj: rolesWithUnlinksFiltered },
+                { op: 'link', obj: rolesWithLinksIds },
+                { op: 'unlink', obj: rolesWithUnlinksIds },
                 { op: 'replace', obj: rolesWithReplaces }, // todo
               ].forEach((x) => {
                 if (Object.keys(x.obj).length) {
-                  edges.push({
+                  if (x.op === 'unlink' && Object.keys(x.obj).length > 1)
+                    throw new Error(
+                      'Not supported yet: Cannot unlink more than one role at a time, please split into two mutations'
+                    );
+
+                  const edgeType3 = {
                     ...objWithMetaDataOnly,
                     $relation: val.$relation,
                     $op: x.op,
                     ...x.obj, // override role fields by ids or tempIDs
+                    // [Symbol.for('context')]: context,
                     [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+                    [Symbol.for('parent')]: value[Symbol.for('parent')],
+                    [Symbol.for('path')]: value[Symbol.for('path')],
                     [Symbol.for('info')]: 'updating roleFields',
-                  });
+                  };
+                  edges.push(edgeType3);
                 }
               });
               // return;

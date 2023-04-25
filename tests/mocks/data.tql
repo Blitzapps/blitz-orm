@@ -36,7 +36,9 @@ $space-2 isa Space, has id "space-2", has name "Dev";
 (users: $user-1, spaces: $space-1) isa Space-User, has id 'u1-s1';
 (users: $user-1, spaces: $space-2) isa Space-User, has id 'u1-s2';
 (users: $user-2, spaces: $space-2) isa Space-User, has id 'u2-s2';
-(users: $user-3, spaces: $space-2) isa Space-User, has id 'u3-s2';
+(users: $user-3, spaces: $space-2, power: $power1) isa Space-User, has id 'u3-s2';
+
+$power1 isa Power, has id 'power1', has description "useless power";
 
 $tag-1 (users: $user-1) isa UserTag, has id 'tag-1';
 $tag-2 (users: $user-1, users: $user-3) isa UserTag, has id 'tag-2';

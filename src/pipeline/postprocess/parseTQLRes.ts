@@ -97,38 +97,44 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     // todo: check if something weird happened
     const expected = [...mutation.things, ...mutation.edges];
     const result = expected
-      .map((x) => {
-        const currentNode = rawTqlRes.insertions?.[0].get(`${x.$tempId || x.$id}`);
+      .map((exp) => {
+        //! reads all the insertions and gets the first match. This means each id must be unique
+        const currentNode = rawTqlRes.insertions
+          ?.find((y) => y.get(`${exp.$tempId || exp.$id}`))
+          ?.get(`${exp.$tempId || exp.$id}`);
+        // console.log('rawTqlRes.insertions', rawTqlRes.insertions);
+        // console.log('currentNode', currentNode);
+
         // console.log('current:', JSON.stringify(x));
-        if (x.$op === 'create' || x.$op === 'update' || x.$op === 'link') {
+        if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
           if (
             !currentNode?.asThing().iid
             // deletions are not confirmed in typeDB
           ) {
-            throw new Error(`Thing not received on mutation: ${JSON.stringify(x)}`);
+            throw new Error(`Thing not received on mutation: ${JSON.stringify(exp)}`);
           }
 
           const dbIdd = currentNode?.asThing().iid;
           if (config.mutation?.noMetadata) {
-            return mapEntries(x, (k: string, v) => [
+            return mapEntries(exp, (k: string, v) => [
               k.toString().startsWith('$') ? Symbol.for(k) : k,
               v,
             ]) as BQLMutationBlock;
           }
-          return { $dbId: dbIdd, ...x } as BQLMutationBlock;
+          return { $dbId: dbIdd, ...exp } as BQLMutationBlock;
         }
-        if (x.$op === 'delete' || x.$op === 'unlink') {
+        if (exp.$op === 'delete' || exp.$op === 'unlink') {
           // todo when typeDB confirms deletions, check them here
-          return x as BQLMutationBlock;
+          return exp as BQLMutationBlock;
         }
-        if (x.$op === 'noop') {
+        if (exp.$op === 'noop') {
           return undefined;
         }
-        throw new Error(`Unsupported op ${x.$op}`);
+        throw new Error(`Unsupported op ${exp.$op}`);
 
         // console.log('config', config);
       })
-      .filter((x) => x);
+      .filter((z) => z);
 
     // todo
     // @ts-expect-error
