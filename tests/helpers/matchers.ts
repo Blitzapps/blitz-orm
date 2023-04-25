@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import { produce } from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 

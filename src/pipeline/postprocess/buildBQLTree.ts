@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import produce from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
@@ -276,8 +277,8 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
             }
             if (linkField.target === 'role') {
               // Maybe should iterate over role and then get opposing entityIds
-              tunnel.flatMap((t) => {
-                if (!currentRelation) return null;
+              tunnel.forEach((t) => {
+                if (!currentRelation) return;
 
                 const linkedEntities = [...currentRelation].reduce((acc: Record<string, Set<string>>, relation) => {
                   // Check why I need to use t.
@@ -299,9 +300,9 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                   return acc;
                 }, {});
 
-                Object.entries(linkedEntities).map(([key, linkedEntityVal]) => {
+                Object.entries(linkedEntities).forEach(([key, linkedEntityVal]) => {
                   const allCurrentLinkFieldThings = cache.entities.get(key);
-                  if (!allCurrentLinkFieldThings) return null;
+                  if (!allCurrentLinkFieldThings) return;
 
                   const children = filterChildrenEntities(
                     [...allCurrentLinkFieldThings],
@@ -311,21 +312,19 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                   )
                     .filter(notNull)
                     .filter(isStringOrHasShow);
-                  if (children.length === 0) return null;
+                  if (children.length === 0) return;
 
                   if (children && children.length) {
                     if (linkField.cardinality === 'ONE') {
                       // @ts-expect-error
                       // eslint-disable-next-line prefer-destructuring
                       value[linkField.path] = children[0];
-                      return null;
+                      return;
                     }
                     // @ts-expect-error
                     value[linkField.path] = children;
                   }
-                  return null;
                 });
-                return null;
                 // const $id = $fieldConf ? $fieldConf.$id : null;
                 // const childrenCurrentIds = Array.isArray($id) ? $id : [$id];
               });
