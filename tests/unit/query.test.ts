@@ -51,7 +51,7 @@ describe('Query', () => {
         id: 'user2',
         accounts: ['account2-1'],
         spaces: ['space-2'],
-        'user-tags': ['tag-3'],
+        'user-tags': ['tag-3', 'tag-4'],
       },
       {
         $entity: 'User',
@@ -131,6 +131,12 @@ describe('Query', () => {
             users: ['user2'],
             color: 'blue',
             group: 'utg-2',
+          },
+          {
+            $relation: 'UserTag',
+            $id: 'tag-4',
+            id: 'tag-4',
+            users: ['user2'],
           },
         ],
       },
@@ -379,6 +385,12 @@ describe('Query', () => {
         group: { $id: 'utg-2', $relation: 'UserTagGroup', id: 'utg-2' },
         users: [{ $id: 'user2', $entity: 'User', id: 'user2' }],
       },
+      {
+        $id: 'tag-4',
+        id: 'tag-4',
+        $relation: 'UserTag',
+        users: [{ $id: 'user2', $entity: 'User', id: 'user2' }],
+      },
     ];
     const res = await client.query(query);
     expect(res).toBeDefined();
@@ -453,6 +465,12 @@ describe('Query', () => {
         color: 'blue',
         group: 'utg-2',
         id: 'tag-3',
+        users: ['user2'],
+      },
+      {
+        $id: 'tag-4',
+        $relation: 'UserTag',
+        id: 'tag-4',
         users: ['user2'],
       },
     ];
@@ -557,6 +575,19 @@ describe('Query', () => {
           },
         ],
       },
+      {
+        $id: 'tag-4',
+        $relation: 'UserTag',
+        id: 'tag-4',
+        users: [
+          {
+            $entity: 'User',
+            $id: 'user2',
+            id: 'user2',
+            spaces: ['space-2'],
+          },
+        ],
+      },
     ];
     const res = await client.query(query);
     expect(res).toBeDefined();
@@ -601,6 +632,10 @@ describe('Query', () => {
                 id: 'blue',
                 'user-tags': ['tag-3'],
               },
+            },
+            {
+              $id: 'tag-4',
+              $relation: 'UserTag',
             },
           ],
         },
@@ -836,6 +871,7 @@ describe('Query', () => {
     });
   });
 
+  // todo fix this test, which is the only one in the queries which should fail.
   it('n4[nested,filters] Local filter on nested, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -853,7 +889,7 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
     // @ts-expect-error - res is not a string
-    expect(deepSort(res)).toMatchObject([
+    expect(deepSort(res)).toEqual([
       {
         $entity: 'User',
         $id: 'user1',
@@ -868,6 +904,7 @@ describe('Query', () => {
         $entity: 'User',
         $id: 'user3',
         name: 'Ann',
+        // accounts here has to be a single object, not an array because we specified an id in the nested query
         accounts: {
           $entity: 'Account',
           $id: 'account3-1',
