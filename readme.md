@@ -47,7 +47,6 @@ https://www.notion.so/blitzapps/BlitzORM-RFC-eb4a5e1464754cd7857734eabdeaa73c
 
 The RFC includes future features and is not updated so please keep an eye on the query and mutation tests as those are designed for the features already working.
 
-
 ## How to Run TypeDB Locally
 To run TypeDB locally, follow the official instructions at https://docs.vaticle.com/docs/running-typedb/install-and-run. It is recommended to run TypeDB Studio, define the schema there, and test with pure TypeQL before using Blitz-orm.
 
