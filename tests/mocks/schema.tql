@@ -116,3 +116,8 @@ Power sub entity,
     owns id,
     owns description,
     plays Space-User:power;
+
+Self sub SpaceObj,
+    relates owner,
+    plays Self:owner;
+    

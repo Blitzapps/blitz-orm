@@ -56,15 +56,24 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     };
   });
   const relations = currentThingSchema.linkFields?.flatMap((linkField) => {
-    const entityMatch = `match $${thingPath} isa ${thingPath}${localFiltersTql} ${idFilter}`;
+    const relationIdParam = `$${linkField.plays}_id`;
+    let relationIdFilter = `, has ${idField} ${relationIdParam};`;
+    if (query.$id) {
+      if (Array.isArray(query.$id)) {
+        relationIdFilter += ` ${relationIdParam} like "${query.$id.join('|')}";`;
+      } else {
+        relationIdFilter += ` ${relationIdParam} "${query.$id}";`;
+      }
+    }
+    const entityMatch = `match $${linkField.plays} isa ${thingPath}${localFiltersTql} ${relationIdFilter}`;
     // if the target is the relation
     const dirRel = linkField.target === 'relation'; // direct relation
     const tarRel = linkField.relation;
     const relVar = `$${tarRel}`;
 
-    const relationMatchStart = `${dirRel ? relVar : ''} (${linkField.plays}: $${thingPath}`;
+    const relationMatchStart = `${dirRel ? relVar : ''} (${linkField.plays}: $${linkField.plays}`;
     const relationMatchOpposite = linkField.oppositeLinkFieldsPlayedBy.map((link) =>
-      !dirRel ? `${link.plays}: $${link.thing}` : null
+      !dirRel ? `${link.plays}: $${link.plays}` : null
     );
 
     const roles = [relationMatchStart, ...relationMatchOpposite].filter((x) => x).join(',');
@@ -72,15 +81,17 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     const relationPath = schema.relations[linkField.relation].defaultDBConnector.path || linkField.relation;
 
     const relationMatchEnd = `) isa ${relationPath};`;
+
     const relationIdFilters = linkField.oppositeLinkFieldsPlayedBy
       .map(
         // TODO: composite ids.
         // TODO: Also id is not always called id
-        (link) => `$${link.thing} isa ${link.thing}, has id $${link.thing}_id;`
+        (link) =>
+          `$${dirRel ? link.thing : link.plays} isa ${link.thing}, has id $${dirRel ? link.thing : link.plays}_id;`
       )
       .join(', ');
 
-    const group = `group $${thingPath};`;
+    const group = `group $${linkField.plays};`;
     const request = `${entityMatch} ${roles} ${relationMatchEnd} ${relationIdFilters} ${group}`;
     return { relation: relationPath, entity: thingPath, request };
   });

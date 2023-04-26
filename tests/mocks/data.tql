@@ -55,3 +55,11 @@ $yellow isa Color, has id 'yellow';
 $blue isa Color, has id 'blue';
 
 $kind-book (space: $space-2) isa Kind, has id 'kind-book', has Kind·name 'book';
+
+$self1 (space:$space-2) isa Self, has id 'self1';
+$self2 (space:$space-2, owner: $self1) isa Self, has id 'self2';
+$self3 (space:$space-2, owner: $self2) isa Self, has id 'self3';
+$self4 (space:$space-2, owner: $self2) isa Self, has id 'self4';
+
+
+

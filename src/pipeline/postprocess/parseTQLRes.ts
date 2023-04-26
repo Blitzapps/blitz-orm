@@ -1,9 +1,9 @@
-import { isArray, isString, listify, mapEntries } from 'radash';
-import { ConceptMapGroup } from 'typedb-client';
+import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
+import { Concept, ConceptMapGroup } from 'typedb-client';
 
-import { getPath } from '../../helpers';
-import { BQLMutationBlock, EnrichedBormSchema } from '../../types';
-import type { Entity, EntityName, ID, PipelineOperation } from '../pipeline';
+import { extractChildEntities, getPath } from '../../helpers';
+import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
+import type { Entity, EntityName, ID, PipelineOperation, RelationName } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
   // * Construct entities from the concept map group array. Each concept map group refers to a single BORM entity
@@ -36,14 +36,27 @@ const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBo
   return bormEntities;
 };
 
-const extractRelations = (conceptMapGroups: ConceptMapGroup[], entityNames: string[]): Map<EntityName, ID>[] => {
+const extractRelations = (
+  conceptMapGroups: ConceptMapGroup[],
+  relationNames: string[]
+  // Extract to type
+): Map<RelationName, { id: ID; entityName: EntityName }>[] => {
   const relations = conceptMapGroups.flatMap((conceptMapGroup) => {
     const relationsInGroup = conceptMapGroup.conceptMaps.map((conceptMap) => {
       const link = new Map();
-      entityNames.forEach((entityName) => {
-        const id = conceptMap.get(`${entityName}_id`)?.asAttribute().value.toString();
+      relationNames.forEach((relationName) => {
+        const id = conceptMap.get(`${relationName}_id`)?.asAttribute().value.toString();
+        const concept = conceptMap.get(relationName) as Concept | undefined;
+        // Because we changed the key to be the path, we need the entityName in the value
 
-        if (id) link.set(entityName, id);
+        const entityName = concept?.isEntity()
+          ? concept.asEntity().type.label.name
+          : concept?.asRelation().type.label.name;
+        const val = {
+          id,
+          entityName: entityName ?? relationName,
+        };
+        if (id) link.set(relationName, val);
       });
       return link;
     });
@@ -70,6 +83,28 @@ const extractRoles = (
     return rolesInGroup;
   });
   return roles;
+};
+
+const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: EnrichedBormSchema) => {
+  const currentRelroles = listify(
+    currentRelSchema.roles,
+    // TODO: Multiple inverse roles
+    (_k, v) => {
+      if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
+        throw new Error('a role can be played by two entities throws the same relation');
+      }
+      if (!v.playedBy) throw new Error('Role not being played by nobody');
+      // We extract the role that it plays
+      const playedBy = v.playedBy[0].plays;
+      // TODO: should recursively get child of childs
+
+      const childEntities = extractChildEntities(schema.entities, playedBy);
+
+      return [playedBy, ...childEntities];
+    }
+  );
+
+  return unique(flat(currentRelroles));
 };
 
 export const parseTQLRes: PipelineOperation = async (req, res) => {
@@ -154,17 +189,8 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   const relations = rawTqlRes.relations?.map((relation) => {
     const currentRelSchema = schema.relations[relation.relation];
 
-    const currentRelroles = listify(
-      currentRelSchema.roles,
-      // TODO: Multiple inverse roles
-      (_k, v) => {
-        if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
-          throw new Error('a role can be played by two entities throws the same relation');
-        }
-        if (!v.playedBy) throw new Error('Role not being played by nobody');
-        return v.playedBy[0].thing;
-      }
-    );
+    const currentRelroles = extractRelRoles(currentRelSchema, schema);
+
     const links = extractRelations(relation.conceptMapGroups, [
       ...currentRelroles,
       currentRelSchema.name, // for cases where the relation is the actual thing fetched
@@ -213,7 +239,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     cache.relations.set(relationName, relationCache);
 
     relation.links.forEach((link) => {
-      [...link.entries()].forEach(([entityName, entityId]) => {
+      [...link.entries()].forEach(([_, { entityName, id }]) => {
         const entityCache = cache.entities.get(entityName) || new Map();
 
         const getEntityThingType = () => {
@@ -225,10 +251,10 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
         const entity = {
           [entityThingType]: entityName,
-          $id: entityId,
-          ...entityCache.get(entityId),
+          $id: id,
+          ...entityCache.get(id),
         };
-        entityCache.set(entityId, entity);
+        entityCache.set(id, entity);
         cache.entities.set(entityName, entityCache);
       });
     });
