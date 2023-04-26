@@ -332,15 +332,15 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
   const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
   const edgeStreams = edgesWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies], 'edges'));
 
-  console.log('thingStreams', JSON.stringify(thingStreams, null, 3));
-  console.log('edgeStreams', edgeStreams);
+  // console.log('thingStreams', JSON.stringify(thingStreams, null, 3));
+  // console.log('edgeStreams', edgeStreams);
 
   const nodeOperations = toTypeQL(mutation.things);
   const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
   const edgeOperations = toTypeQL(mutation.edges, 'edges');
   const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-  console.log('nodeOperations', nodeOperations);
-  console.log('edgeOperations', edgeOperations);
+  // console.log('nodeOperations', nodeOperations);
+  // console.log('edgeOperations', edgeOperations);
 
   const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
   // console.log('allOperations', allOperations);
@@ -374,6 +374,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     },
     (x) => !x
   );
-  console.log('tqlRequest', tqlRequest);
+  // console.log('tqlRequest', tqlRequest);
   req.tqlRequest = tqlRequest;
 };

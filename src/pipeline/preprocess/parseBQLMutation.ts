@@ -249,7 +249,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   };
 
   const withObjects = stringToObjects(rawBqlRequest);
-  console.log('withObjects', JSON.stringify(withObjects, null, 2));
+  // console.log('withObjects', JSON.stringify(withObjects, null, 2));
 
   const fillBlocks = (
     blocks: BQLMutationBlock | BQLMutationBlock[]
@@ -380,8 +380,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   };
 
   const filledBQLMutation = fillBlocks(withObjects);
-  console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 2));
-  console.log('filledBQLMutation', filledBQLMutation);
+  // console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 2));
+  // console.log('filledBQLMutation', filledBQLMutation);
 
   const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
     // todo: make immutable
