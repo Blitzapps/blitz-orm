@@ -1,5 +1,6 @@
-import { listify } from 'radash';
+import { listify, flat } from 'radash';
 
+import { extractChildEntities, notNull } from '../../helpers';
 import { RawBQLQuery } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 import { parseTQLRes } from '../postprocess';
@@ -69,54 +70,67 @@ export const dispatchPipeline: PipelineOperation = async (req, res) => {
       if (!linkField) return null;
       const { thing } = linkField; // previous filter ensures this is safe
       // todo: get also relations?
+      const childEntities = extractChildEntities(schema.entities, thing);
 
-      const result = cache.entities.get(thing);
-      const resultIds = [...(result?.keys() || [])];
+      return [thing, ...childEntities]
+        .map((childEntity) => {
+          const entity = cache.entities.get(childEntity);
+          if (!entity) return null;
+          // If '$show' not in val that means that the entity has not been queried
+          const resultIds = Array.from(entity.values()).reduce((acc: string[], val) => {
+            if (!('$show' in val)) {
+              acc.push(val.$id);
+            }
+            return acc;
+          }, []);
+          if (resultIds.length === 0) return null;
 
-      // TODO: use an $id BQL query
-      // todo: $id should not depend only on the entityType as the same entity could play two roles and break this
+          const currentSchema = schema.entities[childEntity]
+            ? { ...schema.entities[childEntity], thingType: 'entity' }
+            : { ...schema.relations[childEntity], thingType: 'relation' };
 
-      const currentSchema = schema.entities[thing]
-        ? { ...schema.entities[thing], thingType: 'entity' }
-        : { ...schema.relations[thing], thingType: 'relation' };
+          const $FieldsObj = $fields.find(
+            (x) => typeof x === 'object' && x.$path === linkField.plays
+          ) as Partial<RawBQLQuery>;
 
-      // console.log('req', req.bqlRequest);
+          // TODO: use an $id BQL query
+          // todo: $id should not depend only on the entityType as the same entity could play two roles and break this
 
-      const $FieldsObj = $fields.find(
-        (x) => typeof x === 'object' && x.$path === linkField.plays
-      ) as Partial<RawBQLQuery>;
+          // console.log('req', req.bqlRequest);
 
-      const localIdsTemp = $FieldsObj?.$id;
-      const localIds = !localIdsTemp ? [] : Array.isArray(localIdsTemp) ? localIdsTemp : [localIdsTemp];
-      const localFilters = $FieldsObj?.$filter;
+          const localIdsTemp = $FieldsObj?.$id;
+          const localIds = !localIdsTemp ? [] : Array.isArray(localIdsTemp) ? localIdsTemp : [localIdsTemp];
+          const localFilters = $FieldsObj?.$filter;
 
-      // use only common ids between localIds and ids arrays
-      const commonIds = !localIds.length ? resultIds : localIds.filter((id) => resultIds.includes(id));
+          // use only common ids between localIds and ids arrays
+          const commonIds = !localIds.length ? resultIds : localIds.filter((id) => resultIds.includes(id));
 
-      const newBqlRequest = {
-        query: {
-          $id: commonIds,
-          $fields: $FieldsObj?.$fields,
-          ...(currentSchema.thingType === 'entity' ? { $entity: currentSchema } : {}),
-          ...(currentSchema.thingType === 'relation' ? { $relation: currentSchema } : {}),
-          ...(localFilters ? { $localFilters: localFilters } : {}),
-          // ...(nestedFilter ? { $nestedFilters: nestedFilters } : {}),
-        },
-      };
+          const newBqlRequest = {
+            query: {
+              $id: commonIds,
+              $fields: $FieldsObj?.$fields,
+              ...(currentSchema.thingType === 'entity' ? { $entity: currentSchema } : {}),
+              ...(currentSchema.thingType === 'relation' ? { $relation: currentSchema } : {}),
+              ...(localFilters ? { $localFilters: localFilters } : {}),
+              // ...(nestedFilter ? { $nestedFilters: nestedFilters } : {}),
+            },
+          };
 
-      return {
-        req: {
-          ...req,
-          bqlRequest: newBqlRequest,
-        },
-        res,
-        pipeline: [buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
-      };
+          return {
+            req: {
+              ...req,
+              bqlRequest: newBqlRequest,
+            },
+            res,
+            pipeline: [buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
+          };
+        })
+        .filter(notNull);
     })
-    .filter((x) => x);
+    .filter(notNull);
 
   if (nextOps?.length) {
     // eslint-disable-next-line consistent-return -- TODO : consistent return
-    return nextOps;
+    return flat(nextOps);
   }
 };

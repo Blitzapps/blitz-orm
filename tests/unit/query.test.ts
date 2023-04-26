@@ -953,7 +953,8 @@ describe('Query', () => {
       },
     ]);
   });
-  it('inheritedAttributes', async () => {
+
+  it('i1[inherired, attributes] Entity with inherited attributes', async () => {
     expect(client).toBeDefined();
     const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
     expect(res).toEqual({
@@ -963,6 +964,18 @@ describe('Query', () => {
       power: 'mind control',
       isEvil: true,
     });
+  });
+
+  it('s1[self] Relation playing a a role defined by itself', async () => {
+    expect(client).toBeDefined();
+    const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
+    // @ts-expect-error
+    expect(deepSort(res, 'id')).toEqual([
+      { id: 'self1', owned: ['self2'], space: 'space-2' },
+      { id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
+      { id: 'self3', owner: 'self2', space: 'space-2' },
+      { id: 'self4', owner: 'self2', space: 'space-2' },
+    ]);
   });
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
@@ -979,7 +992,6 @@ describe('Query', () => {
       name: 'Antoine',
     });
   });
-
   it('[entity,nested,filter] - Simplified filter', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -995,7 +1007,6 @@ describe('Query', () => {
       },
     ]);
   });
-
   it('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1012,7 +1023,6 @@ describe('Query', () => {
       { $entity: 'post', $id: 'post2', id: 'post2' },
     ]);
   });
-
   it('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1028,7 +1038,6 @@ describe('Query', () => {
       { $entity: 'post', $id: 'post3', id: 'post3' },
     ]);
   });
-
   it('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1045,7 +1054,6 @@ describe('Query', () => {
       { $entity: 'post', $id: 'post3', id: 'post3' },
     ]);
   });
-
   it('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1054,7 +1062,6 @@ describe('Query', () => {
     });
     expect(res).toThrow(TypeError);
   });
-
   it('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1063,9 +1070,7 @@ describe('Query', () => {
     });
     expect(res).toThrow(TypeError);
   });
-
   // OPERATORS: NOT
-
   it('[entity,filter,not] - filter by field', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1081,7 +1086,6 @@ describe('Query', () => {
       { $entity: 'User', $id: 'user2', id: 'user3' },
     ]);
   });
-
   it('[entity,filter,not,array,includes] filter item cardinality many', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1091,7 +1095,6 @@ describe('Query', () => {
     });
     expect(res).toEqual([{ $entity: 'post', $id: 'post3', id: 'post3' }]); // this is an array because we can't be sure before querying that is a single element
   });
-
   // OPERATORS: OR
   // typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
   it('[entity,OR] or filter two different fields', async () => {
@@ -1109,7 +1112,6 @@ describe('Query', () => {
       { $entity: 'User', $id: 'user2', name: 'Loic' },
     ]);
   });
-
   */
 
   // NESTED

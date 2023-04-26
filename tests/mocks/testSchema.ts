@@ -162,6 +162,13 @@ export const testSchema: BormSchema = {
           plays: 'space',
           target: 'relation',
         },
+        {
+          path: 'selfs',
+          cardinality: 'MANY',
+          relation: 'Self',
+          plays: 'space',
+          target: 'relation',
+        },
       ],
     },
     Color: {
@@ -314,6 +321,25 @@ export const testSchema: BormSchema = {
         { ...string, path: 'computeType' },
       ],
       defaultDBConnector: { id: 'default', as: 'Field', path: 'DataField' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+    },
+    Self: {
+      idFields: ['id'],
+      extends: 'SpaceObj',
+      defaultDBConnector: { id: 'default', as: 'SpaceObj', path: 'Self' },
+      roles: {
+        owner: {
+          cardinality: 'ONE',
+        },
+      },
+      linkFields: [
+        {
+          path: 'owned',
+          cardinality: 'MANY',
+          relation: 'Self',
+          plays: 'owner',
+          target: 'relation',
+        },
+      ],
     },
   },
 };
