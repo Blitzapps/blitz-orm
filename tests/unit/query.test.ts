@@ -966,7 +966,6 @@ describe('Query', () => {
     });
   });
 
-
   it('s1[self] Relation playing a a role defined by itself', async () => {
     expect(client).toBeDefined();
     const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
@@ -979,7 +978,7 @@ describe('Query', () => {
     ]);
   });
 
-/*
+  /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();
     const res = await client.query({

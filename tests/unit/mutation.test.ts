@@ -538,14 +538,6 @@ describe('Mutation init', () => {
   it('l3rel [unlink, simple, relation] unlink link in relation but one role per time', async () => {
     // todo: When the relation is the self relation being modified, no need to have it as noop and then as op in the edges
     expect(bormClient).toBeDefined();
-    const temp = await bormClient.query(
-      {
-        $relation: 'Space-User',
-        $id: 'u3-s2',
-        $fields: ['id', 'spaces', 'users'],
-      },
-      { noMetadata: true }
-    );
 
     await bormClient.mutate(
       [

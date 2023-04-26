@@ -14,14 +14,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     throw new Error('BQL request is not a mutation');
   }
 
-  const getDependencies = (path: string, allNodes: BQLMutationBlock[]): BQLMutationBlock[] => {
+  /* const getDependencies = (path: string, allNodes: BQLMutationBlock[]): BQLMutationBlock[] => {
     const pathDeps = path.split('.');
     const dependencies = pathDeps.map((_: string, i: number) => pathDeps.slice(0, -i).join('.'));
     const includedItself = [...dependencies, path];
     return allNodes.filter((x) => includedItself.includes(x[Symbol.for('path') as any]));
-  };
+  }; */
 
-  const getNodesWithOps = (nodes: BQLMutationBlock[]) =>
+  /* const getNodesWithOps = (nodes: BQLMutationBlock[]) =>
     nodes
       .filter((x) => x.$op !== 'noop')
       .map((y) => {
@@ -34,8 +34,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
           edgeDependencies: getDependencies(path, mutation.edges),
         };
       });
-  const thingsWithOps = getNodesWithOps(mutation.things);
-  const edgesWithOps = getNodesWithOps(mutation.edges);
+      */
+  /* const thingsWithOps = getNodesWithOps(mutation.things);
+  const edgesWithOps = getNodesWithOps(mutation.edges); */
   // console.log('thingsWithOps', thingsWithOps);
   // console.log('edgesWithOps', edgesWithOps);
 
@@ -270,7 +271,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       return '';
     };
 
-    const getPreDeletionBatch = () => {
+    /* const getPreDeletionBatch = () => {
       if (op === 'unlink') {
         return fromRoleFields
           .filter((y) => y)
@@ -284,7 +285,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
           });
       }
       return [];
-    };
+    }; */
 
     return {
       // preDeletionBatch: getPreDeletionBatch(),
@@ -329,8 +330,8 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z);
   };
 
-  const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
-  const edgeStreams = edgesWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies], 'edges'));
+  // const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
+  // const edgeStreams = edgesWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies], 'edges'));
 
   // console.log('thingStreams', JSON.stringify(thingStreams, null, 3));
   // console.log('edgeStreams', edgeStreams);
