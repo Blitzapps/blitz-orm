@@ -110,3 +110,7 @@ Field sub SpaceDef,
 DataField sub Field,
     owns DataField·computeType,
     owns DataField·type;
+
+Self sub SpaceObj,
+    relates owner,
+    plays Self:owner;
