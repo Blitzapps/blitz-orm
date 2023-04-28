@@ -6,7 +6,7 @@ import type { PipelineOperation } from '../pipeline';
 // 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
 
 export const preQuery: PipelineOperation = async (req) => {
-  const { rawBqlRequest, _schema } = req;
+  const { rawBqlRequest } = req;
 
   const pruneMonoMutation = (query: RawBQLMutation): RawBQLMutation => {
     return query;

@@ -5,6 +5,7 @@ import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
 import { parseBQLQuery, buildTQLQuery } from './preprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
+import { fillMt } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
 import { runTQLQuery } from './transaction';
 import { runTQLMutation } from './transaction/runTQLMutation';
@@ -17,6 +18,7 @@ import type {
   ParsedBQLQuery as BQLQuery,
   RawBQLQuery as RawBQLRequest,
   TQLRequest,
+  FilledBQLMutationBlock,
 } from '../types';
 
 export type RelationName = string;
@@ -28,6 +30,7 @@ export type Entity = { $entity: string; $id: string } & Record<string, any>;
 
 type Request = {
   rawBqlRequest: RawBQLRequest;
+  filledBqlRequest?: FilledBQLMutationBlock[] | FilledBQLMutationBlock; // todo: transform into filledBQLRequest with queries as well
   bqlRequest?: { query?: BQLQuery; mutation?: BQLMutation };
   schema: EnrichedBormSchema;
   config: BormConfig;
@@ -72,7 +75,7 @@ export type Pipeline = PipelineOperation[];
 
 export const Pipelines: Record<string, Pipeline> = {
   query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
-  mutation: [parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
+  mutation: [fillMt, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];
