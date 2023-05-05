@@ -5,7 +5,7 @@ import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
 import { parseBQLQuery, buildTQLQuery } from './preprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
-import { fillMt } from './preprocess/fill';
+import { fillBQLMutation } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
 import { runTQLQuery } from './transaction';
 import { runTQLMutation } from './transaction/runTQLMutation';
@@ -75,7 +75,7 @@ export type Pipeline = PipelineOperation[];
 
 export const Pipelines: Record<string, Pipeline> = {
   query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
-  mutation: [fillMt, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
+  mutation: [fillBQLMutation, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];

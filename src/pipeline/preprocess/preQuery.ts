@@ -1,4 +1,3 @@
-import { RawBQLMutation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
 // parseBQLQueryObjectives:
@@ -6,19 +5,19 @@ import type { PipelineOperation } from '../pipeline';
 // 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
 
 export const preQuery: PipelineOperation = async (req) => {
-  const { rawBqlRequest } = req;
+  const { filledBqlRequest } = req;
+  // todo skip this step in the DBs where it's not needed
 
-  const pruneMonoMutation = (query: RawBQLMutation): RawBQLMutation => {
+  /* const pruneMonoMutation = (query: FilledBQLMutationBlock | FilledBQLMutationBlock[]): RawBQLMutation => {
     return query;
   };
   const pruneMultiMutation = () => {};
 
-  if (Array.isArray(rawBqlRequest) && rawBqlRequest.length > 1) {
+  if (Array.isArray(filledBqlRequest) && filledBqlRequest.length > 1) {
     pruneMultiMutation();
-  } else pruneMonoMutation(rawBqlRequest);
+  } else pruneMonoMutation(filledBqlRequest);
 
-  const prunedBQLMutation = {};
+  const prunedBQLMutation = {}; */
 
-  // @ts-expect-error
-  req.rawBqlRequest = prunedBQLMutation;
+  req.filledBqlRequest = filledBqlRequest;
 };

@@ -11,7 +11,7 @@ import type { PipelineOperation } from '../pipeline';
 // 1) Validate the query (getRawBQLQuery)
 // 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
 
-export const fillMt: PipelineOperation = async (req) => {
+export const fillBQLMutation: PipelineOperation = async (req) => {
   const { rawBqlRequest, schema } = req;
 
   const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
@@ -59,14 +59,14 @@ export const fillMt: PipelineOperation = async (req) => {
 
           const currentPath = meta.nodePath;
 
-          // <---------------mutating children objects ---------------->
+          /// <---------------mutating children objects ---------------->
           [
             ...linkFields.map((x) => ({ fieldType: 'linkField', path: x })),
             ...roleFields.map((x) => ({ fieldType: 'roleField', path: x })),
           ]?.forEach((currentField) => {
             const currentLinkFieldSchema = currentSchema.linkFields?.find((x) => x.path === currentField.path);
             const currentValue = value[currentField.path];
-            // ignore undefined
+            /// ignore undefined
             if (currentValue === undefined) return;
             // console.log(':::', { currentField });
 
@@ -120,10 +120,11 @@ export const fillMt: PipelineOperation = async (req) => {
             if (currentFieldRole?.playedBy?.length === 0)
               throw new Error(`unused role: ${currentPath}.${currentField.path}`);
 
-            // <-- VALIDATIONS -->
+            /// <-- VALIDATIONS -->
             if (!currentFieldSchema) {
               throw new Error(`Field ${currentField.path} not found in schema`);
             }
+
             const oppositeFields =
               currentLinkFieldSchema?.oppositeLinkFieldsPlayedBy || currentRoleFieldSchema?.playedBy;
 
@@ -140,9 +141,13 @@ export const fillMt: PipelineOperation = async (req) => {
                 )}. Schema: ${JSON.stringify(currentFieldSchema)}`
               );
 
-            if (currentFieldSchema.cardinality === 'ONE' && Array.isArray(currentValue)) {
-              throw new Error(`Can't have an array in a cardinality === ONE link field`);
+            if (currentFieldSchema.cardinality === 'ONE') {
+              if (Array.isArray(currentValue)) {
+                throw new Error(`Can't have an array in a cardinality === ONE link field`);
+              }
+              // if is only one object, current is not a create, and the object has no op, throw error
             }
+
             // cardinality many are always arrays, unless it's an object that specifies an arrayOp like
             if (
               currentFieldSchema.cardinality === 'MANY' &&
@@ -180,6 +185,7 @@ export const fillMt: PipelineOperation = async (req) => {
               [Symbol.for('role') as any]: childrenLinkField.plays, // this is the currentChildren
               // this is the parent
               [Symbol.for('oppositeRole') as any]: 'plays' in currentFieldSchema ? currentFieldSchema.plays : undefined, // todo
+              [Symbol.for('relFieldSchema') as any]: currentFieldSchema,
             };
 
             // console.log('childrenThingObj', childrenThingObj);
@@ -202,33 +208,42 @@ export const fillMt: PipelineOperation = async (req) => {
               // console.log('[obj]value', value[field as string]);
             }
             // todo: this does not allow the case accounts: ['id1','id2',{$tempId:'temp1'}] ideally tempIds should have some indicator like :_temp1 later so we can do ['id1','id2',':_tempid'] instead
-            if (Array.isArray(currentValue) && currentValue.every((x) => isObject(x))) {
-              value[currentField.path] = currentValue.map((y) => {
-                /// when a tempId is specified, in a relation, same as with $id, is a link by default
-                if (y.$tempId && currentSchema.thingType === 'relation' && (y.$op === 'link' || !y.$op)) {
-                  return y.$tempId;
-                }
-                return {
+
+            /// we already know it's 'MANY'
+            if (Array.isArray(currentValue)) {
+              // todo: check for arrays that are values and not vectors
+              if (currentValue.every((x) => isObject(x))) {
+                value[currentField.path] = currentValue.map((y) => {
+                  /// when a tempId is specified, in a relation, same as with $id, is a link by default
+                  if (y.$tempId && currentSchema.thingType === 'relation' && (y.$op === 'link' || !y.$op)) {
+                    throw new Error(`To be done (not allowed with current borm version)`);
+                    // return y.$tempId;
+                  }
+                  return {
+                    ...childrenThingObj,
+                    ...y,
+                  };
+                });
+                // console.log('[obj-arr]value', value[field as string]);
+              } else if (currentValue.every((x) => typeof x === 'string')) {
+                value[currentField.path] = currentValue.map((y) => ({
                   ...childrenThingObj,
-                  ...y,
-                };
-              });
-              // console.log('[obj-arr]value', value[field as string]);
+                  $op: 'replace',
+                  $id: y,
+                }));
+              } else throw new Error(`Invalid array value for ${currentField.path}`);
             }
+
+            /// we already know it's 'ONE'
             if (typeof currentValue === 'string') {
               value[currentField.path] = {
                 ...childrenThingObj,
-                $op: 'link',
+                $op: 'replace',
                 $id: currentValue, // todo: now all strings are ids and not tempIds, but in the future this might change
               };
             }
-            if (Array.isArray(currentValue) && currentValue.every((x) => typeof x === 'string')) {
-              value[currentField.path] = currentValue.map((y) => ({
-                ...childrenThingObj,
-                $op: 'link',
-                $id: y,
-              }));
-            }
+
+            /// can be both MANY or ONE
             if (currentValue === null) {
               const neutralObject = {
                 ...childrenThingObj,
@@ -284,11 +299,27 @@ export const fillMt: PipelineOperation = async (req) => {
           // @ts-expect-error
           const { unidentifiedFields, dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
 
+          const parentOp = parent?.$op;
+          const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
+
+          // console.log('currentValue', JSON.stringify(value));
+          // console.log('currentFieldSchema', isDraft(value) ? current(value) : value);
+
           const hasUpdatedDataFields = Object.keys(value).some((x) => dataFields?.includes(x));
 
           const hasUpdatedChildren = Object.keys(value).some((x) => [...roleFields, ...linkFields]?.includes(x));
           const getOp = () => {
             if (value.$op) return value.$op; // if there is an op, then thats the one
+            /// nested objects are create by default, unless is too ambiguous
+            if (
+              notRoot &&
+              !value.$id &&
+              !value.$tempId &&
+              parentOp !== 'create' &&
+              currentFieldSchema.cardinality === 'ONE'
+            ) {
+              throw new Error(`Please specify if it is a create or an update: ${JSON.stringify(value)} `);
+            }
             if (value.$tempId && notRoot) return 'link'; // if there is a tempId is always a link,or it's the root unless an unlink op has been set
             if (value.$tempId && !notRoot) return 'create';
             // todo: can move these to the first level traversal
@@ -381,6 +412,8 @@ export const fillMt: PipelineOperation = async (req) => {
   };
 
   const filledBQLMutation = fill(withObjects);
+
+  // console.log('filledBQLMutation', filledBQLMutation);
 
   if (Array.isArray(filledBQLMutation)) {
     req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock[];

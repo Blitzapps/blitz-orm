@@ -35,6 +35,8 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
     tqlRequest.insertions &&
     `${tqlRequest.insertionMatches ? `match ${tqlRequest.insertionMatches}` : ''} insert ${tqlRequest.insertions}`;
 
+  // console.log('tqlInsertion', tqlDeletion);
+
   // does not receive a result
   if (tqlDeletion) mutateTransaction.query.delete(tqlDeletion);
 
