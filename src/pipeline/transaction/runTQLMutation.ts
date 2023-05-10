@@ -23,19 +23,17 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
   if (!mutateTransaction) {
     throw new Error("Can't create transaction");
   }
+  // console.log('tqlRequest', tqlRequest);
   // deletes and pre-update deletes
   const tqlDeletion =
     tqlRequest.deletionMatches &&
     tqlRequest.deletions &&
     `match ${tqlRequest.deletionMatches} delete ${tqlRequest.deletions}`;
   // insertions and updates
-  // console.log('tqlDeletion', tqlDeletion);
 
   const tqlInsertion =
     tqlRequest.insertions &&
     `${tqlRequest.insertionMatches ? `match ${tqlRequest.insertionMatches}` : ''} insert ${tqlRequest.insertions}`;
-
-  // console.log('tqlInsertion', tqlDeletion);
 
   // does not receive a result
   if (tqlDeletion) mutateTransaction.query.delete(tqlDeletion);

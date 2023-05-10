@@ -1,10 +1,16 @@
-import produce from 'immer';
-import { traverse, TraversalCallbackContext } from 'object-traversal';
+import produce, { current } from 'immer';
+import { traverse, TraversalCallbackContext, getNodeByPath } from 'object-traversal';
 import { isObject, listify } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
-import { BQLMutationBlock, EnrichedBormRelation, EnrichedRoleField, FilledBQLMutationBlock } from '../../types';
+import {
+  BQLMutationBlock,
+  EnrichedBormRelation,
+  EnrichedLinkField,
+  EnrichedRoleField,
+  FilledBQLMutationBlock,
+} from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
 // parseBQLQueryObjectives:
@@ -53,45 +59,82 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           value[Symbol.for('schema') as any] = currentSchema;
           value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
 
-          const { linkFields, roleFields } = getCurrentFields(currentSchema);
-          // console.log('linkFields', linkFields);
-          // console.log('roleFields', roleFields);
+          const { usedLinkFields, usedRoleFields } = getCurrentFields(currentSchema, value);
+
+          type RoleFieldMap = {
+            fieldType: 'roleField';
+            path: string;
+            schema: EnrichedRoleField;
+          };
+
+          type LinkFieldMap = {
+            fieldType: 'linkField';
+            path: string;
+            schema: EnrichedLinkField;
+          };
+
+          const usedLinkFieldsMap = usedLinkFields.map(
+            (linkFieldPath): LinkFieldMap => ({
+              fieldType: 'linkField',
+              path: linkFieldPath,
+              // @ts-expect-error
+              schema: currentSchema.linkFields.find((y) => y.path === linkFieldPath),
+            })
+          );
+
+          const usedRoleFieldsMap =
+            currentSchema.thingType === 'relation'
+              ? usedRoleFields.map(
+                  (roleFieldPath): RoleFieldMap => ({
+                    fieldType: 'roleField',
+                    path: roleFieldPath,
+                    schema: oFind(currentSchema.roles, (k) => k === roleFieldPath) as EnrichedRoleField,
+                  })
+                )
+              : [];
+
+          /// validations
+          /// If the current value uses at least one linkfield with target === 'role' and at least another field with target === 'relation', throw an unsupported (yet) error
+          if (
+            usedLinkFieldsMap.some((x) => x.schema?.target === 'role') &&
+            usedLinkFieldsMap.some((x) => x.schema?.target === 'relation')
+          ) {
+            throw new Error(
+              `Unsupported: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.`
+            );
+          }
+
+          /// multiple possible things in a role
+          const multiplayedRoles = usedRoleFieldsMap.filter(
+            (roleField) => [...new Set(roleField.schema.playedBy?.map((x) => x.thing))].length !== 1
+          );
+          if (multiplayedRoles.length > 1) {
+            throw new Error(
+              `Field: ${
+                multiplayedRoles[0].path
+              } - If a role can be played by multiple things, you must specify the thing in the mutation: ${JSON.stringify(
+                multiplayedRoles[0].schema.playedBy
+              )}. Schema: ${JSON.stringify(multiplayedRoles[0].schema)}`
+            );
+          }
 
           const currentPath = meta.nodePath;
 
           /// <---------------mutating children objects ---------------->
-          [
-            ...linkFields.map((x) => ({ fieldType: 'linkField', path: x })),
-            ...roleFields.map((x) => ({ fieldType: 'roleField', path: x })),
-          ]?.forEach((currentField) => {
-            const currentLinkFieldSchema = currentSchema.linkFields?.find((x) => x.path === currentField.path);
+          [...usedLinkFieldsMap, ...usedRoleFieldsMap]?.forEach((currentField) => {
             const currentValue = value[currentField.path];
             /// ignore undefined
             if (currentValue === undefined) return;
             // console.log(':::', { currentField });
 
-            const currentRoleFieldSchema =
-              'roles' in currentSchema
-                ? (oFind(currentSchema.roles, (k) => k === currentField.path) as EnrichedRoleField)
-                : null;
+            const currentFieldSchema =
+              currentField.fieldType === 'roleField' ? currentField.schema : currentField.schema;
 
-            const currentFieldSchema = currentLinkFieldSchema || currentRoleFieldSchema;
+            if (!currentFieldSchema) throw new Error(`Field ${currentField.path} not found in schema`);
 
-            if (
-              currentRoleFieldSchema &&
-              [...new Set(currentRoleFieldSchema.playedBy?.map((x) => x.thing))].length !== 1
-            ) {
-              throw new Error(
-                `Field: ${
-                  currentField.path
-                } - If a role can be played by multiple things, you must specify the thing in the mutation: ${JSON.stringify(
-                  currentRoleFieldSchema.playedBy
-                )}. Schema: ${JSON.stringify(currentFieldSchema)}`
-              );
-            }
-            const currentEdgeSchema = currentRoleFieldSchema?.playedBy
-              ? currentRoleFieldSchema?.playedBy[0]
-              : currentLinkFieldSchema;
+            const currentEdgeSchema =
+              // @ts-expect-error
+              currentField.fieldType === 'roleField' ? currentFieldSchema?.playedBy[0] : currentFieldSchema;
 
             const getCurrentRelation = () => {
               if (
@@ -126,7 +169,9 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             }
 
             const oppositeFields =
-              currentLinkFieldSchema?.oppositeLinkFieldsPlayedBy || currentRoleFieldSchema?.playedBy;
+              currentField.fieldType === 'linkField'
+                ? (currentFieldSchema as EnrichedLinkField)?.oppositeLinkFieldsPlayedBy
+                : (currentFieldSchema as EnrichedRoleField)?.playedBy;
 
             if (!oppositeFields) {
               throw new Error(`No opposite fields found for ${JSON.stringify(currentFieldSchema)}`);
@@ -156,7 +201,10 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               !currentValue.$arrayOp
             ) {
               throw new Error(
-                `${currentFieldSchema.name} is a cardinality === MANY thing. Use an array or a $arrayOp object`
+                `${
+                  // @ts-expect-error
+                  currentField.fieldType === 'linkField' ? currentFieldSchema.path : currentFieldSchema.name
+                } is a cardinality === MANY thing. Use an array or a $arrayOp object`
               );
             }
             // ignore those properly configured. Todo: migrate to $thing
@@ -216,8 +264,8 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
                 value[currentField.path] = currentValue.map((y) => {
                   /// when a tempId is specified, in a relation, same as with $id, is a link by default
                   if (y.$tempId && currentSchema.thingType === 'relation' && (y.$op === 'link' || !y.$op)) {
-                    throw new Error(`To be done (not allowed with current borm version)`);
-                    // return y.$tempId;
+                    // throw new Error(`To be done (not allowed with current borm version)`);
+                    return y.$tempId;
                   }
                   return {
                     ...childrenThingObj,
@@ -238,7 +286,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             if (typeof currentValue === 'string') {
               value[currentField.path] = {
                 ...childrenThingObj,
-                $op: 'replace',
+                $op: value.$op === 'create' ? 'link' : 'replace', // if the parent is being created, then is not a replace, is a new link
                 $id: currentValue, // todo: now all strings are ids and not tempIds, but in the future this might change
               };
             }
@@ -268,6 +316,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
   };
 
   const withObjects = stringToObjects(rawBqlRequest);
+  // console.log('withObjects', withObjects);
 
   const fill = (blocks: BQLMutationBlock | BQLMutationBlock[]): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
     // @ts-expect-error
@@ -296,14 +345,26 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
           const currentSchema = getCurrentSchema(schema, value);
           // todo:
-          // @ts-expect-error
           const { unidentifiedFields, dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
 
-          const parentOp = parent?.$op;
+          /// get parent node
+          const parentMeta = current(value)[Symbol.for('parent') as any];
+          const parentPath = notRoot && parentMeta.path;
+          const parentNode = !parentPath ? draft : getNodeByPath(draft, parentPath); /// draft instead of blocks as the $op is computed
+          const parentOp = parentNode?.$op;
+
+          if (notRoot && !parentOp) {
+            throw new Error('Error: Parent $op not detected');
+          }
+
           const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
 
-          // console.log('currentValue', JSON.stringify(value));
-          // console.log('currentFieldSchema', isDraft(value) ? current(value) : value);
+          /// Replaces are temporally unsupported, they should work tho when the currentValue is being created (so we are sure it is an add and not a replace)
+          if (parentOp !== 'create' && value.$op === 'replace') {
+            throw new Error('Unsupported: For replaces, please do an unlink + a link instead');
+          }
+
+          // console.log('currentValue', isDraft(value) ? current(value) : value);
 
           const hasUpdatedDataFields = Object.keys(value).some((x) => dataFields?.includes(x));
 

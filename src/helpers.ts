@@ -260,12 +260,26 @@ export const getCurrentSchema = (
   throw new Error(`Wrong schema or query for ${JSON.stringify(node)}`);
 };
 
+type ReturnTypeWithoutNode = {
+  fields: string[];
+  dataFields: string[];
+  roleFields: string[];
+  linkFields: string[];
+};
+
+type ReturnTypeWithNode = ReturnTypeWithoutNode & {
+  usedFields: string[];
+  usedRoleFields: string[];
+  usedLinkFields: string[];
+  unidentifiedFields: string[];
+};
+
 // todo: do something so this enriches the query so no need to call it multiple times
-export const getCurrentFields = (
+export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | undefined>(
   currentSchema: EnrichedBormEntity | EnrichedBormRelation,
-  node?: BQLMutationBlock | RawBQLQuery
-) => {
-  const availableDataFields = currentSchema.dataFields?.map((x) => x.path);
+  node?: T
+): T extends undefined ? ReturnTypeWithoutNode : ReturnTypeWithNode => {
+  const availableDataFields = currentSchema.dataFields?.map((x) => x.path) || [];
   const availableLinkFields = currentSchema.linkFields?.map((x) => x.path) || [];
   const availableRoleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k: string) => k) : [];
   const availableFields = [
@@ -285,7 +299,7 @@ export const getCurrentFields = (
       dataFields: availableDataFields,
       roleFields: availableRoleFields,
       linkFields: availableLinkFields,
-    };
+    } as ReturnTypeWithNode;
   }
   const usedFields = node.$fields
     ? (node.$fields.map((x: string | { $path: string }) => {
@@ -293,7 +307,7 @@ export const getCurrentFields = (
         if ('$path' in x && typeof x.$path === 'string') return x.$path;
         throw new Error(' Wrongly structured query');
       }) as string[])
-    : listify(node, (k: string) => k);
+    : listify<any, string, string>(node, (k: string) => k);
 
   const localFilterFields = !node.$filter
     ? []
@@ -306,8 +320,10 @@ export const getCurrentFields = (
         (x) => x && [...(availableRoleFields || []), ...(availableLinkFields || [])]?.includes(x)
       );
 
-  // @ts-expect-error
-  const unidentifiedFields = [...usedFields, ...localFilterFields].filter((x) => !allowedFields.includes(x));
+  const unidentifiedFields = [...usedFields, ...localFilterFields]
+    // @ts-expect-error
+    .filter((x) => !allowedFields.includes(x))
+    .filter((x) => x) as string[]; // todo 🤔
   const localFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => localFilterFields.includes(k));
   const nestedFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => nestedFilterFields.includes(k));
 
@@ -316,11 +332,13 @@ export const getCurrentFields = (
     dataFields: availableDataFields,
     roleFields: availableRoleFields,
     linkFields: availableLinkFields,
-    usedFields: usedFields as string[],
+    usedFields,
+    usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
+    usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
     unidentifiedFields,
     ...(localFilterFields.length ? { localFilters } : {}),
     ...(nestedFilterFields.length ? { nestedFilters } : {}),
-  };
+  } as ReturnTypeWithNode;
 };
 
 // todo: move this function to typeDBhelpers

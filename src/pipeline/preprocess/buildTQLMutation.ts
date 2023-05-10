@@ -204,6 +204,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
     // roles can be specified in three ways, either they are a roleField in the node, they are the children of something, or they have a default/computed link
     // 1) roleFields
+
     const fromRoleFields = listify(node, (k: string, v) => {
       if (!roleFields.includes(k)) return null;
       if (!('roles' in currentSchema)) {
@@ -250,6 +251,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       return '';
     };
 
+    const getInsertionMatchInEdges = () => {
+      if (!relationTql) return '';
+      // if (op === 'link') return `${relationTql};`;
+      // if (op === 'create') return `${relationTqlWithoutRoles};`;
+      if (op === 'noop') return `${relationTql};`;
+      return '';
+    };
+
     const getDeletionMatchInEdges = () => {
       if (!relationTql) return '';
       /// edge delete: we are removing an automatic relation
@@ -257,9 +266,11 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       /// edge unlink means: We are editing a real relation's roles
       if (op === 'unlink') {
         /// unlinking more than one role is not supported yet
-        return `$${id} ${roles} isa ${relationDbPath};`;
+        /// this got commented as the noop brings what is needed but will probably need a refacto
+        /// this is coded as generating a noop block in [parseBQLmutation.ts], toEdges(edgeType1)
+        // return `$${id} ${roles} isa ${relationDbPath};`;
       }
-
+      if (op === 'noop') return `${relationTql};`;
       return '';
     };
 
@@ -290,7 +301,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     return {
       // preDeletionBatch: getPreDeletionBatch(),
       deletionMatch: getDeletionMatchInEdges(),
-      insertionMatch: '',
+      insertionMatch: getInsertionMatchInEdges(),
       deletion: getDeletionsInEdges(),
       insertion: getInsertionsInEdges(),
       op: '',

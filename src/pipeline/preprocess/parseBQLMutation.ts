@@ -19,6 +19,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
       nodes.push(node);
     };
+
+    const toEdges = (edge: BQLMutationBlock) => {
+      if (edge.$op === 'create' && edges.find((x) => x.$id === edge.$id)) throw new Error(`Duplicate id ${edge.$id}`);
+      edges.push(edge);
+    };
+
     const listOp = ({ value }: TraversalCallbackContext) => {
       if (value.$entity || value.$relation) {
         if (!value.$id && !value.$tempId && !['link', 'unlink'].includes(value.$op)) {
@@ -131,11 +137,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             }
             return 'noop';
           };
+
           const edgeType1 = {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
-            [value[Symbol.for('role')]]: value.$tempId || value.$id,
+            ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
             [Symbol.for('bzId')]: uuidv4(),
             // [Symbol.for('dependencies')]: [parentNode[Symbol.for('path')], ...parentNode[Symbol.for('dependencies')]],
@@ -146,7 +153,24 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             [Symbol.for('parent')]: value[Symbol.for('parent')],
           };
           // todo: stuff 😂
-          edges.push(edgeType1);
+          toEdges(edgeType1);
+
+          /// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a noop
+          /// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as noop and deletions as unlink (or dependencies would be also added)
+          /// this is only for relations that are not $self, as other relations will be deleted and don't need a noop
+          if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
+            toEdges({
+              $relation: value[Symbol.for('relation')],
+              $op: 'noop',
+              ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
+              [value[Symbol.for('oppositeRole')]]: parentId,
+              [Symbol.for('bzId')]: uuidv4(),
+              [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation')]].defaultDBConnector.id,
+              [Symbol.for('edgeType')]: 'linkField',
+              [Symbol.for('path')]: value[Symbol.for('path')],
+              [Symbol.for('parent')]: value[Symbol.for('parent')],
+            });
+          }
         }
 
         // CASE 2: IS RELATION AND HAS THINGS IN THEIR ROLES
@@ -198,8 +222,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                 [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
                 [Symbol.for('path')]: value[Symbol.for('path')],
                 [Symbol.for('info')]: 'coming from created or deleted relation',
+                [Symbol.for('edgeType')]: 'roleField on C/D',
               };
-              edges.push(edgeType2);
+              toEdges(edgeType2);
               return;
             }
             // #endregion
@@ -259,8 +284,15 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                     [Symbol.for('parent')]: value[Symbol.for('parent')],
                     [Symbol.for('path')]: value[Symbol.for('path')],
                     [Symbol.for('info')]: 'updating roleFields',
+                    [Symbol.for('edgeType')]: 'roleField on L/U/R',
                   };
-                  edges.push(edgeType3);
+                  toEdges(edgeType3);
+
+                  /// when unlinking stuff, it must be merged with other potential roles.
+                  /// we need to add it as 'unlink' instead of noop so it gets merged with other unlinks
+                  if (edgeType3.$op === 'unlink') {
+                    toEdges({ ...edgeType3, $op: 'noop' });
+                  }
                 }
               });
               // return;
@@ -284,21 +316,35 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   // console.log('parsedThings', parsedThings);
   // console.log('parsedEdges', parsedEdges);
 
-  // merge attributes of relations that share the same $id
-  // WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
-  // todo: dont merge if ops are different!
+  /// merge attributes of relations that share the same $id
+  /// WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
   const mergedEdges = parsedEdges.reduce((acc, curr) => {
-    const existingEdge = acc.find((r) => r.$id === curr.$id && r.$relation === curr.$relation);
+    const existingEdge = acc.find(
+      (r) =>
+        ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+        r.$relation === curr.$relation &&
+        r.$op === curr.$op
+    );
+
     if (existingEdge) {
       const newRelation = {
         ...existingEdge,
         ...curr,
       };
-      const newAcc = acc.filter((r) => r.$id !== curr.$id || r.$relation !== curr.$relation);
+      const newAcc = acc.filter(
+        (r) =>
+          !(
+            ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+            r.$relation === curr.$relation &&
+            r.$op === curr.$op
+          )
+      );
       return [...newAcc, newRelation];
     }
     return [...acc, curr];
   }, [] as BQLMutationBlock[]);
+
+  // console.log('mergedEdges', mergedEdges);
 
   req.bqlRequest = {
     mutation: {
