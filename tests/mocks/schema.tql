@@ -73,7 +73,8 @@ User-Accounts sub relation,
 Space-User sub relation,
     owns id @key,
     relates users,
-    relates spaces;
+    relates spaces,
+    relates power;
 
 UserTag sub relation,
     owns id @key,
@@ -111,6 +112,12 @@ DataField sub Field,
     owns DataField·computeType,
     owns DataField·type;
 
+Power sub entity,
+    owns id,
+    owns description,
+    plays Space-User:power;
+
 Self sub SpaceObj,
     relates owner,
     plays Self:owner;
+    

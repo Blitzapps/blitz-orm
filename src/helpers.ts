@@ -156,6 +156,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
           Object.entries(val.roles).forEach(([roleKey, role]) => {
             // eslint-disable-next-line no-param-reassign
             role.playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+            role.name = roleKey;
           });
         }
         if ('linkFields' in value && value.linkFields) {
@@ -259,14 +260,28 @@ export const getCurrentSchema = (
   throw new Error(`Wrong schema or query for ${JSON.stringify(node)}`);
 };
 
+type ReturnTypeWithoutNode = {
+  fields: string[];
+  dataFields: string[];
+  roleFields: string[];
+  linkFields: string[];
+};
+
+type ReturnTypeWithNode = ReturnTypeWithoutNode & {
+  usedFields: string[];
+  usedRoleFields: string[];
+  usedLinkFields: string[];
+  unidentifiedFields: string[];
+};
+
 // todo: do something so this enriches the query so no need to call it multiple times
-export const getCurrentFields = (
+export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | undefined>(
   currentSchema: EnrichedBormEntity | EnrichedBormRelation,
-  node?: BQLMutationBlock | RawBQLQuery
-) => {
-  const availableDataFields = currentSchema.dataFields?.map((x) => x.path);
+  node?: T
+): T extends undefined ? ReturnTypeWithoutNode : ReturnTypeWithNode => {
+  const availableDataFields = currentSchema.dataFields?.map((x) => x.path) || [];
   const availableLinkFields = currentSchema.linkFields?.map((x) => x.path) || [];
-  const availableRoleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
+  const availableRoleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k: string) => k) : [];
   const availableFields = [
     ...(availableDataFields || []),
     ...(availableLinkFields || []),
@@ -274,17 +289,7 @@ export const getCurrentFields = (
   ];
 
   // spot non existing fields
-  const reservedRootFields = [
-    '$entity',
-    '$op',
-    '$id',
-    '$tempId',
-    '$filer',
-    '$relation',
-    '$parentKey',
-    '$filter',
-    '$fields',
-  ];
+  const reservedRootFields = ['$entity', '$op', '$id', '$tempId', '$relation', '$parentKey', '$filter', '$fields'];
 
   const allowedFields = [...reservedRootFields, ...availableFields];
 
@@ -294,15 +299,16 @@ export const getCurrentFields = (
       dataFields: availableDataFields,
       roleFields: availableRoleFields,
       linkFields: availableLinkFields,
-    };
+    } as ReturnTypeWithNode;
   }
   const usedFields = node.$fields
-    ? node.$fields.map((x: any) => {
+    ? (node.$fields.map((x: string | { $path: string }) => {
         if (typeof x === 'string') return x;
-        if ('$path' in x) return x.$path;
+        if ('$path' in x && typeof x.$path === 'string') return x.$path;
         throw new Error(' Wrongly structured query');
-      })
-    : (listify(node, (k) => k) as string[]);
+      }) as string[])
+    : listify<any, string, string>(node, (k: string) => k);
+
   const localFilterFields = !node.$filter
     ? []
     : listify(node.$filter, (k: string) => (k.toString().startsWith('$') ? undefined : k.toString())).filter(
@@ -314,7 +320,10 @@ export const getCurrentFields = (
         (x) => x && [...(availableRoleFields || []), ...(availableLinkFields || [])]?.includes(x)
       );
 
-  const unidentifiedFields = [...usedFields, ...localFilterFields].filter((x) => !allowedFields.includes(x));
+  const unidentifiedFields = [...usedFields, ...localFilterFields]
+    // @ts-expect-error
+    .filter((x) => !allowedFields.includes(x))
+    .filter((x) => x) as string[]; // todo 🤔
   const localFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => localFilterFields.includes(k));
   const nestedFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => nestedFilterFields.includes(k));
 
@@ -323,10 +332,13 @@ export const getCurrentFields = (
     dataFields: availableDataFields,
     roleFields: availableRoleFields,
     linkFields: availableLinkFields,
+    usedFields,
+    usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
+    usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
     unidentifiedFields,
     ...(localFilterFields.length ? { localFilters } : {}),
     ...(nestedFilterFields.length ? { nestedFilters } : {}),
-  };
+  } as ReturnTypeWithNode;
 };
 
 // todo: move this function to typeDBhelpers

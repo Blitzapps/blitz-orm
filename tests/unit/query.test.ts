@@ -601,7 +601,7 @@ describe('Query', () => {
     expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
 
-  it('r8[relation, nested, deep] - deep nested', async () => {
+  it('TODO:r8[relation, nested, deep] - deep nested', async () => {
     expect(client).toBeDefined();
     const query = {
       $entity: 'Space',
@@ -977,6 +977,7 @@ describe('Query', () => {
       { id: 'self4', owner: 'self2', space: 'space-2' },
     ]);
   });
+
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();

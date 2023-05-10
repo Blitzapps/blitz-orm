@@ -52,6 +52,7 @@ export const testSchema: BormSchema = {
           relation: 'User-Accounts',
           plays: 'accounts',
           target: 'role',
+          /// rights => Either you want to make it 1) read only 2)replace only 3) update only 4) delete only 5) create only ...
         },
       ],
     },
@@ -201,6 +202,20 @@ export const testSchema: BormSchema = {
         },
       ],
     },
+    Power: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default' },
+      dataFields: [{ ...id }, { ...description }],
+      linkFields: [
+        {
+          path: 'space-user',
+          cardinality: 'ONE',
+          relation: 'Space-User',
+          plays: 'power',
+          target: 'relation',
+        },
+      ],
+    },
   },
   relations: {
     'User-Accounts': {
@@ -224,6 +239,7 @@ export const testSchema: BormSchema = {
       roles: {
         spaces: { cardinality: 'MANY' },
         users: { cardinality: 'MANY' },
+        power: { cardinality: 'ONE' },
       },
     },
     UserTag: {

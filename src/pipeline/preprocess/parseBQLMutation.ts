@@ -1,358 +1,82 @@
-import produce from 'immer';
 import { getNodeByPath, TraversalCallbackContext, traverse } from 'object-traversal';
-import { isObject, listify, mapEntries, pick, shake } from 'radash';
+import { mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
-import type { BQLMutationBlock, EnrichedBormRelation, EnrichedRoleField, FilledBQLMutationBlock } from '../../types';
+import { oFilter, getCurrentFields, getCurrentSchema } from '../../helpers';
+import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
 export const parseBQLMutation: PipelineOperation = async (req) => {
-  const { rawBqlRequest, schema } = req;
-
-  const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
-    return produce(blocks, (draft) =>
-      traverse(draft, ({ value: val, meta }: TraversalCallbackContext) => {
-        if (isObject(val)) {
-          // <---------------mutating all objects---------------->
-          // @ts-expect-error
-          if (val.$arrayOp) {
-            throw new Error('Array op not supported yet');
-          }
-          const value = val as BQLMutationBlock;
-
-          /* console.log(
-            '<---------------------value',
-            isDraft(value) ? current(value) : value
-          );
-          */
-          const currentSchema = getCurrentSchema(schema, val);
-
-          if (!currentSchema) {
-            throw new Error(
-              // @ts-expect-error
-              `Schema not found for ${val.$entity || val.$relation}`
-            );
-          }
-
-          value[Symbol.for('thingType') as any] = currentSchema.thingType;
-          value[Symbol.for('schema') as any] = currentSchema;
-          value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
-
-          const { linkFields, roleFields } = getCurrentFields(currentSchema);
-          // console.log('linkFields', linkFields);
-          // console.log('roleFields', roleFields);
-
-          const currentPath = meta.nodePath;
-
-          // <---------------mutating children objects ---------------->
-          [
-            ...linkFields.map((x) => ({ fieldType: 'linkField', path: x })),
-            ...roleFields.map((x) => ({ fieldType: 'roleField', path: x })),
-          ]?.forEach((currentField) => {
-            const currentLinkFieldSchema = currentSchema.linkFields?.find((x) => x.path === currentField.path);
-            const currentValue = value[currentField.path];
-            // ignore undefined
-            if (currentValue === undefined) return;
-            // console.log(':::', { currentField });
-
-            const currentRoleFieldSchema =
-              'roles' in currentSchema
-                ? (oFind(currentSchema.roles, (k) => k === currentField.path) as EnrichedRoleField)
-                : null;
-
-            const currentFieldSchema = currentLinkFieldSchema || currentRoleFieldSchema;
-
-            if (
-              currentRoleFieldSchema &&
-              [...new Set(currentRoleFieldSchema.playedBy?.map((x) => x.thing))].length !== 1
-            ) {
-              throw new Error(
-                `Field: ${
-                  currentField.path
-                } - If a role can be played by multiple things, you must specify the thing in the mutation: ${JSON.stringify(
-                  currentRoleFieldSchema.playedBy
-                )}. Schema: ${JSON.stringify(currentFieldSchema)}`
-              );
-            }
-            const currentEdgeSchema = currentRoleFieldSchema?.playedBy
-              ? currentRoleFieldSchema?.playedBy[0]
-              : currentLinkFieldSchema;
-
-            const getCurrentRelation = () => {
-              if (
-                currentFieldSchema &&
-                'relation' in currentFieldSchema &&
-                currentEdgeSchema?.relation === value.$relation
-              ) {
-                return '$self';
-              }
-              if (currentEdgeSchema?.relation) {
-                return currentEdgeSchema?.relation;
-              }
-              return '$self';
-            };
-
-            const relation = getCurrentRelation();
-            const relationSchema =
-              relation === '$self' ? (currentSchema as EnrichedBormRelation) : schema.relations[relation];
-
-            // console.log('relationSchema', relationSchema);
-
-            const currentFieldRole = oFind(relationSchema.roles, (k, _v) => k === currentField.path);
-
-            // console.log('currentFieldRole', currentFieldRole);
-
-            if (currentFieldRole?.playedBy?.length === 0)
-              throw new Error(`unused role: ${currentPath}.${currentField.path}`);
-
-            // <-- VALIDATIONS -->
-            if (!currentFieldSchema) {
-              throw new Error(`Field ${currentField.path} not found in schema`);
-            }
-            const oppositeFields =
-              currentLinkFieldSchema?.oppositeLinkFieldsPlayedBy || currentRoleFieldSchema?.playedBy;
-
-            if (!oppositeFields) {
-              throw new Error(`No opposite fields found for ${JSON.stringify(currentFieldSchema)}`);
-            }
-
-            if ([...new Set(oppositeFields?.map((x) => x.thing))].length > 1)
-              throw new Error(
-                `Field: ${
-                  currentField.path
-                } - If a role can be played by multiple things, you must specify the thing in the mutation: ${JSON.stringify(
-                  oppositeFields
-                )}. Schema: ${JSON.stringify(currentFieldSchema)}`
-              );
-
-            // null means unlink everything
-            if (currentValue === null) {
-              value[currentField.path] = { $op: 'unlink' };
-            }
-
-            if (currentFieldSchema.cardinality === 'ONE' && Array.isArray(currentValue)) {
-              throw new Error(`Can't have an array in a cardinality === ONE link field`);
-            }
-            // ignore those properly configured. Todo: migrate to $thing
-            if (currentValue.$entity || currentValue.$relation) return;
-
-            const childrenLinkField = oppositeFields[0];
-
-            const childrenThingObj = {
-              [`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
-              [Symbol.for('relation') as any]: relation,
-              [Symbol.for('edgeType') as any]: 'plays' in currentFieldSchema ? 'linkField' : 'roleField',
-              [Symbol.for('parent') as any]: {
-                path: currentPath,
-                id: value.$id || value.$tempId,
-                links: oppositeFields,
-              },
-              [Symbol.for('role') as any]: childrenLinkField.plays, // this is the currentChildren
-              // this is the parent
-              [Symbol.for('oppositeRole') as any]: 'plays' in currentFieldSchema ? currentFieldSchema.plays : undefined, // todo
-            };
-
-            // console.log('childrenThingObj', childrenThingObj);
-
-            if (isObject(currentValue)) {
-              if (
-                currentSchema.thingType === 'relation' &&
-                // @ts-expect-error
-                currentValue.$tempId
-              ) {
-                // @ts-expect-error
-                value[currentField.path] = currentValue.$tempId;
-              } else {
-                value[currentField.path] = {
-                  ...childrenThingObj,
-                  ...currentValue,
-                };
-              }
-
-              // console.log('[obj]value', value[field as string]);
-            }
-            if (Array.isArray(currentValue) && currentValue.every((x) => isObject(x))) {
-              value[currentField.path] = currentValue.map((y) => ({
-                ...childrenThingObj,
-                ...y,
-              }));
-              // console.log('[obj-arr]value', value[field as string]);
-            }
-            if (typeof currentValue === 'string') {
-              value[currentField.path] = {
-                ...childrenThingObj,
-                $op: 'link',
-                $id: currentValue, // todo: now all strings are ids and not tempIds, but in the future this might change
-              };
-            }
-            if (Array.isArray(currentValue) && currentValue.every((x) => typeof x === 'string')) {
-              value[currentField.path] = currentValue.map((y) => ({
-                ...childrenThingObj,
-                $op: 'link',
-                $id: y,
-              }));
-            }
-          });
-
-          // console.log('value', current(value));
-
-          const nodePathArray = meta.nodePath?.split('.');
-
-          const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
-
-          if (!notRoot && !value.$entity && !value.$relation) {
-            throw new Error('Root things must specify $entity or $relation');
-          }
-          if (!notRoot) {
-            // no need to do nothing with root objects or objects that already
-          }
-          // we will get the $entity/$relation of the nonRoot that don't have it
-        }
-      })
-    );
-  };
-
-  const withObjects = stringToObjects(rawBqlRequest);
-  // console.log('withObjects', JSON.stringify(withObjects, null, 2);
-
-  const fillBlocks = (
-    blocks: BQLMutationBlock | BQLMutationBlock[]
-  ): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-    // @ts-expect-error
-    return produce(blocks, (draft) =>
-      traverse(draft, ({ parent, key, value: val, meta }: TraversalCallbackContext) => {
-        if (isObject(val)) {
-          if (Object.keys(val).length === 0) {
-            throw new Error('Empty object!');
-          }
-          const value = val as BQLMutationBlock;
-          // console.log('value', value);
-          // const currentTempId = value.$tempId || uuidv4();
-
-          const nodePathArray = meta.nodePath?.split('.');
-
-          const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
-
-          const currentSchema = getCurrentSchema(schema, value);
-          // todo:
-          // @ts-expect-error
-          const { unidentifiedFields, dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
-
-          const hasUpdatedDataFields = Object.keys(value).some((x) => dataFields?.includes(x));
-
-          const hasUpdatedChildren = Object.keys(value).some((x) => [...roleFields, ...linkFields]?.includes(x));
-          const getOp = () => {
-            if (value.$op) return value.$op; // if there is an op, then thats the one
-            // todo: can move these to the first level traversal
-            if ((value.$id || value.$filter) && hasUpdatedDataFields) return 'update'; // if there is an id or  afilter, is an update. If it was a delete,it has been specified
-            if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) return 'link'; // if there is an id or  afilter, is an update. If it was a delete,it has been specified
-            if (!value.$filter && !value.$id) return 'create'; // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
-            if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'noop';
-            throw new Error('Wrong op');
-          };
-          // if (!value.$tempId && !value.$id) value.$tempId = currentTempId;
-          if (!value.$op) value.$op = getOp();
-          if (!parent) value.$parentKey = ''; // root
-
-          // console.log('value', current(value));
-          // errors
-          if (
-            !(value.$id || value.$tempId || value.$filter) &&
-            ['delete', 'link', 'update', 'unlink'].includes(value.$op)
-          ) {
-            throw new Error('Targeted operations (update, delete, link & unlink) require an $id or a $filter');
-          }
-          if (typeof parent === 'object') {
-            // spot rights conflicts
-
-            // modify current
-            const ArParent = Array.isArray(parent);
-            if (ArParent) value[Symbol.for('index') as any] = key; // nodePathArray.at(-1);
-            value[Symbol.for('path') as any] = meta.nodePath;
-            value[Symbol.for('isRoot') as any] = !notRoot;
-            value[Symbol.for('depth') as any] = notRoot?.split('.').length;
-          }
-
-          if (!value.$entity && !value.$relation) {
-            throw new Error(`Node ${JSON.stringify(value)} without $entity/$relation`);
-          }
-
-          const { idFields, computedFields } = currentSchema;
-          // todo: composite ids
-          if (!idFields) throw new Error('No idFields found');
-          const idField = idFields[0];
-          // console.log('computedFields', computedFields);
-
-          // if a valid id is setup, move it to $id
-          if (value[idField] && !value.$id) {
-            value.$id = value[idField];
-          }
-
-          const filledFields = listify(value, (attKey, v) => (v ? attKey : undefined));
-          const missingComputedFields = computedFields.filter((x) => !filledFields.includes(x));
-
-          // fill computed values
-          missingComputedFields.forEach((fieldPath) => {
-            // console.log('fieldPath', fieldPath);
-
-            const currentFieldDef = currentSchema.dataFields?.find((x) => x.path === fieldPath);
-            const currentLinkDef = currentSchema.linkFields?.find((x) => x.path === fieldPath);
-            // todo: multiple playedBy
-            const currentLinkedDef = currentLinkDef?.oppositeLinkFieldsPlayedBy[0];
-
-            const currentRoleDef =
-              'roles' in currentSchema ? oFind(currentSchema.roles, (k, _v) => k === fieldPath) : undefined;
-            const currentDef = currentFieldDef || currentLinkedDef || currentRoleDef;
-            if (!currentDef) {
-              throw new Error(`no field Def for ${fieldPath}`);
-            }
-
-            // We generate id fields when needed
-            if (fieldPath === idField && value.$op === 'create' && !value[fieldPath]) {
-              const defaultValue = 'default' in currentDef ? currentDef.default?.value() : undefined;
-              if (!defaultValue) {
-                throw new Error(`No default value for ${fieldPath}`);
-              }
-              value[fieldPath] = defaultValue; // we already checked that this value has not been defined
-              value.$id = defaultValue;
-            }
-          });
-
-          if (unidentifiedFields.length > 0) {
-            throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
-          }
-        }
-      })
-    );
-  };
-
-  const filledBQLMutation = fillBlocks(withObjects);
-  // console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 2));
+  const { filledBqlRequest, schema } = req;
 
   const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
     // todo: make immutable
 
     const nodes: BQLMutationBlock[] = [];
     const edges: BQLMutationBlock[] = [];
+
+    const toNodes = (node: BQLMutationBlock) => {
+      if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
+      nodes.push(node);
+    };
+
+    const toEdges = (edge: BQLMutationBlock) => {
+      if (edge.$op === 'create' && edges.find((x) => x.$id === edge.$id)) throw new Error(`Duplicate id ${edge.$id}`);
+      edges.push(edge);
+    };
+
     const listOp = ({ value }: TraversalCallbackContext) => {
       if (value.$entity || value.$relation) {
-        if (!value.$id && !['link', 'unlink'].includes(value.$op)) {
+        if (!value.$id && !value.$tempId && !['link', 'unlink'].includes(value.$op)) {
           throw new Error(
             'An id must be specified either in the mutation or has tu have a default value in the schema'
           );
         }
+        /// this is used to group the right delete/unlink operations with the involved things
+
         const currentThingSchema = getCurrentSchema(schema, value);
-        const { dataFields: dataFieldPaths, roleFields: roleFieldPaths } = getCurrentFields(currentThingSchema);
+        const {
+          dataFields: dataFieldPaths,
+          roleFields: roleFieldPaths,
+          linkFields: linkFieldPaths,
+          // @ts-expect-error
+          usedFields,
+        } = getCurrentFields(currentThingSchema, value);
+
+        const getChildOp = () => {
+          if (value.$op === 'create' || value.$op === 'delete') {
+            return value.$op;
+          }
+          // if its un update because linkfields or rolefields updated, but no attributes, then it a noop
+          if (value.$op === 'update') {
+            const usedDataFields = usedFields.filter((x: string) => dataFieldPaths?.includes(x));
+            const usedRoleFields = usedFields.filter((x: string) => roleFieldPaths?.includes(x));
+            const usedLinkFields = usedFields.filter((x: string) => linkFieldPaths?.includes(x));
+            if (usedDataFields.length > 0) {
+              return 'update';
+            }
+            if (usedRoleFields.length > 0 || usedLinkFields.length > 0) {
+              return 'noop';
+            }
+            throw new Error(`No fields on an $op:"update" for node ${JSON.stringify(value)}`);
+          }
+
+          return 'noop';
+        };
 
         const dataObj = {
           ...(value.$entity && { $entity: value.$entity }),
           ...(value.$relation && { $relation: value.$relation }),
           ...(value.$id && { $id: value.$id }),
           ...(value.$tempId && { $tempId: value.$tempId }),
+          ...(value.$filter && { $filter: value.$filter }),
           ...shake(pick(value, dataFieldPaths || [''])),
-          $op: value.$op === 'create' || value.$op === 'update' || value.$op === 'delete' ? value.$op : 'noop',
+          $op: getChildOp(),
+          [Symbol.for('bzId')]: value[Symbol.for('bzId')],
           [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+          // [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
+          [Symbol.for('path')]: value[Symbol.for('path')],
+          [Symbol.for('parent')]: value[Symbol.for('parent')],
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot')],
         };
 
@@ -360,10 +84,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         // ? maybe as todo, to enhance the reasoner parsedBQL to consider multiple ids there, and use "like a|b|c" instead of repeating a lot of ids
         if (Array.isArray(dataObj.$id)) {
           dataObj.$id.forEach((id: string) => {
-            nodes.push({ ...dataObj, $id: id });
+            toNodes({ ...dataObj, $id: id });
           });
         } else {
-          nodes.push(dataObj);
+          toNodes(dataObj);
         }
 
         // console.log('value', isDraft(value) ? current(value) : value);
@@ -413,35 +137,54 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             }
             return 'noop';
           };
-          const linkObj = {
+
+          const edgeType1 = {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
-            [value[Symbol.for('role')]]: value.$tempId || value.$id,
+            ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
-            [Symbol.for('isRoot')]: false,
+            [Symbol.for('bzId')]: uuidv4(),
+            // [Symbol.for('dependencies')]: [parentNode[Symbol.for('path')], ...parentNode[Symbol.for('dependencies')]],
+            // [Symbol.for('isRoot')]: false,
             [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation')]].defaultDBConnector.id,
             [Symbol.for('edgeType')]: 'linkField',
+            [Symbol.for('path')]: value[Symbol.for('path')],
+            [Symbol.for('parent')]: value[Symbol.for('parent')],
           };
           // todo: stuff 😂
-          edges.push(linkObj);
+          toEdges(edgeType1);
+
+          /// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a noop
+          /// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as noop and deletions as unlink (or dependencies would be also added)
+          /// this is only for relations that are not $self, as other relations will be deleted and don't need a noop
+          if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
+            toEdges({
+              $relation: value[Symbol.for('relation')],
+              $op: 'noop',
+              ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
+              [value[Symbol.for('oppositeRole')]]: parentId,
+              [Symbol.for('bzId')]: uuidv4(),
+              [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation')]].defaultDBConnector.id,
+              [Symbol.for('edgeType')]: 'linkField',
+              [Symbol.for('path')]: value[Symbol.for('path')],
+              [Symbol.for('parent')]: value[Symbol.for('parent')],
+            });
+          }
         }
 
         // CASE 2: IS RELATION AND HAS THINGS IN THEIR ROLES
         if (value.$relation) {
           const val = value as BQLMutationBlock;
-          if (!val.$id && !['link', 'unlink'].includes(value.$op)) {
-            throw new Error(
-              'An id must be specified either in the mutation or has tu have a default value in the schema'
-            );
-          }
+
+          // @ts-expect-error
           const rolesObjFiltered = oFilter(val, (k, _v) => roleFieldPaths.includes(k)) as BQLMutationBlock;
 
           // console.log('rolesObjFiltered', rolesObjFiltered);
 
           /// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
           const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
-            return [k, v.$id || v];
+            return [k, v];
           });
 
           // console.log('rolesObjOnlyIds', rolesObjOnlyIds);
@@ -466,58 +209,90 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                   /// Replace the array of objects with an array of ids
                   return [k, v.map((vNested: any) => vNested.$id || vNested)];
                 }
-                return [k, v];
+                return [k, v.$id || v];
               });
 
               // todo: validations
               /// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
-              edges.push({
+              const edgeType2 = {
                 ...objWithMetaDataOnly,
                 $relation: val.$relation,
                 $op: getEdgeOp(),
                 ...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
                 [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+                [Symbol.for('path')]: value[Symbol.for('path')],
                 [Symbol.for('info')]: 'coming from created or deleted relation',
-              });
+                [Symbol.for('edgeType')]: 'roleField on C/D',
+              };
+              toEdges(edgeType2);
               return;
             }
             // #endregion
             // region 2.2 relations on nested stuff
-            if (val.$op === 'noop') {
-              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) =>
-                v.some(
+            // todo: probably remove the noop here
+            if (val.$op === 'noop' || (val.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
+              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return currentRoleObj.some(
                   (
                     x: BQLMutationBlock // string arrays are always replaces
                   ) => x.$op === 'link' || x.$op === 'create'
-                )
-              );
-              const rolesWithLinksFiltered = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => [
-                k,
-                v.filter((x) => x.$op === 'link' || x.$op === 'create').flatMap((y) => y.$id),
-              ]);
-              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) =>
-                v.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete')
-              );
+                );
+              });
+              const rolesWithLinksIds = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return [
+                  k,
+                  currentRoleObj
+                    .filter((x) => x.$op === 'link' || x.$op === 'create')
+                    .flatMap((y) => y.$id || y.$tempId),
+                ];
+              });
+              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v]; /// cardinality is tested in previous steps
+                return currentRoleObj.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete');
+              });
               // filters the array of objects, taking only those where x.$op === 'unlink'
-              const rolesWithUnlinksFiltered = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => [
-                k,
-                v.filter((x) => x.$op === 'unlink' || x.$op === 'delete').flatMap((y) => y.$id),
-              ]);
+              const rolesWithUnlinksIds = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => {
+                const currentRoleObj = Array.isArray(v) ? v : [v];
+                return [
+                  k,
+                  currentRoleObj
+                    .filter((x) => x.$op === 'unlink' || x.$op === 'delete')
+                    .flatMap((y) => y.$id || y.$tempId),
+                ];
+              });
               const rolesWithReplaces = {};
               [
-                { op: 'link', obj: rolesWithLinksFiltered },
-                { op: 'unlink', obj: rolesWithUnlinksFiltered },
+                { op: 'link', obj: rolesWithLinksIds },
+                { op: 'unlink', obj: rolesWithUnlinksIds },
                 { op: 'replace', obj: rolesWithReplaces }, // todo
               ].forEach((x) => {
                 if (Object.keys(x.obj).length) {
-                  edges.push({
+                  if (x.op === 'unlink' && Object.keys(x.obj).length > 1)
+                    throw new Error(
+                      'Not supported yet: Cannot unlink more than one role at a time, please split into two mutations'
+                    );
+
+                  const edgeType3 = {
                     ...objWithMetaDataOnly,
                     $relation: val.$relation,
                     $op: x.op,
                     ...x.obj, // override role fields by ids or tempIDs
+                    // [Symbol.for('context')]: context,
                     [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+                    [Symbol.for('parent')]: value[Symbol.for('parent')],
+                    [Symbol.for('path')]: value[Symbol.for('path')],
                     [Symbol.for('info')]: 'updating roleFields',
-                  });
+                    [Symbol.for('edgeType')]: 'roleField on L/U/R',
+                  };
+                  toEdges(edgeType3);
+
+                  /// when unlinking stuff, it must be merged with other potential roles.
+                  /// we need to add it as 'unlink' instead of noop so it gets merged with other unlinks
+                  if (edgeType3.$op === 'unlink') {
+                    toEdges({ ...edgeType3, $op: 'noop' });
+                  }
                 }
               });
               // return;
@@ -535,25 +310,41 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     return [nodes, edges];
   };
 
-  const [parsedThings, parsedEdges] = listNodes(filledBQLMutation);
+  if (!filledBqlRequest) throw new Error('Undefined filledBqlRequest');
+
+  const [parsedThings, parsedEdges] = listNodes(filledBqlRequest);
   // console.log('parsedThings', parsedThings);
   // console.log('parsedEdges', parsedEdges);
 
-  // merge attributes of relations that share the same $id
-  // WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
-  // todo: dont merge if ops are different!
+  /// merge attributes of relations that share the same $id
+  /// WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
   const mergedEdges = parsedEdges.reduce((acc, curr) => {
-    const existingEdge = acc.find((r) => r.$id === curr.$id && r.$relation === curr.$relation);
+    const existingEdge = acc.find(
+      (r) =>
+        ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+        r.$relation === curr.$relation &&
+        r.$op === curr.$op
+    );
+
     if (existingEdge) {
       const newRelation = {
         ...existingEdge,
         ...curr,
       };
-      const newAcc = acc.filter((r) => r.$id !== curr.$id || r.$relation !== curr.$relation);
+      const newAcc = acc.filter(
+        (r) =>
+          !(
+            ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+            r.$relation === curr.$relation &&
+            r.$op === curr.$op
+          )
+      );
       return [...newAcc, newRelation];
     }
     return [...acc, curr];
   }, [] as BQLMutationBlock[]);
+
+  // console.log('mergedEdges', mergedEdges);
 
   req.bqlRequest = {
     mutation: {

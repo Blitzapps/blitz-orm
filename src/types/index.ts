@@ -165,6 +165,7 @@ export type RoleField = {
 
 export type EnrichedRoleField = RoleField & {
   playedBy?: LinkedFieldWithThing[]; // computed variable.
+  name: string;
 };
 
 export type DataField = BormField & {
