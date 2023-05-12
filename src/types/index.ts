@@ -66,6 +66,7 @@ export type BormEntity =
     };
 
 export type BormRelation = BormEntity & {
+  defaultDBConnector: DBConnector & { path: string }; /// mandatory in relations
   roles?: { [key: string]: RoleField };
 };
 

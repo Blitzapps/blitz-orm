@@ -135,6 +135,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               if (ownRelation) return 'link'; // create already present in the nodes array
               return 'create';
             }
+            // todo: probably check replaces
+            if (value.$op === 'replace') {
+              throw new Error('Unsupported: Replaces not implemented yet');
+            }
             return 'noop';
           };
 

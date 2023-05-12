@@ -276,7 +276,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               } else if (currentValue.every((x) => typeof x === 'string')) {
                 value[currentField.path] = currentValue.map((y) => ({
                   ...childrenThingObj,
-                  $op: 'replace',
+                  $op: value.$op === 'create' ? 'link' : 'replace',
                   $id: y,
                 }));
               } else throw new Error(`Invalid array value for ${currentField.path}`);
@@ -360,8 +360,10 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
 
           /// Replaces are temporally unsupported, they should work tho when the currentValue is being created (so we are sure it is an add and not a replace)
-          if (parentOp !== 'create' && value.$op === 'replace') {
-            throw new Error('Unsupported: For replaces, please do an unlink + a link instead');
+          if (value.$op === 'replace') {
+            if (parentOp !== 'create') {
+              throw new Error('Unsupported: For replaces, please do an unlink + a link instead');
+            } else value.$op = 'link';
           }
 
           // console.log('currentValue', isDraft(value) ? current(value) : value);

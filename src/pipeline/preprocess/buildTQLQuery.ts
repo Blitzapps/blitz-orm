@@ -12,6 +12,9 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
   const currentThingSchema = '$entity' in query ? query.$entity : query.$relation;
 
   const thingPath = currentThingSchema.defaultDBConnector.path || currentThingSchema.name;
+  if (!thingPath) {
+    throw new Error(`No thing path in ${JSON.stringify(currentThingSchema)}`);
+  }
 
   // todo: composite Ids
   if (!currentThingSchema.idFields) {
@@ -78,6 +81,10 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 
     const roles = [relationMatchStart, ...relationMatchOpposite].filter((x) => x).join(',');
 
+    if (schema.relations[linkField.relation] === undefined) {
+      throw new Error(`Relation ${linkField.relation} not found in schema`);
+    }
+
     const relationPath = schema.relations[linkField.relation].defaultDBConnector.path || linkField.relation;
 
     const relationMatchEnd = `) isa ${relationPath};`;
@@ -101,5 +108,5 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
     ...(rolesObj?.length ? { roles: rolesObj } : {}),
     ...(relations?.length ? { relations } : {}),
   };
-  // console.log(' req.tqlRequest', req.tqlRequest);
+  // console.log('req.tqlRequest', req.tqlRequest);
 };

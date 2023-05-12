@@ -76,6 +76,7 @@ describe('Query', () => {
         email: 'charlize@test.com',
         id: 'user5',
         name: 'Charlize',
+        spaces: ['space-1'],
       },
     ];
     const res = await client.query(query);
