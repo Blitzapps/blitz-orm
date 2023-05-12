@@ -371,6 +371,35 @@ describe('Mutation init', () => {
     });
   });
 
+  it('b8[create, multiple, date] Next-auth example ', async () => {
+    expect(bormClient).toBeDefined();
+
+    await bormClient.mutate(
+      {
+        $entity: 'Session',
+        user: 'user1',
+        sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
+        expires: new Date('2023-06-10T14:58:09.066Z'),
+      },
+      { noMetadata: true }
+    );
+
+    const sessions = await bormClient.query(
+      {
+        $entity: 'Session',
+      },
+      { noMetadata: true }
+    );
+
+    expect(sessions).toEqual([
+      {
+        expires: new Date('2023-06-10T14:58:09.066Z'),
+        id: expect.any(String),
+        sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
+        user: 'user1',
+      },
+    ]);
+  });
   it('u1[update, multiple] Shared ids', async () => {
     expect(bormClient).toBeDefined();
 
@@ -567,7 +596,12 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
-    expect(allSpaces).toEqual([
+    // @ts-expect-error
+    expect(deepSort(allSpaces, 'id')).toEqual([
+      {
+        id: 'space-1',
+        name: 'space2ORspace1',
+      },
       {
         id: 'space-2',
         name: 'space2ORspace1',
@@ -575,10 +609,6 @@ describe('Mutation init', () => {
       {
         id: 'space-3',
         name: 'Not-owned',
-      },
-      {
-        id: 'space-1',
-        name: 'space2ORspace1',
       },
     ]);
 
@@ -1235,11 +1265,11 @@ describe('Mutation init', () => {
     const preSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
     // @ts-expect-error
     expect(deepSort(preSpace, 'id')).toEqual({
+      objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
       definitions: ['kind-book'],
       id: 'space-2',
       kinds: ['kind-book'],
       name: 'Dev',
-      objects: ['kind-book'],
       selfs: ['self1', 'self2', 'self3', 'self4'],
       users: ['user1', 'user2', 'user3'],
     });
@@ -1273,11 +1303,11 @@ describe('Mutation init', () => {
     const postSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
     // @ts-expect-error
     expect(deepSort(postSpace, 'id')).toEqual({
-      definitions: ['kind-book'],
+      objects: ['firstDataField', 'kind-book', 'self1', 'self2', 'self3', 'self4'],
+      definitions: ['kind-book', 'firstDataField'],
       id: 'space-2',
       kinds: ['kind-book'],
       name: 'Dev',
-      objects: ['kind-book'],
       selfs: ['self1', 'self2', 'self3', 'self4'],
       users: ['user1', 'user2', 'user3'],
       fields: ['firstDataField'],

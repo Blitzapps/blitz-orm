@@ -16,6 +16,12 @@ export const description: DataField = {
   cardinality: 'ONE',
 };
 
+const timestamp: DataField = {
+  path: 'timestamp',
+  cardinality: 'ONE',
+  contentType: 'DATE',
+};
+
 export const string: Omit<DataField, 'path'> = {
   cardinality: 'ONE',
   contentType: 'TEXT',
@@ -74,6 +80,13 @@ export const testSchema: BormSchema = {
         {
           path: 'accounts',
           relation: 'User-Accounts',
+          cardinality: 'MANY',
+          plays: 'user',
+          target: 'role',
+        },
+        {
+          path: 'sessions',
+          relation: 'User-Sessions',
           cardinality: 'MANY',
           plays: 'user',
           target: 'role',
@@ -216,6 +229,34 @@ export const testSchema: BormSchema = {
         },
       ],
     },
+    Session: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default' },
+      dataFields: [
+        { ...id },
+        { ...timestamp, path: 'expires' },
+        { ...string, path: 'sessionToken', validations: { unique: true } },
+      ],
+      linkFields: [
+        {
+          path: 'user',
+          cardinality: 'ONE',
+          relation: 'User-Sessions',
+          plays: 'sessions',
+          target: 'role',
+        },
+      ],
+    },
+    VerificationToken: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default' },
+      dataFields: [
+        { ...id },
+        { ...string, path: 'identifier' },
+        { ...string, path: 'token', validations: { unique: true } },
+        { ...timestamp, path: 'expires' },
+      ],
+    },
   },
   relations: {
     'User-Accounts': {
@@ -229,6 +270,19 @@ export const testSchema: BormSchema = {
         },
         user: {
           cardinality: 'ONE',
+        },
+      },
+    },
+    'User-Sessions': {
+      defaultDBConnector: { id: 'default', path: 'User-Sessions' },
+      idFields: ['id'],
+      dataFields: [{ ...id }],
+      roles: {
+        user: {
+          cardinality: 'ONE',
+        },
+        sessions: {
+          cardinality: 'MANY',
         },
       },
     },

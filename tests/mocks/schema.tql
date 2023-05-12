@@ -28,6 +28,12 @@ Field·name sub attribute, value string;
 DataField·computeType sub attribute, value string;
 DataField·type sub attribute, value string;
 
+# Session
+Session·expires sub attribute,
+    value datetime;
+Session·sessionToken sub attribute,
+    value string;
+
 
 Space sub entity,
     owns id @key,
@@ -42,7 +48,8 @@ User sub entity,
     owns User·email,
     plays User-Accounts:user,
     plays Space-User:users,
-    plays UserTag:users;
+    plays UserTag:users,
+    plays User-Sessions:user;
 
 SuperUser sub User,
 		owns SuperUser·power;
@@ -68,6 +75,11 @@ User-Accounts sub relation,
     owns id @key,
     relates user,
     relates accounts;
+
+User-Sessions sub relation,
+    owns id @key,
+    relates sessions,
+    relates user;
 
     # UserAccounts
 Space-User sub relation,
@@ -120,4 +132,10 @@ Power sub entity,
 Self sub SpaceObj,
     relates owner,
     plays Self:owner;
+
+Session sub entity,
+    owns Session·sessionToken @key,
+    owns id @key,
+    owns Session·expires,
+    plays User-Sessions:sessions;
     
