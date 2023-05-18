@@ -41,6 +41,9 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
   }));
   const entityConceptMapGroups = await entityStream.collect();
 
+  /// The new json structure. Once attibutes are natively packed we will refacto the queries and use this
+  // const json = entityConceptMapGroups.flatMap((x) => x.conceptMaps.map((y) => y.toJSONRecord()));
+  // console.log('json', json);
   const rolesConceptMapGroups = await Promise.all(
     rolesStreams?.map(async (role) => ({
       path: role.path,

@@ -80,6 +80,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
   const { bqlRequest, config, schema } = req;
   // const queryConfig = config.query;
   const { cache } = res;
+  // console.log('cache', cache);
   if (!bqlRequest) {
     throw new Error('BQL request not parsed');
   }

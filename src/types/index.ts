@@ -72,6 +72,7 @@ export type BormRelation = BormEntity & {
 
 export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
   extends?: string;
+  allExtends?: string[];
   idFields: string[];
   thingType: 'entity';
   name: string;

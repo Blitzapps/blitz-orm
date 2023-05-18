@@ -1,6 +1,6 @@
 {
   "name": "@blitznocode/blitz-orm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -31,7 +31,7 @@
     "nanoid": "^4.0.1",
     "object-traversal": "^1.0.1",
     "radash": "^10.7.0",
-    "typedb-client": "^2.14.2",
+    "typedb-client": "^2.17.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

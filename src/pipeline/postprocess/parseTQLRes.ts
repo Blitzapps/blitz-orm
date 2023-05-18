@@ -38,7 +38,8 @@ const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBo
 
 const extractRelations = (
   conceptMapGroups: ConceptMapGroup[],
-  relationNames: string[]
+  relationNames: string[],
+  schema: EnrichedBormSchema
   // Extract to type
 ): Map<RelationName, { id: ID; entityName: EntityName }>[] => {
   const relations = conceptMapGroups.flatMap((conceptMapGroup) => {
@@ -52,9 +53,30 @@ const extractRelations = (
         const entityName = concept?.isEntity()
           ? concept.asEntity().type.label.name
           : concept?.asRelation().type.label.name;
+
+        const getEntityName = () => {
+          /// this function is an ugly workaround to get the entity name when the thing is playing a role by extending other thingType
+          /// the query has a different format where the $var is not the role, but the entityName, but then the entityName of the object recovered does not match
+          /// we will clean this once optionals are done, as we will be able to do queries in one single query
+          /// meanwhile, we will have this weird workaround
+          /// if the entityName has is extending any thing that matches the name of the relation name, then we need to return the relation name instead
+          /// current errors : RelationName actually gets the name of the role sometimes (example: space-users, will have relationName: 'spaces' which is the path...)
+
+          if (entityName) {
+            const currentSchema = schema.entities[entityName] ?? schema.relations[entityName];
+
+            /// this is the ugly workaround
+            if (currentSchema.allExtends?.includes(relationName)) {
+              return relationName;
+            }
+
+            return entityName;
+          }
+          return relationName;
+        };
         const val = {
           id,
-          entityName: entityName ?? relationName,
+          entityName: getEntityName(),
         };
         if (id) link.set(relationName, val);
       });
@@ -95,6 +117,7 @@ const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: Enriche
       }
       if (!v.playedBy) throw new Error('Role not being played by nobody');
       // We extract the role that it plays
+
       const playedBy = v.playedBy[0].plays;
       // TODO: should recursively get child of childs
 
@@ -185,16 +208,31 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   // entities and relations queried directly
   const entities = extractEntities(rawTqlRes.entity, schema);
 
-  // this are mid-relations, every Thing can have relations, even relations.
+  /// these are mid-relations, every Thing can have relations, even relations.
   const relations = rawTqlRes.relations?.map((relation) => {
     const currentRelSchema = schema.relations[relation.relation];
 
     const currentRelroles = extractRelRoles(currentRelSchema, schema);
+    // for every currentRelSchema property, we get the paths that play that relation
 
-    const links = extractRelations(relation.conceptMapGroups, [
-      ...currentRelroles,
-      currentRelSchema.name, // for cases where the relation is the actual thing fetched
-    ]);
+    /* workaround that might be needed later 
+    const currentRelPlayers = listify(currentRelSchema.roles, (_k, v) => {
+      if (!v.playedBy) throw new Error('Role not being played by anybody');
+      const paths = v.playedBy.flatMap((x) => x.path);
+      return paths;
+    }).flat(1);
+
+    // remove duplicates between roles and players
+    const allPlayers = new Set([...currentRelroles, ...currentRelPlayers]);
+    */
+    const links = extractRelations(
+      relation.conceptMapGroups,
+      [
+        ...currentRelroles,
+        currentRelSchema.name, // for cases where the relation is the actual thing fetched
+      ],
+      schema
+    );
 
     return {
       name: relation.relation,
@@ -204,7 +242,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
   // console.log('relations', relations);
 
-  // these are the roles that belong to a relation that has been queried directly
+  /// these are the roles that belong to a relation that has been queried directly
   const roles = rawTqlRes.roles?.map((role) => {
     return {
       name: role.ownerPath,
@@ -230,6 +268,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     cache.entities.set(entityName, entityCache);
   });
 
+  /// RELATIONS: extract from relations
   relations?.forEach((relation) => {
     // console.log('relation', relation);
 
@@ -242,12 +281,8 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
       [...link.entries()].forEach(([_, { entityName, id }]) => {
         const entityCache = cache.entities.get(entityName) || new Map();
 
-        const getEntityThingType = () => {
-          if (schema.entities[entityName]) return 'entity';
-          if (schema.relations[entityName]) return 'relation';
-          throw new Error('Entity or relation not found');
-        };
-        const entityThingType = getEntityThingType();
+        // todo: This means entities and relations must not share names!
+        const entityThingType = schema.entities[entityName]?.thingType || schema.relations[entityName].thingType;
 
         const entity = {
           [entityThingType]: entityName,
@@ -260,6 +295,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     });
   });
 
+  /// ROLES: extract from roles
   roles?.forEach((role) => {
     const ownerSchema = schema.relations[role.name] || schema.entities[role.name];
     role.links.forEach((link) => {

@@ -979,6 +979,23 @@ describe('Query', () => {
     ]);
   });
 
+  it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
+    /// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+    expect(client).toBeDefined();
+
+    const res = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
+    // @ts-expect-error
+    expect(deepSort(res, 'id')).toEqual({
+      objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
+      definitions: ['kind-book'],
+      id: 'space-2',
+      kinds: ['kind-book'],
+      name: 'Dev',
+      selfs: ['self1', 'self2', 'self3', 'self4'],
+      users: ['user1', 'user2', 'user3'],
+    });
+  });
+
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();
