@@ -59,6 +59,9 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
         }
         if (value.extends) {
           const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
+          /// find out all the thingTypes this thingType is extending
+          // @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
+          value.allExtends = [value.extends, ...(extendedSchema.allExtends || [])];
           value as BormEntity | BormRelation;
 
           value.idFields = extendedSchema.idFields

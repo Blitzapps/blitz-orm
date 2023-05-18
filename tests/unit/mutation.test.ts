@@ -1304,7 +1304,7 @@ describe('Mutation init', () => {
     // @ts-expect-error
     expect(deepSort(postSpace, 'id')).toEqual({
       objects: ['firstDataField', 'kind-book', 'self1', 'self2', 'self3', 'self4'],
-      definitions: ['kind-book', 'firstDataField'],
+      definitions: ['firstDataField', 'kind-book'],
       id: 'space-2',
       kinds: ['kind-book'],
       name: 'Dev',
