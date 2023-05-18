@@ -26,6 +26,9 @@
   "engines": {
     "node": ">=16.8.0"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "immer": "^9.0.19",
     "nanoid": "^4.0.1",
