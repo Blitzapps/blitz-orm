@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3(2023-06-09)(unpublished)
+- Added a test for an existing bug when querying parent things
+
 ## 0.0.41(2023-02-03)
 - readme, changelog
 

@@ -996,6 +996,20 @@ describe('Query', () => {
     });
   });
 
+  it('TODO:ex2[extends] Query of the parent', async () => {
+    /// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+    expect(client).toBeDefined();
+
+    const res = await client.query(
+      { $entity: 'Space', $id: 'space-2', $fields: [{ $path: 'objects', $fields: ['id'] }] },
+      { noMetadata: true }
+    );
+    // @ts-expect-error
+    expect(deepSort(res, 'id')).toEqual({
+      objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
+    });
+  });
+
   /*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();

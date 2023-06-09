@@ -35,9 +35,7 @@ export const oFind = <RemovedKeys extends string, T extends Record<string | numb
 export const oFilter = <RemovedKeys extends string, T extends Record<string | number | symbol, any>>(
   obj: T,
   fn: (k: keyof T, v: any) => boolean
-): Omit<T, RemovedKeys> =>
-  // @ts-expect-error //todo
-  Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k, v)));
+): Omit<T, RemovedKeys> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k, v))) as Omit<T, RemovedKeys>;
 
 export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
   const allLinkedFields: LinkedFieldWithThing[] = [];
