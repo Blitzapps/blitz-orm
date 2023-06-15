@@ -8,6 +8,7 @@ export type BormConfig = {
   query?: {
     noMetadata?: boolean;
     simplifiedLinks?: boolean;
+    debugger?: boolean;
   };
   mutation?: {
     noMetadata?: boolean;

@@ -106,6 +106,12 @@ const runPipeline = async (
   if (root) {
     await runPipeline(finalPipeline, req, res, false);
     // console.log(res.tqlRes?.entities.map((e) => e.entries));
+    /// when debugging add the tqlRequest
+    /// todo: At some point, make the debugger more precise so we can decide what to add in this object (for instance also the answer?)
+    if (req.config.query?.debugger === true && typeof res.bqlRes === 'object') {
+      return { ...res.bqlRes, $debugger: { tqlRequest: req.tqlRequest } } as BQLResponse;
+    }
+
     return res.bqlRes;
   }
 };

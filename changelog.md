@@ -1,4 +1,6 @@
 # Changelog
+## 0.1.4(2023-06-15)
+- Added a debug option to check queries (only in queries)
 
 ## 0.1.3(2023-06-09)(unpublished)
 - Added a test for an existing bug when querying parent things

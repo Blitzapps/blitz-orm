@@ -84,16 +84,37 @@ describe('Query', () => {
     expect(res).not.toBeInstanceOf(String);
     // @ts-expect-error - res should be a defined array
     expect(deepSort(res, 'id')).toEqual(expectedRes);
-    const resWithoutMetadata = await client.query(query, {
-      noMetadata: true,
-    });
-    // @ts-expect-error - res should be a defined array
-    expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-      expectedRes.map(({ $id: _id, $entity: _entity, ...rest }) => rest)
-    );
   });
 
-  it('e2[entity, nested] - direct link to relation, query nested ', async () => {
+  it('e2[entity] - filter by single $id', async () => {
+    expect(client).toBeDefined();
+    const query = { $entity: 'User', $id: 'user1' };
+    const expectedRes = {
+      $entity: 'User',
+      $id: 'user1',
+      name: 'Antoine',
+      email: 'antoine@test.com',
+      id: 'user1',
+      accounts: ['account1-1', 'account1-2', 'account1-3'],
+      spaces: ['space-1', 'space-2'],
+      'user-tags': ['tag-1', 'tag-2'],
+    };
+
+    const res = await client.query(query);
+    expect(res).toBeDefined();
+    expect(typeof res).not.toBe('string');
+
+    expect(res).toEqual(
+      expect.objectContaining({
+        ...expectedRes,
+        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
+      })
+    );
+    // @ts-expect-error
+    expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
+  });
+
+  it('e3[entity, nested] - direct link to relation, query nested ', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $fields: ['id', { $path: 'user-tags' }] };
     const expectedRes = [
@@ -177,6 +198,96 @@ describe('Query', () => {
     });
     // @ts-expect-error - res should be a defined array
     expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+  });
+
+  it('opt1[options, noMetadata', async () => {
+    expect(client).toBeDefined();
+    const query = { $entity: 'User', $id: 'user1' };
+    const expectedRes = {
+      name: 'Antoine',
+      email: 'antoine@test.com',
+      id: 'user1',
+      accounts: ['account1-1', 'account1-2', 'account1-3'],
+      spaces: ['space-1', 'space-2'],
+      'user-tags': ['tag-1', 'tag-2'],
+    };
+
+    const res = await client.query(query, {
+      noMetadata: true,
+    });
+    expect(res).toBeDefined();
+    expect(typeof res).not.toBe('string');
+
+    expect(res).toEqual(
+      expect.objectContaining({
+        ...expectedRes,
+        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
+      })
+    );
+    // @ts-expect-error
+    expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
+  });
+
+  it('opt2[options, debugger', async () => {
+    expect(client).toBeDefined();
+    const query = { $entity: 'User', $id: 'user1' };
+    const expectedRes = {
+      $id: 'user1',
+      $entity: 'User',
+      /// if this fails, other stuff fails, for some reason, fix this first
+      $debugger: {
+        tqlRequest: {
+          entity: 'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; group $User;',
+          relations: [
+            {
+              entity: 'User',
+              relation: 'User-Accounts',
+              request:
+                'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; group $user;',
+            },
+            {
+              entity: 'User',
+              relation: 'User-Sessions',
+              request:
+                'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; group $user;',
+            },
+            {
+              entity: 'User',
+              relation: 'Space-User',
+              request:
+                'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; group $users;',
+            },
+            {
+              entity: 'User',
+              relation: 'UserTag',
+              request:
+                'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; group $users;',
+            },
+          ],
+        },
+      },
+      name: 'Antoine',
+      email: 'antoine@test.com',
+      id: 'user1',
+      accounts: ['account1-1', 'account1-2', 'account1-3'],
+      spaces: ['space-1', 'space-2'],
+      'user-tags': ['tag-1', 'tag-2'],
+    };
+
+    const res = await client.query(query, {
+      debugger: true,
+    });
+    expect(res).toBeDefined();
+    expect(typeof res).not.toBe('string');
+
+    expect(res).toEqual(
+      expect.objectContaining({
+        ...expectedRes,
+        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
+      })
+    );
+    // @ts-expect-error
+    expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
 
   it('r1[relation] - basic', async () => {
@@ -872,8 +983,8 @@ describe('Query', () => {
     });
   });
 
-  // todo fix this test, which is the only one in the queries which should fail.
-  it('n4[nested,filters] Local filter on nested, by id', async () => {
+  // todo fix this test, which is the only one in the queries which should fail. But check that the only issue is an array instead of an object
+  it('TODO*:n4[nested,filters] Local filter on nested, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
