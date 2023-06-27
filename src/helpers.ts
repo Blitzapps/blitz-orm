@@ -290,7 +290,17 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
   ];
 
   // spot non existing fields
-  const reservedRootFields = ['$entity', '$op', '$id', '$tempId', '$relation', '$parentKey', '$filter', '$fields'];
+  const reservedRootFields = [
+    '$entity',
+    '$op',
+    '$id',
+    '$tempId',
+    '$relation',
+    '$parentKey',
+    '$filter',
+    '$fields',
+    '$excludedFields',
+  ];
 
   const allowedFields = [...reservedRootFields, ...availableFields];
 
