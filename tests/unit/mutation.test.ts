@@ -1497,6 +1497,29 @@ describe('Mutation init', () => {
     ).rejects.toThrowError(`Duplicate id pink`);
   });
 
+  it('e2[relation] Error for noop and $id not found', async () => {
+    expect(bormClient).toBeDefined();
+
+    expect(bormClient).toBeDefined();
+
+    const mutation = {
+      $relation: 'UserTagGroup',
+      $id: 'ihegoahegoaheoahf',
+      color: 'yellow',
+      tags: ['tag-1', 'tag-2'],
+    };
+
+    try {
+      await bormClient.mutate(mutation);
+    } catch (error) {
+      if (error instanceof Error) {
+        expect(error.message).toBe('$id not found');
+      } else {
+        expect(true).toBe(false);
+      }
+    }
+  });
+
   afterAll(async () => {
     await cleanup(dbName);
   });
