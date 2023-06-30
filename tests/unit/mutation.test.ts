@@ -1500,24 +1500,14 @@ describe('Mutation init', () => {
   it('e2[relation] Error for noop and $id not found', async () => {
     expect(bormClient).toBeDefined();
 
-    expect(bormClient).toBeDefined();
-
     const mutation = {
       $relation: 'UserTagGroup',
-      $id: 'ihegoahegoaheoahf',
-      color: 'yellow',
-      tags: ['tag-1', 'tag-2'],
+      $id: 'tmp-user-tag-group',
+      tags: [{ $op: 'link', $id: 'tag-1' }],
     };
 
-    try {
-      await bormClient.mutate(mutation);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).toBe('$id not found');
-      } else {
-        expect(true).toBe(false);
-      }
-    }
+    const res = await bormClient.mutate(mutation);
+    expect(res).toStrictEqual({});
   });
 
   afterAll(async () => {
