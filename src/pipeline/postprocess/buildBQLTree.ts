@@ -33,6 +33,13 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
         symbols.forEach((symbol) => {
           delete value[symbol];
         });
+
+        if (value.$excludedFields) {
+          value.$excludedFields.forEach((field: any) => {
+            delete value[field];
+          });
+          delete value.$excludedFields;
+        }
       }
 
       /* if (Array.isArray(value) && value.length === 0) {
