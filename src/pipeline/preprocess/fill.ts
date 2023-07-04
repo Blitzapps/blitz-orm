@@ -35,6 +35,9 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           }
           const value = val as BQLMutationBlock;
 
+          if (value.$op === 'create' && value.$id) {
+            throw new Error("Can't write to computed field $id. Try writing to the id field directly.");
+          }
           /* console.log(
             '<---------------------value',
             isDraft(value) ? current(value) : value

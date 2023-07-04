@@ -1497,6 +1497,32 @@ describe('Mutation init', () => {
     ).rejects.toThrowError(`Duplicate id pink`);
   });
 
+  it('e2[create] Check for no $id field on $op create', async () => {
+    expect(bormClient).toBeDefined();
+
+    const mutation = {
+      $entity: 'User',
+      $op: 'create',
+      $id: 'blah',
+      name: 'test testerman',
+      email: 'test@test.com',
+    };
+
+    try {
+      await bormClient.mutate(mutation, { noMetadata: true });
+    } catch (error: any) {
+      if (error instanceof Error) {
+        expect(error.message).toBe("Can't write to computed field $id. Try writing to the id field directly.");
+      } else {
+        expect(true).toBe(false);
+      }
+
+      return;
+    }
+
+    throw new Error('Expected mutation to throw an error');
+  });
+
   afterAll(async () => {
     await cleanup(dbName);
   });
