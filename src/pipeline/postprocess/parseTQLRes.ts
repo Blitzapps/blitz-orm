@@ -2,7 +2,7 @@ import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
 import { Concept, ConceptMapGroup } from 'typedb-client';
 
 import { extractChildEntities, getPath } from '../../helpers';
-import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation, BQLResponse } from '../../types';
+import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation, RelationName } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
@@ -144,8 +144,8 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   if (!query) {
     if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
       // if no insertions and no delete operations
-      res.bqlRes = {} as BQLResponse; // return an empty object
-      return; // prevent further execution
+      res.bqlRes = undefined;
+      return;
     }
     const { mutation } = bqlRequest;
     if (!mutation) {
