@@ -1,4 +1,4 @@
-import { TypeDBClient, TypeDBSession } from 'typedb-client';
+import { TypeDBClient, TypeDBCredential, TypeDBSession } from 'typedb-client';
 
 export type BormConfig = {
   server: {
@@ -18,9 +18,18 @@ export type BormConfig = {
 
 export type ProviderObject = {
   id: string;
-  provider: 'typeDB';
   dbName: string;
+} & (TypeDBProviderObject | TypeDBClusterProviderObject);
+
+export type TypeDBProviderObject = {
+  provider: 'typeDB';
   url: string;
+};
+
+export type TypeDBClusterProviderObject = {
+  provider: 'typeDBCluster';
+  addresses: string[];
+  credentials: TypeDBCredential;
 };
 
 // export type DBType = "typeDB" | "dgraph";
