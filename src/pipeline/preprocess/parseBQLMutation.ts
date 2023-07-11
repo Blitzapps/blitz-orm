@@ -331,10 +331,35 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     );
 
     if (existingEdge) {
-      const newRelation = {
-        ...existingEdge,
-        ...curr,
-      };
+      const newRelation = { ...existingEdge };
+
+      Object.keys(curr).forEach((key) => {
+        if (typeof key === 'symbol' || key.startsWith('$')) {
+          return;
+        }
+
+        const existingVal = existingEdge[key];
+        const currVal = curr[key];
+
+        if (Array.isArray(existingVal) && Array.isArray(currVal)) {
+          newRelation[key] = Array.from(new Set([...existingVal, ...currVal]));
+        } else if (!Array.isArray(existingVal) && Array.isArray(currVal)) {
+          if (existingVal !== undefined) {
+            // Avoid merging with undefined values.
+            newRelation[key] = Array.from(new Set([existingVal, ...currVal]));
+          } else {
+            newRelation[key] = currVal;
+          }
+        } else if (Array.isArray(existingVal) && !Array.isArray(currVal)) {
+          if (currVal !== undefined) {
+            // Avoid merging with undefined values.
+            newRelation[key] = Array.from(new Set([...existingVal, currVal]));
+          }
+        } else if (!existingVal) {
+          newRelation[key] = currVal;
+        }
+      });
+
       const newAcc = acc.filter(
         (r) =>
           !(
@@ -343,8 +368,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             r.$op === curr.$op
           )
       );
+
       return [...newAcc, newRelation];
     }
+
     return [...acc, curr];
   }, [] as BQLMutationBlock[]);
 

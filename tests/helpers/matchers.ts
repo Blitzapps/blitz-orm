@@ -62,3 +62,110 @@ export const deepRemoveMetaData = (obj: object) => {
   };
   return produce(obj, (draft) => traverse(draft, removeMeta));
 };
+
+export const expectArraysInObjectToContainSameElements = (
+  obj1: Record<string, any>,
+  obj2: Record<string, any>
+): void => {
+  Object.keys(obj1).forEach((key) => {
+    if (Array.isArray(obj1[key])) {
+      // If the property is an array, we check that both arrays contain the same elements (regardless of order)
+      expect(obj1[key]).toEqual(expect.arrayContaining(obj2[key]));
+      expect(obj2[key]).toEqual(expect.arrayContaining(obj1[key]));
+    } else if (typeof obj1[key] === 'object' && obj1[key] !== null && !(obj1[key] instanceof Date)) {
+      // If the property is an object (but not a Date), we recursively check its properties
+      expectArraysInObjectToContainSameElements(obj1[key], obj2[key]);
+    } else {
+      // Otherwise, we check that the properties are equal
+      expect(obj1[key]).toEqual(obj2[key]);
+    }
+  });
+};
+
+export const expectResLikeTemplate = () => {};
+
+/* //TODO
+export const expectResLikeTemplate = (
+  res: Record<string, any>,
+  template: Record<string, any>,
+  tempIds: Record<string, any> = {}
+): Record<string, any> => {
+  const findMatchesForTemplatesWithVars = (
+    resItems: any[],
+    currentTemplatesWithVars: any[],
+    currentTempIds: Record<string, any>
+  ): boolean => {
+    if (currentTemplatesWithVars.length === 0) {
+      return true;
+    }
+
+    const template = currentTemplatesWithVars[0];
+
+    for (let i = 0; i < resItems.length; i += 1) {
+      const resItem = resItems[i];
+      const originalTempIds = { ...currentTempIds };
+      if (typeof template === 'string' && !(template in currentTempIds)) {
+        currentTempIds[template] = resItem;
+      }
+      if (expectResLikeTemplate(resItem, template, currentTempIds)) {
+        const remainingResItems = [...resItems];
+        remainingResItems.splice(i, 1);
+        const remainingTemplatesWithVars = [...currentTemplatesWithVars];
+        remainingTemplatesWithVars.shift();
+        if (findMatchesForTemplatesWithVars(remainingResItems, remainingTemplatesWithVars, currentTempIds)) {
+          return true;
+        }
+      }
+      currentTempIds = originalTempIds;
+    }
+    return false;
+  };
+
+  const isMatch = Object.keys(template).every((key) => {
+    if (Array.isArray(template[key])) {
+      const templatesWithVars: any[] = [];
+      const templatesWithoutVars: any[] = [];
+      template[key].forEach((item: any) => {
+        if (
+          (typeof item === 'string' && item.startsWith('$')) ||
+          (typeof item === 'object' &&
+            Object.values(item).some((val: any) => typeof val === 'string' && val.startsWith('$')))
+        ) {
+          templatesWithVars.push(item);
+        } else {
+          templatesWithoutVars.push(item);
+        }
+      });
+
+      templatesWithoutVars.every((item: any) => {
+        const matchIndex = res[key].findIndex((resItem: any) => {
+          return expectResLikeTemplate(resItem, item, { ...tempIds });
+        });
+        if (matchIndex !== -1) {
+          res[key].splice(matchIndex, 1);
+          return true;
+        }
+        return false;
+      });
+
+      return findMatchesForTemplatesWithVars(res[key], templatesWithVars, tempIds);
+    }
+    if (typeof template[key] === 'object' && template[key] !== null && !(template[key] instanceof Date)) {
+      return expectResLikeTemplate(res[key], template[key], tempIds);
+    }
+    if (typeof template[key] === 'string' && template[key].startsWith('$')) {
+      if (!(template[key] in tempIds)) {
+        tempIds[template[key]] = res[key];
+      }
+      return res[key] === tempIds[template[key]];
+    }
+    return res[key] === template[key];
+  });
+
+  if (!isMatch) {
+    throw new Error('No matching item found for template');
+  }
+
+  return tempIds;
+};
+*/
