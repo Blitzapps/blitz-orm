@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
-import { deepRemoveMetaData, deepSort } from '../helpers/matchers';
+import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
 
 describe('Query', () => {
   let dbName: string;
@@ -104,12 +104,12 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
+    // @ts-expect-error
+    expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
@@ -218,12 +218,9 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
@@ -280,12 +277,9 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
