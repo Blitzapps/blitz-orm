@@ -1,46 +1,141 @@
 import { BormConfig, BormSchema } from '../types';
 
 export const bormDefine = (config: BormConfig, schema: BormSchema) => {
-  console.log('config', config);
   console.log('schema', schema);
-  // Define the function to convert Format 1 to Format 2
-  function convertSchema(input: string) {
-    // TODO: create "sub" helper func that works for each
+  // TODO: cases for shared, owned privately, extends
+  function convertSchema() {
+    // getting attributes from entities
+    let output = '';
+    const usedAttributes = new Set<string>();
+    Object.keys(schema.entities).forEach((entityName) => {
+      const entity = schema.entities[entityName];
+      const { idFields, dataFields, linkFields } = entity;
 
-    // converting data fields
-    let output = input.replace(/export const (\w+): DataField = {\n([\s\S]*?)\n};/g, (_, name, fields) => {
-      const properties = fields.replace(/(\w+):/g, '$1 sub attribute,');
-      return `${name} sub attribute,\n${properties}`;
+      if (idFields && idFields.length > 0) {
+        idFields.forEach((field: string) => usedAttributes.add(field));
+      }
+
+      if (dataFields && dataFields.length > 0) {
+        dataFields.forEach((field: any) => {
+          usedAttributes.add(field.name);
+        });
+      }
+
+      if (linkFields && linkFields.length > 0) {
+        linkFields.forEach((linkField: any) => {
+          usedAttributes.add(linkField.relation);
+          usedAttributes.add(linkField.plays);
+          usedAttributes.add(linkField.target);
+        });
+      }
     });
 
-    // converting link fields
-    output = output.replace(/linkFields: \[\n([\s\S]*?)\n\s+]\n},/g, (_, fields) => {
-      const relations = fields.replace(/(\w+):/g, '$1 sub relation,\n    relates');
-      return `${relations};\n`;
+    // getting attributes from relations
+    Object.keys(schema.relations).forEach((relationName) => {
+      const relation = schema.relations[relationName];
+      const { idFields, dataFields, roles } = relation;
+
+      if (idFields && idFields.length > 0) {
+        idFields.forEach((field: string) => usedAttributes.add(field));
+      }
+
+      if (dataFields && dataFields.length > 0) {
+        dataFields.forEach((field: any) => {
+          // @ts-ignore
+          usedAttributes.add(field.name);
+        });
+      }
+
+      if (roles) {
+        Object.keys(roles).forEach((roleName) => {
+          usedAttributes.add(roleName);
+        });
+      }
     });
 
-    // converting entities
-    output = output.replace(/entities: {\n([\s\S]*?)\n\s+},/g, (_, entities) => {
-      const declarations = entities.replace(/(\w+): {[\s\S]*?},/g, (__: any, entityName: any) => {
-        const entity = __.replace(entityName, `${entityName} sub entity,`);
-        return entity;
-      });
-      return declarations;
+    // Adding attributes
+    usedAttributes.forEach((attribute) => {
+      console.log({ attribute });
+      output += `${attribute} sub attribute`;
+
+      if (attribute && attribute.includes('·')) {
+        const [entity, attr] = attribute.split('·');
+        output += `, value ${entity}, ${attr}`;
+      } else if (attribute === 'email') {
+        output += `, abstract`;
+      } else if (attribute === 'Session·expires') {
+        output += `,\n    value datetime`;
+      } else {
+        output += `, value string`;
+      }
+
+      output += ';\n';
     });
 
-    // converting relations
-    output = output.replace(/relations: {\n([\s\S]*?)\n\s+},/g, (_, relations) => {
-      const declarations = relations.replace(/(\w+): {[\s\S]*?},/g, (__: any, relationName: any) => {
-        const relation = __.replace(relationName, `${relationName} sub relation,`);
-        return relation;
-      });
-      return declarations;
+    output += '\n';
+
+    Object.keys(schema.entities).forEach((entityName) => {
+      const entity = schema.entities[entityName];
+      // @ts-expect-error
+      const { idFields, dataFields, linkFields, name } = entity;
+
+      output += `${name} sub entity,\n`;
+
+      if (idFields && idFields.length > 0) {
+        const idFieldsString = idFields.map((field: string) => `'${field}'`).join(', ');
+        output += `    owns ${idFieldsString} @key,\n`;
+      }
+
+      if (dataFields && dataFields.length > 0) {
+        dataFields.forEach((field: any) => {
+          output += `    owns ${field.dbPath},\n`;
+        });
+      }
+
+      if (linkFields && linkFields.length > 0) {
+        linkFields.forEach((linkField) => {
+          const { relation, plays, target } = linkField;
+          output += `    plays ${relation}:${plays},\n`;
+          output += `    relates ${target},\n`;
+        });
+      }
+
+      output += '\n';
     });
-    console.log('in output', JSON.stringify(output, null, 2));
+
+    // Convert relation declarations
+    Object.keys(schema.relations).forEach((relationName) => {
+      const relation = schema.relations[relationName];
+      // @ts-expect-error
+      const { idFields, dataFields, roles, name } = relation;
+
+      output += `${name} sub relation,\n`;
+
+      if (idFields && idFields.length > 0) {
+        const idFieldsString = idFields.map((field: string) => `'${field}'`).join(', ');
+        output += `    owns ${idFieldsString} @key,\n`;
+      }
+
+      if (dataFields && dataFields.length > 0) {
+        dataFields.forEach((field: any) => {
+          output += `    owns ${field.dbPath},\n`;
+        });
+      }
+
+      if (roles) {
+        Object.keys(roles).forEach((roleName) => {
+          const role = roles[roleName];
+          const { cardinality } = role;
+          output += `    relates ${roleName}, #cardinality: ${cardinality}\n`;
+        });
+      }
+
+      output += '\n';
+    });
 
     return output;
   }
 
-  const typeDBString = convertSchema(schema.toString());
+  const typeDBString = convertSchema();
   console.log('main output', JSON.stringify(typeDBString, null, 2));
 };
