@@ -1672,7 +1672,19 @@ describe('Mutation init', () => {
     ).rejects.toThrowError(`Duplicate id pink`);
   });
 
-  it('e2[create] Check for no $id field on $op create', async () => {
+  it('e2[relation] Error for noop and $id not found', async () => {
+    expect(bormClient).toBeDefined();
+
+    const mutation = {
+      $relation: 'UserTagGroup',
+      $id: 'tmp-user-tag-group',
+      tags: [{ $op: 'link', $id: 'tag-1' }],
+    };
+
+    const res = await bormClient.mutate(mutation);
+    expect(res).toStrictEqual({});
+
+  it('e3[create] Check for no $id field on $op create', async () => {
     expect(bormClient).toBeDefined();
 
     const mutation = {
