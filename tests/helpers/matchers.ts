@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { produce } from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 
@@ -63,28 +64,40 @@ export const deepRemoveMetaData = (obj: object) => {
   return produce(obj, (draft) => traverse(draft, removeMeta));
 };
 
-export const expectArraysInObjectToContainSameElements = (
-  obj1: Record<string, any>,
-  obj2: Record<string, any>
-): void => {
-  Object.keys(obj1).forEach((key) => {
-    if (Array.isArray(obj1[key])) {
-      // If the property is an array, we check that both arrays contain the same elements (regardless of order)
-      expect(obj1[key]).toEqual(expect.arrayContaining(obj2[key]));
-      expect(obj2[key]).toEqual(expect.arrayContaining(obj1[key]));
-    } else if (typeof obj1[key] === 'object' && obj1[key] !== null && !(obj1[key] instanceof Date)) {
-      // If the property is an object (but not a Date), we recursively check its properties
-      expectArraysInObjectToContainSameElements(obj1[key], obj2[key]);
-    } else {
-      // Otherwise, we check that the properties are equal
-      expect(obj1[key]).toEqual(obj2[key]);
+const checkRecursive = <T>(obj: T): T => {
+  if (Array.isArray(obj)) {
+    return expect.arrayContaining(obj.map(checkRecursive)) as unknown as T;
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const newObj: { [key: string]: any } = {};
+    Object.entries(obj).forEach(([key, value]) => {
+      newObj[key] = checkRecursive(value);
+    });
+    return newObj as T;
+  }
+  return obj;
+};
+
+export const expectArraysInObjectToContainSameElements = <T extends any[]>(received: T, expected: T): void => {
+  if (Array.isArray(received)) {
+    expect(received.length).toEqual(expected.length);
+    expect(received).toEqual(expect.arrayContaining(expected.map(checkRecursive)));
+  } else if (typeof received === 'object' && received !== null) {
+    Object.entries(received).forEach(([key, value]) => {
+      // @ts-expect-error
+      expectArraysInObjectToContainSameElements(value, expected[key as keyof typeof expected]);
+    });
+  } else {
+    if (typeof expected === 'string' && (expected as string).startsWith('$')) {
+      return;
     }
-  });
+    expect(received).toEqual(expected);
+  }
 };
 
 export const expectResLikeTemplate = () => {};
 
-/* //TODO
+/* //TODO probably using permutations
 export const expectResLikeTemplate = (
   res: Record<string, any>,
   template: Record<string, any>,

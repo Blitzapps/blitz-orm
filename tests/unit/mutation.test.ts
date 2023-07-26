@@ -2,7 +2,7 @@ import 'jest';
 
 import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
-import { deepSort, expectResLikeTemplate } from '../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
 
 const firstUser = {
   $entity: 'User',
@@ -62,8 +62,9 @@ describe('Mutation init', () => {
 
     expect(res).toBeInstanceOf(Object);
     // @ts-expect-error
-    const { $unitId } = expectResLikeTemplate(res, expectedUnit);
-    firstUser.id = $unitId;
+    expectArraysInObjectToContainSameElements(res, expectedUnit);
+    // @ts-expect-error
+    firstUser.id = res.id;
   });
 
   it('b2[update] Basic', async () => {
@@ -408,7 +409,7 @@ describe('Mutation init', () => {
   it('TODOMATCHER:n1[create, nested] nested', async () => {
     expect(bormClient).toBeDefined();
 
-    await bormClient.mutate(
+    const mutated = await bormClient.mutate(
       {
         $relation: 'Kind',
         name: 'myTest',
@@ -418,6 +419,11 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
+    // @ts-expect-error
+    const fieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
+    // @ts-expect-error
+    const kindId = mutated?.find((m) => m.name === 'myTest')?.id;
+
     const kinds = await bormClient.query(
       {
         $relation: 'Kind',
@@ -426,19 +432,16 @@ describe('Mutation init', () => {
     );
     const expectedKindTemplate = [
       {
-        id: '$newKindId',
+        id: kindId, // '$newKindId',
         name: 'myTest',
         space: 'space-3',
-        fields: ['$newFieldId'],
-        dataFields: ['$newFieldId'],
+        fields: [fieldId], // todo: replace by template ids
+        dataFields: [fieldId],
       },
       { id: 'kind-book', name: 'book', space: 'space-2' },
     ];
-
-    console.log('kinds', kinds);
     // @ts-expect-error
-    const ids = expectResLikeTemplate(kinds, expectedKindTemplate);
-    console.log('ids', ids);
+    expectArraysInObjectToContainSameElements(kinds, expectedKindTemplate);
 
     const fields = await bormClient.query(
       {
@@ -449,22 +452,19 @@ describe('Mutation init', () => {
 
     const expectedFieldsTemplate = [
       {
-        id: '$newFieldId',
+        id: fieldId,
         name: 'myTestField',
-        kinds: ['$newKindId'],
+        kinds: [kindId],
         space: 'space-3',
       },
     ];
 
     // @ts-expect-error
-    const ids2 = expectResLikeTemplate(fields, expectedFieldsTemplate);
+    expectArraysInObjectToContainSameElements(fields, expectedFieldsTemplate);
     // const { $newKindId, $newFieldId } = ids2;
 
     /// also the ids must match
     // expectResLikeTemplate(ids, ids2);
-
-    console.log('ids1', ids);
-    console.log('ids2', ids2);
 
     /// delete both things
     await bormClient.mutate(
@@ -472,12 +472,12 @@ describe('Mutation init', () => {
         {
           $relation: 'Kind',
           $op: 'delete',
-          // $id: $newKindId,
+          $id: kindId,
         },
         {
           $relation: 'DataField',
           $op: 'delete',
-          // $id: $newFieldId,
+          $id: fieldId,
         },
       ],
       { noMetadata: true }
@@ -487,7 +487,7 @@ describe('Mutation init', () => {
   it('TODOMATCHER:n2[create, nested] nested, self referenced', async () => {
     expect(bormClient).toBeDefined();
 
-    await bormClient.mutate(
+    const mutated = await bormClient.mutate(
       {
         $relation: 'Kind',
         name: 'myTestKind1',
@@ -510,33 +510,41 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
+    // @ts-expect-error
+    const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
+    // @ts-expect-error
+    const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
+    // @ts-expect-error
+    const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
+
     const kinds = await bormClient.query(
       {
         $relation: 'Kind',
       },
       { noMetadata: true }
     );
+
     const expectedKindTemplate = [
       { id: 'kind-book', name: 'book', space: 'space-2' },
       {
-        id: '$myTestKind1',
+        id: myTestKind1Id,
         name: 'myTestKind1',
         space: 'space-3',
-        fields: ['$newFieldId'],
-        dataFields: ['$newFieldId'],
+        fields: [myTestFieldId],
+        dataFields: [myTestFieldId],
       },
       {
-        id: '$myTestKind2',
+        id: myTestKind2Id,
         name: 'myTestKind2',
         space: 'space-3',
-        fields: ['$newFieldId'],
-        dataFields: ['$newFieldId'],
+        fields: [myTestFieldId],
+        dataFields: [myTestFieldId],
       },
     ];
 
+    // const ids = expectResLikeTemplate(kinds, expectedKindTemplate);
     // @ts-expect-error
-    const ids = expectResLikeTemplate(kinds, expectedKindTemplate);
-    console.log('ids', ids);
+    expectArraysInObjectToContainSameElements(kinds, expectedKindTemplate); // todo: delete when matcher is ready
 
     const fields = await bormClient.query(
       {
@@ -547,16 +555,16 @@ describe('Mutation init', () => {
 
     const expectedFieldsTemplate = [
       {
-        id: '$newFieldId',
+        id: myTestFieldId,
         name: 'myTestField',
-        kinds: ['$myTestKind2', 'myTestKind1'],
+        kinds: [myTestKind1Id, myTestKind2Id],
         space: 'space-3',
       },
     ];
 
+    // const ids2 = expectResLikeTemplate(fields, expectedFieldsTemplate);
     // @ts-expect-error
-    const ids2 = expectResLikeTemplate(fields, expectedFieldsTemplate);
-    console.log('ids2', ids2);
+    expectArraysInObjectToContainSameElements(fields, expectedFieldsTemplate); // todo: delete when matcher is ready
     // const { $newFieldId } = ids2;
 
     /// also the ids must match
@@ -568,8 +576,17 @@ describe('Mutation init', () => {
         {
           $relation: 'DataField',
           $op: 'delete',
-          // $id: $newFieldId,
-          kinds: [{ $op: 'delete' }],
+          $id: myTestFieldId,
+        },
+        {
+          $relation: 'Kind',
+          $op: 'delete',
+          $id: myTestKind1Id,
+        },
+        {
+          $relation: 'Kind',
+          $op: 'delete',
+          $id: myTestKind2Id,
         },
       ],
       { noMetadata: true }
