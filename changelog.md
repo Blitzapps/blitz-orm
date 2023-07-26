@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.7(2023-07-26)
+- Fixed a bug with some queries
+- Added some new tests and matcher helpers
 ## 0.1.6(2023-06-11)
 - Fixed a mutation issue where nested edges where discarded
 ## 0.1.5(2023-07-04)
