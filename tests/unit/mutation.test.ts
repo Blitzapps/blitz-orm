@@ -2,7 +2,7 @@ import 'jest';
 
 import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
-import { deepSort } from '../helpers/matchers';
+import { deepSort, expectResLikeTemplate } from '../helpers/matchers';
 
 const firstUser = {
   $entity: 'User',
@@ -54,13 +54,16 @@ describe('Mutation init', () => {
     expect(bormClient).toBeDefined();
 
     const res = await bormClient.mutate(firstUser, { noMetadata: true });
-    expect(res).toEqual({
-      id: expect.any(String),
+    const expectedUnit = {
+      id: '$unitId',
       name: 'John',
       email: 'wrong email',
-    });
-    // @ts-expect-error - res is defined, and user can have id
-    firstUser.id = res.id;
+    };
+
+    expect(res).toBeInstanceOf(Object);
+    // @ts-expect-error
+    const { $unitId } = expectResLikeTemplate(res, expectedUnit);
+    firstUser.id = $unitId;
   });
 
   it('b2[update] Basic', async () => {
@@ -400,6 +403,178 @@ describe('Mutation init', () => {
       },
     ]);
   });
+
+  it('TODOMATCHER:n1[create, nested] nested', async () => {
+    expect(bormClient).toBeDefined();
+
+    await bormClient.mutate(
+      {
+        $relation: 'Kind',
+        name: 'myTest',
+        space: 'space-3',
+        dataFields: [{ $op: 'create', name: 'myTestField', space: 'space-3' }],
+      },
+      { noMetadata: true }
+    );
+
+    const kinds = await bormClient.query(
+      {
+        $relation: 'Kind',
+      },
+      { noMetadata: true }
+    );
+    const expectedKindTemplate = [
+      {
+        id: '$newKindId',
+        name: 'myTest',
+        space: 'space-3',
+        fields: ['$newFieldId'],
+        dataFields: ['$newFieldId'],
+      },
+      { id: 'kind-book', name: 'book', space: 'space-2' },
+    ];
+
+    console.log('kinds', kinds);
+    // @ts-expect-error
+    const ids = expectResLikeTemplate(kinds, expectedKindTemplate);
+    console.log('ids', ids);
+
+    const fields = await bormClient.query(
+      {
+        $relation: 'DataField',
+      },
+      { noMetadata: true }
+    );
+
+    const expectedFieldsTemplate = [
+      {
+        id: '$newFieldId',
+        name: 'myTestField',
+        kinds: ['$newKindId'],
+        space: 'space-3',
+      },
+    ];
+
+    // @ts-expect-error
+    const ids2 = expectResLikeTemplate(fields, expectedFieldsTemplate);
+    // const { $newKindId, $newFieldId } = ids2;
+
+    /// also the ids must match
+    // expectResLikeTemplate(ids, ids2);
+
+    console.log('ids1', ids);
+    console.log('ids2', ids2);
+
+    /// delete both things
+    await bormClient.mutate(
+      [
+        {
+          $relation: 'Kind',
+          $op: 'delete',
+          // $id: $newKindId,
+        },
+        {
+          $relation: 'DataField',
+          $op: 'delete',
+          // $id: $newFieldId,
+        },
+      ],
+      { noMetadata: true }
+    );
+  });
+
+  it('TODOMATCHER:n2[create, nested] nested, self referenced', async () => {
+    expect(bormClient).toBeDefined();
+
+    await bormClient.mutate(
+      {
+        $relation: 'Kind',
+        name: 'myTestKind1',
+        space: 'space-3',
+        dataFields: [
+          {
+            $op: 'create',
+            name: 'myTestField',
+            space: 'space-3',
+            kinds: [
+              {
+                $op: 'create',
+                name: 'myTestKind2',
+                space: 'space-3',
+              },
+            ],
+          },
+        ],
+      },
+      { noMetadata: true }
+    );
+
+    const kinds = await bormClient.query(
+      {
+        $relation: 'Kind',
+      },
+      { noMetadata: true }
+    );
+    const expectedKindTemplate = [
+      { id: 'kind-book', name: 'book', space: 'space-2' },
+      {
+        id: '$myTestKind1',
+        name: 'myTestKind1',
+        space: 'space-3',
+        fields: ['$newFieldId'],
+        dataFields: ['$newFieldId'],
+      },
+      {
+        id: '$myTestKind2',
+        name: 'myTestKind2',
+        space: 'space-3',
+        fields: ['$newFieldId'],
+        dataFields: ['$newFieldId'],
+      },
+    ];
+
+    // @ts-expect-error
+    const ids = expectResLikeTemplate(kinds, expectedKindTemplate);
+    console.log('ids', ids);
+
+    const fields = await bormClient.query(
+      {
+        $relation: 'DataField',
+      },
+      { noMetadata: true }
+    );
+
+    const expectedFieldsTemplate = [
+      {
+        id: '$newFieldId',
+        name: 'myTestField',
+        kinds: ['$myTestKind2', 'myTestKind1'],
+        space: 'space-3',
+      },
+    ];
+
+    // @ts-expect-error
+    const ids2 = expectResLikeTemplate(fields, expectedFieldsTemplate);
+    console.log('ids2', ids2);
+    // const { $newFieldId } = ids2;
+
+    /// also the ids must match
+    // expectResLikeTemplate(ids, ids2);
+
+    /// delete both things
+    await bormClient.mutate(
+      [
+        {
+          $relation: 'DataField',
+          $op: 'delete',
+          // $id: $newFieldId,
+          kinds: [{ $op: 'delete' }],
+        },
+      ],
+      { noMetadata: true }
+    );
+  });
+
   it('u1[update, multiple] Shared ids', async () => {
     expect(bormClient).toBeDefined();
 
@@ -1508,6 +1683,31 @@ describe('Mutation init', () => {
 
     const res = await bormClient.mutate(mutation);
     expect(res).toStrictEqual({});
+
+  it('e3[create] Check for no $id field on $op create', async () => {
+    expect(bormClient).toBeDefined();
+
+    const mutation = {
+      $entity: 'User',
+      $op: 'create',
+      $id: 'blah',
+      name: 'test testerman',
+      email: 'test@test.com',
+    };
+
+    try {
+      await bormClient.mutate(mutation, { noMetadata: true });
+    } catch (error: any) {
+      if (error instanceof Error) {
+        expect(error.message).toBe("Can't write to computed field $id. Try writing to the id field directly.");
+      } else {
+        expect(true).toBe(false);
+      }
+
+      return;
+    }
+
+    throw new Error('Expected mutation to throw an error');
   });
 
   afterAll(async () => {

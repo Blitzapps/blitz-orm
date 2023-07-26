@@ -1,4 +1,8 @@
 # Changelog
+## 0.1.6(2023-06-11)
+- Fixed a mutation issue where nested edges where discarded
+## 0.1.5(2023-07-04)
+- Added excludedFields feature v0 
 ## 0.1.4(2023-06-15)
 - Added a debug option to check queries (only in queries)
 

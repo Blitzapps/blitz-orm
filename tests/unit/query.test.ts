@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
-import { deepRemoveMetaData, deepSort } from '../helpers/matchers';
+import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
 
 describe('Query', () => {
   let dbName: string;
@@ -104,12 +104,12 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
+    // @ts-expect-error
+    expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
@@ -218,12 +218,9 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
@@ -280,12 +277,9 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(typeof res).not.toBe('string');
 
-    expect(res).toEqual(
-      expect.objectContaining({
-        ...expectedRes,
-        'user-tags': expect.arrayContaining(expectedRes['user-tags']),
-      })
-    );
+    // @ts-expect-error - res should defined
+    expectArraysInObjectToContainSameElements(res, expectedRes);
+
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
@@ -1118,6 +1112,46 @@ describe('Query', () => {
     // @ts-expect-error
     expect(deepSort(res, 'id')).toEqual({
       objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
+    });
+  });
+
+  it('x1[excludedFields] Testing excluded fields', async () => {
+    expect(client).toBeDefined();
+    const godUser = {
+      $entity: 'God',
+      id: 'squarepusher',
+      name: 'Tom Jenkinson',
+      email: 'tom@warp.com',
+      power: 'rhythm',
+      isEvil: false,
+    };
+    // Create a new godUser
+    const mutationRes = await client.mutate(godUser, { noMetadata: true });
+
+    expect(mutationRes).toEqual({
+      id: expect.any(String),
+      name: 'Tom Jenkinson',
+      email: 'tom@warp.com',
+      power: 'rhythm',
+      isEvil: false,
+    });
+
+    // @ts-expect-error
+    godUser.id = mutationRes.id;
+
+    const queryRes = await client.query(
+      {
+        $entity: 'God',
+        $id: godUser.id,
+        $excludedFields: ['email', 'isEvil'],
+      },
+      { noMetadata: true }
+    );
+
+    expect(queryRes).toEqual({
+      id: godUser.id,
+      name: 'Tom Jenkinson',
+      power: 'rhythm',
     });
   });
 
