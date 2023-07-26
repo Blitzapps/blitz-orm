@@ -362,6 +362,7 @@ describe('Mutation init', () => {
       { id: 'green' },
     ]);
   });
+
   it('b7[create, inherited] inheritedAttributesMutation', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.mutate(godUser, { noMetadata: true });
@@ -1320,7 +1321,7 @@ describe('Mutation init', () => {
     }
   });
 
-  it('l9[ create,relation] Create relation multiple edges ', async () => {
+  it('l9[create,relation] Create relation multiple edges ', async () => {
     expect(bormClient).toBeDefined();
 
     await bormClient.mutate({
@@ -1683,6 +1684,7 @@ describe('Mutation init', () => {
 
     const res = await bormClient.mutate(mutation);
     expect(res).toStrictEqual({});
+  });
 
   it('e3[create] Check for no $id field on $op create', async () => {
     expect(bormClient).toBeDefined();
