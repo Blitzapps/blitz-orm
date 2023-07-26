@@ -146,6 +146,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
+            ...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}),
             ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
             [Symbol.for('bzId')]: uuidv4(),
