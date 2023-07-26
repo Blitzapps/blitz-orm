@@ -64,6 +64,3 @@ $self1 (space:$space-2) isa Self, has id 'self1';
 $self2 (space:$space-2, owner: $self1) isa Self, has id 'self2';
 $self3 (space:$space-2, owner: $self2) isa Self, has id 'self3';
 $self4 (space:$space-2, owner: $self2) isa Self, has id 'self4';
-
-
-

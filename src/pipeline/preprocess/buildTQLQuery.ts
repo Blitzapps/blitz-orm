@@ -96,7 +96,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
         (link) =>
           `$${dirRel ? link.thing : link.plays} isa ${link.thing}, has id $${dirRel ? link.thing : link.plays}_id;`
       )
-      .join(', ');
+      .join(' ');
 
     const group = `group $${linkField.plays};`;
     const request = `${entityMatch} ${roles} ${relationMatchEnd} ${relationIdFilters} ${group}`;

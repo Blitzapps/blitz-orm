@@ -332,13 +332,13 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       return nodes
         .map((x) => {
           const { preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion } = typeQL(x);
-          return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z);
+          return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
         })
         .filter((y) => y);
     }
     const { preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion } = typeQL(nodes);
 
-    return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z);
+    return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
   };
 
   // const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));

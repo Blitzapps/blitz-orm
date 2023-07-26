@@ -4,8 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsup --watch",
-    "build": "tsup --minify",
+    "dev": "tsup --dts --watch",
+    "build": "tsup --dts --treeshake --minify",
     "lint": "eslint . --ext .ts,.cjs",
     "lint-staged": "lint-staged --concurrent false",
     "types": "tsc --noEmit",
