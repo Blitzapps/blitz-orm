@@ -1772,7 +1772,10 @@ describe('Mutation init', () => {
         $entity: 'User',
         name: 'Peter',
         email: 'Peter@test.ru',
-        accounts: [{ provider: 'google' }, { $op: 'create', $tempId: 'acc1', provider: 'facebook' }],
+        accounts: [
+          { provider: 'google', $op: 'create' },
+          { $op: 'create', $tempId: 'acc1', provider: 'facebook' },
+        ],
       },
       {
         $tempId: 'us1',
@@ -1784,8 +1787,7 @@ describe('Mutation init', () => {
         name: 'Bea',
         accounts: [
           { provider: 'facebook' },
-          { $tempId: 'acc1' },
-          { $op: 'link', $tempId: 'gh1' },
+          { $tempId: 'gh1' },
           // { $op: 'link', $filter: { provider: 'google' } },
         ],
       },
@@ -1800,8 +1802,13 @@ describe('Mutation init', () => {
         provider: 'github',
       },
       {
+        $entity: 'Account',
+        $tempId: 'mm',
+        provider: 'metamask',
+      },
+      {
         $relation: 'User-Accounts',
-        accounts: [{ $tempId: 'gh1' }],
+        accounts: [{ $tempId: 'mm' }],
         user: { $tempId: 'us1' },
       },
     ]);
