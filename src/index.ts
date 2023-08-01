@@ -111,7 +111,8 @@ class BormClient {
   };
 
   define = async () => {
-    bormDefine(this.config, this.schema);
+    await this.#enforceConnection();
+    return bormDefine(this.config, this.schema, this.dbHandles);
   };
 }
 

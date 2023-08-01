@@ -1,6 +1,5 @@
-import { SessionType, TransactionType, TypeDB } from 'typedb-client';
+import { TransactionType } from 'typedb-client';
 
-import { testConfig } from '../../tests/mocks/testConfig';
 import { BormConfig, BormSchema, LinkField } from '../types';
 
 type Attribute = {
@@ -26,18 +25,20 @@ function removeDuplicateObjects(arr: Attribute[]) {
   return uniqueObjects;
 }
 
-export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
+export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandles: any) => {
   function convertSchema() {
-    // getting attributes from entities
     let output = '';
     const usedAttributes: Attribute[] = [];
 
     output += '\n';
 
+    // CONVERTING ENTITIES
+
     Object.keys(schema.entities).forEach((entityName) => {
       const entity = schema.entities[entityName];
       // @ts-expect-error
       const { idFields, dataFields, linkFields, name } = entity;
+      // Checks to see if parent already contains these fields
       const commonDataFields: string[] = [];
       const commonLinkFields: string[] = [];
       const commonIdFields: string[] = [];
@@ -64,8 +65,9 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
       }
 
       output += `${name} sub ${entity.extends ? entity.extends : 'entity'},\n`;
+      // Removes ids from data fields, so their attributes aren't repeated
       const idsAsData: string[] = [];
-
+      // Adding id fields
       if (idFields && idFields.length > 0) {
         const setIds = new Set(idFields);
         const newIdFields = Array.from(setIds);
@@ -75,7 +77,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
           idsAsData.push(idFieldsString);
         }
       }
-
+      // Adding data fields
       if (dataFields && dataFields.length > 0) {
         dataFields.forEach((field: any) => {
           if (!commonDataFields.includes(field.dbPath) && !idsAsData.includes(field.dbPath)) {
@@ -84,13 +86,11 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
           usedAttributes.push({ dbPath: field.dbPath, contentType: field.contentType });
         });
       }
-
+      // Adding link fields
       if (linkFields && linkFields.length > 0) {
         const usedLinkFields: string[] = [];
-
         linkFields.forEach((linkField) => {
           const { relation, plays } = linkField;
-
           if (!commonLinkFields.includes(linkField.path) && !usedLinkFields.includes(`${relation}:${plays}`)) {
             output += `    plays ${relation}:${plays},\n`;
             usedLinkFields.push(`${relation}:${plays}`);
@@ -101,11 +101,13 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
       output += '\n';
     });
 
-    // Convert relation declarations
+    // CONVERTING RELATIONS
     Object.keys(schema.relations).forEach((relationName) => {
       const relation = schema.relations[relationName];
+      // TODO: fix name ts error
       // @ts-expect-error
       const { idFields, dataFields, roles, name, linkFields } = relation;
+      // Checks to see if parent already contains these fields
       const commonDataFields: string[] = [];
       const commonLinkFields: string[] = [];
       const commonRoleFields: string[] = [];
@@ -138,7 +140,9 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
       }
 
       output += `${name} sub ${relation.extends ? relation.extends : 'relation'},\n`;
+      // Removes ids from data fields, so their attributes aren't repeated
       const idsAsData: string[] = [];
+      // Adding id fields
       if (idFields && idFields.length > 0) {
         const setIds = new Set(idFields);
         const newIdFields = Array.from(setIds);
@@ -148,7 +152,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
           idsAsData.push(idFieldsString);
         }
       }
-
+      // Adding data fields
       if (dataFields && dataFields.length > 0) {
         dataFields.forEach((field: any) => {
           if (!commonDataFields.includes(field.dbPath) && !idsAsData.includes(field.dbPath)) {
@@ -157,7 +161,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
           usedAttributes.push({ dbPath: field.dbPath, contentType: field.contentType });
         });
       }
-
+      // Adding role fields
       if (roles) {
         Object.keys(roles).forEach((roleName) => {
           if (!commonRoleFields.includes(roleName)) {
@@ -165,6 +169,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
           }
         });
       }
+      // Adding link fields
       if (linkFields && linkFields.length > 0) {
         const usedLinkFields: string[] = [];
         linkFields.forEach((linkField) => {
@@ -178,12 +183,15 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
       output = output.replace(/,\s*$/, ';\n');
       output += '\n';
     });
+
+    // DEFINING ATTRIBUTES
+
     let attributes = 'define\n\n';
     const newUsedAttributes = removeDuplicateObjects(usedAttributes);
 
     newUsedAttributes.forEach((attribute: Attribute) => {
       attributes += `${attribute.dbPath} sub attribute,\n`;
-
+      // All conditions for BORM to TQL attribute types
       if (attribute.contentType === 'TEXT' || attribute.contentType === 'ID') {
         attributes += `    value string;\n`;
       } else if (attribute.contentType === 'EMAIL') {
@@ -201,19 +209,46 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema) => {
     return `${attributes}\n\n${output}`;
   }
 
+  // TYPE DB TRANSACTIONS
+
   const typeDBString = convertSchema();
-  const [connector] = testConfig.dbConnectors;
-  const dbName = `define_test`;
 
-  const client = TypeDB.coreClient(connector.url);
-  await client.databases.create(dbName);
+  const singleHandlerV0 = config.dbConnectors[0].id;
+  const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
 
-  const schemaSession = await client.session(dbName, SessionType.SCHEMA);
-  const schemaTransaction = await schemaSession.transaction(TransactionType.WRITE);
+  if (!session) {
+    console.log('Session Status: ', 'NO SESSION');
+    return;
+  }
 
+  // 1. Deleting data
+  const deleteTransaction = await session.transaction(TransactionType.WRITE);
+  const deleteQuery = `match $p isa thing; delete $p isa thing;`;
+  await deleteTransaction.query.delete(deleteQuery);
+  await deleteTransaction.commit();
+  await deleteTransaction.close();
+
+  // 2. Un-defining old schema
+  const getSchemaTransaction = await session.transaction(TransactionType.READ);
+  console.log('main log', getSchemaTransaction);
+
+  const getSchemaQuery = `match $a sub thing;`;
+  await getSchemaTransaction.query.match(getSchemaQuery);
+  const oldSchema = await getSchemaTransaction.commit();
+  console.log('old schema', oldSchema);
+  await getSchemaTransaction.close();
+
+  const undefineTransaction = await session.transaction(TransactionType.WRITE);
+  const undefineQuery = `undefine `;
+  await undefineTransaction.query.undefine(undefineQuery);
+  await undefineTransaction.commit();
+  await undefineTransaction.close();
+  // 3. Defining new schema
+  const schemaTransaction = await session.transaction(TransactionType.WRITE);
   await schemaTransaction.query.define(typeDBString);
-
   await schemaTransaction.commit();
   await schemaTransaction.close();
-  await schemaSession.close();
+
+  // 4. Closing sessions
+  await session.close();
 };
