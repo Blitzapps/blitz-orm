@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.9(2023-08-01)
+- More $tempid fixes
+- A new checker for tricky cardinality ONE issues
 ## 0.1.8(2023-08-01)
 - Changed "noop" to "match"
 - Split test C1 in two tests
