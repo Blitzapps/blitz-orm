@@ -186,7 +186,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
           // todo when typeDB confirms deletions, check them here
           return exp as BQLMutationBlock;
         }
-        if (exp.$op === 'noop') {
+        if (exp.$op === 'match') {
           return undefined;
         }
         throw new Error(`Unsupported op ${exp.$op}`);

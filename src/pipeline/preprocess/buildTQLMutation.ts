@@ -23,7 +23,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
   /* const getNodesWithOps = (nodes: BQLMutationBlock[]) =>
     nodes
-      .filter((x) => x.$op !== 'noop')
+      .filter((x) => x.$op !== 'match')
       .map((y) => {
         const path = y[Symbol.for('path') as any];
 
@@ -135,7 +135,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const getDeletionMatchInNodes = () => {
       // if (node.$tempId) return ''; /// commented because we need tempIds to work when replacing a unlink/link all operation
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
-      if (op === 'delete' || op === 'unlink' || op === 'noop') {
+      if (op === 'delete' || op === 'unlink' || op === 'match') {
         return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       if (op === 'update') {
@@ -150,7 +150,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const getInsertionMatchInNodes = () => {
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
       // if (node.$tempId) return ''; /// same as getDeletionMatch
-      if (op === 'update' || op === 'link' || op === 'noop') {
+      if (op === 'update' || op === 'link' || op === 'match') {
         return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       return '';
@@ -255,7 +255,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       if (!relationTql) return '';
       // if (op === 'link') return `${relationTql};`;
       // if (op === 'create') return `${relationTqlWithoutRoles};`;
-      if (op === 'noop') return `${relationTql};`;
+      if (op === 'match') return `${relationTql};`;
       return '';
     };
 
@@ -266,11 +266,11 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       /// edge unlink means: We are editing a real relation's roles
       if (op === 'unlink') {
         /// unlinking more than one role is not supported yet
-        /// this got commented as the noop brings what is needed but will probably need a refacto
-        /// this is coded as generating a noop block in [parseBQLmutation.ts], toEdges(edgeType1)
+        /// this got commented as the match brings what is needed but will probably need a refacto
+        /// this is coded as generating a match block in [parseBQLmutation.ts], toEdges(edgeType1)
         // return `$${id} ${roles} isa ${relationDbPath};`;
       }
-      if (op === 'noop') return `${relationTql};`;
+      if (op === 'match') return `${relationTql};`;
       return '';
     };
 
@@ -386,6 +386,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     },
     (x) => !x
   );
-  // console.log('tqlRequest', tqlRequest);
+  //console.log('tqlRequest', tqlRequest);
   req.tqlRequest = tqlRequest;
 };

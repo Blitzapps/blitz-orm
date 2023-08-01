@@ -47,7 +47,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           if (value.$op === 'create' || value.$op === 'delete') {
             return value.$op;
           }
-          // if its un update because linkfields or rolefields updated, but no attributes, then it a noop
+          // if its un update because linkfields or rolefields updated, but no attributes, then it a match
           if (value.$op === 'update') {
             const usedDataFields = usedFields.filter((x: string) => dataFieldPaths?.includes(x));
             const usedRoleFields = usedFields.filter((x: string) => roleFieldPaths?.includes(x));
@@ -56,12 +56,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               return 'update';
             }
             if (usedRoleFields.length > 0 || usedLinkFields.length > 0) {
-              return 'noop';
+              return 'match';
             }
             throw new Error(`No fields on an $op:"update" for node ${JSON.stringify(value)}`);
           }
 
-          return 'noop';
+          return 'match';
         };
 
         const dataObj = {
@@ -103,7 +103,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               if (value.$tempId) {
                 throw new Error("can't specify a existing and a new element at once. Use an id/filter or a tempId");
               }
-              nodes.push({ ...value, $op: 'noop' });
+              nodes.push({ ...value, $op: 'match' });
             }
             // we add a "linkable" version of it so we can query it in the insertion
           }
@@ -139,7 +139,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             if (value.$op === 'replace') {
               throw new Error('Unsupported: Replaces not implemented yet');
             }
-            return 'noop';
+            return 'match';
           };
 
           const edgeType1 = {
@@ -160,13 +160,13 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           // todo: stuff 😂
           toEdges(edgeType1);
 
-          /// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a noop
-          /// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as noop and deletions as unlink (or dependencies would be also added)
-          /// this is only for relations that are not $self, as other relations will be deleted and don't need a noop
+          /// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a match
+          /// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as match and deletions as unlink (or dependencies would be also added)
+          /// this is only for relations that are not $self, as other relations will be deleted and don't need a match
           if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
             toEdges({
               $relation: value[Symbol.for('relation')],
-              $op: 'noop',
+              $op: 'match',
               ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
               [value[Symbol.for('oppositeRole')]]: parentId,
               [Symbol.for('bzId')]: uuidv4(),
@@ -234,8 +234,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             }
             // #endregion
             // region 2.2 relations on nested stuff
-            // todo: probably remove the noop here
-            if (val.$op === 'noop' || (val.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
+            // todo: probably remove the match here
+            if (val.$op === 'match' || (val.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
               const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) => {
                 const currentRoleObj = Array.isArray(v) ? v : [v];
                 return currentRoleObj.some(
@@ -294,9 +294,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                   toEdges(edgeType3);
 
                   /// when unlinking stuff, it must be merged with other potential roles.
-                  /// we need to add it as 'unlink' instead of noop so it gets merged with other unlinks
+                  /// we need to add it as 'unlink' instead of match so it gets merged with other unlinks
                   if (edgeType3.$op === 'unlink') {
-                    toEdges({ ...edgeType3, $op: 'noop' });
+                    toEdges({ ...edgeType3, $op: 'match' });
                   }
                 }
               });
@@ -318,9 +318,38 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   if (!filledBqlRequest) throw new Error('Undefined filledBqlRequest');
 
   const [parsedThings, parsedEdges] = listNodes(filledBqlRequest);
-  // console.log('parsedThings', parsedThings);
-  // console.log('parsedEdges', parsedEdges);
+  //console.log('parsedThings', parsedThings);
+  //console.log('parsedEdges', parsedEdges);
 
+  /// some cases where we extract things, they must be ignored.
+  ///One of this cases is the situation where we have a thing that is linked somwhere and created, or updated. 
+  ///If it is only linked, we indeed need it with a "match" op, but if it is already there is no need to init it 
+  const mergedThings = parsedThings.reduce((acc, thing) => {
+    // Skip if the current item doesn't have a $tempId
+    if (!thing['$tempId']) {
+      return [...acc, thing];
+    }
+  
+    // Check if this $tempId already exists in the accumulator
+    const existingIndex = acc.findIndex((t) => t['$tempId'] === thing['$tempId']);
+  
+    if (existingIndex === -1) {
+      // If it doesn't exist, add it to the accumulator
+      return [...acc, thing];
+    } else {
+      // If it exists, let's check the $op
+      if (acc[existingIndex]['$op'] === 'create' && thing['$op'] === 'match') {
+        // If existing is 'create' and current is 'match', ignore current
+        return acc;
+      } else if (acc[existingIndex]['$op'] === 'match' && thing['$op'] === 'create') {
+        // If existing is 'match' and current is 'create', replace existing with current
+        return [...acc.slice(0, existingIndex), thing, ...acc.slice(existingIndex + 1)];
+      } else {
+        // For all other cases, throw an error
+        throw new Error(`Unsupported operation combination for $tempId "${thing['$tempId']}"`);
+      }
+    }
+  },  [] as BQLMutationBlock[]);
   /// merge attributes of relations that share the same $id
   /// WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
   const mergedEdges = parsedEdges.reduce((acc, curr) => {
@@ -376,11 +405,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     return [...acc, curr];
   }, [] as BQLMutationBlock[]);
 
+  //console.log('mergedThings', mergedThings);
   // console.log('mergedEdges', mergedEdges);
 
   req.bqlRequest = {
     mutation: {
-      things: parsedThings,
+      things: mergedThings,
       edges: mergedEdges,
     },
   };

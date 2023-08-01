@@ -392,7 +392,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             if ((value.$id || value.$filter) && hasUpdatedDataFields) return 'update'; // if there is an id or a filter, is an update. If it was a delete,it has been specified
             if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) return 'link';
             if (!value.$filter && !value.$id && !value.$tempId) return 'create'; // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
-            if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'noop';
+            if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'match';
             throw new Error('Wrong op');
           };
           // if (!value.$tempId && !value.$id) value.$tempId = currentTempId;
@@ -465,7 +465,10 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
                 throw new Error(`No id found for ${JSON.stringify(value)}`);
               }
               /// link, update, unlink or delete, without id, it gets a generic
-              value.$tempId = `all-${uuidv4()}`;
+              if(!value.$tempId) {
+                value.$tempId = `all-${uuidv4()}`;
+              }
+              /// if value.$idTemp id nothing to change, it keeps the current tempId
             }
           }
 

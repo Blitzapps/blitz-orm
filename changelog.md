@@ -1,4 +1,8 @@
 # Changelog
+## 0.1.8(2023-08-01)
+- Changed "noop" to "match"
+- Split test C1 in two tests
+- Fixed simple $tempId case (todo: c2)
 ## 0.1.7(2023-07-26)
 - Fixed a bug with some queries
 - Added some new tests and matcher helpers
