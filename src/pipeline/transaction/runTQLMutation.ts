@@ -23,7 +23,7 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
   if (!mutateTransaction) {
     throw new Error("Can't create transaction");
   }
-  // console.log('tqlRequest', tqlRequest);
+  //console.log('tqlRequest', tqlRequest);
   // deletes and pre-update deletes
   const tqlDeletion =
     tqlRequest.deletionMatches &&

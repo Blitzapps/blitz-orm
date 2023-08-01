@@ -122,7 +122,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           const parentMeta = value[Symbol.for('parent')];
           const parentPath = parentMeta.path;
           const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
-          const parentId = parentNode.$id || parentNode.$tempId;
+          const parentId = parentNode.$tempId || parentNode.$id; ///tempId first
           if (!parentId) throw new Error('No parent id found');
           if (value[Symbol.for('relation')] === '$self') return;
 
@@ -146,7 +146,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
-            ...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}),
+            //...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}), /// maybe direct Relation things it makes sense, but for intermediary nope because they get the tempId from one of the entities related
             ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
             [Symbol.for('bzId')]: uuidv4(),
@@ -341,15 +341,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       if (acc[existingIndex]['$op'] === 'create' && thing['$op'] === 'match') {
         // If existing is 'create' and current is 'match', ignore current
         return acc;
-      } else if (acc[existingIndex]['$op'] === 'match' && thing['$op'] === 'create') {
-        // If existing is 'match' and current is 'create', replace existing with current
+      } else if (acc[existingIndex]['$op'] === 'match' && (thing['$op'] === 'create' || thing['$op'] === 'match')) {
+        // If existing is 'match' and current is 'create' or 'match', replace existing with current
         return [...acc.slice(0, existingIndex), thing, ...acc.slice(existingIndex + 1)];
       } else {
         // For all other cases, throw an error
         throw new Error(`Unsupported operation combination for $tempId "${thing['$tempId']}"`);
       }
     }
-  },  [] as BQLMutationBlock[]);
+  }, [] as BQLMutationBlock[]);
+  
   /// merge attributes of relations that share the same $id
   /// WHY => because sometimes we get the relation because of having a parent, and other times because it is specified in the relation's properties
   const mergedEdges = parsedEdges.reduce((acc, curr) => {
@@ -406,7 +407,142 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   }, [] as BQLMutationBlock[]);
 
   //console.log('mergedThings', mergedThings);
-  // console.log('mergedEdges', mergedEdges);
+  //console.log('mergedEdges', mergedEdges);
+
+  /// VALIDATIONS
+  /// in the same mutation, we can't link cardinality ONE stuff in multiple places
+  /// case a: We have two different edges (from intermediary relations) doing links with the same entity
+
+  const uniqueRelations = [...new Set(mergedEdges.map((x) => x.$relation))];
+  // Let's define an object to hold the problematic edges
+  let problematicEdges = {};
+  /*
+    // Iterate over the unique relations
+    uniqueRelations.forEach(relation => {
+      // Get the schema for the current relation
+      const schema = schema.relations[relation];
+  
+      // Define the 'dangerous' roles
+      const dangerousRoles = Object.keys(schema.roles).filter(role => schema.roles[role].cardinality === 'ONE');
+  
+      // Now, we want to keep only the edges which include these dangerous roles
+      const filteredEdges = mergedEdges.filter(edge => edge.$relation === relation && dangerousRoles.some(role => edge.hasOwnProperty(role)));
+      console.log('filteredEdges', filteredEdges)
+  
+      // For each dangerous role, check if any violations of the cardinality rule occur
+      dangerousRoles.forEach((role) => {
+        let roleValues = {};
+      
+        // Iterate over the filtered edges
+        filteredEdges.forEach(edge => {
+          // Define the opposite role
+          const oppositeRoles = Object.keys(edge).filter(key => key !== role && key !== '$relation' && key !== '$op' && key !== '$id');
+      
+          oppositeRoles.forEach(oppositeRole => {
+            // Initialize the set of role values associated with the oppositeRole value, if necessary
+            if (!roleValues[oppositeRole]) {
+              roleValues[oppositeRole] = new Set();
+            }
+      
+            // Add the role value to the set of role values associated with the oppositeRole value
+            roleValues[oppositeRole].add(edge[role]);
+      
+            // If the role value set size is more than 1 and the opposite role is not a 'ONE' cardinality role, add it to problematicEdges
+            
+            if (roleValues[oppositeRole].size > 1 && schema.relations[relation].roles[oppositeRole].cardinality !== 'ONE') {
+             
+              if (!problematicEdges[relation]) {
+               
+                problematicEdges[relation] = {};
+              }
+           
+              if (!problematicEdges[relation][role]) {
+            
+                problematicEdges[relation][role] = [];
+              }
+              throw new Error(`Illegal cardinality: The ${role} role in ${relation} is linked to multiple ${oppositeRole} roles.`);
+            }
+          });
+        });
+      });
+    }
+    );*/
+
+  const checkCardinality = (): void => {
+    // The problematic edges will be stored here
+    const problematicEdges: Record<string, Set<string>> = {};
+
+    uniqueRelations.forEach((relation) => {
+      const cardinalityOneRoles = Object.keys(
+        schema.relations[relation].roles
+      ).filter((role) => schema.relations[relation].roles[role].cardinality === 'ONE');
+
+      // For each role with cardinality ONE
+      cardinalityOneRoles.forEach((oneRole) => {
+        // A map from ids of the opposite role to a set of ids of the 'oneRole'
+        const idMapping: Record<string, Set<string>> = {};
+
+        // Look through all the edges
+        mergedEdges.forEach((edge) => {
+          if (edge.$relation === relation && edge[oneRole]) {
+            // Extract id from the 'oneRole'
+            const oneId = edge[oneRole];
+
+            // Get the ids from the other role
+            const otherRole = Object.keys(edge).find(
+              (role) => role !== '$relation' && role !== '$op' && role !== '$id' && role !== oneRole
+            );
+
+            if (otherRole) {
+              const otherId = edge[otherRole];
+
+              // Map the 'otherId' to the 'oneId'
+              if (!idMapping[otherId]) {
+                idMapping[otherId] = new Set();
+              }
+
+              idMapping[otherId].add(oneId);
+            }
+          }
+        });
+
+        // Check if any 'otherId' is related to multiple 'oneIds'
+        for (const [otherId, oneIds] of Object.entries(idMapping)) {
+          if (oneIds.size > 1) {
+            if (!problematicEdges[otherId]) {
+              problematicEdges[otherId] = new Set();
+            }
+
+            problematicEdges[otherId].add(`Entity with ID: ${otherId} in relation "${relation}" linked to multiple ${oneIds.size} entities in role "${oneRole}".`);
+          }
+        }
+      });
+    });
+
+    // If there are any problematic edges, throw an error
+    if (Object.keys(problematicEdges).length > 0) {
+      let errorMessage = '';
+      for (const [otherId, errorSet] of Object.entries(problematicEdges)) {
+        errorMessage += `Account "${otherId}" is connected to many entities. ` +
+          `${Array.from(errorSet).join(' ')}` +
+          `The relation's role is of cardinality ONE.\n`;
+      }
+
+      throw new Error(errorMessage);
+    }
+  };
+
+
+  checkCardinality(); //todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers
+
+
+  ///case b: We have repeated the same relation id in two places and we are asigning it one of the roles more than one item
+
+
+  ///case c: Before merge, a role with cardinality ONE has an array => This one is already managed before, so n
+
+
+
 
   req.bqlRequest = {
     mutation: {
