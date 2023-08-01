@@ -1,4 +1,4 @@
-import { TransactionType } from 'typedb-client';
+import { SessionType, TransactionType } from 'typedb-client';
 
 import { BormConfig, BormSchema, LinkField } from '../types';
 
@@ -212,7 +212,6 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
   // TYPE DB TRANSACTIONS
 
   const typeDBString = convertSchema();
-
   const singleHandlerV0 = config.dbConnectors[0].id;
   const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
 
@@ -220,35 +219,60 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
     console.log('Session Status: ', 'NO SESSION');
     return;
   }
-
+  console.log('1. Deleting data...');
   // 1. Deleting data
   const deleteTransaction = await session.transaction(TransactionType.WRITE);
-  const deleteQuery = `match $p isa thing; delete $p isa thing;`;
+  console.log('     Created transaction...');
+  const deleteQuery = `match $a isa thing; delete $a isa thing;`;
   await deleteTransaction.query.delete(deleteQuery);
+  console.log('     Created query...');
   await deleteTransaction.commit();
+  console.log('     Committing query...');
   await deleteTransaction.close();
-
+  console.log('     Closed transaction...');
   // 2. Un-defining old schema
   const getSchemaTransaction = await session.transaction(TransactionType.READ);
-  console.log('main log', getSchemaTransaction);
-
   const getSchemaQuery = `match $a sub thing;`;
-  await getSchemaTransaction.query.match(getSchemaQuery);
-  const oldSchema = await getSchemaTransaction.commit();
-  console.log('old schema', oldSchema);
+  const getSchemaStream = await getSchemaTransaction.query.match(getSchemaQuery);
+  const schemaThings = await getSchemaStream.collect();
   await getSchemaTransaction.close();
 
-  const undefineTransaction = await session.transaction(TransactionType.WRITE);
-  const undefineQuery = `undefine `;
-  await undefineTransaction.query.undefine(undefineQuery);
-  await undefineTransaction.commit();
-  await undefineTransaction.close();
+  // let oldSchema = '';
+  let currentType = '';
+  const client = dbHandles.typeDB.get(singleHandlerV0)?.client;
+  if (!client) {
+    console.log('Client Status: ', 'NO CLIENT');
+    return;
+  }
+  session.close();
+  const schemaSession = await client.session(config.dbConnectors[0].dbName, SessionType.SCHEMA);
+  schemaThings.forEach(async (conceptMap: any) => {
+    // * Match the group as the main entity
+    const thing = conceptMap.get('a');
+    console.log('thing', thing);
+    const { _label } = thing;
+    const { _name } = _label;
+    if (_name === 'entity' || _name === 'relation' || _name === 'attribute') {
+      currentType = _name;
+    } else if (currentType !== '') {
+      console.log(`UN-DEFINING ${_name}`);
+      const undefineTransaction = await schemaSession.transaction(TransactionType.WRITE);
+      const undefineQuery = `undefine \n ${_name} sub ${currentType};\n`;
+      await undefineTransaction.query.undefine(undefineQuery);
+      await undefineTransaction.commit();
+      await undefineTransaction.close();
+      console.log(`UN-DEFINING ${_name}`);
+    }
+  });
+
+  const restartedSession = await client.session(config.dbConnectors[0].dbName, SessionType.DATA);
+
   // 3. Defining new schema
-  const schemaTransaction = await session.transaction(TransactionType.WRITE);
+  const schemaTransaction = await restartedSession.transaction(TransactionType.WRITE);
   await schemaTransaction.query.define(typeDBString);
   await schemaTransaction.commit();
   await schemaTransaction.close();
-
   // 4. Closing sessions
-  await session.close();
+  await restartedSession.close();
+  console.log('FINISHED');
 };
