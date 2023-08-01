@@ -1673,8 +1673,8 @@ describe('Mutation init', () => {
         $entity: 'Account',
         provider: 'Facebook',
         user: {
-          $tempId: 'bea'
-        }
+          $tempId: 'bea',
+        },
       },
       {
         $entity: 'Account',
@@ -1684,8 +1684,9 @@ describe('Mutation init', () => {
           $tempId: 'bea',
           name: 'Bea',
           email: 'bea@gmail.com',
-        }
-      },]);
+        },
+      },
+    ]);
     expect(res?.length).toBe(5);
 
     const beaId = (res as any[])?.find((r) => r.$tempId === 'bea')?.$id;
@@ -1698,7 +1699,7 @@ describe('Mutation init', () => {
       id: beaId,
       name: 'Bea',
       email: 'bea@gmail.com',
-      accounts: [expect.any(String), expect.any(String)]
+      accounts: [expect.any(String), expect.any(String)],
     });
     // delete all
     await bormClient.mutate([
@@ -1706,7 +1707,7 @@ describe('Mutation init', () => {
         $entity: 'User',
         $id: 'bea',
         $op: 'delete',
-        accounts: [{$op: 'delete'}] //! wont work while the cascade delete does not work
+        accounts: [{ $op: 'delete' }], //! wont work while the cascade delete does not work
       },
     ]);
   });
@@ -1718,15 +1719,15 @@ describe('Mutation init', () => {
         $entity: 'Account',
         provider: 'Facebook',
         user: {
-          $tempId: 'bea'
-        }
+          $tempId: 'bea',
+        },
       },
       {
         $entity: 'Account',
         provider: 'Metamask',
         user: {
-          $tempId: 'bea'
-        }
+          $tempId: 'bea',
+        },
       },
       {
         $entity: 'Account',
@@ -1736,8 +1737,9 @@ describe('Mutation init', () => {
           $tempId: 'bea',
           name: 'Bea',
           email: 'bea@gmail.com',
-        }
-      },]);
+        },
+      },
+    ]);
     expect(res?.length).toBe(7);
 
     const beaId = (res as any[])?.find((r) => r.$tempId === 'bea')?.$id;
@@ -1750,7 +1752,7 @@ describe('Mutation init', () => {
       id: beaId,
       name: 'Bea',
       email: 'bea@gmail.com',
-      accounts: [expect.any(String), expect.any(String), expect.any(String)]
+      accounts: [expect.any(String), expect.any(String), expect.any(String)],
     });
     // delete all
     await bormClient.mutate([
@@ -1758,7 +1760,7 @@ describe('Mutation init', () => {
         $entity: 'User',
         $id: 'bea',
         $op: 'delete',
-        accounts: [{$op: 'delete'}] //! wont work while the cascade delete does not work
+        accounts: [{ $op: 'delete' }], //! wont work while the cascade delete does not work
       },
     ]);
   });
@@ -1880,10 +1882,11 @@ describe('Mutation init', () => {
           user: { name: 'Peter' },
         },
       ]);
-
     } catch (error: any) {
       if (error instanceof Error) {
-        expect(error.message).toBe(`Account "acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation's role is of cardinality ONE.\n`);
+        expect(error.message).toBe(
+          `Account "acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation's role is of cardinality ONE.\n`
+        );
       } else {
         expect(true).toBe(false);
       }
@@ -1893,9 +1896,6 @@ describe('Mutation init', () => {
 
     throw new Error('Expected mutation to throw an error');
   });
-
-
-
 
   afterAll(async () => {
     await cleanup(dbName);

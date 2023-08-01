@@ -386,6 +386,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     },
     (x) => !x
   );
-  //console.log('tqlRequest', tqlRequest);
+  // console.log('tqlRequest', tqlRequest);
   req.tqlRequest = tqlRequest;
 };

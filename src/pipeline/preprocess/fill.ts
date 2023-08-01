@@ -465,7 +465,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
                 throw new Error(`No id found for ${JSON.stringify(value)}`);
               }
               /// link, update, unlink or delete, without id, it gets a generic
-              if(!value.$tempId) {
+              if (!value.$tempId) {
                 value.$tempId = `all-${uuidv4()}`;
               }
               /// if value.$idTemp id nothing to change, it keeps the current tempId
