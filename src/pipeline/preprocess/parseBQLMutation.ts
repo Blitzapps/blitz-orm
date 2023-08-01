@@ -414,7 +414,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
   const uniqueRelations = [...new Set(mergedEdges.map((x) => x.$relation))];
   // Let's define an object to hold the problematic edges
-  const problematicEdges = {};
+  // const problematicEdges = {};
   /*
     // Iterate over the unique relations
     uniqueRelations.forEach(relation => {
@@ -506,29 +506,27 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         });
 
         // Check if any 'otherId' is related to multiple 'oneIds'
-        for (const [otherId, oneIds] of Object.entries(idMapping)) {
+        Object.entries(idMapping).forEach(([otherId, oneIds]) => {
           if (oneIds.size > 1) {
-            if (!problematicEdges[otherId]) {
-              problematicEdges[otherId] = new Set();
-            }
+            problematicEdges[otherId] = problematicEdges[otherId] || new Set();
 
             problematicEdges[otherId].add(
               `Entity with ID: ${otherId} in relation "${relation}" linked to multiple ${oneIds.size} entities in role "${oneRole}".`
             );
           }
-        }
+        });
       });
     });
 
     // If there are any problematic edges, throw an error
     if (Object.keys(problematicEdges).length > 0) {
       let errorMessage = '';
-      for (const [otherId, errorSet] of Object.entries(problematicEdges)) {
+      Object.entries(problematicEdges).forEach(([otherId, errorSet]) => {
         errorMessage +=
           `Account "${otherId}" is connected to many entities. ` +
           `${Array.from(errorSet).join(' ')}` +
           `The relation's role is of cardinality ONE.\n`;
-      }
+      });
 
       throw new Error(errorMessage);
     }
