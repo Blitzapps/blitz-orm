@@ -221,11 +221,13 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             // const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
 
             /// this is the child object, so these Symbol.for... don't belong to the current node
+
+            const currentFieldType = 'plays' in currentFieldSchema ? 'linkField' : 'roleField';
             const childrenThingObj = {
               [`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
               // [Symbol.for('dependencies')]: [value[Symbol.for('bzId') as any],...value[Symbol.for('dependencies') as any],],
               [Symbol.for('relation') as any]: relation,
-              [Symbol.for('edgeType') as any]: 'plays' in currentFieldSchema ? 'linkField' : 'roleField',
+              [Symbol.for('edgeType') as any]: currentFieldType,
               [Symbol.for('parent') as any]: {
                 path: currentPath,
                 ...(value.$id ? { $id: value.$id } : {}),
@@ -242,11 +244,11 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             // console.log('childrenThingObj', childrenThingObj);
 
             if (isObject(currentValue)) {
-              if (
-                currentSchema.thingType === 'relation' &&
-                // @ts-expect-error
-                currentValue.$tempId
-              ) {
+              /// probably here we are missing some link + update data for instance (the update data)
+              // todo: for that reason it could be a good idea to send the other object as a thing outside?
+              // todo: Another alternative could be to send the full object and treat this later
+              // @ts-expect-error //
+              if (currentSchema.thingType === 'relation' && currentValue.$tempId && currentFieldType === 'roleField') {
                 // @ts-expect-error
                 value[currentField.path] = currentValue.$tempId;
               } else {

@@ -146,6 +146,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             $relation: value[Symbol.for('relation')],
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
+            ...(ownRelation && value.$op === 'link' && value.$tempId ? { $tempId: value.$tempId } : {}),
             // ...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}), /// maybe direct Relation things it makes sense, but for intermediary nope because they get the tempId from one of the entities related
             ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
@@ -212,7 +213,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k, v) => {
                 if (Array.isArray(v)) {
                   /// Replace the array of objects with an array of ids
-                  return [k, v.map((vNested: any) => vNested.$id || vNested)];
+                  return [k, v.map((vNested: any) => vNested.$tempId || vNested.$id || vNested)];
                 }
                 return [k, v.$id || v];
               });
