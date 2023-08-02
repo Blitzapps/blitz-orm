@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.10(2023-08-02)
+- Fixed all $tempid known issues
+- Added a new test for cascade deletion
 ## 0.1.9(2023-08-01)
 - More $tempid fixes
 - A new checker for tricky cardinality ONE issues
