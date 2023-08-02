@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.11(2023-08-02)
+- Updated dependencies
+- linter with trailing-comma
 ## 0.1.10(2023-08-02)
 - Fixed all $tempid known issues
 - Added a new test for cascade deletion

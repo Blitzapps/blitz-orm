@@ -1,4 +1,4 @@
-import produce, { current } from 'immer';
+import { produce, current } from 'immer';
 import { traverse, TraversalCallbackContext, getNodeByPath } from 'object-traversal';
 import { isObject, listify } from 'radash';
 import { v4 as uuidv4 } from 'uuid';

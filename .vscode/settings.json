@@ -49,7 +49,7 @@
     "zustand"
   ],
   "[typescript]": {
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "eslint.workingDirectories": [
     {
