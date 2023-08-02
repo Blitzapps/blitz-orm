@@ -1001,7 +1001,7 @@ describe('Mutation init', () => {
     );
 
     expect(res).toEqual({
-      todo: `somehow describe that nothing happened for that particular branch, 
+      todo: `somehow describe that nothing happened for that particular branch,
     or at least show that there is no 'theNewEmail' in theof new stuff`,
     });
   });
@@ -1995,6 +1995,35 @@ describe('Mutation init', () => {
       },
     ]);
     expect(res?.length).toBe(17);
+  });
+
+  it('c5[multi, create, link] tempIds in extended relation', async () => {
+    expect(bormClient).toBeDefined();
+    const res1 = await bormClient.mutate([
+      {
+        $entity: 'Space',
+        $tempId: 'Personal',
+        name: 'Personal',
+      },
+    ]);
+
+    const spaceId = (res1 as any)?.$id as string;
+
+    const res2 = await bormClient.mutate([
+      {
+        $entity: 'Space',
+        $id: spaceId,
+        kinds: [
+          {
+            $op: 'create',
+            $tempId: 'person',
+            name: 'person',
+          },
+        ],
+      },
+    ]);
+
+    console.log('c5/res2', res2);
   });
 
   it('e1[duplicate] Duplicate creation', async () => {
