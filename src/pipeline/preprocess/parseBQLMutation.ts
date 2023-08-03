@@ -78,6 +78,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           [Symbol.for('path')]: value[Symbol.for('path')],
           [Symbol.for('parent')]: value[Symbol.for('parent')],
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot')],
+          [Symbol.for('isLocalId')]: value[Symbol.for('isLocalId')] || false,
         };
 
         /// split nodes with multiple ids
@@ -127,7 +128,11 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           if (value[Symbol.for('relation')] === '$self') return;
 
           const getLinkObjOp = () => {
-            if (value.$op === 'unlink' || value.$op === 'delete') {
+            if (value.$op === 'delete') {
+              if (ownRelation) return 'match';
+              return 'delete';
+            }
+            if (value.$op === 'unlink') {
               if (ownRelation) return 'unlink'; // delete already present in the nodes array
               return 'delete';
             }
@@ -147,6 +152,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             $op: getLinkObjOp(),
             ...(value.$op === 'unlink' ? { $tempId: linkTempId } : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
             ...(ownRelation && value.$op === 'link' && value.$tempId ? { $tempId: value.$tempId } : {}),
+            ...(ownRelation && value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}),
             // ...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}), /// maybe direct Relation things it makes sense, but for intermediary nope because they get the tempId from one of the entities related
             ...(ownRelation ? {} : { [value[Symbol.for('role')]]: value.$tempId || value.$id }),
             [value[Symbol.for('oppositeRole')]]: parentId,
@@ -205,7 +211,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               /// if the relation is being created, then all objects in the roles are actually add
               const getEdgeOp = () => {
                 if (val.$op === 'create') return 'link';
-                if (val.$op === 'delete') return 'unlink';
+                if (val.$op === 'delete') return 'match'; /// if i'm not wrong, no need to unlink becasue is the director relation and will disappear 🤔
                 throw new Error('Unsupported parent of edge op');
               };
 

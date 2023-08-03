@@ -125,10 +125,13 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
     const idValue = idFieldValue || idDefaultValue;
 
-    const idAttributes = idValue // it must have id values.
-      ? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
-        [`has ${idField} '${idValue}'`]
-      : [];
+    const isLocalId: boolean = node[Symbol.for('isLocalId') as any]; /// this are local ids that are ony used to define links between stuff but that are not in the db (the "all-xxx" ids)
+
+    const idAttributes =
+      !isLocalId && idValue // it must have id values, and they must be realDBIds
+        ? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
+          [`has ${idField} '${idValue}'`]
+        : [];
 
     const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
 

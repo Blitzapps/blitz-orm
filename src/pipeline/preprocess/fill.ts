@@ -468,7 +468,12 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               }
               /// link, update, unlink or delete, without id, it gets a generic
               if (!value.$tempId) {
-                value.$tempId = `all-${uuidv4()}`;
+                const localId = `all-${uuidv4()}`;
+                // value.$tempId = tempId; No longer using this workaround, isLocalid is better
+                // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
+                value.$id = localId; /// we also need to setup it as the $id for chained stuff
+                /// we need to tag it as a nonDbid
+                value[Symbol.for('isLocalId') as any] = true;
               }
               /// if value.$idTemp id nothing to change, it keeps the current tempId
             }
@@ -484,7 +489,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
   const filledBQLMutation = fill(withObjects);
 
-  // console.log('filledBQLMutation', filledBQLMutation);
+  console.log('filledBQLMutation', filledBQLMutation);
 
   if (Array.isArray(filledBQLMutation)) {
     req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock[];

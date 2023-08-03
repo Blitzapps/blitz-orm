@@ -185,7 +185,13 @@ describe('Mutation init', () => {
       {
         $relation: 'User-Accounts',
         $id: 'r1',
-        $fields: ['id', { $path: 'user', $fields: ['email', { $path: 'user-tags', $fields: ['id', 'color'] }] }],
+        $fields: [
+          'id',
+          {
+            $path: 'user',
+            $fields: ['email', { $path: 'user-tags', $fields: ['id', 'color'] }],
+          },
+        ],
       },
       { noMetadata: true }
     );
@@ -214,7 +220,13 @@ describe('Mutation init', () => {
       {
         $relation: 'User-Accounts',
         $id: 'r1',
-        $fields: ['id', { $path: 'user', $fields: ['email', { $path: 'user-tags', $fields: ['id', 'color'] }] }],
+        $fields: [
+          'id',
+          {
+            $path: 'user',
+            $fields: ['email', { $path: 'user-tags', $fields: ['id', 'color'] }],
+          },
+        ],
       },
       { noMetadata: true }
     );
@@ -593,8 +605,7 @@ describe('Mutation init', () => {
     );
   });
 
-  /*
-  it('TODO:n3[delete, nested] nested, cascade delete', async () => {
+  it('TODO:n3[delete, nested] nested delete', async () => {
     expect(bormClient).toBeDefined();
 
     const mutated = await bormClient.mutate(
@@ -622,8 +633,10 @@ describe('Mutation init', () => {
 
     // @ts-expect-error
     const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
+    console.log('myTestKind1Id', myTestKind1Id);
 
     /// delete both things
+
     await bormClient.mutate(
       {
         $relation: 'Kind',
@@ -633,33 +646,28 @@ describe('Mutation init', () => {
       },
       { noMetadata: true }
     );
+    /*
+    #target query:
+    match
+    $root isa Kind, has id "6a830f80-59f1-469e-93cb-99a772c96406";
+    $f (kinds: $a, kinds: $other) isa Field;
+    $other isa Kind;
 
-    // temp delete not cascade
-    // @ts-expect-error
-    const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-    // @ts-expect-error
-    const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
-    await bormClient.mutate(
-      [
-        {
-          $relation: 'DataField',
-          $op: 'delete',
-          $id: myTestFieldId,
-        },
-        {
-          $relation: 'Kind',
-          $op: 'delete',
-          $id: myTestKind1Id,
-        },
-        {
-          $relation: 'Kind',
-          $op: 'delete',
-          $id: myTestKind2Id,
-        },
-      ],
-      { noMetadata: true }
-    );
+    delete
+    $root isa Kind;
+    $nested-f isa Field;
+    $nested-other isa Kind;
 
+    #target ibql:
+    
+
+    const nodes = [
+      { $id: 'rootId', $relation: 'Kind', $op: 'delete' },
+      { $id: '$f', $relation: 'Field', $op: 'delete' },
+      { $if: '$other', $relation: 'Kind', $op: 'delete' },
+    ];
+    const edges = [{ $relation: 'Field', $id: 'localNestedFieldId', kinds: ['$rootId', 'localNestedKindsId'] }];
+    */
     const kinds = await bormClient.query(
       {
         $relation: 'Kind',
@@ -667,8 +675,21 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
-    expect(kinds).toEqual([]);
-  }); */
+    // we expect both kinds to be deleted and show only the data.tql one
+    expect(kinds).toEqual([
+      {
+        id: 'kind-book',
+        name: 'book',
+        space: 'space-2',
+      },
+    ]);
+  });
+
+  it('TEMP:buffer', async () => {
+    // Some failed tests generate a fail in the next test, this test is here to prevent that to happen in ui
+    // todo: fix the borm / jest issue instead
+    await bormClient.query({ $entity: 'Space' });
+  });
 
   it('u1[update, multiple] Shared ids', async () => {
     expect(bormClient).toBeDefined();
@@ -1426,7 +1447,11 @@ describe('Mutation init', () => {
     });
 
     await bormClient.mutate(
-      { $relation: 'UserTag', $id: 'tmp-user-tag3', users: [{ $op: 'unlink', $id: ['user1', 'user3'] }] },
+      {
+        $relation: 'UserTag',
+        $id: 'tmp-user-tag3',
+        users: [{ $op: 'unlink', $id: ['user1', 'user3'] }],
+      },
       { noMetadata: true }
     );
     const userTags = await bormClient.query(
@@ -1437,7 +1462,11 @@ describe('Mutation init', () => {
     expect(userTags).toEqual({ id: 'tmp-user-tag3', users: ['user5'] });
 
     await bormClient.mutate(
-      { $relation: 'UserTag', $id: 'tmp-user-tag3', users: [{ $op: 'unlink', $id: 'user5' }] },
+      {
+        $relation: 'UserTag',
+        $id: 'tmp-user-tag3',
+        users: [{ $op: 'unlink', $id: 'user5' }],
+      },
       { noMetadata: true }
     );
     const userTags2 = await bormClient.query(
@@ -1515,7 +1544,12 @@ describe('Mutation init', () => {
   it('l12[link,many] Insert items in multiple', async () => {
     expect(bormClient).toBeDefined();
     await bormClient.mutate(
-      { $relation: 'Space-User', id: 'u1-s1-s2', users: ['user1'], spaces: ['space-1', 'space-2'] },
+      {
+        $relation: 'Space-User',
+        id: 'u1-s1-s2',
+        users: ['user1'],
+        spaces: ['space-1', 'space-2'],
+      },
       { noMetadata: true }
     );
     const res = await bormClient.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
@@ -1760,7 +1794,10 @@ describe('Mutation init', () => {
     expect(res?.length).toBe(5);
     const utg1Id = (res as any[])?.find((r) => r.$tempId === 'utg1')?.$id;
 
-    const utg = await bormClient.query({ $relation: 'UserTagGroup', $id: utg1Id });
+    const utg = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: utg1Id,
+    });
     expect(utg).toBeDefined();
     expect(utg).toEqual({
       $relation: 'UserTagGroup',
@@ -2009,7 +2046,7 @@ describe('Mutation init', () => {
 
     const spaceId = (res1 as any)?.$id as string;
 
-    const res2 = await bormClient.mutate([
+    await bormClient.mutate([
       {
         $entity: 'Space',
         $id: spaceId,
@@ -2023,7 +2060,19 @@ describe('Mutation init', () => {
       },
     ]);
 
-    console.log('c5/res2', res2);
+    const spaceRes = await bormClient.query(
+      {
+        $entity: 'Space',
+        $id: spaceId,
+        $fields: ['kinds'],
+      },
+      { noMetadata: true }
+    );
+
+    expect(spaceRes).toBeDefined();
+    expect(spaceRes).toEqual({
+      kinds: [expect.any(String)],
+    });
   });
 
   it('e1[duplicate] Duplicate creation', async () => {

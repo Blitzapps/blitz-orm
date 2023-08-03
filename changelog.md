@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.12(2023-08-03)
+- Fixed another $tempId issue (test c5)
+- Fixed deep nested deletions and probably other edge cases
 ## 0.1.11(2023-08-02)
 - Updated dependencies
 - linter with trailing-comma
