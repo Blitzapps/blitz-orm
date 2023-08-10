@@ -12,7 +12,7 @@ export const init = async () => {
   const tqlSchema = readFileSync('./tests/mocks/schema.tql', 'utf8');
   const tqlData = readFileSync('./tests/mocks/data.tql', 'utf8');
   const dbName = `${connector.dbName}_${uuidv4()}`;
-  const client = TypeDB.coreClient(connector.url);
+  const client = await TypeDB.coreClient(connector.url);
   await client.databases.create(dbName);
   try {
     const schemaSession = await client.session(dbName, SessionType.SCHEMA);
@@ -43,7 +43,7 @@ export const init = async () => {
 
 export const cleanup = async (dbName: string) => {
   const [connector] = testConfig.dbConnectors;
-  const client = TypeDB.coreClient(connector.url);
+  const client = await TypeDB.coreClient(connector.url);
   await (await client.databases.get(dbName)).delete();
   await client.close();
 };

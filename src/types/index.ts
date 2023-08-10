@@ -19,6 +19,7 @@ export type BormConfig = {
 export type ProviderObject = {
   id: string;
   dbName: string;
+  url: string;
 } & (TypeDBProviderObject | TypeDBClusterProviderObject);
 
 export type TypeDBProviderObject = {
