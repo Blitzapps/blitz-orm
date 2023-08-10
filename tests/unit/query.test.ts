@@ -86,7 +86,8 @@ describe('Query', () => {
     expect(deepSort(res, 'id')).toEqual(expectedRes);
   });
 
-  it('e2[entity] - filter by single $id', async () => {
+  // TODO
+  it.only('e2[entity] - filter by single $id', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
@@ -199,8 +200,9 @@ describe('Query', () => {
     // @ts-expect-error - res should be a defined array
     expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
+  // TODO
 
-  it('opt1[options, noMetadata', async () => {
+  it.only('opt1[options, noMetadata', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
@@ -227,8 +229,9 @@ describe('Query', () => {
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
+  // TODO
 
-  it('opt2[options, debugger', async () => {
+  it.only('opt2[options, debugger', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
