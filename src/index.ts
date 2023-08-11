@@ -74,6 +74,11 @@ class BormClient {
     return this.schema;
   };
 
+  define = async () => {
+    await this.#enforceConnection();
+    return bormDefine(this.config, this.schema, this.dbHandles);
+  };
+
   query = async (query: RawBQLQuery, queryConfig?: any) => {
     await this.#enforceConnection();
     const qConfig = {
@@ -108,11 +113,6 @@ class BormClient {
       console.log('Closing client');
       await client.close();
     });
-  };
-
-  define = async () => {
-    await this.#enforceConnection();
-    return bormDefine(this.config, this.schema, this.dbHandles);
   };
 }
 

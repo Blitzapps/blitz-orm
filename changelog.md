@@ -1,4 +1,7 @@
 # Changelog
+## 0.2.0(2023-08-11)
+- Merged borm.define()
+- No breaking changes but important feature => 0.2.0
 ## 0.1.13(2023-08-11)
 - minor type fixes
 - cleaned oFilter types
