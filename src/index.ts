@@ -2,6 +2,7 @@ import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-client';
 
 import { defaultConfig } from './default.config';
+import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
 import { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
@@ -107,6 +108,11 @@ class BormClient {
       console.log('Closing client');
       await client.close();
     });
+  };
+
+  define = async () => {
+    await this.#enforceConnection();
+    return bormDefine(this.config, this.schema, this.dbHandles);
   };
 }
 
