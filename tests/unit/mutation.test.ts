@@ -4,7 +4,8 @@ import type BormClient from '../../src/index';
 import { cleanup, init } from '../helpers/lifecycle';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
 
-const firstUser = {
+// some random issues forced a let here
+let firstUser = {
   $entity: 'User',
   name: 'John',
   email: 'wrong email',
@@ -64,7 +65,7 @@ describe('Mutation init', () => {
     // @ts-expect-error
     expectArraysInObjectToContainSameElements(res, expectedUnit);
     // @ts-expect-error
-    firstUser.id = res.id;
+    firstUser = { ...firstUser, id: res.id };
   });
 
   it('b2[update] Basic', async () => {
@@ -633,7 +634,7 @@ describe('Mutation init', () => {
 
     // @ts-expect-error
     const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-    console.log('myTestKind1Id', myTestKind1Id);
+    // console.log('myTestKind1Id', myTestKind1Id);
 
     /// delete both things
 
@@ -2152,7 +2153,7 @@ describe('Mutation init', () => {
     } catch (error: any) {
       if (error instanceof Error) {
         expect(error.message).toBe(
-          `Account "acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation's role is of cardinality ONE.\n`
+          `"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation's role is of cardinality ONE.\n`
         );
       } else {
         expect(true).toBe(false);

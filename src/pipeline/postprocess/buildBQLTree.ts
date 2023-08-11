@@ -3,9 +3,13 @@ import { produce } from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
-import { getCurrentFields, isStringOrHasShow, notNull, oFilter } from '../../helpers';
+import { getCurrentFields, notNull, oFilter } from '../../helpers';
 import { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
+
+function isStringOrHasShow<TValue extends { $show?: boolean }>(value: TValue | string): value is TValue {
+  return typeof value === 'string' || !!value.$show;
+}
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
   produce(obj, (draft) =>
@@ -59,7 +63,7 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
 
       if (currentFieldConf) {
         const onlyMetadataEntity = {
-          ...oFilter(entity, (k, _v) => k.startsWith('$')),
+          ...oFilter(entity, (k: string, _v) => k.startsWith('$')),
         };
         const withFieldsEntity = currentFieldConf.$fields
           ? {
@@ -209,11 +213,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                   return;
                 }
                 // @ts-expect-error
-                value[rolePath] = children.filter(
-                  (x) =>
-                    // @ts-expect-error
-                    typeof x === 'string' || (typeof x === 'object' && x?.$show)
-                );
+                value[rolePath] = children.filter((x) => typeof x === 'string' || (typeof x === 'object' && x?.$show));
               }
             });
           }
@@ -265,6 +265,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                 )
                   .filter(notNull)
                   .filter(isStringOrHasShow);
+
                 if (children.length === 0) return null;
 
                 if (children && children.length) {
