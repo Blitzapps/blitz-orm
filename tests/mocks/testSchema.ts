@@ -359,14 +359,14 @@ export const testSchema: BormSchema = {
           relation: 'Field',
           cardinality: 'MANY',
           plays: 'kinds',
-          target: 'role',
+          target: 'relation',
         },
         {
           path: 'dataFields',
           relation: 'DataField',
           cardinality: 'MANY',
           plays: 'kinds',
-          target: 'role',
+          target: 'relation',
         },
       ],
       defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Kind' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases

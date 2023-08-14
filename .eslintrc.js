@@ -14,6 +14,8 @@ module.exports = {
       {
         singleQuote: true,
         endOfLine: 'auto',
+        trailingComma: "es5", 
+        printWidth: 120,
       },
     ],
   },
@@ -34,6 +36,7 @@ module.exports = {
           {
             singleQuote: true,
             endOfLine: 'auto',
+            trailingComma: "es5", 
             printWidth: 120,
           },
         ],
@@ -58,7 +61,7 @@ module.exports = {
             },
           },
         ], // Follow the same ordering as the official plugin `prettier-plugin-tailwindcss`
-        '@typescript-eslint/comma-dangle': 'off', // Avoid conflict rule between Eslint and Prettier
+        '@typescript-eslint/comma-dangle': 'off', // Avoid conflict rule between Eslint and Prettier 
         'import/prefer-default-export': 'off', // Named export is easier to refactor automatically
         '@typescript-eslint/no-unused-vars': 'off',
         'no-param-reassign': [

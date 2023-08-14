@@ -1,4 +1,4 @@
-import produce, { current } from 'immer';
+import { produce, current } from 'immer';
 import { traverse, TraversalCallbackContext, getNodeByPath } from 'object-traversal';
 import { isObject, listify } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
@@ -221,11 +221,13 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             // const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
 
             /// this is the child object, so these Symbol.for... don't belong to the current node
+
+            const currentFieldType = 'plays' in currentFieldSchema ? 'linkField' : 'roleField';
             const childrenThingObj = {
               [`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
               // [Symbol.for('dependencies')]: [value[Symbol.for('bzId') as any],...value[Symbol.for('dependencies') as any],],
               [Symbol.for('relation') as any]: relation,
-              [Symbol.for('edgeType') as any]: 'plays' in currentFieldSchema ? 'linkField' : 'roleField',
+              [Symbol.for('edgeType') as any]: currentFieldType,
               [Symbol.for('parent') as any]: {
                 path: currentPath,
                 ...(value.$id ? { $id: value.$id } : {}),
@@ -242,11 +244,11 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             // console.log('childrenThingObj', childrenThingObj);
 
             if (isObject(currentValue)) {
-              if (
-                currentSchema.thingType === 'relation' &&
-                // @ts-expect-error
-                currentValue.$tempId
-              ) {
+              /// probably here we are missing some link + update data for instance (the update data)
+              // todo: for that reason it could be a good idea to send the other object as a thing outside?
+              // todo: Another alternative could be to send the full object and treat this later
+              // @ts-expect-error //
+              if (currentSchema.thingType === 'relation' && currentValue.$tempId && currentFieldType === 'roleField') {
                 // @ts-expect-error
                 value[currentField.path] = currentValue.$tempId;
               } else {
@@ -392,7 +394,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             if ((value.$id || value.$filter) && hasUpdatedDataFields) return 'update'; // if there is an id or a filter, is an update. If it was a delete,it has been specified
             if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) return 'link';
             if (!value.$filter && !value.$id && !value.$tempId) return 'create'; // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
-            if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'noop';
+            if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) return 'match';
             throw new Error('Wrong op');
           };
           // if (!value.$tempId && !value.$id) value.$tempId = currentTempId;
@@ -465,7 +467,15 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
                 throw new Error(`No id found for ${JSON.stringify(value)}`);
               }
               /// link, update, unlink or delete, without id, it gets a generic
-              value.$tempId = `all-${uuidv4()}`;
+              if (!value.$tempId) {
+                const localId = `all-${uuidv4()}`;
+                // value.$tempId = tempId; No longer using this workaround, isLocalid is better
+                // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
+                value.$id = localId; /// we also need to setup it as the $id for chained stuff
+                /// we need to tag it as a nonDbid
+                value[Symbol.for('isLocalId') as any] = true;
+              }
+              /// if value.$idTemp id nothing to change, it keeps the current tempId
             }
           }
 
@@ -479,7 +489,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
   const filledBQLMutation = fill(withObjects);
 
-  // console.log('filledBQLMutation', filledBQLMutation);
+  console.log('filledBQLMutation', filledBQLMutation);
 
   if (Array.isArray(filledBQLMutation)) {
     req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock[];

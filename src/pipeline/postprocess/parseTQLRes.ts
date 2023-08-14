@@ -2,7 +2,7 @@ import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
 import { Concept, ConceptMapGroup } from 'typedb-client';
 
 import { extractChildEntities, getPath } from '../../helpers';
-import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
+import { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation, BQLResponse } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation, RelationName } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
@@ -144,7 +144,8 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
   if (!query) {
     if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
       // if no insertions and no delete operations
-      throw new Error('Nothing has changed in DB, probably one of the ids specified in the mutation does not exist');
+      res.bqlRes = {} as BQLResponse; // return an empty object to continue further steps without error
+      return;
     }
     const { mutation } = bqlRequest;
     if (!mutation) {
@@ -185,7 +186,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
           // todo when typeDB confirms deletions, check them here
           return exp as BQLMutationBlock;
         }
-        if (exp.$op === 'noop') {
+        if (exp.$op === 'match') {
           return undefined;
         }
         throw new Error(`Unsupported op ${exp.$op}`);

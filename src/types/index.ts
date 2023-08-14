@@ -257,7 +257,7 @@ export type RawBQLMutation = (
       $relation: string;
     }
 ) &
-  Record<string, any>;
+  Record<string, any>; /// TODO : explicitly type available fields
 
 export type ParsedBQLQuery = Omit<RawBQLQuery, '$entity' | '$relation'> & {
   // $entity: { name: string; definition: BormEntity };

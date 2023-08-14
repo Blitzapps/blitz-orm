@@ -1,4 +1,25 @@
 # Changelog
+## 0.1.12(2023-08-03)
+- Fixed another $tempId issue (test c5)
+- Fixed deep nested deletions and probably other edge cases
+## 0.1.11(2023-08-02)
+- Updated dependencies
+- linter with trailing-comma
+## 0.1.10(2023-08-02)
+- Fixed all $tempid known issues
+- Added a new test for cascade deletion
+## 0.1.9(2023-08-01)
+- More $tempid fixes
+- A new checker for tricky cardinality ONE issues
+## 0.1.8(2023-08-01)
+- Changed "noop" to "match"
+- Split test C1 in two tests
+- Fixed simple $tempId case (todo: c2)
+## 0.1.7(2023-07-26)
+- Fixed a bug with some queries
+- Added some new tests and matcher helpers
+## 0.1.6(2023-06-11)
+- Fixed a mutation issue where nested edges where discarded
 ## 0.1.5(2023-07-04)
 - Added excludedFields feature v0 
 ## 0.1.4(2023-06-15)

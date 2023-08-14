@@ -16,7 +16,12 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
   const singleHandlerV0 = config.dbConnectors[0].id;
   const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
-  if (!session?.isOpen()) {
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  if (!session.isOpen()) {
     throw new Error('Session is closed');
   }
   const mutateTransaction = await session.transaction(TransactionType.WRITE);
@@ -42,8 +47,13 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
   const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
 
-  await mutateTransaction.commit();
-  await mutateTransaction.close();
+  try {
+    await mutateTransaction.commit();
+    await mutateTransaction.close();
+  } catch (e: any) {
+    await mutateTransaction.close();
+    throw new Error(`Transaction failed: ${e.message}`);
+  }
 
   // const ids = bqlRequest.mutation.entities.map((e) => e.$id as string);
   // res.bqlRes = ids;
