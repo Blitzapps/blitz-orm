@@ -32,10 +32,10 @@ export const oFind = <RemovedKeys extends string, T extends Record<string | numb
 ): Omit<T, RemovedKeys>[Exclude<keyof T, RemovedKeys>] =>
   Object.values(Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k, v))))[0];
 
-export const oFilter = <RemovedKeys extends string, T extends Record<string | number | symbol, any>>(
+export const oFilter = <K extends string | number | symbol, T extends Record<K, any>>(
   obj: T,
-  fn: (k: keyof T, v: any) => boolean
-): Omit<T, RemovedKeys> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k, v))) as Omit<T, RemovedKeys>;
+  fn: (k: K, v: any) => boolean
+): Partial<T> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k as K, v))) as Partial<T>;
 
 export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
   const allLinkedFields: LinkedFieldWithThing[] = [];
@@ -335,8 +335,8 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
     // @ts-expect-error
     .filter((x) => !allowedFields.includes(x))
     .filter((x) => x) as string[]; // todo 🤔
-  const localFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => localFilterFields.includes(k));
-  const nestedFilters = !node.$filter ? {} : oFilter(node.$filter, (k, _v) => nestedFilterFields.includes(k));
+  const localFilters = !node.$filter ? {} : oFilter(node.$filter, (k: string, _v) => localFilterFields.includes(k));
+  const nestedFilters = !node.$filter ? {} : oFilter(node.$filter, (k: string, _v) => nestedFilterFields.includes(k));
 
   return {
     fields: availableFields,
@@ -387,7 +387,3 @@ export const extractChildEntities = (entities: EnrichedBormSchema['entities'], p
     return acc;
   }, []);
 };
-
-export function isStringOrHasShow<TValue extends { $show?: boolean }>(value: TValue | string): value is TValue {
-  return typeof value === 'string' || !!value.$show;
-}

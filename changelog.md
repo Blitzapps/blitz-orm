@@ -1,4 +1,14 @@
 # Changelog
+## 0.2.0(2023-08-11)
+- Merged borm.define()
+- No breaking changes but important feature => 0.2.0
+## 0.1.13(2023-08-11)
+- minor type fixes
+- cleaned oFilter types
+- moved the selfrelation exception in fill to parseBQLMutation (should reduce the need of the edgeeMerger)
+- Stopped including temp things match in the match queries (only create are required)
+- Fixed an old bug that sometimes added [Object Object] to tql queries
+
 ## 0.1.12(2023-08-03)
 - Fixed another $tempId issue (test c5)
 - Fixed deep nested deletions and probably other edge cases

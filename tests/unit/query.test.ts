@@ -1117,7 +1117,7 @@ describe('Query', () => {
 
   it('x1[excludedFields] Testing excluded fields', async () => {
     expect(client).toBeDefined();
-    const godUser = {
+    let godUser = {
       $entity: 'God',
       id: 'squarepusher',
       name: 'Tom Jenkinson',
@@ -1137,7 +1137,7 @@ describe('Query', () => {
     });
 
     // @ts-expect-error
-    godUser.id = mutationRes.id;
+    godUser = { ...godUser, id: mutationRes.id };
 
     const queryRes = await client.query(
       {

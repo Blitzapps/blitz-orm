@@ -1,6 +1,6 @@
 import { produce, current } from 'immer';
 import { traverse, TraversalCallbackContext, getNodeByPath } from 'object-traversal';
-import { isObject, listify } from 'radash';
+import { isObject, listify, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
@@ -20,6 +20,19 @@ import type { PipelineOperation } from '../pipeline';
 export const fillBQLMutation: PipelineOperation = async (req) => {
   const { rawBqlRequest, schema } = req;
 
+  // console.log('rawBqlRequest', JSON.stringify(rawBqlRequest, null, 2));
+  const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
+    return produce(blocks, (draft) =>
+      traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+        if (isObject(val)) {
+          val = shake(val, (att) => att === undefined);
+        }
+      })
+    );
+  };
+
+  const shakedBqlRequest = shakeBqlRequest(rawBqlRequest);
+
   const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
     return produce(blocks, (draft) =>
       traverse(draft, ({ value: val, meta, key }: TraversalCallbackContext) => {
@@ -33,27 +46,22 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           if (key === '$filter' || meta.nodePath?.includes('.$filter.')) {
             return;
           }
-          const value = val as BQLMutationBlock;
+
+          const value = val as BQLMutationBlock; /// removing undefined values, nulls are no shaked as they are used to delete fields
 
           if (value.$op === 'create' && value.$id) {
             throw new Error("Can't write to computed field $id. Try writing to the id field directly.");
           }
-          /* console.log(
-            '<---------------------value',
-            isDraft(value) ? current(value) : value
-          );
-          */
-          const currentSchema = getCurrentSchema(schema, val);
+          // console.log('<---------------------value', isDraft(value) ? current(value) : value);
+
+          const currentSchema = getCurrentSchema(schema, value);
 
           const nodePathArray = meta.nodePath?.split('.');
 
           const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
 
           if (!currentSchema) {
-            throw new Error(
-              // @ts-expect-error
-              `Schema not found for ${val.$entity || val.$relation}`
-            );
+            throw new Error(`Schema not found for ${value.$entity || value.$relation}`);
           }
           value[Symbol.for('bzId') as any] = uuidv4();
           if (!notRoot) {
@@ -126,6 +134,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           /// <---------------mutating children objects ---------------->
           [...usedLinkFieldsMap, ...usedRoleFieldsMap]?.forEach((currentField) => {
             const currentValue = value[currentField.path];
+
             /// ignore undefined
             if (currentValue === undefined) return;
             // console.log(':::', { currentField });
@@ -247,16 +256,11 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               /// probably here we are missing some link + update data for instance (the update data)
               // todo: for that reason it could be a good idea to send the other object as a thing outside?
               // todo: Another alternative could be to send the full object and treat this later
-              // @ts-expect-error //
-              if (currentSchema.thingType === 'relation' && currentValue.$tempId && currentFieldType === 'roleField') {
-                // @ts-expect-error
-                value[currentField.path] = currentValue.$tempId;
-              } else {
-                value[currentField.path] = {
-                  ...childrenThingObj,
-                  ...currentValue,
-                };
-              }
+
+              value[currentField.path] = {
+                ...childrenThingObj,
+                ...currentValue,
+              };
 
               // console.log('[obj]value', value[field as string]);
             }
@@ -320,7 +324,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
     );
   };
 
-  const withObjects = stringToObjects(rawBqlRequest);
+  const withObjects = stringToObjects(shakedBqlRequest);
   // console.log('withObjects', withObjects);
 
   const fill = (blocks: BQLMutationBlock | BQLMutationBlock[]): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -489,7 +493,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
   const filledBQLMutation = fill(withObjects);
 
-  console.log('filledBQLMutation', filledBQLMutation);
+  // console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 3));
 
   if (Array.isArray(filledBQLMutation)) {
     req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock[];

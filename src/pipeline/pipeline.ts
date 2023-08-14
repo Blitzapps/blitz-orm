@@ -26,7 +26,7 @@ export type EntityName = string;
 export type RoleName = string;
 export type ID = string;
 type EntityID = ID;
-export type Entity = { $entity: string; $id: string } & Record<string, any>;
+export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;
 
 type Request = {
   rawBqlRequest: RawBQLRequest;
