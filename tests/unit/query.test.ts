@@ -86,8 +86,7 @@ describe('Query', () => {
     expect(deepSort(res, 'id')).toEqual(expectedRes);
   });
 
-  // TODO
-  it.only('e2[entity] - filter by single $id', async () => {
+  it('e2[entity] - filter by single $id', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
@@ -108,6 +107,8 @@ describe('Query', () => {
     expect(res).toEqual(
       expect.objectContaining({
         ...expectedRes,
+        accounts: expect.arrayContaining(expectedRes.accounts),
+        spaces: expect.arrayContaining(expectedRes.spaces),
         'user-tags': expect.arrayContaining(expectedRes['user-tags']),
       })
     );
@@ -200,9 +201,8 @@ describe('Query', () => {
     // @ts-expect-error - res should be a defined array
     expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
   });
-  // TODO
 
-  it.only('opt1[options, noMetadata', async () => {
+  it('opt1[options, noMetadata', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
@@ -223,15 +223,16 @@ describe('Query', () => {
     expect(res).toEqual(
       expect.objectContaining({
         ...expectedRes,
+        accounts: expect.arrayContaining(expectedRes.accounts),
+        spaces: expect.arrayContaining(expectedRes.spaces),
         'user-tags': expect.arrayContaining(expectedRes['user-tags']),
       })
     );
     // @ts-expect-error
     expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
   });
-  // TODO
 
-  it.only('opt2[options, debugger', async () => {
+  it('opt2[options, debugger', async () => {
     expect(client).toBeDefined();
     const query = { $entity: 'User', $id: 'user1' };
     const expectedRes = {
@@ -286,6 +287,8 @@ describe('Query', () => {
     expect(res).toEqual(
       expect.objectContaining({
         ...expectedRes,
+        accounts: expect.arrayContaining(expectedRes.accounts),
+        spaces: expect.arrayContaining(expectedRes.spaces),
         'user-tags': expect.arrayContaining(expectedRes['user-tags']),
       })
     );
