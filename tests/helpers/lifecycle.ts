@@ -4,15 +4,21 @@ import { SessionType, TransactionType, TypeDB } from 'typedb-client';
 import { v4 as uuidv4 } from 'uuid';
 
 import BormClient from '../../src/index';
+import { cloudConfig } from '../mocks/cloudConfig';
 import { testConfig } from '../mocks/testConfig';
 import { testSchema } from '../mocks/testSchema';
 
+const isCloud = true;
+
 export const init = async () => {
-  const [connector] = testConfig.dbConnectors;
+  const [connector] = isCloud ? cloudConfig.dbConnectors : testConfig.dbConnectors;
   const tqlSchema = readFileSync('./tests/mocks/schema.tql', 'utf8');
   const tqlData = readFileSync('./tests/mocks/data.tql', 'utf8');
   const dbName = `${connector.dbName}_${uuidv4()}`;
-  const client = await TypeDB.coreClient(connector.url);
+  const client = isCloud
+    ? // @ts-expect-error
+      await TypeDB.clusterClient([connector.addresses], connector.credentials)
+    : await TypeDB.coreClient(connector.url);
   await client.databases.create(dbName);
   try {
     const schemaSession = await client.session(dbName, SessionType.SCHEMA);
@@ -42,8 +48,11 @@ export const init = async () => {
 };
 
 export const cleanup = async (dbName: string) => {
-  const [connector] = testConfig.dbConnectors;
-  const client = await TypeDB.coreClient(connector.url);
+  const [connector] = isCloud ? cloudConfig.dbConnectors : testConfig.dbConnectors;
+  const client = isCloud
+    ? // @ts-expect-error
+      await TypeDB.clusterClient([connector.addresses], connector.credentials)
+    : await TypeDB.coreClient(connector.url);
   await (await client.databases.get(dbName)).delete();
   await client.close();
 };

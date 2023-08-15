@@ -1,40 +1,25 @@
 import 'jest';
-import { TypeDBCredential } from 'typedb-client';
 
-import BormClient, { BormConfig } from '../../src';
-import { testSchema } from '../mocks/testSchema';
-
-const cloudConfig: BormConfig = {
-  server: {
-    provider: 'blitz-orm-js',
-  },
-  dbConnectors: [
-    {
-      id: 'default',
-      provider: 'typeDBCluster',
-      dbName: 'test',
-      // url: 'localhost:1729',
-      // @ts-expect-error
-      addresses: [process.env.CLOUD_ADDRESS],
-      credentials: new TypeDBCredential('admin', 'password', process.env.CLOUD_ROOT_CA),
-    },
-  ],
-};
+import BormClient from '../../src';
+import { cleanup, init } from '../helpers/lifecycle';
 
 describe('Simple test', () => {
   let client: BormClient;
+  let dbName: string;
 
   beforeAll(async () => {
-    const bormClient = new BormClient({
-      schema: testSchema, // todo: use a simpler schema
-      config: cloudConfig,
-    });
-    // await bormClient.init();
-    client = bormClient;
+    const config = await init();
+    if (!config?.bormClient) {
+      throw new Error('Failed to initialize BormClient');
+    }
+    dbName = config.dbName;
+    client = config.bormClient;
   }, 15000);
 
   it('Basic mutation', async () => {
     expect(client).toBeDefined();
+
+    await client.define();
 
     const res = await client.mutate({ $entity: 'User', name: 'John', email: 'john@gmail.com' }, { noMetadata: true });
     expect(res).toEqual({
@@ -42,5 +27,8 @@ describe('Simple test', () => {
       name: 'John',
       email: 'john@gmail.com',
     });
+  });
+  afterAll(async () => {
+    await cleanup(dbName);
   });
 });
