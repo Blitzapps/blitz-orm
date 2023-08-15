@@ -1,4 +1,4 @@
-import { listify, mapEntries, shake } from 'radash';
+import { isArray, listify, mapEntries, shake } from 'radash';
 
 import { getCurrentSchema } from '../../helpers';
 import type { BQLMutationBlock } from '../../types';
@@ -14,32 +14,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     throw new Error('BQL request is not a mutation');
   }
 
-  /* const getDependencies = (path: string, allNodes: BQLMutationBlock[]): BQLMutationBlock[] => {
-    const pathDeps = path.split('.');
-    const dependencies = pathDeps.map((_: string, i: number) => pathDeps.slice(0, -i).join('.'));
-    const includedItself = [...dependencies, path];
-    return allNodes.filter((x) => includedItself.includes(x[Symbol.for('path') as any]));
-  }; */
-
-  /* const getNodesWithOps = (nodes: BQLMutationBlock[]) =>
-    nodes
-      .filter((x) => x.$op !== 'match')
-      .map((y) => {
-        const path = y[Symbol.for('path') as any];
-
-        return {
-          path,
-          node: y,
-          thingDependencies: getDependencies(path, mutation.things),
-          edgeDependencies: getDependencies(path, mutation.edges),
-        };
-      });
-      */
-  /* const thingsWithOps = getNodesWithOps(mutation.things);
-  const edgesWithOps = getNodesWithOps(mutation.edges); */
-  // console.log('thingsWithOps', thingsWithOps);
-  // console.log('edgesWithOps', edgesWithOps);
-
   // todo: Split attributes and edges
   const nodeToTypeQL = (
     node: BQLMutationBlock
@@ -54,8 +28,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     // console.log('--------nodeToTypeQL-----------');
     // console.log('id', node.$id);
     const op = node.$op as string;
-
-    const id = node.$tempId || node.$id; // by default is $id but we use tempId when client specified one
+    const bzId = `$${node.$bzId}`;
     const currentSchema = getCurrentSchema(schema, node);
     const thingDbPath = currentSchema.defaultDBConnector?.path || node.$entity || node.$relation;
 
@@ -97,7 +70,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       throw new Error(`Unsupported contentType ${currentDataField.contentType}`);
     }).filter((x) => x);
 
-    const attributesVar = `$${id}-atts`;
+    const attributesVar = `${bzId}-atts`;
 
     const matchAttributes = listify(node, (k, v) => {
       // @ts-expect-error
@@ -124,13 +97,16 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
 
     const idValue = idFieldValue || idDefaultValue;
+    if (op === 'create' && !idValue)
+      throw new Error('No id value in creation, it should be specified manually or by a default value in the schema');
 
     const isLocalId: boolean = node[Symbol.for('isLocalId') as any]; /// this are local ids that are ony used to define links between stuff but that are not in the db (the "all-xxx" ids)
 
+    const idValueTQL = isArray(idValue) ? `like '${idValue.join('|')}'` : `'${idValue}'`;
     const idAttributes =
       !isLocalId && idValue // it must have id values, and they must be realDBIds
         ? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
-          [`has ${idField} '${idValue}'`]
+          [`has ${idField} ${idValueTQL}`]
         : [];
 
     const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
@@ -139,11 +115,11 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // if (node.$tempId) return ''; /// commented because we need tempIds to work when replacing a unlink/link all operation
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
       if (op === 'delete' || op === 'unlink' || op === 'match') {
-        return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
+        return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       if (op === 'update') {
         if (!matchAttributes.length) throw new Error('update without attributes');
-        return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar};
+        return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar};
         ${matchAttributes.join(' or ')};
       `;
       }
@@ -154,7 +130,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
       // if (node.$tempId) return ''; /// same as getDeletionMatch
       if (op === 'update' || op === 'link' || op === 'match') {
-        return `$${id} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
+        return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
       }
       return '';
     };
@@ -166,15 +142,15 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         insertionMatch: getInsertionMatchInNodes(),
         insertion:
           op === 'create'
-            ? `$${id} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};`
+            ? `${bzId} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};`
             : op === 'update' && attributes.length
-            ? `$${id} ${attributes.join(',')};`
+            ? `${bzId} ${attributes.join(',')};`
             : '',
         deletion:
           op === 'delete'
-            ? `$${id} isa ${thingDbPath};`
+            ? `${bzId} isa ${thingDbPath};`
             : op === 'update' && matchAttributes.length
-            ? `$${id} has ${attributesVar};`
+            ? `${bzId} has ${attributesVar};`
             : '',
       };
     }
@@ -193,8 +169,16 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     op: string;
   } => {
     const op = node.$op as string;
-    const id = node.$tempId || node.$id; // by default is $id but we use tempId when client specified one
     const currentSchema = getCurrentSchema(schema, node);
+    const bzId = `$${node.$bzId}`;
+    const { idFields } = currentSchema;
+    if (!idFields) throw new Error('no idFields');
+    // todo: composite ids
+    const idField = idFields[0];
+    const idFieldValue = node[idField] || node.$id;
+    const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
+    const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
+    const idValue = idFieldValue || idDefaultValue;
 
     const relationDbPath = currentSchema.defaultDBConnector?.path || node.$relation;
 
@@ -236,21 +220,20 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
     const relationTql = !roles
       ? ''
-      : `$${id} ${roles} ${
+      : `${bzId} ${roles} ${
           node[Symbol.for('edgeType') as any] === 'linkField' || op === 'delete' || op === 'unlink'
             ? `isa ${relationDbPath}`
             : ''
         }`;
 
-    const relationTqlWithoutRoles = `$${id}  ${
+    const relationTqlWithoutRoles = `${bzId}  ${
       node[Symbol.for('edgeType') as any] === 'linkField' || op === 'delete' ? `isa ${relationDbPath}` : ''
     }`;
 
     const getInsertionsInEdges = () => {
       if (!relationTql) return '';
       if (op === 'link') return `${relationTql};`;
-      // todo: properly assign id attributes to simple edges, or remove them or something
-      if (op === 'create') return `${relationTql}, has id '${id}';`;
+      if (op === 'create') return `${relationTql}, has id '${idValue}';`;
       return '';
     };
 
@@ -271,7 +254,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
         /// unlinking more than one role is not supported yet
         /// this got commented as the match brings what is needed but will probably need a refacto
         /// this is coded as generating a match block in [parseBQLmutation.ts], toEdges(edgeType1)
-        // return `$${id} ${roles} isa ${relationDbPath};`;
+        // return `${bzId} ${roles} isa ${relationDbPath};`;
       }
       if (op === 'match') return `${relationTql};`;
       return '';
@@ -281,7 +264,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       if (!relationTql) return '';
       // todo: same as insertions, better manage the ids here
       if (op === 'delete') return `${relationTqlWithoutRoles};`;
-      if (op === 'unlink') return `$${id} ${roles};`;
+      if (op === 'unlink') return `${bzId} ${roles};`;
       return '';
     };
 
@@ -291,8 +274,8 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
           .filter((y) => y)
           .map((x) => {
             return {
-              match: `$${id} (${x?.path}: $${x?.id}) isa ${relationDbPath};`,
-              deletion: `$${id} (${x?.path}: $${x?.id}) ${
+              match: `${bzId} (${x?.path}: $${x?.id}) isa ${relationDbPath};`,
+              deletion: `${bzId} (${x?.path}: $${x?.id}) ${
                 node[Symbol.for('edgeType') as any] === 'linkField' ? `isa ${relationDbPath}` : ''
               }`,
             };

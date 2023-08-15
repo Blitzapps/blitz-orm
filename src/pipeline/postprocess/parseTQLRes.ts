@@ -155,12 +155,11 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
     // todo: check if something weird happened
     const expected = [...mutation.things, ...mutation.edges];
+    // console.log('expected', expected);
     const result = expected
       .map((exp) => {
         //! reads all the insertions and gets the first match. This means each id must be unique
-        const currentNode = rawTqlRes.insertions
-          ?.find((y) => y.get(`${exp.$tempId || exp.$id}`))
-          ?.get(`${exp.$tempId || exp.$id}`);
+        const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
         // console.log('rawTqlRes.insertions', rawTqlRes.insertions);
         // console.log('currentNode', currentNode);
 

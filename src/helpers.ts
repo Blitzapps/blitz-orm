@@ -295,6 +295,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
     '$op',
     '$id',
     '$tempId',
+    '$bzId',
     '$relation',
     '$parentKey',
     '$filter',

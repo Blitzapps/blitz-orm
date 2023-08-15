@@ -18,6 +18,9 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
       ({ value }: TraversalCallbackContext) => {
         // if it is an array or an object, then return
         if (Array.isArray(value) || !(typeof value === 'object')) return;
+        if (value.$tempId) {
+          value.$tempId = `_:${value.$tempId}`;
+        }
         if (value.$fields) {
           delete value.$fields;
         }
@@ -26,6 +29,9 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
         }
         if (value.$show) {
           delete value.$show;
+        }
+        if (value.$bzId) {
+          delete value.$bzId;
         }
         if (config.query?.noMetadata && (value.$entity || value.$relation)) {
           delete value.$entity;
