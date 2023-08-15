@@ -11,9 +11,11 @@ export const cloudConfig: BormConfig = {
       id: 'default',
       provider: 'typeDBCluster',
       dbName: 'test',
-      // url: 'localhost:1729',
-      addresses: [process.env.CLOUD_ADDRESS],
-      credentials: new TypeDBCredential('admin', 'password', process.env.ROOT_CA),
+      addresses: [
+        // temporally replace it by hand
+        'myUrl_1729',
+      ],
+      credentials: new TypeDBCredential('admin', 'password', './tests/certs/rootCA.pem'),
     },
   ],
 };

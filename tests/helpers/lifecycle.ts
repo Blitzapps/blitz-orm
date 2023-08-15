@@ -3,23 +3,40 @@ import { readFileSync } from 'fs';
 import { SessionType, TransactionType, TypeDB } from 'typedb-client';
 import { v4 as uuidv4 } from 'uuid';
 
-import BormClient from '../../src/index';
+import BormClient, { Provider } from '../../src/index';
 import { cloudConfig } from '../mocks/cloudConfig';
 import { testConfig } from '../mocks/testConfig';
 import { testSchema } from '../mocks/testSchema';
 
-const isCloud = true;
+// to replace by the provider being tested. In the future, test every provider
+const provider: Provider = 'typeDBCluster';
+
+const providerConfig = {
+  typeDB: testConfig,
+  typeDBCluster: cloudConfig,
+};
+
+const createClient = async (connector: any) => {
+  // @ts-ignore
+  if (provider === 'typeDB') {
+    return TypeDB.coreClient(connector.url);
+  }
+  // @ts-ignore
+  if (provider === 'typeDBCluster') {
+    return TypeDB.clusterClient(connector.addresses, connector.credentials);
+  }
+  throw new Error('Invalid provider');
+};
 
 export const init = async () => {
-  const [connector] = isCloud ? cloudConfig.dbConnectors : testConfig.dbConnectors;
+  const [connector] = providerConfig[provider].dbConnectors;
   const tqlSchema = readFileSync('./tests/mocks/schema.tql', 'utf8');
   const tqlData = readFileSync('./tests/mocks/data.tql', 'utf8');
   const dbName = `${connector.dbName}_${uuidv4()}`;
-  const client = isCloud
-    ? // @ts-expect-error
-      await TypeDB.clusterClient(connector.addresses, connector.credentials)
-    : await TypeDB.coreClient(connector.url);
+
+  const client = await createClient(connector);
   await client.databases.create(dbName);
+
   try {
     const schemaSession = await client.session(dbName, SessionType.SCHEMA);
     const dataSession = await client.session(dbName, SessionType.DATA);
@@ -48,11 +65,9 @@ export const init = async () => {
 };
 
 export const cleanup = async (dbName: string) => {
-  const [connector] = isCloud ? cloudConfig.dbConnectors : testConfig.dbConnectors;
-  const client = isCloud
-    ? // @ts-expect-error
-      await TypeDB.clusterClient(connector.addresses, connector.credentials)
-    : await TypeDB.coreClient(connector.url);
+  const [connector] = providerConfig[provider].dbConnectors;
+  const client = await createClient(connector);
+
   await (await client.databases.get(dbName)).delete();
   await client.close();
 };
