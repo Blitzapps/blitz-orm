@@ -17,7 +17,7 @@ export const init = async () => {
   const dbName = `${connector.dbName}_${uuidv4()}`;
   const client = isCloud
     ? // @ts-expect-error
-      await TypeDB.clusterClient([connector.addresses], connector.credentials)
+      await TypeDB.clusterClient(connector.addresses, connector.credentials)
     : await TypeDB.coreClient(connector.url);
   await client.databases.create(dbName);
   try {
@@ -51,7 +51,7 @@ export const cleanup = async (dbName: string) => {
   const [connector] = isCloud ? cloudConfig.dbConnectors : testConfig.dbConnectors;
   const client = isCloud
     ? // @ts-expect-error
-      await TypeDB.clusterClient([connector.addresses], connector.credentials)
+      await TypeDB.clusterClient(connector.addresses, connector.credentials)
     : await TypeDB.coreClient(connector.url);
   await (await client.databases.get(dbName)).delete();
   await client.close();
