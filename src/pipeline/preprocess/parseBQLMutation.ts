@@ -15,6 +15,11 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     const nodes: BQLMutationBlock[] = [];
     const edges: BQLMutationBlock[] = [];
 
+    function getIdsByPath(path: string) {
+      const ids = nodes.filter((node) => node[Symbol.for('path') as any] === path).map((node) => node.id);
+      return ids.length === 1 ? ids[0] : ids;
+    }
+
     const toNodes = (node: BQLMutationBlock) => {
       // if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
       if (node.$op === 'create' && nodes.find((x) => x.$bzId === node.$bzId))
@@ -84,6 +89,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
           // [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
           [Symbol.for('path')]: value[Symbol.for('path') as any],
+
           [Symbol.for('parent')]: value[Symbol.for('parent') as any],
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
           [Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
@@ -161,6 +167,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             [Symbol.for('path')]: value[Symbol.for('path') as any],
             [Symbol.for('parent')]: value[Symbol.for('parent') as any],
           };
+
+          // const testVal = {};
+
           // todo: stuff 😂
           toEdges(edgeType1);
 
@@ -235,6 +244,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                 [Symbol.for('info')]: 'coming from created or deleted relation',
                 [Symbol.for('edgeType')]: 'roleField on C/D',
               };
+
               toEdges(edgeType2);
               return;
             }

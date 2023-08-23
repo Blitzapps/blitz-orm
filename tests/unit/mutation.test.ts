@@ -19,6 +19,13 @@ const secondUser = {
   id: undefined,
 };
 
+const thirdUser = {
+  $entity: 'User',
+  name: 'Jill',
+  email: 'jill@test.com',
+  id: undefined,
+};
+
 const godUser = {
   $entity: 'God',
   id: 'squarepusher',
@@ -36,6 +43,16 @@ const spaceOne = {
 const spaceTwo = {
   id: undefined,
   name: 'Space 2',
+};
+
+const spaceThree = {
+  id: undefined,
+  name: 'Space 3',
+};
+
+const spaceFour = {
+  id: undefined,
+  name: 'Space 4',
 };
 
 describe('Mutation init', () => {
@@ -260,7 +277,7 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
-    console.log('res', res);
+    // console.log('res', res);
 
     // @ts-expect-error
     spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
@@ -311,6 +328,102 @@ describe('Mutation init', () => {
         $entity: 'Space',
         $op: 'delete',
         $id: spaceOne.id,
+      },
+    ]);
+  });
+
+  it('b4.2[create, link] Link already created', async () => {
+    expect(bormClient).toBeDefined();
+    const res1 = await bormClient.mutate(
+      {
+        ...thirdUser,
+      },
+      { noMetadata: true }
+    );
+
+    const res2 = await bormClient.mutate(
+      [
+        {
+          $entity: 'Space',
+          ...spaceThree,
+        },
+        {
+          $entity: 'Space',
+          ...spaceFour,
+        },
+      ],
+      { noMetadata: true }
+    );
+
+    // console.log('res', res);
+
+    // @ts-expect-error
+    spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
+    // @ts-expect-error
+    spaceFour.id = res2?.find((r) => r.name === 'Space 4').id;
+    // @ts-expect-error
+    thirdUser.id = res1.id;
+
+    expect(res1).toBeDefined();
+    expect(res1).toBeInstanceOf(Object);
+    expect(res2).toBeDefined();
+    expect(res2).toBeInstanceOf(Object);
+
+    const res3 = await bormClient.mutate(
+      {
+        $entity: 'User',
+        $id: thirdUser.id,
+        spaces: [
+          { $id: spaceThree.id, $op: 'link' },
+          { $id: spaceFour.id, $op: 'link' },
+        ],
+      },
+      { noMetadata: true }
+    );
+
+    expect(JSON.parse(JSON.stringify(res3))).toEqual([
+      {
+        spaces: spaceThree.id,
+        users: thirdUser.id,
+      },
+      {
+        spaces: spaceFour.id,
+        users: thirdUser.id,
+      },
+    ]);
+  });
+
+  it('TODO:b4.3[create, link] Link without ids', async () => {
+    expect(bormClient).toBeDefined();
+
+    const res = await bormClient.mutate(
+      {
+        $entity: 'Space',
+        $id: 'space-3',
+        users: [{ $op: 'link' }],
+      },
+      { noMetadata: true }
+    );
+    const res2 = await bormClient.query({
+      $entity: 'Space',
+      $id: 'space-3',
+    });
+
+    expect(JSON.parse(JSON.stringify(res))).toEqual([
+      {
+        email: 'jane@test.com',
+        id: secondUser.id,
+        name: 'Jane',
+      },
+      spaceOne,
+      spaceTwo,
+      {
+        spaces: spaceOne.id,
+        users: secondUser.id,
+      },
+      {
+        spaces: spaceTwo.id,
+        users: secondUser.id,
       },
     ]);
   });
@@ -1951,7 +2064,7 @@ describe('Mutation init', () => {
     expect(res?.length).toBe(8);
     const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
     const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
-    console.log('res', res);
+    // console.log('res', res);
 
     const user = await bormClient.query(
       {
@@ -1980,7 +2093,7 @@ describe('Mutation init', () => {
         },
       ],
     };
-    console.log('user');
+    // console.log('user');
     // @ts-expect-error
     expectArraysInObjectToContainSameElements(user, expectedUser);
 

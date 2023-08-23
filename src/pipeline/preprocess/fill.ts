@@ -347,7 +347,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
   };
 
   const withObjects = stringToObjects(shakedBqlRequest);
-  console.log('withObjects', withObjects);
+  // console.log('withObjects', withObjects);
 
   const fill = (blocks: BQLMutationBlock | BQLMutationBlock[]): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
     // @ts-expect-error
@@ -480,6 +480,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               }
               value[fieldPath] = defaultValue; // we already checked that this value has not been defined
               // value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
+              value.$id = defaultValue;
             }
           });
 

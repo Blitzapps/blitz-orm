@@ -17,10 +17,12 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
       draft,
       ({ value }: TraversalCallbackContext) => {
         // if it is an array or an object, then return
+
         if (Array.isArray(value) || !(typeof value === 'object')) return;
         if (value.$tempId) {
           value.$tempId = `_:${value.$tempId}`;
         }
+
         if (value.$fields) {
           delete value.$fields;
         }
@@ -33,6 +35,7 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
         if (value.$bzId) {
           delete value.$bzId;
         }
+
         if (config.query?.noMetadata && (value.$entity || value.$relation)) {
           delete value.$entity;
           delete value.$relation;
@@ -51,7 +54,6 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
           delete value.$excludedFields;
         }
       }
-
       /* if (Array.isArray(value) && value.length === 0) {
       value = null;
     } */
@@ -93,6 +95,44 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
     })
     .filter((x) => x);
 
+function replaceBzIds(resItems: any[], things: any[]) {
+  const mapping = {};
+
+  // Create a mapping from $bzId to $id
+  things.forEach((thing: any) => {
+    // @ts-expect-error
+    mapping[thing.$bzId] = thing.$id;
+  });
+  // Replace values in the first array
+  resItems.forEach((item) => {
+    Object.keys(item).forEach((key) => {
+      // @ts-expect-error
+      if (mapping[item[key]] && key !== '$tempId') {
+        // @ts-expect-error
+
+        item[key] = mapping[item[key]];
+      }
+    });
+  });
+
+  return resItems;
+}
+
+function hasMatches(resItems: any[], things: any[]): boolean {
+  const bzIds = things.map((thing) => thing.$bzId);
+  let found = false;
+
+  resItems.forEach((item) => {
+    Object.keys(item).forEach((key) => {
+      if (bzIds.includes(item[key])) {
+        found = true;
+      }
+    });
+  });
+
+  return found;
+}
+
 export const buildBQLTree: PipelineOperation = async (req, res) => {
   const { bqlRequest, config, schema } = req;
   // const queryConfig = config.query;
@@ -105,7 +145,19 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
   const { query } = bqlRequest;
   if (!query) {
     // @ts-expect-error
-    res.bqlRes = cleanOutput(res.bqlRes, config);
+    const resItems = res.bqlRes[0] ? res.bqlRes : [res.bqlRes];
+    const things = req.bqlRequest?.mutation?.things;
+    // @ts-expect-error
+    const matchesFound = hasMatches(resItems, things);
+    if (matchesFound) {
+      // @ts-expect-error
+      const replaced = replaceBzIds(resItems, things);
+      res.bqlRes = replaced[1] ? replaced : replaced[0];
+    }
+    // @ts-expect-error
+    const output = cleanOutput(res.bqlRes, config);
+    // @ts-expect-error
+    res.bqlRes = output;
     return;
   }
   if (!cache) {

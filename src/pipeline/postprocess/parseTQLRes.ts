@@ -164,6 +164,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
         // console.log('currentNode', currentNode);
 
         // console.log('current:', JSON.stringify(x));
+
         if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
           if (
             !currentNode?.asThing().iid
@@ -179,7 +180,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
               v,
             ]) as BQLMutationBlock;
           }
-          return { $dbId: dbIdd, ...exp } as BQLMutationBlock;
+          return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id } } as BQLMutationBlock;
         }
         if (exp.$op === 'delete' || exp.$op === 'unlink') {
           // todo when typeDB confirms deletions, check them here
