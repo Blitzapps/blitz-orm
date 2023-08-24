@@ -892,6 +892,9 @@ describe('Mutation init', () => {
         name: 'Jane', /// coming from previous test (b4)
       },
       {
+        name: 'Jill', /// coming from previous test
+      },
+      {
         name: 'Loic',
       },
       {
@@ -947,6 +950,9 @@ describe('Mutation init', () => {
         name: 'Jane', /// coming from previous test
       },
       {
+        name: 'Jill', /// coming from previous test
+      },
+      {
         name: 'Loic',
       },
     ]);
@@ -977,6 +983,14 @@ describe('Mutation init', () => {
 
     // @ts-expect-error
     expect(deepSort(allSpaces, 'id')).toEqual([
+      {
+        id: expect.any(String),
+        name: 'Space 3',
+      },
+      {
+        id: expect.any(String),
+        name: 'Space 4',
+      },
       {
         id: 'space-1',
         name: 'space2ORspace1',
@@ -1030,6 +1044,14 @@ describe('Mutation init', () => {
 
     // @ts-expect-error
     expect(deepSort(allSpaces, 'id')).toEqual([
+      {
+        id: expect.any(String),
+        name: 'Space 3',
+      },
+      {
+        id: expect.any(String),
+        name: 'Space 4',
+      },
       {
         id: 'space-1',
         name: 'space2ORspace1Bis',
