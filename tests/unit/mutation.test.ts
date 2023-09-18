@@ -1871,7 +1871,7 @@ describe('Mutation init', () => {
     //! commenting because due to some sort of black magic, this particular mutation is making the next test (c1) fail
     // todo: When fixing this test, ensure the next one is not working and at some point if this happens again find out why
 
-    const pre = await bormClient.query({ $relation: 'UserTag', $id: 'tag-2' }, { noMetadata: true });
+    await bormClient.query({ $relation: 'UserTag', $id: 'tag-2' }, { noMetadata: true });
     await bormClient.mutate(
       [
         // unlink all color in all the groups linked to usertag tag.2
@@ -1887,7 +1887,7 @@ describe('Mutation init', () => {
       { noMetadata: true }
     );
 
-    const post = await bormClient.query({ $relation: 'UserTag', $id: 'tag-2' }, { noMetadata: true });
+    await bormClient.query({ $relation: 'UserTag', $id: 'tag-2' }, { noMetadata: true });
 
     const allGroups = await bormClient.query(
       {

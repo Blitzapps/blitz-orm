@@ -15,10 +15,11 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     const nodes: BQLMutationBlock[] = [];
     const edges: BQLMutationBlock[] = [];
 
+    /*
     function getIdsByPath(path: string) {
       const ids = nodes.filter((node) => node[Symbol.for('path') as any] === path).map((node) => node.id);
       return ids.length === 1 ? ids[0] : ids;
-    }
+    } */
 
     const toNodes = (node: BQLMutationBlock) => {
       // if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
