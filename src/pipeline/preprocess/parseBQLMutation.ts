@@ -568,7 +568,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       throw new Error(errorMessage);
     }
   };
-  /// checkCardinality(); // todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers
+
+  //! disabled as it has false positives
+  // todo
+  // checkCardinality(); // todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers
 
   /// case b: We have repeated the same relation id in two places and we are asigning it one of the roles more than one item
 
