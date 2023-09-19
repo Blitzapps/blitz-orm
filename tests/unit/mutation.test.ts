@@ -2453,6 +2453,15 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
+  it.only('TODO:dv1[default value] Create a time record with a default value', async () => {
+    expect(bormClient).toBeDefined();
+
+    const res = await bormClient.mutate({
+      $entity: 'TimeRecord',
+    });
+    console.log('Response: ', JSON.stringify(res, null, 2));
+  });
+
   afterAll(async () => {
     await cleanup(dbName);
   });

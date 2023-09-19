@@ -471,17 +471,18 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             if (!currentDef) {
               throw new Error(`no field Def for ${fieldPath}`);
             }
-
-            // We generate id fields when needed
-            if (fieldPath === idField && value.$op === 'create' && !value[fieldPath]) {
+            if (value.$op === 'create' && !value[fieldPath]) {
               const defaultValue = 'default' in currentDef ? currentDef.default?.value() : undefined;
               if (!defaultValue) {
                 throw new Error(`No default value for ${fieldPath}`);
               }
               value[fieldPath] = defaultValue; // we already checked that this value has not been defined
               // value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
-              value.$id = defaultValue;
+              if (fieldPath === idField) {
+                value.$id = defaultValue;
+              }
             }
+            // We generate id fields when needed
           });
 
           /*

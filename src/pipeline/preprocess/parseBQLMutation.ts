@@ -21,6 +21,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       return ids.length === 1 ? ids[0] : ids;
     } */
 
+    // TODO: fill default values here
     const getIdValue = (node: BQLMutationBlock) => {
       if (node.$id) return node.$id;
 
