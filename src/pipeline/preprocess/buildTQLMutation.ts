@@ -30,13 +30,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const op = node.$op as string;
     const bzId = `$${node.$bzId}`;
     const currentSchema = getCurrentSchema(schema, node);
-    const thingDbPath = currentSchema.defaultDBConnector?.path || node.$entity || node.$relation;
+    const { idFields, defaultDBConnector } = currentSchema;
 
-    const { idFields } = currentSchema;
+    const thingDbPath = defaultDBConnector?.path || node.$entity || node.$relation;
 
-    if (!idFields) throw new Error('no idFields');
+    const idValue = node.$id;
+
     // todo: composite ids
-    const idField = idFields[0];
+    const idField = idFields?.[0];
 
     const attributes = listify(node, (k, v) => {
       // @ts-expect-error
@@ -88,17 +89,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
       return `{${attributesVar} isa ${dbField};}`;
     }).filter((x) => x);
-
-    // todo: composite ids
-    const idFieldValue = node[idField] || node.$id;
-    const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
-
-    // todo default could be just a value, using the function by default
-    const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
-
-    const idValue = idFieldValue || idDefaultValue;
-    if (op === 'create' && !idValue)
-      throw new Error('No id value in creation, it should be specified manually or by a default value in the schema');
 
     const isLocalId: boolean = node[Symbol.for('isLocalId') as any]; /// this are local ids that are ony used to define links between stuff but that are not in the db (the "all-xxx" ids)
 
@@ -171,14 +161,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
     const op = node.$op as string;
     const currentSchema = getCurrentSchema(schema, node);
     const bzId = `$${node.$bzId}`;
-    const { idFields } = currentSchema;
-    if (!idFields) throw new Error('no idFields');
-    // todo: composite ids
-    const idField = idFields[0];
-    const idFieldValue = node[idField] || node.$id;
-    const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
-    const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
-    const idValue = idFieldValue || idDefaultValue;
+    const idValue = node.$id;
 
     const relationDbPath = currentSchema.defaultDBConnector?.path || node.$relation;
 
