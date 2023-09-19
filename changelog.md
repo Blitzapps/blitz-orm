@@ -1,5 +1,5 @@
 # Changelog
-## 0.2.1(2023-09-19)
+## 0.2.2(2023-09-19)
 - Refacto mutation
 - Working nested deletions and other cases that were not working
 - Simplification of the code
