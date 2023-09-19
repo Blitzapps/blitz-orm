@@ -10,6 +10,13 @@ import type { Entity, PipelineOperation } from '../pipeline';
 function isStringOrHasShow<TValue extends { $show?: boolean }>(value: TValue | string): value is TValue {
   return typeof value === 'string' || !!value.$show;
 }
+// TODO: temp solution
+const isOne = (children: any[], $id: string) => {
+  if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
+    return children[0];
+  }
+  return children;
+};
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
   produce(obj, (draft) =>
@@ -152,9 +159,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
         // INIT
         const currentIds = Array.isArray(value.$id) ? value.$id : [value.$id];
         const currentSchema = '$relation' in value ? schema.relations[value.$relation] : schema.entities[value.$entity];
-
         const { dataFields, roleFields } = getCurrentFields(currentSchema);
-
         // #region DATAFIELDS
         const currentEntities = cache.entities.get(thingName);
         if (!currentEntities) return;
@@ -163,7 +168,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
           if (currentIds.includes(id)) {
             // if $fields is present, only return those fields, if not, everything
             const queriedDataFields = value.$fields ? value.$fields : dataFields;
-
             listify(entity, (k, v) => {
               if (k.startsWith('$')) return;
               if (!queriedDataFields?.includes(k)) return;
@@ -322,6 +326,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     .filter(notNull)
                     .filter(isStringOrHasShow);
                   if (children.length === 0) return;
+                  // TODO: CHECK HERE
 
                   if (children && children.length) {
                     if (linkField.cardinality === 'ONE') {
@@ -332,6 +337,11 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     }
                     // @ts-expect-error
                     value[linkField.path] = children;
+                    // TODO: temp solution
+                    // @ts-expect-error
+                    const pathAndIdMatch = query.$fields?.filter((o) => o.$path === linkField.path)[0]?.$id;
+                    // @ts-expect-error
+                    value[linkField.path] = isOne(children, pathAndIdMatch);
                   }
                 });
                 // const $id = $fieldConf ? $fieldConf.$id : null;
@@ -346,7 +356,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
       //   console.log('VALUE', isDraft(value) ? current(value) : value);
     })
   );
-
   const withoutFieldFilters = cleanOutput(bqlTree, config);
 
   // res.bqlRes = monoOutput ? bqlRes[0] : bqlRes;
