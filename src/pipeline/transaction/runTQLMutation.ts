@@ -29,13 +29,14 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
     throw new Error("Can't create transaction");
   }
   // console.log('tqlRequest!', JSON.stringify(tqlRequest, null, 2));
+
   // deletes and pre-update deletes
   const tqlDeletion =
     tqlRequest.deletionMatches &&
     tqlRequest.deletions &&
     `match ${tqlRequest.deletionMatches} delete ${tqlRequest.deletions}`;
-  // insertions and updates
 
+  // insertions and updates
   const tqlInsertion =
     tqlRequest.insertions &&
     `${tqlRequest.insertionMatches ? `match ${tqlRequest.insertionMatches}` : ''} insert ${tqlRequest.insertions}`;
@@ -45,11 +46,11 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
   const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 
-  const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
-
   try {
+    const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
     await mutateTransaction.commit();
     await mutateTransaction.close();
+    res.rawTqlRes = { insertions: insertionsRes };
   } catch (e: any) {
     await mutateTransaction.close();
     throw new Error(`Transaction failed: ${e.message}`);
@@ -57,5 +58,4 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
   // const ids = bqlRequest.mutation.entities.map((e) => e.$id as string);
   // res.bqlRes = ids;
-  res.rawTqlRes = { insertions: insertionsRes };
 };

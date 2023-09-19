@@ -15,27 +15,77 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     const nodes: BQLMutationBlock[] = [];
     const edges: BQLMutationBlock[] = [];
 
+    /*
+    function getIdsByPath(path: string) {
+      const ids = nodes.filter((node) => node[Symbol.for('path') as any] === path).map((node) => node.id);
+      return ids.length === 1 ? ids[0] : ids;
+    } */
+
+    const getIdValue = (node: BQLMutationBlock) => {
+      if (node.$id) return node.$id;
+
+      const currentSchema = getCurrentSchema(schema, node);
+      const { idFields } = currentSchema;
+
+      if (!idFields) throw new Error(`no idFields: ${JSON.stringify(node)}`);
+      // todo: composite ids
+      const idField = idFields[0];
+      if (!idField) throw new Error(`no idField: ${JSON.stringify(node)}`);
+      const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
+      const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
+      const idValue = node[idField] || node.$id || idDefaultValue;
+
+      if (!idValue) throw new Error(`no idValue: ${JSON.stringify(node)}`);
+      return idValue;
+    };
+
     const toNodes = (node: BQLMutationBlock) => {
-      if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
-      if (node.$tempId && node.$op === 'match') return; /// we don't add to the node list, those that are beibg matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
+      if (node.$op === 'create') {
+        const idValue = getIdValue(node);
+
+        if (nodes.find((x) => x.$id === idValue)) {
+          throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
+        }
+        if (edges.find((x) => x.$bzId === node.$bzId)) {
+          throw new Error(`Duplicate $bzid ${node.$bzId} for node ${JSON.stringify(node)}`);
+        }
+        nodes.push({ ...node, $id: idValue });
+        return;
+      }
+
+      if (node.$tempId && node.$op === 'match') {
+        /// we don't add to the node list, those that are being matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
+        return;
+      }
       nodes.push(node);
     };
 
     const toEdges = (edge: BQLMutationBlock) => {
-      if (edge.$op === 'create' && edges.find((x) => x.$id === edge.$id)) throw new Error(`Duplicate id ${edge.$id}`);
+      if (edge.$op === 'create') {
+        const idValue = getIdValue(edge);
+
+        if (nodes.find((x) => x.$id === idValue)) {
+          throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
+        }
+        if (edges.find((x) => x.$bzId === edge.$bzId)) {
+          throw new Error(`Duplicate %bzId ${edge.$bzIdd} for edge ${JSON.stringify(edge)}`);
+        }
+        edges.push({ ...edge, $id: idValue });
+        return;
+      }
       edges.push(edge);
     };
 
     const listOp = ({ value: val }: TraversalCallbackContext) => {
       if (!isObject(val)) return;
       const value = val as BQLMutationBlock;
+
       /// no idea why this is needed lol, but sometimes is indeed undefined 🤷‍♀️
       if (value.$entity || value.$relation) {
         if (!value.$op) throw new Error(`Operation should be defined at this step ${JSON.stringify(value)}`);
-        if (!value.$id && !value.$tempId && !['link', 'unlink'].includes(value.$op)) {
-          throw new Error(
-            'An id must be specified either in the mutation or has tu have a default value in the schema'
-          );
+
+        if (!value.$bzId) {
+          throw new Error('[internal error] BzId not found');
         }
         /// this is used to group the right delete/unlink operations with the involved things
 
@@ -76,24 +126,18 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           ...(value.$filter && { $filter: value.$filter }),
           ...shake(pick(value, dataFieldPaths || [''])),
           $op: getChildOp(),
-          [Symbol.for('bzId')]: value[Symbol.for('bzId') as any],
+          $bzId: value.$bzId,
           [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
           // [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
           [Symbol.for('path')]: value[Symbol.for('path') as any],
+
           [Symbol.for('parent')]: value[Symbol.for('parent') as any],
           [Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
           [Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
         };
 
-        /// split nodes with multiple ids
-        // ? maybe as todo, to enhance the reasoner parsedBQL to consider multiple ids there, and use "like a|b|c" instead of repeating a lot of ids
-        if (Array.isArray(dataObj.$id)) {
-          dataObj.$id.forEach((id: string) => {
-            toNodes({ ...dataObj, $id: id });
-          });
-        } else {
-          toNodes(dataObj);
-        }
+        /// split nodes with multiple ids // why? //no longer doing that
+        toNodes(dataObj);
 
         // console.log('value', isDraft(value) ? current(value) : value);
 
@@ -118,17 +162,14 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
           const ownRelation = value[Symbol.for('relation') as any] === value.$relation;
 
-          if (ownRelation && !(value.$id || value.$tempId)) {
-            throw new Error('No id or tempId found for complex link');
-          }
-
-          const linkTempId = ownRelation ? value.$id || value.$tempId : uuidv4();
+          const linkTempId = ownRelation ? value.$bzId : uuidv4();
 
           const parentMeta = value[Symbol.for('parent') as any];
           const parentPath = parentMeta.path;
           const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
-          const parentId = parentNode.$tempId || parentNode.$id; /// tempId first
+          const parentId = parentNode.$bzId;
           if (!parentId) throw new Error('No parent id found');
+
           if (value[Symbol.for('relation') as any] === '$self') return;
 
           const getLinkObjOp = () => {
@@ -153,23 +194,23 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
           const edgeType1 = {
             $relation: value[Symbol.for('relation') as any],
+            $bzId: linkTempId,
+            ...(value.$tempId ? { $tempId: value.$tempId } : {}),
             $op: getLinkObjOp(),
-            ...(value.$op === 'unlink'
-              ? { $tempId: linkTempId as string /* no tempid arrays yet */ }
-              : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
-            ...(ownRelation && value.$op === 'link' && value.$tempId ? { $tempId: value.$tempId } : {}),
-            ...(ownRelation && value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}),
-            // ...(value.$op === 'create' && value.$tempId ? { $tempId: value.$tempId } : {}), /// maybe direct Relation things it makes sense, but for intermediary nope because they get the tempId from one of the entities related
-            ...(ownRelation ? {} : { [value[Symbol.for('role') as any]]: value.$tempId || value.$id }),
+
+            // roles
+            ...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
             [value[Symbol.for('oppositeRole') as any]]: parentId,
-            [Symbol.for('bzId')]: uuidv4(),
-            // [Symbol.for('dependencies')]: [parentNode[Symbol.for('path')], ...parentNode[Symbol.for('dependencies')]],
-            // [Symbol.for('isRoot')]: false,
+
             [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
             [Symbol.for('edgeType')]: 'linkField',
+            [Symbol.for('info')]: 'normal linkField',
             [Symbol.for('path')]: value[Symbol.for('path') as any],
             [Symbol.for('parent')]: value[Symbol.for('parent') as any],
           };
+
+          // const testVal = {};
+
           // todo: stuff 😂
           toEdges(edgeType1);
 
@@ -179,14 +220,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
           if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
             toEdges({
               $relation: value[Symbol.for('relation') as any],
+              $bzId: linkTempId,
               $op: 'match',
-              ...(value.$op === 'unlink'
-                ? { $tempId: linkTempId as string /* unsupported tempid[] */ }
-                : { $id: linkTempId }), // assigning in the parse a temp Id for every linkObj
               [value[Symbol.for('oppositeRole') as any]]: parentId,
-              [Symbol.for('bzId')]: uuidv4(),
               [Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
               [Symbol.for('edgeType')]: 'linkField',
+              [Symbol.for('info')]: 'additional ownrelation unlink linkField',
               [Symbol.for('path')]: value[Symbol.for('path') as any],
               [Symbol.for('parent')]: value[Symbol.for('parent') as any],
             });
@@ -197,17 +236,17 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         if (value.$relation) {
           const rolesObjFiltered = oFilter(value, (k: string, _v) => roleFieldPaths.includes(k));
 
-          // console.log('rolesObjFiltered', rolesObjFiltered);
-
           /// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
+          // todo: this is super weird, remove
           const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
             if (isArray(v)) return [k, v];
             // @ts-expect-error
-            if (isObject(v)) return [k, v.$id || v.$tempId];
+            if (isObject(v)) return [k, v.$bzId];
             return [k, v];
           });
 
           // console.log('rolesObjOnlyIds', rolesObjOnlyIds);
+
           const objWithMetaDataOnly = oFilter(val, (k, _v) => {
             // @ts-expect-error
             return k.startsWith('$') || k.startsWith('Symbol');
@@ -227,10 +266,11 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k, v) => {
                 if (Array.isArray(v)) {
                   /// Replace the array of objects with an array of ids
-                  return [k, v.map((vNested: any) => vNested.$tempId || vNested.$id || vNested)];
+                  return [k, v.map((vNested: any) => vNested.$bzId || vNested)];
                 }
-                return [k, v.$id || v];
+                return [k, v.$bzId || v];
               });
+              // console.log('rolesObjOnlyIdsGrouped', rolesObjOnlyIdsGrouped);
 
               // todo: validations
               /// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
@@ -239,11 +279,13 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                 $relation: value.$relation,
                 $op: getEdgeOp(),
                 ...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
-                [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
+                $bzId: value.$bzId,
                 [Symbol.for('path')]: value[Symbol.for('path') as any],
+                [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
                 [Symbol.for('info')]: 'coming from created or deleted relation',
                 [Symbol.for('edgeType')]: 'roleField on C/D',
               };
+
               toEdges(edgeType2);
               return;
             }
@@ -251,71 +293,44 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             // region 2.2 relations on nested stuff
             // todo: probably remove the match here
             if (value.$op === 'match' || (value.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
-              const rolesWithLinks = oFilter(rolesObjOnlyIds, (_k, v) => {
-                const currentRoleObj = Array.isArray(v) ? v : [v];
-                return currentRoleObj.some(
-                  (
-                    x: BQLMutationBlock // string arrays are always replaces
-                  ) => x.$op === 'link' || x.$op === 'create'
-                );
-              });
-              const rolesWithLinksIds = mapEntries(rolesWithLinks, (k, v: BQLMutationBlock[]) => {
-                const currentRoleObj = Array.isArray(v) ? v : [v];
-                return [
-                  k,
-                  currentRoleObj
-                    .filter((x) => x.$op === 'link' || x.$op === 'create')
-                    .flatMap((y) => y.$id || y.$tempId),
-                ];
-              });
-              const rolesWithUnlinks = oFilter(rolesObjOnlyIds, (_k, v) => {
-                const currentRoleObj = Array.isArray(v) ? v : [v]; /// cardinality is tested in previous steps
-                return currentRoleObj.some((x: BQLMutationBlock) => x.$op === 'unlink' || x.$op === 'delete');
-              });
-              // filters the array of objects, taking only those where x.$op === 'unlink'
-              const rolesWithUnlinksIds = mapEntries(rolesWithUnlinks, (k, v: BQLMutationBlock[]) => {
-                const currentRoleObj = Array.isArray(v) ? v : [v];
-                return [
-                  k,
-                  currentRoleObj
-                    .filter((x) => x.$op === 'unlink' || x.$op === 'delete')
-                    .flatMap((y) => y.$id || y.$tempId),
-                ];
-              });
-              const rolesWithReplaces = {};
-              [
-                { op: 'link', obj: rolesWithLinksIds },
-                { op: 'unlink', obj: rolesWithUnlinksIds },
-                { op: 'replace', obj: rolesWithReplaces }, // todo
-              ].forEach((x) => {
-                if (Object.keys(x.obj).length) {
-                  if (x.op === 'unlink' && Object.keys(x.obj).length > 1)
+              let totalUnlinks = 0;
+
+              Object.entries(rolesObjFiltered).forEach(([role, operations]) => {
+                const operationsArray = isArray(operations) ? operations : [operations];
+
+                operationsArray.forEach((operation) => {
+                  const op = operation.$op === 'replace' ? 'link' : operation.$op;
+                  /// validations
+                  if (op === 'replace') throw new Error('Not supported yet: replace on roleFields');
+                  if (op === 'unlink' && totalUnlinks > 0) {
+                    totalUnlinks += 1; // ugly temp solution while multiple roles can't be replaced
                     throw new Error(
                       'Not supported yet: Cannot unlink more than one role at a time, please split into two mutations'
                     );
+                  }
 
                   const edgeType3 = {
                     ...objWithMetaDataOnly,
                     $relation: value.$relation,
-                    $op: x.op,
-                    ...x.obj, // override role fields by ids or tempIDs
-                    // [Symbol.for('context')]: context,
+                    $op: op,
+                    [role]: operation.$bzId,
+                    $bzId: value.$bzId,
                     [Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
                     [Symbol.for('parent')]: value[Symbol.for('parent') as any],
                     [Symbol.for('path')]: value[Symbol.for('path') as any],
                     [Symbol.for('info')]: 'updating roleFields',
                     [Symbol.for('edgeType')]: 'roleField on L/U/R',
                   };
-                  toEdges(edgeType3);
 
+                  toEdges(edgeType3);
                   /// when unlinking stuff, it must be merged with other potential roles.
-                  /// we need to add it as 'unlink' instead of match so it gets merged with other unlinks
-                  if (edgeType3.$op === 'unlink') {
+                  /// so we need to add it as both as match and 'unlink' so it gets merged with other unlinks
+                  // todo maybe a way to transform unlinks already in its own matches later? maybe split match-unlink and match-link
+                  if (op === 'unlink') {
                     toEdges({ ...edgeType3, $op: 'match' });
                   }
-                }
+                });
               });
-              // return;
             }
             // #endregion
             // throw new Error('Unsupported direct relation operation');
@@ -342,12 +357,12 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   /// If it is only linked, we indeed need it with a "match" op, but if it is already there is no need to init it
   const mergedThings = parsedThings.reduce((acc, thing) => {
     // Skip if the current item doesn't have a $tempId
-    if (!thing.$tempId) {
+    if (!thing.$bzId) {
       return [...acc, thing];
     }
 
     // Check if this $tempId already exists in the accumulator
-    const existingIndex = acc.findIndex((t) => t.$tempId === thing.$tempId);
+    const existingIndex = acc.findIndex((t) => t.$bzId === thing.$bzId);
 
     if (existingIndex === -1) {
       // If it doesn't exist, add it to the accumulator
@@ -371,7 +386,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
   const mergedEdges = parsedEdges.reduce((acc, curr) => {
     const existingEdge = acc.find(
       (r) =>
-        ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+        ((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
         r.$relation === curr.$relation &&
         r.$op === curr.$op
     );
@@ -409,7 +424,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       const newAcc = acc.filter(
         (r) =>
           !(
-            ((r.$id && r.$id === curr.$id) || (r.$tempId && r.$tempId === curr.$tempId)) &&
+            ((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
             r.$relation === curr.$relation &&
             r.$op === curr.$op
           )
@@ -483,6 +498,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
     }
     ); */
 
+  /// todo: issue 1: relations with >2 roles will not work
+  /// todo: issue 2: replaces don't work as they are indeed repeated for cardinality ONE
+  // eslint-disable-next-line unused-imports/no-unused-vars
   const checkCardinality = (): void => {
     // The problematic edges will be stored here
     const problematicEdges: Record<string, Set<string>> = {};
@@ -491,6 +509,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       const cardinalityOneRoles = Object.keys(schema.relations[relation].roles).filter(
         (role) => schema.relations[relation].roles[role].cardinality === 'ONE'
       );
+
+      console.log('cardinalityOneRoles', `${relation}: ${cardinalityOneRoles}`);
 
       // For each role with cardinality ONE
       cardinalityOneRoles.forEach((oneRole) => {
@@ -507,6 +527,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
             const otherRole = Object.keys(edge).find(
               (role) => role !== '$relation' && role !== '$op' && role !== '$id' && role !== oneRole
             );
+            // console.log('edge', edge, 'otherRole', otherRole);
 
             if (otherRole) {
               const otherId = edge[otherRole];
@@ -524,10 +545,10 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         // Check if any 'otherId' is related to multiple 'oneIds'
         Object.entries(idMapping).forEach(([otherId, oneIds]) => {
           if (oneIds.size > 1) {
-            problematicEdges[otherId] = problematicEdges[otherId] || new Set();
-
-            problematicEdges[otherId].add(
-              `Entity with ID: ${otherId} in relation "${relation}" linked to multiple ${oneIds.size} entities in role "${oneRole}".`
+            throw new Error(
+              `${relation} has illegal cardinality: The ${oneRole} role is linked to multiple ${Object.keys(
+                idMapping[otherId]
+              ).join(',')} roles.`
             );
           }
         });
@@ -547,6 +568,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       throw new Error(errorMessage);
     }
   };
+
   //! disabled as it has false positives
   // todo
   // checkCardinality(); // todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers

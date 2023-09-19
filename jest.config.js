@@ -1,10 +1,10 @@
 /** @type {import('jest').Config} */
 
 const config = {
-  testEnvironment: "node",
-  preset: "ts-jest",
+  testEnvironment: 'node',
+  preset: 'ts-jest',
   transform: {
-    "^.+.ts$": ["ts-jest", { tsconfig: "tsconfig.json" }],
+    '^.+.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
   // testNamePattern: ".*\\.test\\.ts$",
 };

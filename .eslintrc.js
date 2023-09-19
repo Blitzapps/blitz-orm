@@ -8,13 +8,13 @@ module.exports = {
       'error',
       { props: true, ignorePropertyModificationsForRegex: ['^draft'] }, // draft, draftPost, draftState...
     ],
-
+    'no-warning-comments': ['error', { terms: ['todo-must'], location: 'start' }],
     'prettier/prettier': [
       'error',
       {
         singleQuote: true,
         endOfLine: 'auto',
-        trailingComma: "es5", 
+        trailingComma: 'es5',
         printWidth: 120,
       },
     ],
@@ -36,7 +36,7 @@ module.exports = {
           {
             singleQuote: true,
             endOfLine: 'auto',
-            trailingComma: "es5", 
+            trailingComma: 'es5',
             printWidth: 120,
           },
         ],
@@ -61,13 +61,10 @@ module.exports = {
             },
           },
         ], // Follow the same ordering as the official plugin `prettier-plugin-tailwindcss`
-        '@typescript-eslint/comma-dangle': 'off', // Avoid conflict rule between Eslint and Prettier 
+        '@typescript-eslint/comma-dangle': 'off', // Avoid conflict rule between Eslint and Prettier
         'import/prefer-default-export': 'off', // Named export is easier to refactor automatically
         '@typescript-eslint/no-unused-vars': 'off',
-        'no-param-reassign': [
-          'warn',
-          { props: true, ignorePropertyModificationsFor: ['req', 'res'] },
-        ],
+        'no-param-reassign': ['warn', { props: true, ignorePropertyModificationsFor: ['req', 'res'] }],
         'unused-imports/no-unused-imports': 'error',
         'unused-imports/no-unused-vars': [
           'error',
