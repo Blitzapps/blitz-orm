@@ -338,8 +338,27 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     // @ts-expect-error
                     value[linkField.path] = children;
                     // TODO: temp solution
-                    // @ts-expect-error
-                    const pathAndIdMatch = query.$fields?.filter((o) => o.$path === linkField.path)[0]?.$id;
+
+                    let filtered: { $id?: string } | { $id?: string }[] = {};
+                    const filterFunc = (o: any): boolean => {
+                      if (o.$path === linkField.path) {
+                        filtered = o;
+                      }
+                      return o?.$fields?.forEach(filterFunc);
+                    };
+                    let pathAndIdMatch = '';
+                    query.$fields?.forEach(filterFunc);
+                    if (filtered) {
+                      if (Array.isArray(filtered.$id)) {
+                        if (filtered.$id.length === 1) {
+                          const firstEl = filtered.$id[0];
+                          pathAndIdMatch = firstEl;
+                        }
+                      } else {
+                        // @ts-expect-error
+                        pathAndIdMatch = filtered.$id;
+                      }
+                    }
                     // @ts-expect-error
                     value[linkField.path] = isOne(children, pathAndIdMatch);
                   }

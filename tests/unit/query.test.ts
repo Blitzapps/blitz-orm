@@ -978,7 +978,7 @@ describe('Query', () => {
   });
 
   // todo fix this test, which is the only one in the queries which should fail. But check that the only issue is an array instead of an object
-  it('TODO*:n4a[nested,filters] Local filter on nested, by id', async () => {
+  it.only('TODO*:n4a[nested,filters] Local filter on nested, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
@@ -1021,7 +1021,7 @@ describe('Query', () => {
     ]);
   });
 
-  it.only('TODO*:n4b[nested,filters] Local filter on nested, by id', async () => {
+  it.only('TODO*:n4b[nested,filters] Local filter on nested depth two, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
@@ -1030,7 +1030,7 @@ describe('Query', () => {
         {
           $path: 'spaces',
           $id: 'space-1', // id specified so nested children has to be an objec and not an array
-          $fields: [{ $path: 'users', $id: ['user5'] }],
+          $fields: [{ $path: 'users', $id: 'user5' }],
         },
       ],
     });
@@ -1039,29 +1039,22 @@ describe('Query', () => {
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
     // @ts-expect-error - res is not a string
-    expect(deepSort(res)).toEqual([
-      {
-        $entity: 'User',
-        $id: 'user1',
-        name: 'Antoine',
-      },
-      {
-        $entity: 'User',
-        $id: 'user2',
-        name: 'Loic',
-      },
-      {
-        $entity: 'User',
-        $id: 'user3',
-        name: 'Ann',
-        // accounts here has to be a single object, not an array because we specified an id in the nested query
-        accounts: {
-          $entity: 'Account',
-          $id: 'account3-1',
-          provider: 'facebook',
+    expect(deepSort(res)).toEqual({
+      $entity: 'User',
+      $id: 'user1',
+      spaces: {
+        $id: 'space-1',
+        $entity: 'Space',
+        users: {
+          $id: 'user5',
+          $entity: 'User',
+          email: 'charlize@test.com',
+          name: 'Charlize',
+          id: 'user5',
+          spaces: ['space-1'],
         },
       },
-    ]);
+    });
   });
   it('n5[nested,filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
     expect(client).toBeDefined();
