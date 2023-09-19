@@ -46,12 +46,12 @@ const spaceTwo = {
 };
 
 const spaceThree = {
-  id: undefined,
+  id: 'newSpaceThreeId',
   name: 'Space 3',
 };
 
 const spaceFour = {
-  id: undefined,
+  id: 'newSpaceFourId',
   name: 'Space 4',
 };
 
@@ -401,7 +401,6 @@ describe('Mutation init', () => {
   it('TODO:b4.3[create, link] Link ALL (without ids)', async () => {
     expect(bormClient).toBeDefined();
 
-    /*
     const res = await bormClient.mutate(
       {
         $entity: 'Space',
@@ -410,10 +409,6 @@ describe('Mutation init', () => {
       },
       { noMetadata: true }
     );
-    const res2 = await bormClient.query({
-      $entity: 'Space',
-      $id: 'space-3',
-    });
 
     expect(JSON.parse(JSON.stringify(res))).toEqual([
       {
@@ -432,7 +427,6 @@ describe('Mutation init', () => {
         users: secondUser.id,
       },
     ]);
-    */
   });
 
   it('b5[update, children] Update children', async () => {
@@ -728,7 +722,7 @@ describe('Mutation init', () => {
     );
   });
 
-  it('TODO:n3[delete, nested] nested delete', async () => {
+  it('n3[delete, nested] nested delete', async () => {
     expect(bormClient).toBeDefined();
 
     const mutated = await bormClient.mutate(
@@ -989,14 +983,15 @@ describe('Mutation init', () => {
     );
 
     // @ts-expect-error
+
     expect(deepSort(allSpaces, 'id')).toEqual([
       {
-        id: expect.any(String),
-        name: 'Space 3',
+        id: 'newSpaceFourId',
+        name: 'Space 4',
       },
       {
-        id: expect.any(String),
-        name: 'Space 4',
+        id: 'newSpaceThreeId',
+        name: 'Space 3',
       },
       {
         id: 'space-1',
@@ -1022,7 +1017,7 @@ describe('Mutation init', () => {
       {
         $id: 'space-3',
         $entity: 'Space',
-        name: 'Production',
+        name: 'Not-owned',
       },
     ]);
   });
@@ -1052,12 +1047,12 @@ describe('Mutation init', () => {
     // @ts-expect-error
     expect(deepSort(allSpaces, 'id')).toEqual([
       {
-        id: expect.any(String),
-        name: 'Space 3',
+        id: 'newSpaceFourId',
+        name: 'Space 4',
       },
       {
-        id: expect.any(String),
-        name: 'Space 4',
+        id: 'newSpaceThreeId',
+        name: 'Space 3',
       },
       {
         id: 'space-1',
@@ -1088,7 +1083,7 @@ describe('Mutation init', () => {
     ]);
   });
 
-  it('TODO:u4[update, multiple, nested(one), noId] Update all children (no id)', async () => {
+  it('u4[update, multiple, nested(one), noId] Update all children (no id)', async () => {
     expect(bormClient).toBeDefined();
 
     /// cardinality ONE
@@ -1134,6 +1129,15 @@ describe('Mutation init', () => {
       {
         email: 'charlize@test.com',
         id: 'user5',
+      },
+    ]);
+
+    /// get back original emails
+    await bormClient.mutate([
+      {
+        $id: 'user3',
+        $entity: 'User',
+        email: 'ann@test.com',
       },
     ]);
   });
@@ -1644,7 +1648,7 @@ describe('Mutation init', () => {
     await bormClient.mutate({
       $relation: 'UserTag',
       $op: 'create',
-      $id: 'tmpTag2',
+      id: 'tmpTag2',
       users: ['user1', 'user3'], /// one linkfield is linked
       /// group is undefined,
       /// the replace must work in both!
@@ -1864,7 +1868,7 @@ describe('Mutation init', () => {
     });
   });
 
-  it('TODO:l15 [unlink, nested, relation] Unlink in a nested field', async () => {
+  it('TODO:l15b[unlink, nested, relation] Unlink in a nested field', async () => {
     // todo: parseBQL=> When the relation is the self relation being modified, no need to have it as match and then as op in the edges
     expect(bormClient).toBeDefined();
 
@@ -2298,7 +2302,8 @@ describe('Mutation init', () => {
 
   it('e1[duplicate] Duplicate creation', async () => {
     expect(bormClient).toBeDefined();
-    expect(async () =>
+
+    await expect(
       bormClient.mutate({
         $relation: 'User-Accounts',
         id: 'r1',
@@ -2323,6 +2328,7 @@ describe('Mutation init', () => {
     };
 
     const res = await bormClient.mutate(mutation);
+    console.log('res', res);
     expect(res).toStrictEqual({});
   });
 
@@ -2380,7 +2386,7 @@ describe('Mutation init', () => {
     }
   });
 
-  it('e5[relation] breaking the cardinality rule in a batch mutation', async () => {
+  it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
     expect(bormClient).toBeDefined();
 
     try {
@@ -2413,10 +2419,10 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
-  it('TODO: e6[tempId] Somwhere there is a tempId that has no definition', async () => {
+  it('TODO:e6[tempId] Somwhere there is a tempId that has no definition', async () => {
     expect(bormClient).toBeDefined();
     // todo: antoine query of nested tempIds without op="create"
-    /* 
+
     try {
       await bormClient.mutate([
         {
@@ -2445,7 +2451,6 @@ describe('Mutation init', () => {
     }
 
     throw new Error('Expected mutation to throw an error');
-    */
   });
 
   afterAll(async () => {

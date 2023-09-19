@@ -21,18 +21,58 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
       return ids.length === 1 ? ids[0] : ids;
     } */
 
-    const toNodes = (node: BQLMutationBlock) => {
-      // if (node.$op === 'create' && nodes.find((x) => x.$id === node.$id)) throw new Error(`Duplicate id ${node.$id}`);
-      if (node.$op === 'create' && nodes.find((x) => x.$bzId === node.$bzId))
-        throw new Error(`Duplicate id ${node.$id}`);
+    const getIdValue = (node: BQLMutationBlock) => {
+      if (node.$id) return node.$id;
 
-      if (node.$tempId && node.$op === 'match') return; /// we don't add to the node list, those that are being matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
+      const currentSchema = getCurrentSchema(schema, node);
+      const { idFields } = currentSchema;
+
+      if (!idFields) throw new Error(`no idFields: ${JSON.stringify(node)}`);
+      // todo: composite ids
+      const idField = idFields[0];
+      if (!idField) throw new Error(`no idField: ${JSON.stringify(node)}`);
+      const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
+      const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
+      const idValue = node[idField] || node.$id || idDefaultValue;
+
+      if (!idValue) throw new Error(`no idValue: ${JSON.stringify(node)}`);
+      return idValue;
+    };
+
+    const toNodes = (node: BQLMutationBlock) => {
+      if (node.$op === 'create') {
+        const idValue = getIdValue(node);
+
+        if (nodes.find((x) => x.$id === idValue)) {
+          throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
+        }
+        if (edges.find((x) => x.$bzId === node.$bzId)) {
+          throw new Error(`Duplicate $bzid ${node.$bzId} for node ${JSON.stringify(node)}`);
+        }
+        nodes.push({ ...node, $id: idValue });
+        return;
+      }
+
+      if (node.$tempId && node.$op === 'match') {
+        /// we don't add to the node list, those that are being matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
+        return;
+      }
       nodes.push(node);
     };
 
     const toEdges = (edge: BQLMutationBlock) => {
-      if (edge.$op === 'create' && edges.find((x) => x.$bzId === edge.$bzId))
-        throw new Error(`Duplicate id ${edge.$id}`);
+      if (edge.$op === 'create') {
+        const idValue = getIdValue(edge);
+
+        if (nodes.find((x) => x.$id === idValue)) {
+          throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
+        }
+        if (edges.find((x) => x.$bzId === edge.$bzId)) {
+          throw new Error(`Duplicate %bzId ${edge.$bzIdd} for edge ${JSON.stringify(edge)}`);
+        }
+        edges.push({ ...edge, $id: idValue });
+        return;
+      }
       edges.push(edge);
     };
 
