@@ -153,7 +153,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
       const value = val as RawBQLQuery;
       // @ts-expect-error
       if (!value?.$entity && !value?.$relation) return;
-
       const thingName = '$entity' in value ? value.$entity : value.$relation;
       if (thingName) {
         // INIT
@@ -310,13 +309,13 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     if (!acc[opposingRole.entityName]) acc[opposingRole.entityName] = new Set();
                     acc[opposingRole.entityName].add(opposingRole.id);
                   }
+
                   return acc;
                 }, {});
 
                 Object.entries(linkedEntities).forEach(([key, linkedEntityVal]) => {
                   const allCurrentLinkFieldThings = cache.entities.get(key);
                   if (!allCurrentLinkFieldThings) return;
-
                   const children = filterChildrenEntities(
                     [...allCurrentLinkFieldThings],
                     [...linkedEntityVal.values()],
@@ -326,8 +325,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     .filter(notNull)
                     .filter(isStringOrHasShow);
                   if (children.length === 0) return;
-                  // TODO: CHECK HERE
-
+                  // TODO: Children for depth 2 don't get filtered for id
                   if (children && children.length) {
                     if (linkField.cardinality === 'ONE') {
                       // @ts-expect-error
@@ -349,14 +347,14 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     let pathAndIdMatch = '';
                     query.$fields?.forEach(filterFunc);
                     if (filtered) {
-                      if (Array.isArray(filtered.$id)) {
-                        if (filtered.$id.length === 1) {
-                          const firstEl = filtered.$id[0];
-                          pathAndIdMatch = firstEl;
-                        }
-                      } else {
+                      if (!Array.isArray(filtered.$id)) {
                         // @ts-expect-error
                         pathAndIdMatch = filtered.$id;
+
+                        // if (filtered.$id.length === 1) {
+                        //   const firstEl = filtered.$id[0];
+                        //   pathAndIdMatch = firstEl;
+                        // }
                       }
                     }
                     // @ts-expect-error

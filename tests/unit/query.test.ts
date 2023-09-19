@@ -978,7 +978,7 @@ describe('Query', () => {
   });
 
   // todo fix this test, which is the only one in the queries which should fail. But check that the only issue is an array instead of an object
-  it.only('TODO*:n4a[nested,filters] Local filter on nested, by id', async () => {
+  it('n4a[nested,filters] Local filter on nested, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
@@ -1021,7 +1021,7 @@ describe('Query', () => {
     ]);
   });
 
-  it.only('TODO*:n4b[nested,filters] Local filter on nested depth two, by id', async () => {
+  it('n4b[nested,filters] Local filter on nested depth two, by id', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
@@ -1030,12 +1030,10 @@ describe('Query', () => {
         {
           $path: 'spaces',
           $id: 'space-1', // id specified so nested children has to be an objec and not an array
-          $fields: [{ $path: 'users', $id: 'user5' }],
+          $fields: [{ $path: 'users', $id: 'user1', $fields: ['$id'] }],
         },
       ],
     });
-    console.log('Response: ', JSON.stringify(res, null, 2));
-
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
     // @ts-expect-error - res is not a string
@@ -1046,16 +1044,13 @@ describe('Query', () => {
         $id: 'space-1',
         $entity: 'Space',
         users: {
-          $id: 'user5',
+          $id: 'user1',
           $entity: 'User',
-          email: 'charlize@test.com',
-          name: 'Charlize',
-          id: 'user5',
-          spaces: ['space-1'],
         },
       },
     });
   });
+
   it('n5[nested,filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
@@ -1097,6 +1092,50 @@ describe('Query', () => {
     ]);
   });
 
+  it('TODO*n6[nested,filters] Deeply nested entities of same kind', async () => {
+    expect(client).toBeDefined();
+    const res = await client.query({
+      $entity: 'User',
+      $id: ['user1', 'user5'],
+      $fields: [
+        {
+          $path: 'spaces',
+          $id: 'space-1', // id specified so nested children has to be an objec and not an array
+          $fields: [{ $path: 'users', $id: 'user1', $fields: ['$id'] }],
+        },
+      ],
+    });
+
+    expect(res).toBeDefined();
+    expect(res).not.toBeInstanceOf(String);
+    // @ts-expect-error - res is not a string
+    expect(deepSort(res)).toEqual([
+      {
+        $entity: 'User',
+        $id: 'user1',
+        spaces: {
+          $id: 'space-1',
+          $entity: 'Space',
+          users: {
+            $id: 'user1',
+            $entity: 'User',
+          },
+        },
+      },
+      {
+        $entity: 'User',
+        $id: 'user5',
+        spaces: {
+          $id: 'space-1',
+          $entity: 'Space',
+          users: {
+            $id: 'user1',
+            $entity: 'User',
+          },
+        },
+      },
+    ]);
+  });
   it('i1[inherired, attributes] Entity with inherited attributes', async () => {
     expect(client).toBeDefined();
     const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
