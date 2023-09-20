@@ -82,13 +82,18 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
 
         if (currentFieldConf.$id) {
           if (Array.isArray(currentFieldConf.$id)) {
-            if (currentFieldConf.$id.includes(id)) return withFieldsEntity;
+            if (currentFieldConf.$id.includes(id)) {
+              return withFieldsEntity;
+            }
             return null;
           }
-          if (currentFieldConf.$id === id) return withFieldsEntity;
+          if (currentFieldConf.$id === id) {
+            return withFieldsEntity;
+          }
+        } else {
+          // no id, then every entity
+          return withFieldsEntity;
         }
-        // no id, then every entity
-        return withFieldsEntity;
       }
       return null;
     })

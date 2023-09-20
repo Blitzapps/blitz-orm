@@ -1092,7 +1092,7 @@ describe('Query', () => {
     ]);
   });
 
-  it('TODO*n6[nested,filters] Deeply nested entities of same kind', async () => {
+  it('n6[nested,filters] Deeply nested entities of same kind', async () => {
     expect(client).toBeDefined();
     const res = await client.query({
       $entity: 'User',
