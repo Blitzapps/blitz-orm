@@ -47,6 +47,22 @@ export const testSchema: BormSchema = {
       idFields: ['id'], // could be a composite key
       defaultDBConnector: { id: 'default', path: 'TimeRecord' },
       dataFields: [{ ...id }, { ...timestamp }],
+      linkFields: [
+        {
+          path: 'children',
+          cardinality: 'MANY',
+          relation: 'TimeRecordRelation',
+          plays: 'children',
+          target: 'role',
+        },
+        {
+          path: 'parent',
+          cardinality: 'ONE',
+          relation: 'TimeRecordRelation',
+          plays: 'parent',
+          target: 'role',
+        },
+      ],
     },
     Account: {
       idFields: ['id'], // could be a composite key
@@ -268,6 +284,19 @@ export const testSchema: BormSchema = {
     },
   },
   relations: {
+    TimeRecordRelation: {
+      idFields: ['id'], // could be a composite key
+      defaultDBConnector: { id: 'default', path: 'TimeRecordRelation' },
+      dataFields: [{ ...id }, { ...timestamp }],
+      roles: {
+        children: {
+          cardinality: 'MANY',
+        },
+        parent: {
+          cardinality: 'ONE',
+        },
+      },
+    },
     'User-Accounts': {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'User-Accounts' },

@@ -1,8 +1,8 @@
 import { getNodeByPath, TraversalCallbackContext, traverse } from 'object-traversal';
-import { isArray, isObject, mapEntries, pick, shake } from 'radash';
+import { isArray, isObject, listify, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema } from '../../helpers';
+import { oFilter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
 import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
@@ -71,6 +71,30 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         if (edges.find((x) => x.$bzId === edge.$bzId)) {
           throw new Error(`Duplicate %bzId ${edge.$bzIdd} for edge ${JSON.stringify(edge)}`);
         }
+        const currentSchema = getCurrentSchema(schema, edge);
+        const { computedFields } = currentSchema;
+
+        const filledFields = listify(edge, (attKey, v) => (v ? attKey : undefined));
+        const missingComputedFields = computedFields.filter((x) => !filledFields.includes(x));
+
+        // fill computed values
+        missingComputedFields.forEach((fieldPath) => {
+          const currentFieldDef = currentSchema.dataFields?.find((x) => x.path === fieldPath);
+          const currentLinkDef = currentSchema.linkFields?.find((x) => x.path === fieldPath);
+          // todo: multiple playedBy
+          const currentLinkedDef = currentLinkDef?.oppositeLinkFieldsPlayedBy[0];
+
+          const currentRoleDef =
+            'roles' in currentSchema ? oFind(currentSchema.roles, (k, _v) => k === fieldPath) : undefined;
+          const currentDef = currentFieldDef || currentLinkedDef || currentRoleDef;
+          if (!edge[fieldPath] && currentDef && fieldPath !== 'id') {
+            const defaultValue = 'default' in currentDef ? currentDef.default?.value() : undefined;
+            if (!defaultValue) {
+              throw new Error(`No default value for ${fieldPath}`);
+            }
+            edge[fieldPath] = defaultValue; // we already checked that this value has not been defined
+          }
+        });
         edges.push({ ...edge, $id: idValue });
         return;
       }

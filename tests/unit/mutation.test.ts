@@ -2453,13 +2453,34 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
-  it.only('TODO:dv1[default value] Create a time record with a default value', async () => {
+  it('TODO:dv1[default value] Create a time record with a default value', async () => {
     expect(bormClient).toBeDefined();
 
     const res = await bormClient.mutate({
       $entity: 'TimeRecord',
     });
-    console.log('Response: ', JSON.stringify(res, null, 2));
+    expect(res).toBeDefined();
+    // TODO: fix test to be better
+    expect(res).toEqual({
+      $dbId: expect.any(String),
+      $entity: 'TimeRecord',
+      $id: expect.any(String),
+      id: expect.any(String),
+      timestamp: expect.any(Date),
+      $op: 'create',
+      undefined: expect.any(String),
+    });
+  });
+
+  it('TODO:dv2[default value relation] Create a time record relation with a default value', async () => {
+    expect(bormClient).toBeDefined();
+
+    const res = await bormClient.mutate({
+      $entity: 'TimeRecord',
+      parent: { $op: 'create' },
+    });
+    // TODO: fix test to be better
+    expect(res).toBeDefined();
   });
 
   afterAll(async () => {

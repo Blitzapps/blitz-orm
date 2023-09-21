@@ -39,7 +39,9 @@ Session·sessionToken sub attribute,
 
 TimeRecord sub entity,
     owns id @key,
-    owns TimeRecord·timestamp;
+    owns TimeRecord·timestamp,
+    plays TimeRecordRelation:parent,
+    plays TimeRecordRelation:children;
 
 Space sub entity,
     owns id @key,
@@ -81,6 +83,12 @@ User-Accounts sub relation,
     owns id @key,
     relates user,
     relates accounts;
+
+TimeRecordRelation sub relation,
+    owns id @key,
+    owns TimeRecord·timestamp,
+    relates parent,
+    relates children;
 
 User-Sessions sub relation,
     owns id @key,
