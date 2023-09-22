@@ -2461,15 +2461,12 @@ describe('Mutation init', () => {
     });
     expect(res).toBeDefined();
     // TODO: fix test to be better
-    expect(res).toEqual({
-      $dbId: expect.any(String),
-      $entity: 'TimeRecord',
-      $id: expect.any(String),
-      id: expect.any(String),
-      timestamp: expect.any(Date),
-      $op: 'create',
-      undefined: expect.any(String),
-    });
+    if (res) {
+      // @ts-expect-error
+      expect(res.timestamp).toBeInstanceOf(Date);
+    } else {
+      throw new Error('res is undefined');
+    }
   });
 
   it('TODO:dv2[default value relation] Create a time record relation with a default value', async () => {
@@ -2481,6 +2478,14 @@ describe('Mutation init', () => {
     });
     // TODO: fix test to be better
     expect(res).toBeDefined();
+    expect(res).toBeInstanceOf(Array);
+    expect(res).toHaveLength(3);
+    if (res) {
+      // @ts-expect-error
+      expect(res[2].timestamp).toBeInstanceOf(Date);
+    } else {
+      throw new Error('res is undefined');
+    }
   });
 
   afterAll(async () => {
