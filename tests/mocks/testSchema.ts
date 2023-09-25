@@ -16,10 +16,14 @@ export const description: DataField = {
   cardinality: 'ONE',
 };
 
-const timestamp: DataField = {
+export const timestamp: DataField = {
   path: 'timestamp',
   cardinality: 'ONE',
   contentType: 'DATE',
+  default: {
+    type: 'function',
+    value: () => new Date(),
+  },
 };
 
 export const string: Omit<DataField, 'path'> = {
@@ -39,6 +43,27 @@ export const id: DataField = {
 
 export const testSchema: BormSchema = {
   entities: {
+    TimeRecord: {
+      idFields: ['id'], // could be a composite key
+      defaultDBConnector: { id: 'default', path: 'TimeRecord' },
+      dataFields: [{ ...id }, { ...timestamp }],
+      linkFields: [
+        {
+          path: 'children',
+          cardinality: 'MANY',
+          relation: 'TimeRecordRelation',
+          plays: 'children',
+          target: 'role',
+        },
+        {
+          path: 'parent',
+          cardinality: 'ONE',
+          relation: 'TimeRecordRelation',
+          plays: 'parent',
+          target: 'role',
+        },
+      ],
+    },
     Account: {
       idFields: ['id'], // could be a composite key
       defaultDBConnector: { id: 'default', path: 'Account' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
@@ -259,6 +284,19 @@ export const testSchema: BormSchema = {
     },
   },
   relations: {
+    TimeRecordRelation: {
+      idFields: ['id'], // could be a composite key
+      defaultDBConnector: { id: 'default', path: 'TimeRecordRelation' },
+      dataFields: [{ ...id }, { ...timestamp }],
+      roles: {
+        children: {
+          cardinality: 'MANY',
+        },
+        parent: {
+          cardinality: 'ONE',
+        },
+      },
+    },
     'User-Accounts': {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'User-Accounts' },

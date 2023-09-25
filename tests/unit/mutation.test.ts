@@ -2453,6 +2453,41 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
+  it('TODO:dv1[default value] Create a time record with a default value', async () => {
+    expect(bormClient).toBeDefined();
+
+    const res = await bormClient.mutate({
+      $entity: 'TimeRecord',
+    });
+    expect(res).toBeDefined();
+    // TODO: fix test to be better
+    if (res) {
+      // @ts-expect-error
+      expect(res.timestamp).toBeInstanceOf(Date);
+    } else {
+      throw new Error('res is undefined');
+    }
+  });
+
+  it('TODO:dv2[default value relation] Create a time record relation with a default value', async () => {
+    expect(bormClient).toBeDefined();
+
+    const res = await bormClient.mutate({
+      $entity: 'TimeRecord',
+      parent: { $op: 'create' },
+    });
+    // TODO: fix test to be better
+    expect(res).toBeDefined();
+    expect(res).toBeInstanceOf(Array);
+    expect(res).toHaveLength(3);
+    if (res) {
+      // @ts-expect-error
+      expect(res[2].timestamp).toBeInstanceOf(Date);
+    } else {
+      throw new Error('res is undefined');
+    }
+  });
+
   afterAll(async () => {
     await cleanup(dbName);
   });

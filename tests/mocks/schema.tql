@@ -5,6 +5,8 @@ id sub attribute, value string;
 name sub attribute, value string;
 email sub attribute, abstract, value string, regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$';
 description sub attribute, value string;
+TimeRecord·timestamp sub attribute, value datetime;
+timestamp sub attribute, value datetime;
 
 
 # User
@@ -34,6 +36,12 @@ Session·expires sub attribute,
 Session·sessionToken sub attribute,
     value string;
 
+
+TimeRecord sub entity,
+    owns id @key,
+    owns TimeRecord·timestamp,
+    plays TimeRecordRelation:parent,
+    plays TimeRecordRelation:children;
 
 Space sub entity,
     owns id @key,
@@ -75,6 +83,12 @@ User-Accounts sub relation,
     owns id @key,
     relates user,
     relates accounts;
+
+TimeRecordRelation sub relation,
+    owns id @key,
+    owns TimeRecord·timestamp,
+    relates parent,
+    relates children;
 
 User-Sessions sub relation,
     owns id @key,
