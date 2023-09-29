@@ -1537,12 +1537,121 @@ describe('Mutation init', () => {
       id: 'utg-2',
       $id: 'utg-2',
       color: 'blue',
+      space: 'space-3',
     });
     /// get it back to original state
     await bormClient.mutate({
       $relation: 'UserTagGroup',
       $id: 'utg-2',
       tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
+    });
+  });
+
+  it('l7b[unlink, all, nested] unlink all from two roles', async () => {
+    // todo: test where we try to delete both but only one is actually there (which will not work with current typeDB features)
+    expect(bormClient).toBeDefined();
+
+    const original = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    console.log('original', original);
+
+    await bormClient.mutate(
+      {
+        $relation: 'UserTagGroup',
+        $id: 'utg-2',
+        tags: null, // by default this is just an unlink, but sometimes if specified in the schema, it will be also a delete
+        color: null,
+      },
+      { noMetadata: true }
+    );
+
+    const next = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    console.log('next', next);
+
+    const UserTagGroupModified = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    expect(UserTagGroupModified).toBeDefined();
+    // @ts-expect-error
+    expect(deepSort(UserTagGroupModified, 'id')).toEqual({
+      $relation: 'UserTagGroup',
+      id: 'utg-2',
+      $id: 'utg-2',
+      space: 'space-3',
+    });
+    /// get it back to original state
+    await bormClient.mutate({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+      tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
+      color: { $op: 'link', $id: 'blue' }, // todo: simplify when replaces work
+    });
+  });
+
+  it('TODO:l7c[unlink, all, nested] unlink all from two rolesm but one is empty', async () => {
+    expect(bormClient).toBeDefined();
+
+    const original = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    console.log('original', original);
+
+    await bormClient.mutate(
+      {
+        $relation: 'UserTagGroup',
+        $id: 'utg-2',
+        tags: null, // by default this is just an unlink, but sometimes if specified in the schema, it will be also a delete
+      },
+      { noMetadata: true }
+    );
+
+    await bormClient.mutate(
+      {
+        $relation: 'UserTagGroup',
+        $id: 'utg-2',
+        tags: null, // by default this is just an unlink, but sometimes if specified in the schema, it will be also a delete
+        color: null,
+      },
+      { noMetadata: true }
+    );
+
+    const next = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    console.log('next', next);
+
+    const UserTagGroupModified = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    expect(UserTagGroupModified).toBeDefined();
+    // @ts-expect-error
+    expect(deepSort(UserTagGroupModified, 'id')).toEqual({
+      $relation: 'UserTagGroup',
+      id: 'utg-2',
+      $id: 'utg-2',
+      space: 'space-3',
+    });
+    /// get it back to original state
+    await bormClient.mutate({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+      tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
+      color: { $op: 'link', $id: 'blue' }, // todo: simplify when replaces work
     });
   });
 

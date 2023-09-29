@@ -110,7 +110,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       if (op === 'update') {
         if (!matchAttributes.length) throw new Error('update without attributes');
         return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar};
-        ${matchAttributes.join(' or ')};
+        ${matchAttributes.join(` or `)};
       `;
       }
       return '';
@@ -234,6 +234,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       if (op === 'delete') return `${relationTql};`;
       /// edge unlink means: We are editing a real relation's roles
       if (op === 'unlink') {
+        /*  return `${bzId} ($roles-${node.$bzId}: $players-${node.$bzId}) isa ${relationDbPath}; ${fromRoleFields
+          .map((role) => `{$roles-${node.$bzId} type ${relationDbPath}:${role?.path};}`)
+          .join(` or `)};`; */
         /// unlinking more than one role is not supported yet
         /// this got commented as the match brings what is needed but will probably need a refacto
         /// this is coded as generating a match block in [parseBQLmutation.ts], toEdges(edgeType1)
@@ -248,6 +251,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
       // todo: same as insertions, better manage the ids here
       if (op === 'delete') return `${relationTqlWithoutRoles};`;
       if (op === 'unlink') return `${bzId} ${roles};`;
+      // if (op === 'unlink') return `${bzId} ($roles-${node.$bzId}: $players-${node.$bzId});`;
       return '';
     };
 

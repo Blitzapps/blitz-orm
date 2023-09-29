@@ -183,6 +183,13 @@ export const testSchema: BormSchema = {
           plays: 'space',
           target: 'relation',
         },
+        {
+          path: 'userTagGroups',
+          cardinality: 'MANY',
+          relation: 'UserTagGroup',
+          plays: 'space',
+          target: 'relation',
+        },
       ],
     },
     Color: {
@@ -331,6 +338,9 @@ export const testSchema: BormSchema = {
           cardinality: 'MANY',
         },
         color: {
+          cardinality: 'ONE',
+        },
+        space: {
           cardinality: 'ONE',
         },
       },

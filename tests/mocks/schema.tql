@@ -39,7 +39,8 @@ Space sub entity,
     owns id @key,
     owns name,
 		plays SpaceObj:space,
-    plays Space-User:spaces; 
+    plays Space-User:spaces,
+    plays UserTagGroup:space;
 
 
 User sub entity,
@@ -97,6 +98,7 @@ UserTag sub relation,
 UserTagGroup sub relation,
   owns id @key,
   relates tags, #cardinality: Many
+  relates space, #cardinality: One
   relates color;
 
 Color sub entity,
