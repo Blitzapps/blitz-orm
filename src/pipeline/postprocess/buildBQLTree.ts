@@ -88,7 +88,24 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
           }
           if (currentFieldConf.$id === id) return withFieldsEntity;
         }
+        // console.log('Main log: ', JSON.stringify(withFieldsEntity, null, 2));
+
+        if (withFieldsEntity.$fields && withFieldsEntity.$fields.includes('id') && !withFieldsEntity.$show) {
+          let returnVal = '';
+
+          withFieldsEntity.$fields.forEach((field: string) => {
+            if (field === 'id') {
+              // @ts-expect-error
+              returnVal = withFieldsEntity.$id;
+            } else {
+              // @ts-expect-error
+              returnVal = withFieldsEntity;
+            }
+          });
+          return returnVal;
+        }
         // no id, then every entity
+        // TODO: include other branch merge changes here
         return withFieldsEntity;
       }
       return null;
@@ -370,7 +387,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                 Object.entries(linkedEntities).forEach(([key, linkedEntityVal]) => {
                   const allCurrentLinkFieldThings = cache.entities.get(key);
                   if (!allCurrentLinkFieldThings) return;
-
                   const children = filterChildrenEntities(
                     [...allCurrentLinkFieldThings],
                     [...linkedEntityVal.values()],
