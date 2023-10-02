@@ -1,4 +1,6 @@
 # Changelog
+## 0.2.5(2023-10-03)
+- TypeDBCluster compatibility
 ## 0.2.0(2023-08-11)
 - Merged borm.define()
 - No breaking changes but important feature => 0.2.0
