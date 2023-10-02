@@ -39,6 +39,37 @@ export const id: DataField = {
 
 export const testSchema: BormSchema = {
   entities: {
+    Thing: {
+      idFields: ['id'], // could be a composite key
+      defaultDBConnector: { id: 'default', path: 'Thing' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+      dataFields: [
+        { ...id },
+        {
+          path: 'stuff',
+          contentType: 'TEXT',
+          cardinality: 'ONE',
+          rights: ['CREATE', 'UPDATE', 'DELETE'],
+        },
+      ],
+      linkFields: [
+        {
+          path: 'things',
+          cardinality: 'MANY',
+          relation: 'ThingRelation',
+          plays: 'things',
+          target: 'role',
+          /// rights => Either you want to make it 1) read only 2)replace only 3) update only 4) delete only 5) create only ...
+        },
+      ],
+    },
+    SubthingOne: {
+      extends: 'Thing',
+      defaultDBConnector: { id: 'default' },
+    },
+    SubthingTwo: {
+      extends: 'Thing',
+      defaultDBConnector: { id: 'default' },
+    },
     Account: {
       idFields: ['id'], // could be a composite key
       defaultDBConnector: { id: 'default', path: 'Account' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
@@ -266,6 +297,17 @@ export const testSchema: BormSchema = {
     },
   },
   relations: {
+    ThingRelation: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default', path: 'ThingRelation' },
+      // defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
+      dataFields: [{ ...id }],
+      roles: {
+        things: {
+          cardinality: 'MANY',
+        },
+      },
+    },
     'User-Accounts': {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'User-Accounts' },
