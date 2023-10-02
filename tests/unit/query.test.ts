@@ -1101,7 +1101,7 @@ describe('Query', () => {
     });
   });
 
-  it('TODO:ex2[extends] Query of the parent', async () => {
+  it('ex2[extends] Query of the parent', async () => {
     /// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
     expect(client).toBeDefined();
 
