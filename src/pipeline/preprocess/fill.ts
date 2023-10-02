@@ -17,21 +17,49 @@ import type { PipelineOperation } from '../pipeline';
 // 1) Validate the query (getRawBQLQuery)
 // 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
 
+const sanitizeTempId = (id: string): string => {
+  // Ensure the string starts with "_:"
+  if (!id.startsWith('_:')) {
+    throw new Error("ID must start with '_:'.");
+  }
+
+  // Remove the prefix "_:" for further validation
+  const sanitizedId = id.substring(2);
+
+  // Ensure there are no symbols (only alphanumeric characters, hyphens, and underscores)
+  if (!/^[a-zA-Z0-9-_]+$/.test(sanitizedId)) {
+    throw new Error('$tempId must contain only alphanumeric characters, hyphens, and underscores.');
+  }
+
+  // Ensure the ID is no longer than 36 characters (including the "_:" prefix)
+  if (id.length > 36) {
+    throw new Error('$tempId must not be longer than 36 characters.');
+  }
+
+  return sanitizedId;
+};
+
 export const fillBQLMutation: PipelineOperation = async (req) => {
   const { rawBqlRequest, schema } = req;
 
-  // console.log('rawBqlRequest', JSON.stringify(rawBqlRequest, null, 2));
+  // STEP 1, remove undefined stuff and sanitize tempIds
   const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
     return produce(blocks, (draft) =>
-      traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+      traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
         if (isObject(val)) {
           val = shake(val, (att) => att === undefined);
+        }
+        if (key === '$tempId') {
+          // @ts-expect-error
+          parent[key] = sanitizeTempId(val);
         }
       })
     );
   };
 
   const shakedBqlRequest = shakeBqlRequest(rawBqlRequest);
+
+  // console.log('shakedBqlRequest', JSON.stringify(shakedBqlRequest, null, 3));
 
   const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
     return produce(blocks, (draft) =>
@@ -63,10 +91,9 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           if (!currentSchema) {
             throw new Error(`Schema not found for ${value.$entity || value.$relation}`);
           }
-          value[Symbol.for('bzId') as any] = uuidv4();
-          if (!notRoot) {
-            // value[Symbol.for('dependencies') as any] = [];
-          }
+
+          value.$bzId = value.$tempId ?? `T_${uuidv4()}`;
+
           value[Symbol.for('schema') as any] = currentSchema;
           value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
 
@@ -119,6 +146,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           const multiplayedRoles = usedRoleFieldsMap.filter(
             (roleField) => [...new Set(roleField.schema.playedBy?.map((x) => x.thing))].length !== 1
           );
+
           if (multiplayedRoles.length > 1) {
             throw new Error(
               `Field: ${
@@ -139,8 +167,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             if (currentValue === undefined) return;
             // console.log(':::', { currentField });
 
-            const currentFieldSchema =
-              currentField.fieldType === 'roleField' ? currentField.schema : currentField.schema;
+            const currentFieldSchema = currentField.schema;
 
             if (!currentFieldSchema) throw new Error(`Field ${currentField.path} not found in schema`);
 
@@ -234,7 +261,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
             const currentFieldType = 'plays' in currentFieldSchema ? 'linkField' : 'roleField';
             const childrenThingObj = {
               [`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
-              // [Symbol.for('dependencies')]: [value[Symbol.for('bzId') as any],...value[Symbol.for('dependencies') as any],],
               [Symbol.for('relation') as any]: relation,
               [Symbol.for('edgeType') as any]: currentFieldType,
               [Symbol.for('parent') as any]: {
@@ -272,10 +298,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               if (currentValue.every((x) => isObject(x))) {
                 value[currentField.path] = currentValue.map((y) => {
                   /// when a tempId is specified, in a relation, same as with $id, is a link by default
-                  if (y.$tempId && currentSchema.thingType === 'relation' && (y.$op === 'link' || !y.$op)) {
-                    // throw new Error(`To be done (not allowed with current borm version)`);
-                    return y.$tempId;
-                  }
                   return {
                     ...childrenThingObj,
                     ...y,
@@ -390,7 +412,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               parentOp !== 'create' &&
               currentFieldSchema.cardinality === 'ONE'
             ) {
-              throw new Error(`Please specify if it is a create or an update: ${JSON.stringify(value)} `);
+              throw new Error(`Please specify if it is a create or an update. Path: ${meta.nodePath}`);
             }
             if (value.$tempId && notRoot) return 'link'; // if there is a tempId is always a link,or it's the root unless an unlink op has been set
             if (value.$tempId && !notRoot) return 'create';
@@ -457,31 +479,34 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
                 throw new Error(`No default value for ${fieldPath}`);
               }
               value[fieldPath] = defaultValue; // we already checked that this value has not been defined
+              // value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
               value.$id = defaultValue;
             }
           });
+
+          /*
 
           // if a valid id is setup, move it to $id
           if (!value.$id) {
             if (value[idField]) {
               /// this is in creation when adding an id
-              value.$id = value[idField];
+              // value.$id = value[idField];
             } else {
               if (value.$op === 'create') {
-                throw new Error(`No id found for ${JSON.stringify(value)}`);
+                // throw new Error(`No id found for ${JSON.stringify(value)}`);
               }
               /// link, update, unlink or delete, without id, it gets a generic
               if (!value.$tempId) {
-                const localId = `all-${uuidv4()}`;
+                // const localId = `all-${uuidv4()}`;
                 // value.$tempId = tempId; No longer using this workaround, isLocalid is better
                 // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
-                value.$id = localId; /// we also need to setup it as the $id for chained stuff
+                // value.$id = localId; /// we also need to setup it as the $id for chained stuff
                 /// we need to tag it as a nonDbid
                 value[Symbol.for('isLocalId') as any] = true;
               }
               /// if value.$idTemp id nothing to change, it keeps the current tempId
             }
-          }
+          } */
 
           if (unidentifiedFields.length > 0) {
             throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);

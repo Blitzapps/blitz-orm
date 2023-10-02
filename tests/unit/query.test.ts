@@ -670,6 +670,7 @@ describe('Query', () => {
           $relation: 'UserTagGroup',
           id: 'utg-2',
           color: 'blue',
+          space: 'space-3',
           tags: ['tag-3'],
         },
         users: [
@@ -1101,7 +1102,7 @@ describe('Query', () => {
     });
   });
 
-  it('TODO:ex2[extends] Query of the parent', async () => {
+  it('ex2[extends] Query of the parent', async () => {
     /// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
     expect(client).toBeDefined();
 
