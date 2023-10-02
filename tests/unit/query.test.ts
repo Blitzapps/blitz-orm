@@ -670,6 +670,7 @@ describe('Query', () => {
           $relation: 'UserTagGroup',
           id: 'utg-2',
           color: 'blue',
+          space: 'space-3',
           tags: ['tag-3'],
         },
         users: [

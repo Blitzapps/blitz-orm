@@ -1,4 +1,7 @@
 # Changelog
+## 0.2.3(2023-09-19)
+- New tests
+- Can create nested on existing relation
 ## 0.2.2(2023-09-19)
 - Refacto mutation
 - Working nested deletions and other cases that were not working

@@ -170,7 +170,11 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
             !currentNode?.asThing().iid
             // deletions are not confirmed in typeDB
           ) {
-            throw new Error(`Thing not received on mutation: ${JSON.stringify(exp)}`);
+            throw new Error(
+              `Thing not received on mutation: ${JSON.stringify(
+                exp
+              )}. Probably the relation had all its edges deleted instead of replaced`
+            );
           }
 
           const dbIdd = currentNode?.asThing().iid;

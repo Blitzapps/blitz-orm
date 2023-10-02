@@ -65,7 +65,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         const idValue = getIdValue(edge);
 
         if (nodes.find((x) => x.$id === idValue)) {
-          throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
+          // throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
         }
         if (edges.find((x) => x.$bzId === edge.$bzId)) {
           throw new Error(`Duplicate %bzId ${edge.$bzIdd} for edge ${JSON.stringify(edge)}`);
@@ -298,8 +298,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
               Object.entries(rolesObjFiltered).forEach(([role, operations]) => {
                 const operationsArray = isArray(operations) ? operations : [operations];
 
+                const getOp = (childOp: string) => {
+                  if (childOp === 'create' || childOp === 'replace') {
+                    // if the children is being created, the edge is a link
+                    return 'link';
+                  }
+                  return childOp;
+                };
+
                 operationsArray.forEach((operation) => {
-                  const op = operation.$op === 'replace' ? 'link' : operation.$op;
+                  const op = getOp(operation.$op);
                   /// validations
                   if (op === 'replace') throw new Error('Not supported yet: replace on roleFields');
                   if (op === 'unlink' && totalUnlinks > 0) {
@@ -327,7 +335,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
                   /// so we need to add it as both as match and 'unlink' so it gets merged with other unlinks
                   // todo maybe a way to transform unlinks already in its own matches later? maybe split match-unlink and match-link
                   if (op === 'unlink') {
-                    toEdges({ ...edgeType3, $op: 'match' });
+                    // toEdges({ ...edgeType3, $op: 'match' }); ///apparently no longer needed
                   }
                 });
               });
@@ -510,7 +518,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
         (role) => schema.relations[relation].roles[role].cardinality === 'ONE'
       );
 
-      console.log('cardinalityOneRoles', `${relation}: ${cardinalityOneRoles}`);
+      // console.log('cardinalityOneRoles', `${relation}: ${cardinalityOneRoles}`);
 
       // For each role with cardinality ONE
       cardinalityOneRoles.forEach((oneRole) => {

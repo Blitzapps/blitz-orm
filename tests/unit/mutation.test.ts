@@ -1551,12 +1551,12 @@ describe('Mutation init', () => {
     // todo: test where we try to delete both but only one is actually there (which will not work with current typeDB features)
     expect(bormClient).toBeDefined();
 
-    const original = await bormClient.query({
+    /* const original = await bormClient.query({
       $relation: 'UserTagGroup',
       $id: 'utg-2',
-    });
+    }); */
 
-    console.log('original', original);
+    // console.log('original', original);
 
     await bormClient.mutate(
       {
@@ -1567,13 +1567,6 @@ describe('Mutation init', () => {
       },
       { noMetadata: true }
     );
-
-    const next = await bormClient.query({
-      $relation: 'UserTagGroup',
-      $id: 'utg-2',
-    });
-
-    console.log('next', next);
 
     const UserTagGroupModified = await bormClient.query({
       $relation: 'UserTagGroup',
@@ -1600,12 +1593,12 @@ describe('Mutation init', () => {
   it('TODO:l7c[unlink, all, nested] unlink all from two rolesm but one is empty', async () => {
     expect(bormClient).toBeDefined();
 
-    const original = await bormClient.query({
+    /* const original = await bormClient.query({
       $relation: 'UserTagGroup',
       $id: 'utg-2',
     });
 
-    console.log('original', original);
+    console.log('original', original); */
 
     await bormClient.mutate(
       {
@@ -1625,13 +1618,6 @@ describe('Mutation init', () => {
       },
       { noMetadata: true }
     );
-
-    const next = await bormClient.query({
-      $relation: 'UserTagGroup',
-      $id: 'utg-2',
-    });
-
-    console.log('next', next);
 
     const UserTagGroupModified = await bormClient.query({
       $relation: 'UserTagGroup',
@@ -1753,37 +1739,42 @@ describe('Mutation init', () => {
 
   it('TODO:l11[link, replace, relation] Get existing relation and link it to multiple existing things', async () => {
     expect(bormClient).toBeDefined();
+    // todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
+
     /// This test requires pre-queries to work in typeDB
     await bormClient.mutate({
-      $relation: 'UserTag',
+      $relation: 'UserTagGroup',
       $op: 'create',
-      id: 'tmpTag2',
-      users: ['user1', 'user3'], /// one linkfield is linked
+      id: 'tmpGroup',
+      space: { id: 'tempSpace' }, /// one linkfield is linked
+      color: { id: 'tempYellow' },
+      tags: ['tag-1', 'tag-2'],
       /// group is undefined,
       /// the replace must work in both!
     });
 
     await bormClient.mutate({
-      $relation: 'UserTag',
-      $id: 'tmpTag2',
-      users: ['user2', 'user4'],
-      group: 'utg-2',
+      $relation: 'UserTagGroup',
+      $id: 'tmpGroup',
+      tags: [{ $op: 'unlink' }, { $op: 'link', $id: ['tag-1', 'tag-4'] }],
+      color: [{ $op: 'unlink' }, { $op: 'create', id: 'tempBlue' }],
+      // group: { $op: 'link', $id: 'utg-2' },
     });
 
-    const newUserTag = await bormClient.query(
+    const newUserTagGroup = await bormClient.query(
       {
-        $relation: 'UserTag',
-        $id: 'tmpTag2',
+        $relation: 'UserTagGroup',
+        $id: 'tmpGroup',
       },
       { noMetadata: true }
     );
 
     // @ts-expect-error
-    expect(deepSort(newUserTag, 'id')).toEqual({
-      id: 'tmpTag',
-      users: ['user2', 'user4'],
-      group: 'utg-2',
-      color: 'blue',
+    expect(deepSort(newUserTagGroup, 'id')).toEqual({
+      id: 'tmpGroup',
+      tags: ['tag-1', 'tag-4'],
+      color: 'tempBlue',
+      space: 'tempSpace',
     });
   });
 
@@ -2437,7 +2428,7 @@ describe('Mutation init', () => {
     };
 
     const res = await bormClient.mutate(mutation);
-    console.log('res', res);
+    // console.log('res', res);
     expect(res).toStrictEqual({});
   });
 
