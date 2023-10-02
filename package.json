@@ -34,7 +34,7 @@
     "nanoid": "^4.0.2",
     "object-traversal": "^1.0.1",
     "radash": "^11.0.0",
-    "typedb-client": "2.17.0",
+    "typedb-client": "^2.18.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

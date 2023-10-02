@@ -1,4 +1,4 @@
-import { TypeDBClient, TypeDBSession } from 'typedb-client';
+import { TypeDBClient, TypeDBCredential, TypeDBSession } from 'typedb-client';
 
 export type BormConfig = {
   server: {
@@ -16,12 +16,27 @@ export type BormConfig = {
   dbConnectors: [ProviderObject, ...ProviderObject[]]; // minimum one
 };
 
-export type ProviderObject = {
+export type ProviderObject =
+  | (TypeDBProviderObject & CommonProperties)
+  | (TypeDBClusterProviderObject & CommonProperties);
+
+export interface CommonProperties {
   id: string;
-  provider: 'typeDB';
   dbName: string;
+}
+
+export type Provider = 'typeDB' | 'typeDBCluster';
+
+export interface TypeDBProviderObject {
+  provider: 'typeDB';
   url: string;
-};
+}
+
+export interface TypeDBClusterProviderObject {
+  provider: 'typeDBCluster';
+  addresses: string[];
+  credentials: TypeDBCredential;
+}
 
 // export type DBType = "typeDB" | "dgraph";
 

@@ -53,6 +53,27 @@ class BormClient {
             throw new Error(message);
           }
         }
+        if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
+          const [clientErr, client] = await tryit(TypeDB.clusterClient)(dbc.addresses, dbc.credentials);
+
+          if (clientErr) {
+            const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+              // clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
+              clientErr.message ?? "Can't create TypeDB Cluster Client"
+            }`;
+            throw new Error(message);
+          }
+          try {
+            const session = await client.session(dbc.dbName, SessionType.DATA);
+            dbHandles.typeDB.set(dbc.id, { client, session });
+          } catch (sessionErr: any) {
+            const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+              // eslint-disable-next-line no-underscore-dangle
+              (sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
+            }`;
+            throw new Error(message);
+          }
+        }
       })
     );
     // @ts-expect-error - it becomes enrichedSchema here

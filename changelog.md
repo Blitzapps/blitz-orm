@@ -1,4 +1,6 @@
 # Changelog
+## 0.2.5(2023-10-03)
+- TypeDBCluster compatibility
 
 ## 0.2.4(2023-09-29)
 - Fixed test EX2
