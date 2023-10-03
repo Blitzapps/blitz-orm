@@ -10,7 +10,6 @@ import type { Entity, PipelineOperation } from '../pipeline';
 function isStringOrHasShow<TValue extends { $show?: boolean }>(value: TValue | string): value is TValue {
   return typeof value === 'string' || !!value.$show;
 }
-// TODO: temp solution
 const isOne = (children: any[], $id: string) => {
   if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
     return children[0];
@@ -330,7 +329,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     .filter(notNull)
                     .filter(isStringOrHasShow);
                   if (children.length === 0) return;
-                  // TODO: Children for depth 2 don't get filtered for id
                   if (children && children.length) {
                     if (linkField.cardinality === 'ONE') {
                       // @ts-expect-error
@@ -340,7 +338,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
                     }
                     // @ts-expect-error
                     value[linkField.path] = children;
-                    // TODO: temp solution
 
                     let filtered: { $id?: string } | { $id?: string }[] = {};
                     const filterFunc = (o: any): boolean => {
