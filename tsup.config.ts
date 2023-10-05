@@ -1,9 +1,10 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { defineConfig, Options } from 'tsup';
+import type { Options } from 'tsup';
+import { defineConfig } from 'tsup';
 
 export default defineConfig((options: Options) => ({
-  entry: ['src/index.ts'],
-  dts: true,
-  clean: true,
-  ...options,
+	entry: ['src/index.ts'],
+	dts: true,
+	clean: true,
+	...options,
 }));
