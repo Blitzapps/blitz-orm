@@ -71,10 +71,5 @@
 		"database",
 		"graph-database"
 	],
-	"husky": {
-		"hooks": {
-			"pre-commit": "pnpm precommit"
-		}
-	},
 	"author": "blitznocode.com"
 }
