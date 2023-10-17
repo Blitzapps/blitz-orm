@@ -19,11 +19,9 @@ const providerConfig = {
 };
 
 const createClient = async (connector: any) => {
-	// @ts-expect-error - TODO description
 	if (provider === 'typeDB') {
 		return TypeDB.coreClient(connector.url);
 	}
-	// @ts-expect-error - TODO description
 	if (provider === 'typeDBCluster') {
 		return TypeDB.clusterClient(connector.addresses, connector.credentials);
 	}
