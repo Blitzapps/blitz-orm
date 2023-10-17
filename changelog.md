@@ -1,4 +1,7 @@
 # Changelog
+## 0.2.6(2023-10-17)
+- Fixed nested results which arrive as a single entity when the output is ensured to be a single object (or null)
+
 ## 0.2.1(2023-09-04)
 - Disabled cardinality check as it has false positives
 ## 0.2.0(2023-08-11)
