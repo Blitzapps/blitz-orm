@@ -1,8 +1,8 @@
 import 'jest';
 
-import type BormClient from '../../src/index';
-import { cleanup, init } from '../helpers/lifecycle';
-import { deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
+import type BormClient from '../../../src/index';
+import { cleanup, init } from '../../helpers/lifecycle';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
 // some random issues forced a let here
 let firstUser = {
@@ -55,7 +55,7 @@ const spaceFour = {
 	name: 'Space 4',
 };
 
-describe('Mutation init', () => {
+describe('Mutations: Init', () => {
 	let dbName: string;
 	let bormClient: BormClient;
 
@@ -1164,21 +1164,28 @@ describe('Mutation init', () => {
 		});
 	});
 
-	it('l1[link, add, nested, relation] Update entity by adding a new created relation children', async () => {
+	it('l1[link, add, nested, relation] Update entity by adding a new created relation children. Also test getting ids by tempId', async () => {
 		expect(bormClient).toBeDefined();
-		await bormClient.mutate(
+
+		const editedUser = await bormClient.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user5',
 				'user-tags': [
 					{
 						name: 'a tag',
+						$tempId: '_:newTagId',
+						$op: 'create',
 						group: { color: { id: 'purple' } }, // create new
 					},
 				],
 			},
 			{ noMetadata: true },
 		);
+
+		/// We get the id by its tempId
+		//@ts-expect-error types not perfectly done yet
+		const tagId = editedUser?.find((m) => m[Symbol.for('$tempId')] === 'newTagId')?.id;
 
 		const resUser = await bormClient.query(
 			{
@@ -1199,12 +1206,22 @@ describe('Mutation init', () => {
 			'id': 'user5',
 			'user-tags': [{ id: expect.any(String), name: 'a tag', group: { color: 'purple' } }],
 		});
+
+		/// delete the created tag
+		await bormClient.mutate(
+			{
+				$relation: 'UserTag',
+				$id: tagId,
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
 	});
 
-	it('l2[link, nested, relation] Create and update 3-level nested', async () => {
+	it('l2[link, nested, relation] Create and update 3-level nested. Also test getting ids by type', async () => {
 		expect(bormClient).toBeDefined();
 
-		await bormClient.mutate(
+		const mutation = (await bormClient.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user4',
@@ -1220,7 +1237,17 @@ describe('Mutation init', () => {
 				],
 			},
 			{ noMetadata: true },
-		);
+		)) as object[];
+		//expect mutation to be an array
+		expect(mutation).toBeDefined();
+		expect(mutation).toBeInstanceOf(Array);
+
+		//THis test also test the autogeneration of ids as we are not defining them we need to catch them to delete them
+		const createdTagsIds = mutation
+			// @ts-expect-error - Symbol stuff
+			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTag')
+			// @ts-expect-error - There is an id
+			.map((obj) => obj.id);
 
 		const resUser = await bormClient.query(
 			{
@@ -1252,6 +1279,16 @@ describe('Mutation init', () => {
 				},
 			]),
 		});
+
+		/// now delete the two new tags
+		await bormClient.mutate(
+			{
+				$relation: 'UserTag',
+				$id: createdTagsIds,
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
 	});
 
 	it('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
@@ -1363,6 +1400,7 @@ describe('Mutation init', () => {
 
 	it('l4[link, add, relation, nested] add link in complex relation. Also unlink test to be splitted somewhere', async () => {
 		expect(bormClient).toBeDefined();
+
 		await bormClient.mutate(
 			{
 				'$entity': 'User',
@@ -1591,7 +1629,7 @@ describe('Mutation init', () => {
 	});
 
 	it('l7c[unlink, all, nested] unlink all from two roles but one is empty', async () => {
-    //note: should not work but it does lol
+		//note: should not work but it does lol
 		expect(bormClient).toBeDefined();
 
 		/* const original = await bormClient.query({
@@ -1614,13 +1652,13 @@ describe('Mutation init', () => {
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
-				tags: null, 
+				tags: null,
 				color: null,
 			},
 			{ noMetadata: true },
 		);
 
-    /*const post = await bormClient.query({
+		/*const post = await bormClient.query({
       $relation: 'UserTagGroup',
       $id: 'utg-2',
     });
@@ -1743,10 +1781,18 @@ describe('Mutation init', () => {
 			group: 'utg-1',
 			color: 'yellow',
 		});
+
+		//clean the tmpTag
+		await bormClient.mutate({
+			$relation: 'UserTag',
+			$id: 'tmpTag',
+			$op: 'delete',
+		});
 	});
 
 	it('TODO:l11[link, replace, relation] Get existing relation and link it to multiple existing things', async () => {
 		expect(bormClient).toBeDefined();
+
 		// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
 
 		/// This test requires pre-queries to work in typeDB
@@ -2056,6 +2102,170 @@ describe('Mutation init', () => {
 		]);
 	});
 
+	it('rep1a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [
+				{ $op: 'link', $id: 'tag-3' },
+				{ $op: 'unlink', $id: 'tag-1' },
+			],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(tmpUTG)).toEqual({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			tags: ['tag-2', 'tag-3'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('rep1b[replace, unlink, link, many] Replace using unlink + link single role, by IDs. MultiIds', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2', 'tag-3'],
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [
+				{ $op: 'link', $id: 'tag-4' },
+				{ $op: 'unlink', $id: ['tag-1', 'tag-2'] },
+			],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(tmpUTG)).toEqual({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			tags: ['tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('rep2a[replace, unlink, link, many] Replace using unlink + link , all unlink', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+			color: 'blue',
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [{ $op: 'link', $id: ['tag-4', 'tag-3'] }, { $op: 'unlink' }],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(tmpUTG)).toEqual({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			tags: ['tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+			color: 'blue',
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [{ $op: 'unlink', $id: ['tag-1', 'tag-2'] }, { $op: 'link' }],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(tmpUTG)).toEqual({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity
@@ -2076,490 +2286,6 @@ describe('Mutation init', () => {
     expect(res?.length).toBe(17);
   });
 */
-	it('c1[multi, create, link] Simple tempIds', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$entity: 'User',
-				name: 'Peter',
-				email: 'Peter@test.ru',
-				accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
-			},
-			{
-				$tempId: '_:acc1',
-				$entity: 'Account',
-				provider: 'MetaMask',
-			},
-		]);
-
-		expect(res?.length).toBe(5);
-		const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
-
-		const account = await bormClient.query({ $entity: 'Account', $id: acc1Id });
-		expect(account).toBeDefined();
-		expect(account).toEqual({
-			$entity: 'Account',
-			$id: acc1Id,
-			id: acc1Id,
-			provider: 'MetaMask',
-			// expect any string as the user id is generated by the server
-			user: expect.any(String),
-		});
-	});
-
-	it('c1r[multi, create, link] nested tempIds in relation', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$relation: 'UserTagGroup',
-				$tempId: '_:utg1',
-			},
-			{
-				$relation: 'UserTag',
-				name: 'hey',
-				users: [{ name: 'toDelete' }],
-				group: { $tempId: '_:utg1' },
-			},
-		]);
-
-		expect(res?.length).toBe(5);
-		const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
-
-		const utg = await bormClient.query({
-			$relation: 'UserTagGroup',
-			$id: utg1Id,
-		});
-		expect(utg).toBeDefined();
-		expect(utg).toEqual({
-			$relation: 'UserTagGroup',
-			$id: utg1Id,
-			id: utg1Id,
-			tags: [expect.any(String)],
-		});
-	});
-
-	it('c2[multi, create, link] Nested tempIds simple', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$entity: 'Account',
-				provider: 'Facebook',
-				user: {
-					$tempId: '_:bea',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Google',
-				user: {
-					$op: 'create', // atm we need to indicate 'create' whrn using $tempId
-					$tempId: '_:bea',
-					name: 'Bea',
-					email: 'bea@gmail.com',
-				},
-			},
-		]);
-		expect(res?.length).toBe(5);
-
-		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
-
-		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
-		expect(res2).toBeDefined();
-		expect(res2).toEqual({
-			$entity: 'User',
-			$id: beaId,
-			id: beaId,
-			name: 'Bea',
-			email: 'bea@gmail.com',
-			accounts: [expect.any(String), expect.any(String)],
-		});
-		// delete all
-		await bormClient.mutate([
-			{
-				$entity: 'User',
-				$id: 'bea',
-				$op: 'delete',
-				accounts: [{ $op: 'delete' }], //! wont work while the cascade delete does not work
-			},
-		]);
-	});
-
-	it('c2r[multi, create, link] nested tempIds in relation', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$relation: 'UserTagGroup',
-				$tempId: '_:utg1',
-				color: { id: 'darkGreen' },
-				tags: [{ id: 'tggege', users: [{ $op: 'create', $tempId: '_:us' }] }],
-			},
-			{
-				$relation: 'UserTag',
-				id: 'deletableTag',
-				name: 'hey',
-				users: [{ $tempId: '_:us' }],
-				group: { $tempId: '_:utg1' }, // todo => be able to identify tempIds directly as "_:xxx"
-			},
-		]);
-
-		expect(res?.length).toBe(8);
-		const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
-		const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
-		// console.log('res', res);
-
-		const user = await bormClient.query(
-			{
-				$entity: 'User',
-				$id: usId,
-				$fields: ['id', 'name', { $path: 'user-tags', $fields: ['color', 'group', 'users', 'name'] }],
-			},
-			{ noMetadata: true },
-		);
-		expect(user).toBeDefined();
-
-		const expectedUser = {
-			'id': usId,
-			'name': 'toDelete',
-			'user-tags': [
-				{
-					color: 'darkGreen',
-					group: utg1Id,
-					users: [usId],
-				},
-				{
-					color: 'darkGreen',
-					name: 'hey',
-					group: utg1Id,
-					users: [usId],
-				},
-			],
-		};
-		// console.log('user');
-		// @ts-expect-error - TODO description
-		expectArraysInObjectToContainSameElements(user, expectedUser);
-
-		// clean
-
-		await bormClient.mutate([
-			{
-				$entity: 'User',
-				$id: usId,
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTagGroup',
-				$id: utg1Id,
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTag',
-				$id: 'tggege',
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTag',
-				$id: 'deletableTag',
-				$op: 'delete',
-			},
-		]);
-	});
-
-	it('c3[multi, create, link] Nested tempIds triple', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$entity: 'Account',
-				provider: 'Facebook',
-				user: {
-					$tempId: '_:bea',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Metamask',
-				user: {
-					$tempId: '_:bea',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Google',
-				user: {
-					$op: 'create', // atm we need to indicate 'create' whrn using $tempId
-					$tempId: '_:bea',
-					name: 'Bea',
-					email: 'bea@gmail.com',
-				},
-			},
-		]);
-		expect(res?.length).toBe(7);
-
-		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
-
-		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
-		expect(res2).toBeDefined();
-		expect(res2).toEqual({
-			$entity: 'User',
-			$id: beaId,
-			id: beaId,
-			name: 'Bea',
-			email: 'bea@gmail.com',
-			accounts: [expect.any(String), expect.any(String), expect.any(String)],
-		});
-		// delete all
-		await bormClient.mutate([
-			{
-				$entity: 'User',
-				$id: 'bea',
-				$op: 'delete',
-				accounts: [{ $op: 'delete' }], //! wont work while the cascade delete does not work
-			},
-		]);
-	});
-
-	it('c4[multi, create, link] Complex tempIds', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate([
-			{
-				$entity: 'User',
-				name: 'Peter',
-				email: 'Peter@test.ru',
-				accounts: [
-					{ provider: 'google', $op: 'create' },
-					{ $op: 'create', $tempId: '_:acc1', provider: 'facebook' },
-				],
-			},
-			{
-				$tempId: '_:us1',
-				$entity: 'User',
-				name: 'Bob',
-			},
-			{
-				$entity: 'User',
-				name: 'Bea',
-				accounts: [
-					{ provider: 'facebook' },
-					{ $tempId: '_:gh1' },
-					// { $op: 'link', $filter: { provider: 'google' } },
-				],
-			},
-			{
-				$entity: 'Account',
-				provider: 'Microsoft',
-				user: { name: 'Carla' },
-			},
-			{
-				$tempId: '_:gh1',
-				$entity: 'Account',
-				provider: 'github',
-			},
-			{
-				$entity: 'Account',
-				$tempId: '_:mm',
-				provider: 'metamask',
-			},
-			{
-				$relation: 'User-Accounts',
-				accounts: [{ $tempId: '_:mm' }],
-				user: { $tempId: '_:us1' },
-			},
-		]);
-		expect(res?.length).toBe(17);
-	});
-
-	it('c5[multi, create, link] tempIds in extended relation', async () => {
-		expect(bormClient).toBeDefined();
-		const res1 = await bormClient.mutate([
-			{
-				$entity: 'Space',
-				$tempId: '_:Personal',
-				name: 'Personal',
-			},
-		]);
-
-		const spaceId = (res1 as any)?.id as string;
-
-		await bormClient.mutate([
-			{
-				$entity: 'Space',
-				$id: spaceId,
-				kinds: [
-					{
-						$op: 'create',
-						$tempId: '_:person',
-						name: 'person',
-					},
-				],
-			},
-		]);
-
-		const spaceRes = await bormClient.query(
-			{
-				$entity: 'Space',
-				$id: spaceId,
-				$fields: ['kinds'],
-			},
-			{ noMetadata: true },
-		);
-
-		expect(spaceRes).toBeDefined();
-		expect(spaceRes).toEqual({
-			kinds: [expect.any(String)],
-		});
-	});
-
-	it('e1[duplicate] Duplicate creation', async () => {
-		expect(bormClient).toBeDefined();
-
-		await expect(
-			bormClient.mutate({
-				$relation: 'User-Accounts',
-				id: 'r1',
-				user: {
-					'id': 'u2',
-					'user-tags': [
-						{ id: 'ustag1', color: { id: 'pink' } },
-						{ id: 'ustag2', color: { id: 'pink' } },
-					],
-				},
-			}),
-		).rejects.toThrowError('Duplicate id pink');
-	});
-
-	it('e2[relation] Error for match and $id not found', async () => {
-		expect(bormClient).toBeDefined();
-
-		const mutation = {
-			$relation: 'UserTagGroup',
-			$id: 'tmp-user-tag-group',
-			tags: [{ $op: 'link', $id: 'tag-1' }],
-		};
-
-		const res = await bormClient.mutate(mutation);
-		// console.log('res', res);
-		expect(res).toStrictEqual({});
-	});
-
-	it('e3[create] Check for no $id field on $op create', async () => {
-		expect(bormClient).toBeDefined();
-
-		const mutation = {
-			$entity: 'User',
-			$op: 'create',
-			$id: 'blah',
-			name: 'test testerman',
-			email: 'test@test.com',
-		};
-
-		try {
-			await bormClient.mutate(mutation, { noMetadata: true });
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe("Can't write to computed field $id. Try writing to the id field directly.");
-			} else {
-				expect(true).toBe(false);
-			}
-
-			return;
-		}
-
-		throw new Error('Expected mutation to throw an error');
-	});
-
-	it('e4[update, nested, error] Update all children error', async () => {
-		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(bormClient).toBeDefined();
-
-		try {
-			await bormClient.mutate(
-				{
-					$entity: 'Account',
-					$id: 'account3-1',
-					user: {
-						email: 'theNewEmailOfAnn@gmail.com',
-					},
-				},
-				{ noMetadata: true },
-			);
-			// If the code doesn't throw an error, fail the test
-			expect(true).toBe(false);
-		} catch (error) {
-			if (error instanceof Error) {
-				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('Please specify if it is a create or an update. Path: user');
-			} else {
-				// If the error is not of type Error, fail the test
-				expect(true).toBe(false);
-			}
-		}
-	});
-
-	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
-		expect(bormClient).toBeDefined();
-
-		try {
-			await bormClient.mutate([
-				{
-					$entity: 'User',
-					name: 'Peter',
-					email: 'Peter@test.ru',
-					accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
-				},
-				{
-					$tempId: '_:acc1',
-					$entity: 'Account',
-					provider: 'MetaMask',
-					user: { name: 'Peter' },
-				},
-			]);
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe(
-					'"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation\'s role is of cardinality ONE.\n',
-				);
-			} else {
-				expect(true).toBe(false);
-			}
-
-			return;
-		}
-
-		throw new Error('Expected mutation to throw an error');
-	});
-
-	it('TODO:e6[tempId] Somwhere there is a tempId that has no definition', async () => {
-		expect(bormClient).toBeDefined();
-		// todo: antoine query of nested tempIds without op="create"
-
-		try {
-			await bormClient.mutate([
-				{
-					$entity: 'User',
-					name: 'Peter',
-					email: 'Peter@test.ru',
-					accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
-				},
-				{
-					$tempId: '_:acc1',
-					$entity: 'Account',
-					provider: 'MetaMask',
-					user: { name: 'Peter' },
-				},
-			]);
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe(
-					'"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation\'s role is of cardinality ONE.\n',
-				);
-			} else {
-				expect(true).toBe(false);
-			}
-
-			return;
-		}
-
-		throw new Error('Expected mutation to throw an error');
-	});
 
 	afterAll(async () => {
 		await cleanup(dbName);

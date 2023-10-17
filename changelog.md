@@ -1,4 +1,11 @@
 # Changelog
+## 0.3.0(2023-10-18)
+### breaking changes
+- TempIds require to define operation 'create' or 'link' explicitly
+### other
+- Added mutation tests and started splitting them
+- Added some error messages
+
 ## 0.2.7(2023-10-17)
 - Clean dead code
 - Removed dead dependencies

@@ -379,6 +379,20 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 					const nodePathArray = meta.nodePath?.split('.');
 
+					///nodes with tempId require always an op because we can't know if it is a create or an update
+					if (value.$tempId) {
+						if (!value.$op) {
+							throw new Error(
+								`Please specify if it is a create or an update. Path: ${meta.nodePath}. TempIds can be asigned to new things but can be used to edit/link things created in other parts of the mutation.`,
+							);
+						}
+						if (!(value.$op === 'link' || value.$op === 'create' || value.$op === 'update')) {
+							throw new Error(
+								`Invalid op ${value.$op} for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.`,
+							);
+						}
+					}
+
 					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
 
 					const currentPath = !notRoot

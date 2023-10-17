@@ -421,7 +421,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 			return [...acc.slice(0, existingIndex), thing, ...acc.slice(existingIndex + 1)];
 		}
 		// For all other cases, throw an error
-		throw new Error(`Unsupported operation combination for $tempId "${thing.$tempId}"`);
+		throw new Error(
+			`Unsupported operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
+		);
 	}, [] as BQLMutationBlock[]);
 
 	/// merge attributes of relations that share the same $id
