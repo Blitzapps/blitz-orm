@@ -107,7 +107,6 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-
 		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
 
@@ -222,7 +221,6 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-
 		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
@@ -281,7 +279,6 @@ describe('Query', () => {
 
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
-
 
 		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
@@ -711,45 +708,48 @@ describe('Query', () => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('TODO:r8[relation, nested, deep] - deep nested', async () => {
+	it('r8[relation, nested, deep] - deep nested', async () => {
 		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
 			$fields: [
+				'id',
 				{
 					$path: 'users',
 					$id: 'user2',
-					$fields: [{ $path: 'user-tags', $fields: [{ $path: 'color' }] }],
+					$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color' }, 'id'] }],
 				},
 			],
 		};
 		const expectedRes = {
 			$entity: 'Space',
 			$id: 'space-2',
-			users: [
-				{
-					'$entity': 'User',
-					'$id': 'user2',
-					'user-tags': [
-						{
-							$id: 'tag-3',
-							$relation: 'UserTag',
-							color: {
-								'$entity': 'Color',
-								'$id': 'blue',
-								'group': 'utg-2',
-								'id': 'blue',
-								'user-tags': ['tag-3'],
-							},
+			id: 'space-2',
+			users: {
+				'$entity': 'User',
+				'$id': 'user2',
+				'id': 'user2',
+				'user-tags': [
+					{
+						$id: 'tag-3',
+						id: 'tag-3',
+						$relation: 'UserTag',
+						color: {
+							'$entity': 'Color',
+							'$id': 'blue',
+							'id': 'blue',
+							'group': 'utg-2',
+							'user-tags': ['tag-3'],
 						},
-						{
-							$id: 'tag-4',
-							$relation: 'UserTag',
-						},
-					],
-				},
-			],
+					},
+					{
+						$id: 'tag-4',
+						id: 'tag-4',
+						$relation: 'UserTag',
+					},
+				],
+			},
 		};
 		const res = await client.query(query);
 		expect(res).toBeDefined();
@@ -763,7 +763,7 @@ describe('Query', () => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r8[relation, nested, ids]', async () => {
+	it('r9[relation, nested, ids]', async () => {
 		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTagGroup',
@@ -1190,7 +1190,6 @@ describe('Query', () => {
 			power: 'rhythm',
 		});
 	});
-
 
 	/*
   it('[entity,nested, filter] - $filter on children property', async () => {
