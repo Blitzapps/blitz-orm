@@ -18,27 +18,29 @@ export type BormConfig = {
 
 export type ProviderObject =
 	| (TypeDBProviderObject & CommonProperties)
-	| (TypeDBClusterProviderObject & CommonProperties);
+	| (TypeDBClusterProviderObject & CommonProperties)
+	| (DgraphProviderObject & CommonProperties);
 
 export interface CommonProperties {
 	id: string;
 	dbName: string;
 }
 
-export type Provider = 'typeDB' | 'typeDBCluster';
+export type Provider = 'typeDB' | 'typeDBCluster' | 'dgraph';
 
+export interface DgraphProviderObject {
+	provider: 'dgraph';
+	url: string;
+}
 export interface TypeDBProviderObject {
 	provider: 'typeDB';
 	url: string;
 }
-
 export interface TypeDBClusterProviderObject {
 	provider: 'typeDBCluster';
 	addresses: string[];
 	credentials: TypeDBCredential;
 }
-
-// export type DBType = "typeDB" | "dgraph";
 
 export type DBConnector = {
 	id: string;

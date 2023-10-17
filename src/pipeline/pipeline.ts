@@ -3,7 +3,7 @@ import type { ConceptMap, ConceptMapGroup } from 'typedb-client';
 
 import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
-import { parseBQLQuery, buildTQLQuery } from './preprocess';
+import { parseBQLQuery, buildDBQuery } from './preprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
 import { fillBQLMutation } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
@@ -28,7 +28,7 @@ export type ID = string;
 type EntityID = ID;
 export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;
 
-type Request = {
+export type PipelineRequest = {
 	rawBqlRequest: RawBQLRequest;
 	filledBqlRequest?: FilledBQLMutationBlock[] | FilledBQLMutationBlock; // todo: transform into filledBQLRequest with queries as well
 	bqlRequest?: { query?: BQLQuery; mutation?: BQLMutation };
@@ -38,7 +38,7 @@ type Request = {
 	dbHandles: DBHandles;
 };
 
-type Response = {
+export type PipelineResponse = {
 	rawTqlRes?: {
 		// queries
 		entity?: ConceptMapGroup[];
@@ -64,17 +64,17 @@ type Response = {
 };
 
 type NextPipeline = {
-	req: Request;
-	res: Response;
+	req: PipelineRequest;
+	res: PipelineResponse;
 	pipeline: PipelineOperation[];
 };
 
-export type PipelineOperation = (req: Request, res: Response) => Promise<void | NextPipeline[]>;
+export type PipelineOperation = (req: PipelineRequest, res: PipelineResponse) => Promise<void | NextPipeline[]>;
 
 export type Pipeline = PipelineOperation[];
 
 export const Pipelines: Record<string, Pipeline> = {
-	query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
+	query: [parseBQLQuery, buildDBQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
 	mutation: [fillBQLMutation, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };
 
@@ -83,8 +83,8 @@ const finalPipeline = [buildBQLTree];
 
 const runPipeline = async (
 	pipeline: Pipeline,
-	req: Request,
-	res: Response = {},
+	req: PipelineRequest,
+	res: PipelineResponse = {},
 	root = true,
 	// todo: ts antoine
 	// eslint-disable-next-line consistent-return
@@ -121,8 +121,8 @@ export const queryPipeline = (
 	bormConfig: BormConfig,
 	bormSchema: EnrichedBormSchema,
 	dbHandles: DBHandles,
-) =>
-	runPipeline(
+) => {
+	return runPipeline(
 		Pipelines.query,
 		{
 			config: bormConfig,
@@ -132,6 +132,7 @@ export const queryPipeline = (
 		},
 		{},
 	);
+};
 
 export const mutationPipeline = (
 	bqlRequest: RawBQLRequest,

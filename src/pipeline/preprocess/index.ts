@@ -1,2 +1,2 @@
-export * from './buildTQLQuery';
+export * from './typeDB/buildTQLQuery';
 export * from './parseBQLQuery';
