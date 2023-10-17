@@ -8,6 +8,13 @@ import { getCurrentFields, notNull, oFilter } from '../../helpers';
 import type { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
 
+const isOne = (children: any[], $id: string) => {
+	if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
+		return children[0];
+	}
+	return children;
+};
+
 const isStringOrHasShow = <TValue extends { $show?: boolean }>(value: TValue | string): value is TValue => {
 	return typeof value === 'string' || !!value.$show;
 };
@@ -25,7 +32,6 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 				if (value.$tempId) {
 					value.$tempId = `_:${value.$tempId}`;
 				}
-
 				if (value.$fields) {
 					delete value.$fields;
 				}
@@ -57,6 +63,7 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 					delete value.$excludedFields;
 				}
 			},
+
 			/* if (Array.isArray(value) && value.length === 0) {
       value = null;
     } */
@@ -190,6 +197,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		const output = cleanOutput(res.bqlRes, config);
 		// @ts-expect-error - TODO description
 		res.bqlRes = output;
+
 		return;
 	}
 	if (!cache) {
@@ -239,6 +247,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 				return;
 			}
 
+    
 			const thingName = '$entity' in value ? value.$entity : value.$relation;
 			if (thingName) {
 				// INIT
@@ -258,6 +267,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 						// if $fields is present, only return those fields, if not, everything
 						const queriedDataFields = value.$fields ? value.$fields : dataFields;
 
+            
 						listify(entity, (k, v) => {
 							if (k.startsWith('$')) {
 								return;
@@ -423,6 +433,8 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										}
 										acc[opposingRole.entityName].add(opposingRole.id);
 									}
+
+                  
 									return acc;
 								}, {});
 
@@ -443,6 +455,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										return;
 									}
 
+                  
 									if (children && children.length) {
 										if (linkField.cardinality === 'ONE') {
 											// @ts-expect-error - TODO description
@@ -452,6 +465,30 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										}
 										// @ts-expect-error - TODO description
 										value[linkField.path] = children;
+
+										let filtered: { $id?: string } | { $id?: string }[] = {};
+										const filterFunc = (o: any): boolean => {
+											if (o.$path === linkField.path) {
+												filtered = o;
+											}
+											return o?.$fields?.forEach(filterFunc);
+										};
+										let pathAndIdMatch = '';
+										query.$fields?.forEach(filterFunc);
+										if (filtered) {
+											if (!Array.isArray(filtered.$id)) {
+												// @ts-expect-error - TODO description
+												pathAndIdMatch = filtered.$id;
+
+												// if (filtered.$id.length === 1) {
+												//   const firstEl = filtered.$id[0];
+												//   pathAndIdMatch = firstEl;
+												// }
+											}
+										}
+										// @ts-expect-error - TODO description
+										value[linkField.path] = isOne(children, pathAndIdMatch);
+
 									}
 								});
 								// const $id = $fieldConf ? $fieldConf.$id : null;
@@ -467,6 +504,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		}),
 	);
 
+  
 	const withoutFieldFilters = cleanOutput(bqlTree, config);
 
 	// res.bqlRes = monoOutput ? bqlRes[0] : bqlRes;
