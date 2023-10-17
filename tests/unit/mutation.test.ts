@@ -1590,7 +1590,8 @@ describe('Mutation init', () => {
 		});
 	});
 
-	it('TODO:l7c[unlink, all, nested] unlink all from two rolesm but one is empty', async () => {
+	it('l7c[unlink, all, nested] unlink all from two roles but one is empty', async () => {
+    //note: should not work but it does lol
 		expect(bormClient).toBeDefined();
 
 		/* const original = await bormClient.query({
@@ -1613,11 +1614,18 @@ describe('Mutation init', () => {
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
-				tags: null, // by default this is just an unlink, but sometimes if specified in the schema, it will be also a delete
+				tags: null, 
 				color: null,
 			},
 			{ noMetadata: true },
 		);
+
+    /*const post = await bormClient.query({
+      $relation: 'UserTagGroup',
+      $id: 'utg-2',
+    });
+
+    console.log('post', post); */
 
 		const UserTagGroupModified = await bormClient.query({
 			$relation: 'UserTagGroup',

@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.7(2023-10-17)
+- Clean dead code
+- Removed dead dependencies
+- Migrated to pnpm
+- updated packages
+
 ## 0.2.6(2023-10-17)
 - Fixed nested results which arrive as a single entity when the output is ensured to be a single object (or null)
 

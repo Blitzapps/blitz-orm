@@ -1,17 +1,22 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"dev": "tsup --dts --watch",
 		"build": "tsup --dts --treeshake --minify",
-		"lint": "eslint --fix --quiet . --ext .ts,.cjs",
-		"lint-staged": "lint-staged --concurrent false",
-		"types": "tsc --noEmit",
+		"deploy": "pnpm build && pnpm publish",
+		"dev": "tsup --dts --watch",
+		"knip": "knip",
+		"lint:check": "eslint src --quiet --ext .ts,.tsx",
+		"lint:fix": "eslint src --ext .ts,.tsx --fix",
+		"lint-staged": "lint-staged",
+		"precommit": "pnpm types && pnpm lint-staged && pnpm test:ignoreTodo",
+		"preinstall": "npx only-allow pnpm",
 		"test": "jest --coverage",
+		"test:ignoreTodo": "jest -t \"^(?!.*TODO:).*\"",
 		"test:watch": "jest --watch",
-		"deploy": "npm run build && npm publish"
+		"types": "tsc --noEmit"
 	},
 	"private": false,
 	"license": "AGPL-3.0-only",
@@ -30,26 +35,27 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
-		"immer": "^10.0.2",
-		"nanoid": "^4.0.2",
+		"immer": "^10.0.3",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
 		"typedb-client": "^2.18.2",
-		"uuid": "^9.0.0"
+		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
 		"@blitznocode/eslint-config": "^1.0.1",
-		"@types/jest": "^29.5.3",
-		"@types/node": "^20.4.5",
-		"@types/uuid": "^9.0.2",
-		"@typescript-eslint/eslint-plugin": "^6.2.1",
-		"@typescript-eslint/parser": "^6.2.1",
-		"eslint": "^8.49.0",
-		"jest": "^29.6.2",
+		"@types/jest": "^29.5.5",
+		"@types/node": "^20.8.6",
+		"@types/uuid": "^9.0.5",
+		"eslint": "^8.51.0",
+		"husky": "^8.0.3",
+		"jest": "^29.7.0",
+		"knip": "^2.33.4",
+		"lint-staged": "^15.0.1",
+		"only-allow": "^1.2.1",
 		"prettier": "^3.0.3",
 		"ts-jest": "^29.1.1",
-		"tsup": "^7.1.0",
-		"typescript": "^5.1.6"
+		"tsup": "^7.2.0",
+		"typescript": "^5.2.2"
 	},
 	"description": "Blitz-orm is a public package that can be open-sourced",
 	"bugs": {
@@ -64,5 +70,10 @@
 		"database",
 		"graph-database"
 	],
-	"author": "blitznocode"
+	"husky": {
+		"hooks": {
+			"pre-commit": "pnpm precommit"
+		}
+	},
+	"author": "blitznocode.com"
 }

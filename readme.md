@@ -1,7 +1,7 @@
 # Blitz-orm
-Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings.
+Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.
 
-Blitz-orm is similar to other ORM packages such as Prisma. You define a BQL schema and it gets translated to different databases (currently only compatible with TypeDB).
+Blitz-orm is similar to other ORM packages such as Prisma. You define a BQL schema and it gets translated to different databases (currently only compatible with TypeDB but a dgraph adapter in the oven).
 
 ## Compatibility
 Currently, the only database that is compatible with Blitz-orm is TypeDB. The goal is to build adapters for other graph databases such as Dgraph and Neo4j, as well as classic databases like PostgreSQL and MongoDB in the future.
@@ -64,3 +64,7 @@ To see what is currently working and find examples, please check the test folder
 - Enhance functionality with new features such as, cardinality management, ordered attributes, Vectors (ordered relations)...
 - Expand compatibility to other graph databases and traditional databases such as PostgreSQL or MongoDB
 - Enable the ability to split queries and mutations across multiple databases (for example, some data stored in PostgreSQL and other data in typeQL, all queried from a single point)
+
+## Development
+- We use pnpm as a package manager
+- You will need to add "-w", for instance `pnpm add -D husky -w`

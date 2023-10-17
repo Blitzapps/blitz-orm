@@ -23,7 +23,7 @@ import type {
 
 export type RelationName = string;
 export type EntityName = string;
-export type RoleName = string;
+type RoleName = string;
 export type ID = string;
 type EntityID = ID;
 export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;
@@ -71,9 +71,9 @@ type NextPipeline = {
 
 export type PipelineOperation = (req: Request, res: Response) => Promise<void | NextPipeline[]>;
 
-export type Pipeline = PipelineOperation[];
+type Pipeline = PipelineOperation[];
 
-export const Pipelines: Record<string, Pipeline> = {
+const Pipelines: Record<string, Pipeline> = {
 	query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
 	mutation: [fillBQLMutation, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };

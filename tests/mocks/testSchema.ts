@@ -2,14 +2,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
 
-export const name: DataField = {
+const name: DataField = {
 	shared: true,
 	path: 'name',
 	cardinality: 'ONE',
 	contentType: 'TEXT',
 };
 
-export const description: DataField = {
+const description: DataField = {
 	shared: true,
 	path: 'description',
 	contentType: 'TEXT',
@@ -22,12 +22,12 @@ const timestamp: DataField = {
 	contentType: 'DATE',
 };
 
-export const string: Omit<DataField, 'path'> = {
+const string: Omit<DataField, 'path'> = {
 	cardinality: 'ONE',
 	contentType: 'TEXT',
 };
 
-export const id: DataField = {
+const id: DataField = {
 	shared: true,
 	path: 'id',
 	cardinality: 'ONE',

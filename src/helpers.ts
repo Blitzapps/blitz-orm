@@ -19,7 +19,7 @@ import type {
 	BormEntity,
 } from './types';
 
-export const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
+const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
 	shared ? attribute : `${thing}·${attribute}`;
 
 export const getPath = (dbPath: string) => {
@@ -378,12 +378,13 @@ export const getLocalFilters = (
 	return localFiltersTql;
 };
 
+/*
 export const arrayAt = <T>(arr: T[] | undefined, index: number): T | undefined => {
 	if (arr === undefined || !Array.isArray(arr) || index < -arr.length || index >= arr.length) {
 		return undefined;
 	}
 	return arr[index < 0 ? arr.length + index : index];
-};
+};*/
 
 export const notNull = <TValue>(value: TValue | null): value is TValue => {
 	return value !== null;
