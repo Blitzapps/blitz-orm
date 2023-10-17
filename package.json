@@ -38,6 +38,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@blitznocode/eslint-config": "^1.0.1",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.5",
     "@types/uuid": "^9.0.2",
