@@ -25,8 +25,12 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 			draft,
 			({ value }: TraversalCallbackContext) => {
 				// if it is an array or an object, then return
+
 				if (Array.isArray(value) || !(typeof value === 'object')) {
 					return;
+				}
+				if (value.$tempId) {
+					value.$tempId = `_:${value.$tempId}`;
 				}
 				if (value.$fields) {
 					delete value.$fields;
@@ -37,6 +41,10 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 				if (value.$show) {
 					delete value.$show;
 				}
+				if (value.$bzId) {
+					delete value.$bzId;
+				}
+
 				if (config.query?.noMetadata && (value.$entity || value.$relation)) {
 					delete value.$entity;
 					delete value.$relation;
@@ -101,14 +109,68 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
 					if (currentFieldConf.$id === id) {
 						return withFieldsEntity;
 					}
-				} else {
-					// no id, then every entity
-					return withFieldsEntity;
 				}
+				// console.log('Main log: ', JSON.stringify(withFieldsEntity, null, 2));
+
+				if (withFieldsEntity.$fields && withFieldsEntity.$fields.includes('id') && !withFieldsEntity.$show) {
+					let returnVal = '';
+
+					withFieldsEntity.$fields.forEach((field: string) => {
+						if (field === 'id') {
+							// @ts-expect-error - TODO description
+							returnVal = withFieldsEntity.$id;
+						} else {
+							// @ts-expect-error - TODO description
+							returnVal = withFieldsEntity;
+						}
+					});
+					return returnVal;
+				}
+				// no id, then every entity
+				// TODO: include other branch merge changes here
+				return withFieldsEntity;
 			}
 			return null;
 		})
 		.filter((x) => x);
+
+const replaceBzIds = (resItems: any[], things: any[]) => {
+	const mapping = {};
+
+	// Create a mapping from $bzId to $id
+	things.forEach((thing: any) => {
+		// @ts-expect-error - TODO description
+		mapping[thing.$bzId] = thing.$id;
+	});
+	// Replace values in the first array
+	resItems.forEach((item) => {
+		Object.keys(item).forEach((key) => {
+			// @ts-expect-error - TODO description
+			if (mapping[item[key]] && key !== '$tempId') {
+				// @ts-expect-error - TODO description
+
+				item[key] = mapping[item[key]];
+			}
+		});
+	});
+
+	return resItems;
+};
+
+const hasMatches = (resItems: any[], things: any[]): boolean => {
+	const bzIds = things.map((thing) => thing.$bzId);
+	let found = false;
+
+	resItems.forEach((item) => {
+		Object.keys(item).forEach((key) => {
+			if (bzIds.includes(item[key])) {
+				found = true;
+			}
+		});
+	});
+
+	return found;
+};
 
 export const buildBQLTree: PipelineOperation = async (req, res) => {
 	const { bqlRequest, config, schema } = req;
@@ -122,7 +184,20 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 	const { query } = bqlRequest;
 	if (!query) {
 		// @ts-expect-error - TODO description
-		res.bqlRes = cleanOutput(res.bqlRes, config);
+		const resItems = res.bqlRes[0] ? res.bqlRes : [res.bqlRes];
+		const things = req.bqlRequest?.mutation?.things;
+		// @ts-expect-error - TODO description
+		const matchesFound = hasMatches(resItems, things);
+		if (matchesFound) {
+			// @ts-expect-error - TODO description
+			const replaced = replaceBzIds(resItems, things);
+			res.bqlRes = replaced[1] ? replaced : replaced[0];
+		}
+		// @ts-expect-error - TODO description
+		const output = cleanOutput(res.bqlRes, config);
+		// @ts-expect-error - TODO description
+		res.bqlRes = output;
+
 		return;
 	}
 	if (!cache) {
@@ -171,12 +246,16 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 			if (!value?.$entity && !value?.$relation) {
 				return;
 			}
+
+    
 			const thingName = '$entity' in value ? value.$entity : value.$relation;
 			if (thingName) {
 				// INIT
 				const currentIds = Array.isArray(value.$id) ? value.$id : [value.$id];
 				const currentSchema = '$relation' in value ? schema.relations[value.$relation] : schema.entities[value.$entity];
+
 				const { dataFields, roleFields } = getCurrentFields(currentSchema);
+
 				// #region DATAFIELDS
 				const currentEntities = cache.entities.get(thingName);
 				if (!currentEntities) {
@@ -187,6 +266,8 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 					if (currentIds.includes(id)) {
 						// if $fields is present, only return those fields, if not, everything
 						const queriedDataFields = value.$fields ? value.$fields : dataFields;
+
+            
 						listify(entity, (k, v) => {
 							if (k.startsWith('$')) {
 								return;
@@ -353,6 +434,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										acc[opposingRole.entityName].add(opposingRole.id);
 									}
 
+                  
 									return acc;
 								}, {});
 
@@ -372,6 +454,8 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 									if (children.length === 0) {
 										return;
 									}
+
+                  
 									if (children && children.length) {
 										if (linkField.cardinality === 'ONE') {
 											// @ts-expect-error - TODO description
@@ -404,6 +488,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										}
 										// @ts-expect-error - TODO description
 										value[linkField.path] = isOne(children, pathAndIdMatch);
+
 									}
 								});
 								// const $id = $fieldConf ? $fieldConf.$id : null;
@@ -418,6 +503,8 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 			//   console.log('VALUE', isDraft(value) ? current(value) : value);
 		}),
 	);
+
+  
 	const withoutFieldFilters = cleanOutput(bqlTree, config);
 
 	// res.bqlRes = monoOutput ? bqlRes[0] : bqlRes;

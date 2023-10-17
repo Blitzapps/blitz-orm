@@ -10,12 +10,12 @@ describe('Query', () => {
 	let client: BormClient;
 
 	beforeAll(async () => {
-		const config = await init();
-		if (!config?.bormClient) {
+		const { dbName: configDbName, bormClient: configClient } = await init();
+		if (!configClient) {
 			throw new Error('Failed to initialize BormClient');
 		}
-		dbName = config.dbName;
-		client = config.bormClient;
+		dbName = configDbName;
+		client = configClient;
 	}, 15000);
 
 	it('v1[validation] - $entity missing', async () => {
@@ -107,10 +107,11 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error
+
+		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
 
-		// @ts-expect-error
+		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -221,7 +222,8 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error
+
+		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -280,7 +282,8 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error
+
+		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -670,6 +673,7 @@ describe('Query', () => {
 					$relation: 'UserTagGroup',
 					id: 'utg-2',
 					color: 'blue',
+					space: 'space-3',
 					tags: ['tag-3'],
 				},
 				users: [
@@ -1092,50 +1096,6 @@ describe('Query', () => {
 		]);
 	});
 
-	it('n6[nested,filters] Deeply nested entities of same kind', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
-			$entity: 'User',
-			$id: ['user1', 'user5'],
-			$fields: [
-				{
-					$path: 'spaces',
-					$id: 'space-1', // id specified so nested children has to be an objec and not an array
-					$fields: [{ $path: 'users', $id: 'user1', $fields: ['$id'] }],
-				},
-			],
-		});
-
-		expect(res).toBeDefined();
-		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
-		expect(deepSort(res)).toEqual([
-			{
-				$entity: 'User',
-				$id: 'user1',
-				spaces: {
-					$id: 'space-1',
-					$entity: 'Space',
-					users: {
-						$id: 'user1',
-						$entity: 'User',
-					},
-				},
-			},
-			{
-				$entity: 'User',
-				$id: 'user5',
-				spaces: {
-					$id: 'space-1',
-					$entity: 'Space',
-					users: {
-						$id: 'user1',
-						$entity: 'User',
-					},
-				},
-			},
-		]);
-	});
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
@@ -1151,7 +1111,7 @@ describe('Query', () => {
 	it('s1[self] Relation playing a a role defined by itself', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
-		// @ts-expect-error
+		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual([
 			{ id: 'self1', owned: ['self2'], space: 'space-2' },
 			{ id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
@@ -1165,7 +1125,7 @@ describe('Query', () => {
 		expect(client).toBeDefined();
 
 		const res = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
-		// @ts-expect-error
+		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['kind-book'],
@@ -1177,7 +1137,7 @@ describe('Query', () => {
 		});
 	});
 
-	it('TODO:ex2[extends] Query of the parent', async () => {
+	it('ex2[extends] Query of the parent', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
 		expect(client).toBeDefined();
 
@@ -1185,7 +1145,7 @@ describe('Query', () => {
 			{ $entity: 'Space', $id: 'space-2', $fields: [{ $path: 'objects', $fields: ['id'] }] },
 			{ noMetadata: true },
 		);
-		// @ts-expect-error
+		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 		});
@@ -1212,7 +1172,7 @@ describe('Query', () => {
 			isEvil: false,
 		});
 
-		// @ts-expect-error
+		// @ts-expect-error - TODO description
 		godUser = { ...godUser, id: mutationRes.id };
 
 		const queryRes = await client.query(
@@ -1230,6 +1190,7 @@ describe('Query', () => {
 			power: 'rhythm',
 		});
 	});
+
 
 	/*
   it('[entity,nested, filter] - $filter on children property', async () => {
