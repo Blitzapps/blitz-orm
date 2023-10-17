@@ -1,5 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-client';
+import { DgraphClientStub, DgraphClient, grpc } from 'dgraph-js';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -27,8 +28,15 @@ class BormClient {
 	}
 
 	init = async () => {
-		const dbHandles = { typeDB: new Map() };
+		const dbHandles = { typeDB: new Map(), dgraph: new Map() };
 		const enrichedSchema = enrichSchema(this.schema);
+		if (this.config.dbConnectors.length === 0) {
+			throw new Error('No dbConnectors provided');
+		}
+		if (this.config.dbConnectors.length > 1) {
+			throw new Error('Only one dbConnector is supported at the moment');
+		}
+
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
@@ -73,6 +81,11 @@ class BormClient {
 						}`;
 						throw new Error(message);
 					}
+				}
+				if (dbc.provider === 'dgraph' && dbc.dbName) {
+					const clientStub = new DgraphClientStub(dbc.url, grpc.credentials.createInsecure());
+					const client = new DgraphClient(clientStub);
+					dbHandles.dgraph.set(dbc.id, { client });
 				}
 			}),
 		);

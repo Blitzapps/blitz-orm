@@ -30,6 +30,7 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
+		"dgraph-js": "^21.3.1",
 		"immer": "^10.0.2",
 		"nanoid": "^4.0.2",
 		"object-traversal": "^1.0.1",
