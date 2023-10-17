@@ -457,7 +457,7 @@ describe('Mutation init', () => {
 			{ noMetadata: true },
 		);
 		expect(res2).toEqual({
-			spaces: [{ name: 'newSpace2' }], // todo there is a $id so at some point this should not be an array
+			spaces: { name: 'newSpace2' }, // todo there is a $id so at some point this should not be an array
 		});
 
 		// clean spaceTwo

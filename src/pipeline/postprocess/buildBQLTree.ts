@@ -247,7 +247,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 				return;
 			}
 
-    
 			const thingName = '$entity' in value ? value.$entity : value.$relation;
 			if (thingName) {
 				// INIT
@@ -267,7 +266,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 						// if $fields is present, only return those fields, if not, everything
 						const queriedDataFields = value.$fields ? value.$fields : dataFields;
 
-            
 						listify(entity, (k, v) => {
 							if (k.startsWith('$')) {
 								return;
@@ -434,7 +432,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										acc[opposingRole.entityName].add(opposingRole.id);
 									}
 
-                  
 									return acc;
 								}, {});
 
@@ -455,7 +452,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										return;
 									}
 
-                  
 									if (children && children.length) {
 										if (linkField.cardinality === 'ONE') {
 											// @ts-expect-error - TODO description
@@ -488,7 +484,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 										}
 										// @ts-expect-error - TODO description
 										value[linkField.path] = isOne(children, pathAndIdMatch);
-
 									}
 								});
 								// const $id = $fieldConf ? $fieldConf.$id : null;
@@ -504,7 +499,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		}),
 	);
 
-  
 	const withoutFieldFilters = cleanOutput(bqlTree, config);
 
 	// res.bqlRes = monoOutput ? bqlRes[0] : bqlRes;
