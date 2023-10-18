@@ -55,7 +55,6 @@ describe('Mutations: batched and tempId', () => {
 			{
 				$relation: 'UserTagGroup',
 				$tempId: '_:utg1',
-				$op: 'create',
 			},
 			{
 				$relation: 'UserTag',

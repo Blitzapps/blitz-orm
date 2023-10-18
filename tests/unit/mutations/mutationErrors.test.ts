@@ -171,35 +171,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('e7a[tempId] Ambiguity', async () => {
-		expect(bormClient).toBeDefined();
-		// todo: antoine query of nested tempIds without op="create"
-
-		try {
-			await bormClient.mutate([
-				{
-					$entity: 'User',
-					name: 'Peter',
-					email: 'Peter@test.ru',
-					accounts: [{ provider: 'google', $tempId: '_:acc1' }],
-				},
-			]);
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe(
-					'Please specify if it is a create or an update. Path: 0.accounts.0. TempIds can be asigned to new things but can be used to edit/link things created in other parts of the mutation.',
-				);
-			} else {
-				expect(true).toBe(false);
-			}
-
-			return;
-		}
-
-		throw new Error('Expected mutation to throw an error');
-	});
-
-	it('e7b[tempId, deletion] Delete tempId', async () => {
+	it('e7a[tempId, deletion] Delete tempId', async () => {
 		expect(bormClient).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 
@@ -227,7 +199,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('e7c[tempId, unlink] Unlink tempId', async () => {
+	it('e7b[tempId, unlink] Unlink tempId', async () => {
 		expect(bormClient).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 

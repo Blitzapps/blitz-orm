@@ -1,7 +1,7 @@
 import 'jest';
 
-import type BormClient from '../../src/index';
-import { cleanup, init } from '../helpers/lifecycle';
+import type BormClient from '../../../src/index';
+import { cleanup, init } from '../../helpers/lifecycle';
 
 describe('Mutation init', () => {
 	let dbName: string;

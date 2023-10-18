@@ -1,9 +1,9 @@
 import 'jest';
 import { v4 as uuidv4 } from 'uuid';
 
-import type BormClient from '../../src/index';
-import { cleanup, init } from '../helpers/lifecycle';
-import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../helpers/matchers';
+import type BormClient from '../../../src/index';
+import { cleanup, init } from '../../helpers/lifecycle';
+import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
 describe('Query', () => {
 	let dbName: string;
@@ -959,7 +959,7 @@ describe('Query', () => {
 		});
 	});
 
-	it('n3[nested] First level filtered fields', async () => {
+	it('n3[nested, $fields] First level filtered fields', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({
 			$entity: 'User',
@@ -981,8 +981,7 @@ describe('Query', () => {
 		});
 	});
 
-	// todo fix this test, which is the only one in the queries which should fail. But check that the only issue is an array instead of an object
-	it('n4a[nested,filters] Local filter on nested, by id', async () => {
+	it('n4a[nested, $id] Local filter on nested, by id', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({
 			$entity: 'User',
@@ -1025,7 +1024,7 @@ describe('Query', () => {
 		]);
 	});
 
-	it('n4b[nested,filters] Local filter on nested depth two, by id', async () => {
+	it('n4b[nested, $id] Local filter on nested depth two, by id', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({
 			$entity: 'User',
@@ -1055,7 +1054,34 @@ describe('Query', () => {
 		});
 	});
 
-	it('n5[nested,filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
+	it('nf1[nested, $filters] Local filter on nested, single id', async () => {
+		expect(client).toBeDefined();
+		const query = {
+			$entity: 'User',
+			$id: 'user1',
+			$fields: ['name', { $path: 'accounts', $filter: { provider: 'github' } }],
+		};
+		const res = await client.query(query);
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		// @ts-expect-error - res is not a string
+		expect(deepSort(res)).toEqual({
+			$entity: 'User',
+			$id: 'user1',
+			name: 'Antoine',
+			accounts: [
+				{
+					$entity: 'Account',
+					$id: 'account1-3',
+					id: 'account1-3',
+					provider: 'github',
+					user: 'user1',
+				},
+			],
+		});
+	});
+
+	it('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({
 			$entity: 'User',

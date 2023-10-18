@@ -1,4 +1,9 @@
 # Changelog
+## 0.3.1(2023-10-18)
+- changed the $tempId behaviour to be 'create' by default (no need to declare explicitly)
+- Clean tests added filter test
+- Restructured tests
+
 ## 0.3.0(2023-10-18)
 ### breaking changes
 - TempIds require to define operation 'create' or 'link' explicitly

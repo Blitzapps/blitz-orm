@@ -1175,7 +1175,6 @@ describe('Mutations: Init', () => {
 					{
 						name: 'a tag',
 						$tempId: '_:newTagId',
-						$op: 'create',
 						group: { color: { id: 'purple' } }, // create new
 					},
 				],
