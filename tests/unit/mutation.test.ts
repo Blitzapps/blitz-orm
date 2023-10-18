@@ -2553,6 +2553,32 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
+  it.only('TODO:r1[replace] replace role in relation', async () => {
+    expect(bormClient).toBeDefined();
+
+    // const res = await bormClient.query({
+    //   $relation: 'ThingRelation',
+    //   // $filter: { $path: 'things', $id: ['thing5'] },
+    //   $filter: { things: { id: 'thing5' } },
+    //   // $fields: [{ $path: 'things', $fields: ['id'] }],
+    //   // $filter: { things: [{ $id: 'thing5' }] },
+    //   // things: {
+    //   //   $op: 'replace', // we need to specify $op = 'update' or it will be considered as 'create'
+    //   //   $id: 'thing4',
+    //   // },
+    // });
+    const res = await bormClient.mutate({
+      $relation: 'ThingRelation',
+      // $filter: { things: { id: 'thing5' } },
+      things: {
+        $op: 'replace',
+        $id: 'thing4',
+      },
+    });
+    console.log('Response: ', JSON.stringify(res, null, 2));
+    expect(res).toBeDefined();
+  });
+
   afterAll(async () => {
     await cleanup(dbName);
   });

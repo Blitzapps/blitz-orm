@@ -166,6 +166,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
         // console.log('current:', JSON.stringify(x));
 
         if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
+          console.log('current node: ', JSON.stringify(currentNode, null, 2));
           if (
             !currentNode?.asThing().iid
             // deletions are not confirmed in typeDB
