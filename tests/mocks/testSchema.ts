@@ -68,6 +68,14 @@ export const testSchema: BormSchema = {
           target: 'role',
           /// rights => Either you want to make it 1) read only 2)replace only 3) update only 4) delete only 5) create only ...
         },
+        {
+          path: 'extra',
+          cardinality: 'ONE',
+          relation: 'ThingRelation',
+          plays: 'extra',
+          target: 'role',
+          /// rights => Either you want to make it 1) read only 2)replace only 3) update only 4) delete only 5) create only ...
+        },
       ],
     },
     SubthingOne: {
@@ -315,6 +323,9 @@ export const testSchema: BormSchema = {
           cardinality: 'MANY',
         },
         root: {
+          cardinality: 'ONE',
+        },
+        extra: {
           cardinality: 'ONE',
         },
       },

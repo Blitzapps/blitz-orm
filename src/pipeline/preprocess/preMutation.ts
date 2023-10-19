@@ -1,144 +1,77 @@
 import { produce } from 'immer';
 import { TraversalCallbackContext, traverse } from 'object-traversal';
 import { isObject } from 'radash';
+import { v4 as uuidv4 } from 'uuid';
 
 import { BQLMutationBlock } from '../../types';
 import { queryPipeline, type PipelineOperation } from '../pipeline';
 
 export const preMutation: PipelineOperation = async (req) => {
-  const { rawBqlRequest, schema } = req;
-  // let replaces: { val: any; key: string }[] = [];
-  const mutationToQuery = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
-    return produce(blocks, (draft) =>
-      traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
-        if (isObject(val)) {
-          if (parent) {
-            if (key !== '$filter') {
-              // if (key && parent[key].$op === 'replace') {
-              //   replaces = [...replaces, ...[{ val: parent[key], key }]];
-              // }
-              // @ts-expect-error
-              parent[key] = undefined;
-              parent.$fields = parent.$fields ? [...parent.$fields, ...[key]] : [key];
-            }
-          }
-        }
-      })
-    );
-  };
-  const query = mutationToQuery(rawBqlRequest);
-  console.log('bqlReq: ', JSON.stringify(query, null, 2));
+  const { filledBqlRequest, schema } = req;
+  console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
+
+  console.log('schema: ', JSON.stringify(schema.relations.ThingRelation, null, 2));
+
   // @ts-expect-error
-  const queryRes = await queryPipeline(query, req.config, req.schema, req.dbHandles);
-  console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
-  console.log('rawBqlRequest: ', JSON.stringify(rawBqlRequest, null, 2));
+  const queryRes = await queryPipeline(filledBqlRequest, req.config, req.schema, req.dbHandles);
+  // console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
   // console.log('replaces: ', JSON.stringify(replaces, null, 2));
-
-  // queryRes:  [
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       "thing5"
-  //     ],
-  //     "$id": "tr4"
-  //   },
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       "thing5"
-  //     ],
-  //     "$id": "tr2"
-  //   },
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       "thing5"
-  //     ],
-  //     "$id": "tr3"
-  //   }
-  // ]
-
-  // rawBqlRequest:  {
-  //   "$relation": "ThingRelation",
-  //   "things": {
-  //     "$op": "replace",
-  //     "$id": "thing4"
-  //   }
-  // }
-  // TODO: find a way to get replace keys
-  const replaces = [{ entityType: 'relation', entityVal: 'ThingRelation', key: 'things', $id: 'thing4' }];
-  const checkSchema = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
+  // TODO: test for multiple entity/relation type replaces at onces
+  const fillReplaces = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
     return produce(blocks, (draft) =>
       traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
-        if (isObject(val)) {
-          if (!key?.includes('$')) {
-            // @ts-expect-error
-            if (parent) console.log('in things: ', JSON.stringify(parent[key], null, 2));
-            const replace = replaces[0];
+        if (!key?.includes('$') && (Array.isArray(val) || isObject(val))) {
+          const values = Array.isArray(val) ? val : [val]; // Convert both array and single object into array for processing
+          // Transform $op: "replace" to $op: "link"
+          values.forEach((thing) => {
+            if (thing.$op === 'replace') {
+              thing.$op = 'link';
+            }
+          });
 
-            if (parent && key) {
-              const unlinks = Array.isArray(parent[key][replace.key])
-                ? parent[key][replace.key].map((o: string) => {
-                    return { $op: 'unlink', $id: o };
-                  })
-                : [];
-              if (parent[key][replace.key]) {
-                parent[key][replace.key] = [{ $op: 'link', $id: replace.$id }, ...unlinks];
+          // Extract IDs from queryRes
+          let idsFromQueryRes: any[] = [];
+          // @ts-expect-error
+          const queryVal = queryRes[key];
+          if (Array.isArray(queryVal)) {
+            idsFromQueryRes = queryVal.map((thing) => (typeof thing === 'object' ? thing.$id : thing));
+          } else if (typeof queryVal === 'string') {
+            idsFromQueryRes = [queryVal];
+          }
+          // Get the dynamic $entity or $relation
+          // // @ts-expect-error
+          // const { thingType } = schema.relations.ThingRelation.roles[key].playedBy[0];
+          // const thingValue = thingType === 'entity' ? 'Thing' : 'ThingRelation';
+          // const thingKey = thingType === 'entity' ? '$entity' : '$relation';
+          // For every ID in queryResult that's not in filledBqlRequest, add $op: "unlink"
+          idsFromQueryRes.forEach((id: any) => {
+            if (!values.some((thing: any) => thing.$id === id)) {
+              const unlinkOp = {
+                // TODO: get dynamic $entity or $relation
+                // [thingKey]: thingValue,
+                $entity: 'Thing',
+                $op: 'unlink',
+                $id: id,
+                $bzId: `T_${uuidv4()}`,
+              };
+              if (Array.isArray(val)) {
+                val.push(unlinkOp);
+              } else {
+                // If it's an object, replace the object with an array containing both the old and the new item
+                // @ts-expect-error
+                parent[key] = [val, unlinkOp];
               }
             }
-          }
+          });
         }
       })
     );
   };
-  // @ts-expect-error
-  const checkedSchema = checkSchema(queryRes);
-  console.log('checkedSchema: ', JSON.stringify(checkedSchema, null, 2));
 
-  // checkedSchema:  [
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       {
-  //         "$op": "link",
-  //         "$id": "thing4"
-  //       },
-  //       {
-  //         "$op": "unlink",
-  //         "$id": "thing5"
-  //       }
-  //     ],
-  //     "$id": "tr4"
-  //   },
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       {
-  //         "$op": "link",
-  //         "$id": "thing4"
-  //       },
-  //       {
-  //         "$op": "unlink",
-  //         "$id": "thing5"
-  //       }
-  //     ],
-  //     "$id": "tr2"
-  //   },
-  //   {
-  //     "$relation": "ThingRelation",
-  //     "things": [
-  //       {
-  //         "$op": "link",
-  //         "$id": "thing4"
-  //       },
-  //       {
-  //         "$op": "unlink",
-  //         "$id": "thing5"
-  //       }
-  //     ],
-  //     "$id": "tr3"
-  //   }
-  // ]
   // @ts-expect-error
-  req.rawBqlRequest = checkedSchema;
+  const filledReplaces = fillReplaces(filledBqlRequest);
+  // console.log('filledReplaces: ', JSON.stringify(filledReplaces, null, 2));
+
+  // @ts-expect-error
+  req.filledBqlRequest = filledReplaces;
 };

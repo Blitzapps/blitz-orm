@@ -2553,30 +2553,57 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
-  it.only('TODO:r1[replace] replace role in relation', async () => {
+  it.only('TODO:r1[replace] replace single roles in relation', async () => {
     expect(bormClient).toBeDefined();
-
-    // const res = await bormClient.query({
-    //   $relation: 'ThingRelation',
-    //   // $filter: { $path: 'things', $id: ['thing5'] },
-    //   $filter: { things: { id: 'thing5' } },
-    //   // $fields: [{ $path: 'things', $fields: ['id'] }],
-    //   // $filter: { things: [{ $id: 'thing5' }] },
-    //   // things: {
-    //   //   $op: 'replace', // we need to specify $op = 'update' or it will be considered as 'create'
-    //   //   $id: 'thing4',
-    //   // },
-    // });
-    const res = await bormClient.mutate({
+    // cardinality one
+    const res1 = await bormClient.mutate({
       $relation: 'ThingRelation',
-      // $filter: { things: { id: 'thing5' } },
-      things: {
-        $op: 'replace',
-        $id: 'thing4',
-      },
+      $id: 'tr2',
+      root: 'thing4',
     });
-    console.log('Response: ', JSON.stringify(res, null, 2));
-    expect(res).toBeDefined();
+    console.log('res1: ', JSON.stringify(res1, null, 2));
+
+    // cardinality many
+    const res2 = await bormClient.mutate({
+      $relation: 'ThingRelation',
+      $id: 'tr2',
+      things: ['thing4'],
+    });
+    console.log('res2: ', JSON.stringify(res2, null, 2));
+    const queryRes = await bormClient.query(
+      {
+        $relation: 'ThingRelation',
+        $id: 'tr2',
+      },
+      { noMetadata: true }
+    );
+    console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
+
+    expect(queryRes).toBeDefined();
+    // TODO - SAM: create expectation
+  });
+
+  it.only('TODO:r1[replace] replace many roles in relation', async () => {
+    expect(bormClient).toBeDefined();
+    // cardinality one
+    const res1 = await bormClient.mutate({
+      $relation: 'ThingRelation',
+      $id: 'tr2',
+      root: 'thing4',
+      things: ['thing4'],
+    });
+
+    const queryRes = await bormClient.query(
+      {
+        $relation: 'ThingRelation',
+        $id: 'tr2',
+      },
+      { noMetadata: true }
+    );
+    console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
+
+    expect(queryRes).toBeDefined();
+    // TODO - SAM: create expectation
   });
 
   afterAll(async () => {

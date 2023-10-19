@@ -76,7 +76,7 @@ export type Pipeline = PipelineOperation[];
 
 export const Pipelines: Record<string, Pipeline> = {
   query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
-  mutation: [preMutation, fillBQLMutation, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
+  mutation: [fillBQLMutation, preMutation, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];

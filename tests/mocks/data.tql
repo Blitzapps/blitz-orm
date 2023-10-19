@@ -23,9 +23,9 @@ $subthing-two-3 isa SubthingTwo, has id "subthingtwo3", has stuff "K";
 
 # $thingrelation-1 (things: $thing1, things: $subthing-one-1, things: $subthing-two-1, things: $subthing-two-2) isa ThingRelation, has id 'tr1';
 
-$thingrelation-2 (things: $thing5, root: $thing1) isa ThingRelation, has id 'tr2';
-$thingrelation-3 (things: $thing5, root: $thing1) isa ThingRelation, has id 'tr3';
-$thingrelation-4 (things: $thing5, root: $thing1) isa ThingRelation, has id 'tr4';
+$thingrelation-2 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr2';
+$thingrelation-3 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr3';
+$thingrelation-4 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr4';
 
 
 

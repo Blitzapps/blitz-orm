@@ -51,6 +51,7 @@ Thing sub entity,
     owns id@key,
     owns stuff,
     plays ThingRelation:root,
+    plays ThingRelation:extra,
     plays ThingRelation:things;
 
 
@@ -60,6 +61,7 @@ SubthingTwo sub Thing;
 ThingRelation sub relation,
     owns id @key,
     relates root,
+    relates extra,
     relates things;
 
 
