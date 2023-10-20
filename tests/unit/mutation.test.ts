@@ -2553,23 +2553,21 @@ describe('Mutation init', () => {
     throw new Error('Expected mutation to throw an error');
   });
 
-  it.only('TODO:r1[replace] replace single roles in relation', async () => {
+  it('TODO:r1[replace] replace single roles in relation', async () => {
     expect(bormClient).toBeDefined();
     // cardinality one
-    const res1 = await bormClient.mutate({
+    await bormClient.mutate({
       $relation: 'ThingRelation',
       $id: 'tr2',
       root: 'thing4',
     });
-    console.log('res1: ', JSON.stringify(res1, null, 2));
 
     // cardinality many
-    const res2 = await bormClient.mutate({
+    await bormClient.mutate({
       $relation: 'ThingRelation',
       $id: 'tr2',
       things: ['thing4'],
     });
-    console.log('res2: ', JSON.stringify(res2, null, 2));
     const queryRes = await bormClient.query(
       {
         $relation: 'ThingRelation',
@@ -2577,18 +2575,22 @@ describe('Mutation init', () => {
       },
       { noMetadata: true }
     );
-    console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
 
     expect(queryRes).toBeDefined();
-    // TODO - SAM: create expectation
+    expect(queryRes).toEqual({
+      id: 'tr2',
+      things: ['thing4'],
+      root: 'thing4',
+      extra: 'thing1',
+    });
   });
 
-  it.only('TODO:r1[replace] replace many roles in relation', async () => {
+  it('TODO:r2[replace] replace many roles in relation', async () => {
     expect(bormClient).toBeDefined();
-    // cardinality one
-    const res1 = await bormClient.mutate({
+
+    await bormClient.mutate({
       $relation: 'ThingRelation',
-      $id: 'tr2',
+      $id: 'tr3',
       root: 'thing4',
       things: ['thing4'],
     });
@@ -2596,14 +2598,61 @@ describe('Mutation init', () => {
     const queryRes = await bormClient.query(
       {
         $relation: 'ThingRelation',
-        $id: 'tr2',
+        $id: 'tr3',
       },
       { noMetadata: true }
     );
-    console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
 
     expect(queryRes).toBeDefined();
-    // TODO - SAM: create expectation
+    expect(queryRes).toEqual({
+      id: 'tr3',
+      things: ['thing4'],
+      root: 'thing4',
+      extra: 'thing1',
+    });
+  });
+
+  it('TODO:r3[replace] replace many roles in many relation', async () => {
+    expect(bormClient).toBeDefined();
+
+    await bormClient.mutate([
+      {
+        $relation: 'ThingRelation',
+        $id: 'tr2',
+        root: 'thing4',
+        things: ['thing4'],
+      },
+      {
+        $relation: 'ThingRelation',
+        $id: 'tr3',
+        root: 'thing4',
+        things: ['thing4'],
+      },
+    ]);
+
+    const queryRes = await bormClient.query(
+      {
+        $relation: 'ThingRelation',
+        $id: ['tr4', 'tr5'],
+      },
+      { noMetadata: true }
+    );
+
+    expect(queryRes).toBeDefined();
+    expect(queryRes).toEqual([
+      {
+        id: 'tr5',
+        things: ['thing5'],
+        root: 'thing1',
+        extra: 'thing1',
+      },
+      {
+        id: 'tr4',
+        things: ['thing5'],
+        root: 'thing1',
+        extra: 'thing1',
+      },
+    ]);
   });
 
   afterAll(async () => {
