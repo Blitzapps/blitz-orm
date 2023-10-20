@@ -274,7 +274,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 							// @ts-expect-error - No need to compute if it was received somehow from the DB or if it is not a virtual field
 							if (queriedDataFields?.includes(virtualField) && value[virtualField] === undefined) {
 								const fieldSchema = currentSchema.dataFields?.find((x) => x.path === virtualField);
-								const computedValue = compute(entity, fieldSchema);
+								const computedValue = compute({ currentThing: entity, fieldSchema: fieldSchema });
 
 								// @ts-expect-error - TODO description
 								value[virtualField] = computedValue;

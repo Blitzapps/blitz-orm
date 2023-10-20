@@ -492,7 +492,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 						throw new Error(`Node ${JSON.stringify(value)} without $entity/$relation`);
 					}
 
-					const { idFields, computedFields } = currentSchema;
+					const { idFields, computedFields, virtualFields } = currentSchema;
 					// todo: composite ids
 					if (!idFields) {
 						throw new Error('No idFields found');
@@ -500,7 +500,12 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					const [idField] = idFields;
 					// console.log('computedFields', computedFields);
 
-					const filledFields = listify(value, (attKey, v) => (v ? attKey : undefined));
+					const filledFields = listify(value, (attKey, v) => (v !== undefined ? attKey : undefined)) as string[];
+					/// if at least one of the filled fields is virtual, then throw error
+					const virtualFilledFields = filledFields.filter((x) => virtualFields?.includes(x));
+					if (virtualFilledFields.length > 0) {
+						throw new Error(`Virtual fields can't be sent to DB: "${virtualFilledFields.join(',')}"`);
+					}
 					const missingComputedFields = computedFields.filter((x) => !filledFields.includes(x));
 
 					// fill computed values
@@ -521,7 +526,11 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 						// We generate id fields when needed
 						if (fieldPath === idField && value.$op === 'create' && !value[fieldPath]) {
-							const defaultValue = compute(value, currentDef as EnrichedDataField); //id is always a datafield
+							const defaultValue = compute({
+								currentThing: value,
+								fieldSchema: currentDef as EnrichedDataField, //id is always a datafield.
+								mandatoryDependencies: true, //can't send to db without every dependency being there
+							});
 
 							value[fieldPath] = defaultValue; // we already checked that this value has not been defined
 							// value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId

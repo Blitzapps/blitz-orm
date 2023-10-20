@@ -288,6 +288,29 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('TODO:e-v1[virtual] Cant insert virtual', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'Color',
+					isBlue: false,
+				},
+			]);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Virtual fields can\'t be sent to DB: "isBlue"');
+			} else {
+				expect(true).toBe(false);
+			}
+
+			return;
+		}
+
+		throw new Error('Expected mutation to throw an error');
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});

@@ -1,6 +1,11 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.3.3(2023-10-20)
+- Virtual's depencencies are optional
+- Default values with formula require always all the dependencies
+- Can't send virtual fields
+
 ## 0.3.2(2023-10-20)
 - Virtual fields are now supported and can use local values 
 - Default values can also use local values
