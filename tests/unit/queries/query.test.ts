@@ -514,6 +514,7 @@ describe('Query', () => {
 		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Color',
+			$fields: ['id', 'user-tags', 'group'],
 		};
 		const expectedRes = [
 			{
@@ -596,7 +597,12 @@ describe('Query', () => {
 		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
-			$fields: ['id', { $path: 'users', $fields: ['id', 'spaces'] }, { $path: 'group' }, { $path: 'color' }],
+			$fields: [
+				'id',
+				{ $path: 'users', $fields: ['id', 'spaces'] },
+				{ $path: 'group' },
+				{ $path: 'color', $fields: ['id', 'user-tags', 'group'] },
+			],
 		};
 		const expectedRes = [
 			{
@@ -718,7 +724,10 @@ describe('Query', () => {
 				{
 					$path: 'users',
 					$id: 'user2',
-					$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color' }, 'id'] }],
+					$fields: [
+						'id',
+						{ $path: 'user-tags', $fields: [{ $path: 'color', $fields: ['id', 'user-tags', 'group'] }, 'id'] },
+					],
 				},
 			],
 		};
@@ -1177,7 +1186,7 @@ describe('Query', () => {
 		});
 	});
 
-	it('x1[excludedFields] Testing excluded fields', async () => {
+	it('xf1[excludedFields] Testing excluded fields', async () => {
 		expect(client).toBeDefined();
 		let godUser = {
 			$entity: 'God',
@@ -1215,6 +1224,82 @@ describe('Query', () => {
 			name: 'Tom Jenkinson',
 			power: 'rhythm',
 		});
+	});
+
+	it('TODO:xf2[excludedFields, deep] - deep nested', async () => {
+		expect(client).toBeDefined();
+		const query = {
+			$entity: 'Space',
+			$id: 'space-2',
+			$fields: [
+				'id',
+				{
+					$path: 'users',
+					$id: 'user2',
+					$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['id'] }, 'id'] }],
+				},
+			],
+		};
+		const expectedRes = {
+			$entity: 'Space',
+			$id: 'space-2',
+			id: 'space-2',
+			users: {
+				'$entity': 'User',
+				'$id': 'user2',
+				'id': 'user2',
+				'user-tags': [
+					{
+						$id: 'tag-3',
+						id: 'tag-3',
+						$relation: 'UserTag',
+						color: {
+							'$entity': 'Color',
+							'$id': 'blue',
+							'id': 'blue',
+							'group': 'utg-2',
+							'user-tags': ['tag-3'],
+						},
+					},
+					{
+						$id: 'tag-4',
+						id: 'tag-4',
+						$relation: 'UserTag',
+					},
+				],
+			},
+		};
+		const res = await client.query(query);
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		// @ts-expect-error - res should be a defined array
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		const resWithoutMetadata = await client.query(query, {
+			noMetadata: true,
+		});
+		// @ts-expect-error - res should be a defined array
+		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+	});
+
+	it('v1[virtual] Virtual field', async () => {
+		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+		expect(client).toBeDefined();
+
+		const res = await client.query(
+			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
+			{ noMetadata: true },
+		);
+		// @ts-expect-error - TODO description
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				isBlue: true,
+			},
+			{
+				id: 'yellow',
+				isBlue: false,
+			},
+		]);
 	});
 
 	/*

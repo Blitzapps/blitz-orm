@@ -7,6 +7,7 @@ import { isObject, listify } from 'radash';
 import { getCurrentFields, notNull, oFilter } from '../../helpers';
 import type { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
+import { compute } from '../../engine/compute';
 
 const isOne = (children: any[], $id: string) => {
 	if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
@@ -265,6 +266,20 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 					if (currentIds.includes(id)) {
 						// if $fields is present, only return those fields, if not, everything
 						const queriedDataFields = value.$fields ? value.$fields : dataFields;
+
+						/// Virtual fields
+						const { virtualFields } = currentSchema;
+						//for each vitualFIelfd present in the queried datas print them
+						virtualFields?.forEach((virtualField) => {
+							// @ts-expect-error - No need to compute if it was received somehow from the DB or if it is not a virtual field
+							if (queriedDataFields?.includes(virtualField) && value[virtualField] === undefined) {
+								const fieldSchema = currentSchema.dataFields?.find((x) => x.path === virtualField);
+								const computedValue = compute(entity, fieldSchema);
+
+								// @ts-expect-error - TODO description
+								value[virtualField] = computedValue;
+							}
+						});
 
 						listify(entity, (k, v) => {
 							if (k.startsWith('$')) {

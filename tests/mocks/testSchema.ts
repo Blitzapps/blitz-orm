@@ -235,6 +235,16 @@ export const testSchema: BormSchema = {
           contentType: 'TEXT',
           rights: ['CREATE'],
         }, */
+				{
+					path: 'isBlue',
+					cardinality: 'ONE',
+					contentType: 'BOOLEAN', //no boolean yet
+					isVirtual: true,
+					default: {
+						type: 'function',
+						value: ({ id }: any) => (id === 'blue' ? true : false),
+					},
+				},
 			],
 			linkFields: [
 				{

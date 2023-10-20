@@ -93,6 +93,7 @@ export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'd
 	thingType: 'entity';
 	name: string;
 	computedFields: string[];
+	virtualFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
 };
@@ -101,6 +102,7 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 	thingType: 'relation';
 	name: string;
 	computedFields: string[];
+	virtualFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
 	roles: { [key: string]: EnrichedRoleField };
@@ -191,6 +193,7 @@ export type DataField = BormField & {
 	default?: any; // todo: is either a value or a fn that return a value of the type datatype
 	contentType: ContentType;
 	validations?: any; // todo
+	isVirtual?: boolean;
 	dbConnectors?: [DBConnector, ...DBConnector[]];
 };
 

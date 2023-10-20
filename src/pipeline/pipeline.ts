@@ -23,7 +23,7 @@ import type {
 
 export type RelationName = string;
 export type EntityName = string;
-type RoleName = string;
+
 export type ID = string;
 type EntityID = ID;
 export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;

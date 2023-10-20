@@ -1,4 +1,10 @@
 # Changelog
+📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+
+## 0.3.2(2023-10-20)
+- Virtual fields are now supported and can use local values 
+- Default values can also use local values
+
 ## 0.3.1(2023-10-18)
 - changed the $tempId behaviour to be 'create' by default (no need to declare explicitly)
 - Clean tests added filter test

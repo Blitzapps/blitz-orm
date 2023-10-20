@@ -8,11 +8,13 @@ import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
 import type {
 	BQLMutationBlock,
 	EnrichedBormRelation,
+	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
 } from '../../types';
 import type { PipelineOperation } from '../pipeline';
+import { compute } from '../../engine/compute';
 
 // parseBQLQueryObjectives:
 // 1) Validate the query (getRawBQLQuery)
@@ -519,10 +521,8 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 						// We generate id fields when needed
 						if (fieldPath === idField && value.$op === 'create' && !value[fieldPath]) {
-							const defaultValue = 'default' in currentDef ? currentDef.default?.value() : undefined;
-							if (!defaultValue) {
-								throw new Error(`No default value for ${fieldPath}`);
-							}
+							const defaultValue = compute(value, currentDef as EnrichedDataField); //id is always a datafield
+
 							value[fieldPath] = defaultValue; // we already checked that this value has not been defined
 							// value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
 							value.$id = defaultValue;

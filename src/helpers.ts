@@ -155,6 +155,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 				value.thingType = thingType();
 				// init the array of computed values
 				value.computedFields = [];
+				value.virtualFields = [];
 				// adding all the linkfields to roles
 				if ('roles' in value) {
 					const val = value as EnrichedBormRelation;
@@ -237,8 +238,13 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 			if (meta.depth === 4 && (value.default || value.computedValue)) {
 				const [type, thingId] = meta.nodePath?.split('.') || [];
 				// todo:
-				// @ts-expect-error - TODO description
-				draft[type][thingId].computedFields.push(value.path);
+				if (value.isVirtual) {
+					// @ts-expect-error - TODO description
+					draft[type][thingId].virtualFields.push(value.path);
+				} else {
+					// @ts-expect-error - TODO description
+					draft[type][thingId].computedFields.push(value.path);
+				}
 			}
 		}),
 	) as EnrichedBormSchema;
