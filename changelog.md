@@ -1,4 +1,36 @@
 # Changelog
+📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+
+## 0.3.3(2023-10-20)
+- Virtual's depencencies are optional
+- Default values with formula require always all the dependencies
+- Can't send virtual fields
+
+## 0.3.2(2023-10-20)
+- Virtual fields are now supported and can use local values 
+- Default values can also use local values
+
+## 0.3.1(2023-10-18)
+- changed the $tempId behaviour to be 'create' by default (no need to declare explicitly)
+- Clean tests added filter test
+- Restructured tests
+
+## 0.3.0(2023-10-18)
+### breaking changes
+- TempIds require to define operation 'create' or 'link' explicitly
+### other
+- Added mutation tests and started splitting them
+- Added some error messages
+
+## 0.2.7(2023-10-17)
+- Clean dead code
+- Removed dead dependencies
+- Migrated to pnpm
+- updated packages
+
+## 0.2.6(2023-10-17)
+- Fixed nested results which arrive as a single entity when the output is ensured to be a single object (or null)
+
 ## 0.2.5(2023-10-03)
 - TypeDBCluster compatibility
 

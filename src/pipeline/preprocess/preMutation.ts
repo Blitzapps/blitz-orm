@@ -8,7 +8,7 @@ import { queryPipeline, type PipelineOperation } from '../pipeline';
 
 export const preMutation: PipelineOperation = async (req) => {
   const { filledBqlRequest } = req;
-  // TODO: check for replaces, if there are, perform pre-query
+  // check for replaces, if there are, perform pre-query
   const checkForReplaces = (blocks: BQLMutationBlock | BQLMutationBlock[]): boolean => {
     let hasReplace = false;
 
@@ -26,7 +26,6 @@ export const preMutation: PipelineOperation = async (req) => {
   const hasReplace = checkForReplaces(filledBqlRequest);
 
   if (hasReplace) {
-    console.log('HAS REPLACE');
     // console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
     // TODO: get filter replaces to work
     const convertMutationToQuery = (
