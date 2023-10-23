@@ -311,6 +311,28 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('e-pq1[create, nested] With pre-query, create when there is already something error', async () => {
+		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
+		expect(bormClient).toBeDefined();
+
+		const res = await bormClient.mutate(
+			{
+				$entity: 'Account',
+				$id: 'account3-1',
+				user: {
+					$op: 'create',
+					email: 'theNewEmailOfAnn@gmail.com',
+				},
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			todo: `somehow describe that nothing happened for that particular branch,
+    or at least show that there is no 'theNewEmail' in theof new stuff`,
+		});
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});
