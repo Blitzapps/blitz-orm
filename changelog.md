@@ -1,6 +1,11 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.4.0(2023-10-24)
+- Can now replace by id
+- Can't replace if link operation is specified
+- Performs pre-query in pipeline for error checks and replaces
+
 ## 0.3.3(2023-10-20)
 - Virtual's depencencies are optional
 - Default values with formula require always all the dependencies

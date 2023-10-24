@@ -122,6 +122,12 @@ describe('Mutations: Init', () => {
 			// @ts-expect-error - There is an id
 			.map((obj) => obj.id);
 
+		const createdTagGroupsIds = mutation
+			// @ts-expect-error - Symbol stuff
+			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTagGroup')
+			// @ts-expect-error - There is an id
+			.map((obj) => obj.id);
+
 		const resUser = await bormClient.query(
 			{
 				$entity: 'User',
@@ -158,6 +164,15 @@ describe('Mutations: Init', () => {
 			{
 				$relation: 'UserTag',
 				$id: createdTagsIds,
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
+
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: createdTagGroupsIds,
 				$op: 'delete',
 			},
 			{ noMetadata: true },
@@ -203,6 +218,7 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
+
 		expect(user).toBeDefined();
 		expect(user).toEqual({
 			id: 'user2',
@@ -677,7 +693,6 @@ describe('Mutations: Init', () => {
 			/// group is undefined,
 			/// the replace must work in both!
 		});
-
 		await bormClient.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpGroup',

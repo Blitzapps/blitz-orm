@@ -59,14 +59,14 @@ export const testSchema: BormSchema = {
 					plays: 'things',
 					target: 'role',
 				},
-        {
+				{
 					path: 'root',
 					cardinality: 'ONE',
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'role',
 				},
-        {
+				{
 					path: 'extra',
 					cardinality: 'ONE',
 					relation: 'ThingRelation',
@@ -329,10 +329,10 @@ export const testSchema: BormSchema = {
 				things: {
 					cardinality: 'MANY',
 				},
-        root: {
+				root: {
 					cardinality: 'ONE',
 				},
-        extra: {
+				extra: {
 					cardinality: 'ONE',
 				},
 			},

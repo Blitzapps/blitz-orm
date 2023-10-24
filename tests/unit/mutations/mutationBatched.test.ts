@@ -446,13 +446,13 @@ describe('Mutations: batched and tempId', () => {
 		expect(queryRes).toBeDefined();
 		expect(queryRes).toEqual([
 			{
-				id: 'tr4',
+				id: 'tr5',
 				things: ['thing4'],
 				root: 'thing4',
 				extra: 'thing1',
 			},
 			{
-				id: 'tr5',
+				id: 'tr4',
 				things: ['thing4'],
 				root: 'thing4',
 				extra: 'thing1',
