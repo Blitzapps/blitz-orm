@@ -288,7 +288,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:e-v1[virtual] Cant insert virtual', async () => {
+	it('e-v1[virtual] Cant insert virtual', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {

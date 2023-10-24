@@ -4,7 +4,7 @@ import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort } from '../../helpers/matchers';
 
-describe('Mutations: Init', () => {
+describe('Mutations: Edges', () => {
 	let dbName: string;
 	let bormClient: BormClient;
 
