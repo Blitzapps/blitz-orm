@@ -1,5 +1,9 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+
+## 0.4.7(2023-10-26)
+- Chore: As module
+
 ## 0.4.6(2023-10-26)
 - Types: $filter can infer the array vs object dilema (yet)
 

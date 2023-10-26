@@ -1,11 +1,15 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.4.6",
-	"main": "dist/index.js",
+	"version": "0.4.7",
+	"main": "dist/index.cjs",
 	"types": "dist/index.d.ts",
+	"type": "module",
+	"exports": {
+		".": "./dist"
+	},
 	"scripts": {
-		"build": "tsup --dts --treeshake --minify",
-		"dev": "tsup --dts --watch",
+		"build": "tsup --clean --dts --treeshake --minify",
+		"dev": "tsup --dts --watch --sourcemap",
 		"knip": "knip",
 		"husky:prepare": "husky install",
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
