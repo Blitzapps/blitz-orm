@@ -61,7 +61,7 @@ type Response = {
 		relations: Map<RelationName, Map<EntityName, EntityID>[]>;
 		roleLinks: Map<EntityID, { [path: string]: EntityID | EntityID[] }>;
 	};
-	bqlRes?: BQLResponse;
+	bqlRes?: BQLResponse | null;
 };
 
 type NextPipeline = {
@@ -113,7 +113,8 @@ const runPipeline = async (
 			return { ...res.bqlRes, $debugger: { tqlRequest: req.tqlRequest } } as BQLResponse;
 		}
 
-		return res.bqlRes;
+		//@ts-expect-error TODO: split type output of mutation pipeline and query pipeline
+		return res.bqlRes as BQLResponse | null | void;
 	}
 };
 

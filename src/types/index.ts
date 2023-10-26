@@ -295,7 +295,8 @@ export type TQLEntityMutation = {
 	relations?: { relation: string; entity: string; request: string }[];
 };
 
-export type BQLResponseSingle = (({ $entity: string; $id: string } | undefined) & Record<string, any>) | null;
+export type BQLResponseSingle = (({ $entity: string; $id: string } | { $relation: string; $id: string }) | undefined) &
+	Record<string, any>;
 
 export type BQLResponseMulti = BQLResponseSingle[];
 

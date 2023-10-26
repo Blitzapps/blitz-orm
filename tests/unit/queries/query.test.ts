@@ -29,6 +29,12 @@ describe('Query', () => {
 		await expect(client.query({ $entity: 'fakeEntity' })).rejects.toThrow();
 	});
 
+	it('v3[validation] - $id not existing', async () => {
+		expect(client).toBeDefined();
+		const res = await client.query({ $entity: 'User', $id: 'nonExisting' });
+		await expect(res).toBeNull();
+	});
+
 	it('e1[entity] - basic and direct link to relation', async () => {
 		expect(client).toBeDefined();
 		const query = { $entity: 'User' };
@@ -1206,8 +1212,6 @@ describe('Query', () => {
 			power: 'rhythm',
 			isEvil: false,
 		});
-
-		// @ts-expect-error - TODO description
 		godUser = { ...godUser, id: mutationRes.id };
 
 		const queryRes = await client.query(

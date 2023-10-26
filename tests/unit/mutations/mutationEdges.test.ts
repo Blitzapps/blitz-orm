@@ -93,7 +93,7 @@ describe('Mutations: Edges', () => {
 	it('l2[link, nested, relation] Create and update 3-level nested. Also test getting ids by type', async () => {
 		expect(bormClient).toBeDefined();
 
-		const mutation = (await bormClient.mutate(
+		const mutation = await bormClient.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user4',
@@ -109,7 +109,7 @@ describe('Mutations: Edges', () => {
 				],
 			},
 			{ noMetadata: true },
-		)) as object[];
+		);
 
 		//expect mutation to be an array
 		expect(mutation).toBeDefined();
@@ -786,7 +786,6 @@ describe('Mutations: Edges', () => {
 		});
 
 		const kindBook = await bormClient.query({ $relation: 'Kind', $id: 'kind-book' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
 		expect(kindBook?.dataFields).toEqual(['firstDataField']);
 
 		if (!newRelRes || !Array.isArray(newRelRes) || typeof newRelRes[0] === 'string') {

@@ -81,7 +81,6 @@ describe('Mutations: Init', () => {
 		expect(res).toBeInstanceOf(Object);
 		// @ts-expect-error - TODO description
 		expectArraysInObjectToContainSameElements(res, expectedUnit);
-		// @ts-expect-error - TODO description
 		firstUser = { ...firstUser, id: res.id };
 	});
 
@@ -364,7 +363,6 @@ describe('Mutations: Init', () => {
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
 		// @ts-expect-error - TODO description
 		spaceFour.id = res2?.find((r) => r.name === 'Space 4').id;
-		// @ts-expect-error - TODO description
 		thirdUser.id = res1.id;
 
 		expect(res1).toBeDefined();
