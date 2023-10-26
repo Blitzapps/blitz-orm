@@ -101,6 +101,10 @@ describe('Mutations: Init', () => {
 			email: 'john@test.com',
 		});
 
+		if (!firstUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
 		const res2 = await bormClient.query({
 			$entity: 'User',
 			$id: firstUser.id,
@@ -128,9 +132,13 @@ describe('Mutations: Init', () => {
 			$id: firstUser.id,
 		});
 
+		if (!firstUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
 		const res2 = await bormClient.query({
 			$entity: 'User',
-			$id: firstUser.id,
+			$id: firstUser.id as string,
 		});
 		expect(res2).toBeNull();
 	});
@@ -212,7 +220,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - res2 is defined
 		expect(deepSort(res2, 'id')).toEqual({
 			id: 'r1',
 			user: {
@@ -306,6 +313,10 @@ describe('Mutations: Init', () => {
 			},
 		]);
 
+		if (!secondUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
 		const res2 = await bormClient.query(
 			{
 				$entity: 'User',
@@ -313,7 +324,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(res2)).toEqual({
 			id: secondUser.id,
 			name: 'Jane',
@@ -445,6 +455,10 @@ describe('Mutations: Init', () => {
 			// { id: expect.any(String), name: 'newSpace1' },
 			{ name: 'newSpace2' },
 		);
+
+		if (!secondUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
 
 		const res2 = await bormClient.query(
 			{
@@ -887,7 +901,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(allUsers, 'name')).toEqual([
 			{
 				name: 'Ann',
@@ -945,7 +958,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		/// expect only original users
-		// @ts-expect-error - TODO description
 		expect(deepSort(allUsers2, 'name')).toEqual([
 			{
 				name: 'Ann',
@@ -993,8 +1005,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-
-		// @ts-expect-error - TODO description
 
 		expect(deepSort(allSpaces, 'id')).toEqual([
 			{
@@ -1056,7 +1066,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(allSpaces, 'id')).toEqual([
 			{
 				id: 'newSpaceFourId',
@@ -1120,7 +1129,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(allOriginalUsers, 'id')).toEqual([
 			{
 				email: 'antoine@test.com',

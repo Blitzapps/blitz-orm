@@ -444,7 +444,6 @@ describe('Mutations: batched and tempId', () => {
 		);
 
 		expect(queryRes).toBeDefined();
-		//@ts-expect-error - deepSort ts
 		expect(deepSort(queryRes, 'id')).toEqual([
 			{
 				id: 'tr4',

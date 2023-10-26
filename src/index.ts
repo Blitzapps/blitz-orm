@@ -109,10 +109,24 @@ class BormClient {
 		return bormDefine(this.config, this.schema, this.dbHandles);
 	};
 
-	query = async <T extends Record<string, any>>(
+	async query<T extends Record<string, any>>(
+		query: RawBQLQuery & { $id: string },
+		queryConfig?: any,
+	): Promise<BQLResponseSingle & T>;
+	async query<T extends Record<string, any>>(
+		query: RawBQLQuery & { $id: string[] },
+		queryConfig?: any,
+	): Promise<(BQLResponseSingle & T)[]>;
+	async query<T extends Record<string, any>>(
+		query: Omit<RawBQLQuery, '$id'> & ({ $entity: string } | { $relation: string }),
+		queryConfig?: any,
+	): Promise<(BQLResponseSingle & T)[]>;
+
+	// Implementation of the query function
+	async query<T extends Record<string, any>>(
 		query: RawBQLQuery,
 		queryConfig?: any,
-	): Promise<(BQLResponseSingle & T) | null> => {
+	): Promise<(BQLResponseSingle & T) | (BQLResponseSingle & T)[]> {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,
@@ -120,10 +134,6 @@ class BormClient {
 		};
 		// @ts-expect-error - enforceConnection ensures dbHandles is defined
 		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
-	};
-
-	private isMutationArray(mutation: RawBQLMutation | RawBQLMutation[]): mutation is RawBQLMutation[] {
-		return Array.isArray(mutation);
 	}
 
 	async mutate<T extends Record<string, any>>(

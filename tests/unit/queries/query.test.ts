@@ -88,7 +88,6 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
@@ -113,10 +112,8 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
 
-		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -197,12 +194,10 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -227,7 +222,6 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -286,7 +280,6 @@ describe('Query', () => {
 		// @ts-expect-error - res should defined
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		// @ts-expect-error - TODO description
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
@@ -333,12 +326,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(
 			expectedRes.map(({ $id: _id, $relation: _entity, ...rest }) => rest),
 		);
@@ -377,12 +370,10 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(resWithoutMetadata, 'user')).toEqual(
 			expectedRes.map(({ $id: _id, $relation: _entity, ...rest }) => rest),
 		);
@@ -449,12 +440,11 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(res, '$id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -507,12 +497,10 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -541,12 +529,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -590,12 +578,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -711,12 +699,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -769,12 +757,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -788,7 +776,7 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'utg-1',
@@ -818,7 +806,7 @@ describe('Query', () => {
 		});
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual([
 			{ $entity: 'User', $id: 'user1', id: 'user1' },
 			{ $entity: 'User', $id: 'user2', id: 'user2' },
@@ -830,7 +818,7 @@ describe('Query', () => {
 		const res = await client.query({ $entity: 'User', $fields: ['id'] });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual([
 			{ $entity: 'User', $id: 'user1', id: 'user1' },
 			{ $entity: 'User', $id: 'user2', id: 'user2' },
@@ -902,7 +890,7 @@ describe('Query', () => {
 		});
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user1',
@@ -921,7 +909,7 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user1',
@@ -951,7 +939,7 @@ describe('Query', () => {
 			],
 		});
 		const resWithoutMetadata = await client.query(query, { noMetadata: true });
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual({
 			name: 'Antoine',
 			accounts: [
@@ -982,8 +970,6 @@ describe('Query', () => {
 			$fields: ['name', { $path: 'accounts', $fields: ['provider'] }],
 		});
 		expect(res).toBeDefined();
-		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is checked above
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user1',
@@ -1013,7 +999,7 @@ describe('Query', () => {
 
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual([
 			{
 				$entity: 'User',
@@ -1054,7 +1040,7 @@ describe('Query', () => {
 		});
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user1',
@@ -1079,7 +1065,7 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user1',
@@ -1112,7 +1098,7 @@ describe('Query', () => {
 		});
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res is not a string
+
 		expect(deepSort(res)).toEqual([
 			{
 				$entity: 'User',
@@ -1152,7 +1138,6 @@ describe('Query', () => {
 	it('s1[self] Relation playing a a role defined by itself', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual([
 			{ id: 'self1', owned: ['self2'], space: 'space-2' },
 			{ id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
@@ -1166,7 +1151,7 @@ describe('Query', () => {
 		expect(client).toBeDefined();
 
 		const res = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['kind-book'],
@@ -1186,7 +1171,6 @@ describe('Query', () => {
 			{ $entity: 'Space', $id: 'space-2', $fields: [{ $path: 'objects', $fields: ['id'] }] },
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 		});
@@ -1276,12 +1260,12 @@ describe('Query', () => {
 		const res = await client.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
-		// @ts-expect-error - res should be a defined array
+
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
@@ -1293,7 +1277,6 @@ describe('Query', () => {
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(res, 'id')).toEqual([
 			{
 				id: 'blue',
@@ -1345,7 +1328,7 @@ describe('Query', () => {
     });
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
-    // @ts-expect-error - res is not a string
+    
     // when we have no way to know if the answer will be unique or not, we provide an array
     expect(deepSort(res)).toEqual([
       { $entity: 'post', $id: 'post1', id: 'post1' },
@@ -1361,7 +1344,7 @@ describe('Query', () => {
     });
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
-    // @ts-expect-error - res is not a string
+    
     expect(deepSort(res)).toEqual([
       { $entity: 'post', $id: 'post2', id: 'post2' },
       { $entity: 'post', $id: 'post3', id: 'post3' },
@@ -1376,7 +1359,7 @@ describe('Query', () => {
     });
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
-    // @ts-expect-error - res is not a string
+    
     expect(deepSort(res)).toEqual([
       { $entity: 'post', $id: 'post1', id: 'post1' },
       { $entity: 'post', $id: 'post2', id: 'post2' },
@@ -1409,7 +1392,7 @@ describe('Query', () => {
     });
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
-    // @ts-expect-error - res is not a string
+    
     expect(deepSort(res)).toEqual([
       { $entity: 'User', $id: 'user2', id: 'user2' },
       { $entity: 'User', $id: 'user2', id: 'user3' },
@@ -1435,7 +1418,7 @@ describe('Query', () => {
     });
     expect(res).toBeDefined();
     expect(res).not.toBeInstanceOf(String);
-    // @ts-expect-error - res is not a string
+    
     expect(deepSort(res)).toEqual([
       { $entity: 'User', $id: 'user1', name: 'Antoine' },
       { $entity: 'User', $id: 'user2', name: 'Loic' },

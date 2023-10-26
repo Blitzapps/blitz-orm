@@ -1,17 +1,19 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+## 0.4.5(2023-10-26)
+- Types: Queries might also get arrays when $id is not specified
 
 ## 0.4.4(2023-10-26)
-- Now single mutations and queries can accept a T type to complement the output
+- Types: Now single mutations and queries can accept a T type to complement the output
 
 ## 0.4.3(2023-10-26)
-- Mutation type now depends on the mutation input
+- Types: Mutation type now depends on the mutation input
 
 ## 0.4.2(2023-10-26)
-- Reversed and fixed single output
+- Types: Reversed and fixed single output
 
 ## 0.4.1(2023-10-26)
-- Fix mutation output
+- Types: Fix mutation output
 
 ## 0.4.0(2023-10-24)
 - Can now replace by id

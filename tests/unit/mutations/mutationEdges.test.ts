@@ -79,7 +79,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		//@ts-expect-error deepsort not typed yet
 		expect(deepSort(resColors, 'id')).toEqual([
 			{
 				id: 'blue',
@@ -306,7 +305,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 		expect(user).toBeDefined();
-		// @ts-expect-error - TODO description
 		expect(deepSort(user, 'id')).toEqual({
 			'id': 'user3',
 			'user-tags': ['tag-2', 'tag-3'],
@@ -370,7 +368,6 @@ describe('Mutations: Edges', () => {
 		);
 		expect(userTag).toBeDefined();
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(userTag, 'id')).toEqual({
 			id: 'tag-2',
 			// todo: add 'user2'
@@ -429,7 +426,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 		expect(userTagGroup).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(userTagGroup, 'id')).toEqual({
 			id: 'utg-2',
 			tags: ['tag-2', 'tag-3', 'tag-4'], // user2 linked in l4
@@ -456,7 +453,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -499,7 +496,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -558,7 +555,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -661,7 +658,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(newUserTag, 'id')).toEqual({
 			id: 'tmpTag',
 			users: ['user1', 'user3', 'user5'],
@@ -709,7 +705,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(newUserTagGroup, 'id')).toEqual({
 			id: 'tmpGroup',
 			tags: ['tag-1', 'tag-4'],
@@ -738,7 +733,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 		const res = await bormClient.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(res, 'id')).toEqual({
 			id: 'u1-s1-s2',
 			spaces: ['space-1', 'space-2'],
@@ -753,7 +748,7 @@ describe('Mutations: Edges', () => {
 		/// get user 2, space 2 and then add a new dataField to it linked to the existing 'kind-book'
 
 		const preSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(preSpace, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['kind-book'],
@@ -794,7 +789,6 @@ describe('Mutations: Edges', () => {
 
 		const postSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(postSpace, 'id')).toEqual({
 			objects: ['firstDataField', 'kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['firstDataField', 'kind-book'],
@@ -953,7 +947,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(allGroups, 'id')).toEqual([
 			{
 				id: 'utg-1',
@@ -989,7 +982,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(userTags, 'id')).toEqual([
 			{
 				id: 'tag-1',
@@ -1056,7 +1048,6 @@ describe('Mutations: Edges', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1098,7 +1089,6 @@ describe('Mutations: Edges', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1138,7 +1128,6 @@ describe('Mutations: Edges', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1178,7 +1167,6 @@ describe('Mutations: Edges', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
