@@ -109,6 +109,11 @@ class BormClient {
 		return bormDefine(this.config, this.schema, this.dbHandles);
 	};
 
+	//overloads are order dependent
+	async query<T extends Record<string, any>>(
+		query: RawBQLQuery & { $filter: Record<string, any> } & ({ $entity: string } | { $relation: string }),
+		queryConfig?: any,
+	): Promise<(BQLResponseSingle & T)[] | (BQLResponseSingle & T)>;
 	async query<T extends Record<string, any>>(
 		query: RawBQLQuery & { $id: string },
 		queryConfig?: any,

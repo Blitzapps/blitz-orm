@@ -1,5 +1,8 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+## 0.4.6(2023-10-26)
+- Types: $filter can infer the array vs object dilema (yet)
+
 ## 0.4.5(2023-10-26)
 - Types: Queries might also get arrays when $id is not specified
 
