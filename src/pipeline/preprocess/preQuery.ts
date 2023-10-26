@@ -84,11 +84,8 @@ export const preQuery: PipelineOperation = async (req) => {
 				// @ts-expect-error todo
 				if (isObject(val) && val.$op === 'link' && parent && parent[key].$op === 'link') {
 					// Extract the parent key name (i.e., the entity being created)
-					// @ts-expect-error todo
 					// TODO: allow for arrays
 					if (!Array.isArray(queryRes) && queryRes && queryRes[key] && !parseInt(key)) {
-						// @ts-expect-error todo
-
 						if (queryRes[key].$op !== 'link') {
 							throw new Error(`You already have ${key} filled for this.`);
 						}
@@ -129,7 +126,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							? // @ts-expect-error - todo
 							  queryRes.find((item) => item.$id === parent.$id)
 							: queryRes;
-						// @ts-expect-error - todo
+
 						const queryVal = matchingQueryObj ? matchingQueryObj[key] : null;
 
 						if (Array.isArray(queryVal)) {

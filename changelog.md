@@ -1,6 +1,9 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.4.2(2023-10-26)
+- Reversed and fixed single output
+
 ## 0.4.1(2023-10-26)
 - Fix mutation output
 
