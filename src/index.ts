@@ -109,7 +109,10 @@ class BormClient {
 		return bormDefine(this.config, this.schema, this.dbHandles);
 	};
 
-	query = async (query: RawBQLQuery, queryConfig?: any): Promise<BQLResponseSingle | null> => {
+	query = async <T extends Record<string, any>>(
+		query: RawBQLQuery,
+		queryConfig?: any,
+	): Promise<(BQLResponseSingle & T) | null> => {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,
@@ -123,7 +126,10 @@ class BormClient {
 		return Array.isArray(mutation);
 	}
 
-	async mutate(mutation: RawBQLMutation, mutationConfig?: any): Promise<BQLResponseSingle>;
+	async mutate<T extends Record<string, any>>(
+		mutation: RawBQLMutation,
+		mutationConfig?: any,
+	): Promise<BQLResponseSingle & T>;
 	async mutate(mutation: RawBQLMutation[], mutationConfig?: any): Promise<BQLResponseMulti>;
 	async mutate(mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any): Promise<BQLResponse> {
 		await this.#enforceConnection();

@@ -1,6 +1,9 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.4.4(2023-10-26)
+- Now single mutations and queries can accept a T type to complement the output
+
 ## 0.4.3(2023-10-26)
 - Mutation type now depends on the mutation input
 
