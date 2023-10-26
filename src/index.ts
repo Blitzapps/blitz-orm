@@ -5,7 +5,7 @@ import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
-import type { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
+import type { BQLResponseMulti, BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
 
 export * from './types';
 
@@ -110,7 +110,7 @@ class BormClient {
 		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
 	};
 
-	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any) => {
+	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any): Promise<BQLResponseMulti> => {
 		await this.#enforceConnection();
 		const mConfig = {
 			...this.config,
