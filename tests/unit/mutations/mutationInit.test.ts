@@ -78,10 +78,11 @@ describe('Mutations: Init', () => {
 			email: 'wrong email',
 		};
 
-		expect(res).toBeInstanceOf(Object);
+		expect(res).toBeInstanceOf(Array);
+		const [user] = res;
 		// @ts-expect-error - TODO description
-		expectArraysInObjectToContainSameElements(res, expectedUnit);
-		firstUser = { ...firstUser, id: res.id };
+		expectArraysInObjectToContainSameElements(user, expectedUnit);
+		firstUser = { ...firstUser, id: user.id };
 	});
 
 	it('b2[update] Basic', async () => {
@@ -96,7 +97,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		expect(res).toEqual({
+		expect(res[0]).toEqual({
 			name: 'Johns not',
 			email: 'john@test.com',
 		});
@@ -140,6 +141,7 @@ describe('Mutations: Init', () => {
 			$entity: 'User',
 			$id: firstUser.id as string,
 		});
+
 		expect(res2).toBeNull();
 	});
 
@@ -373,7 +375,7 @@ describe('Mutations: Init', () => {
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
 		// @ts-expect-error - TODO description
 		spaceFour.id = res2?.find((r) => r.name === 'Space 4').id;
-		thirdUser.id = res1.id;
+		thirdUser.id = res1[0].id;
 
 		expect(res1).toBeDefined();
 		expect(res1).toBeInstanceOf(Object);
@@ -451,7 +453,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		expect(JSON.parse(JSON.stringify(res))).toEqual(
+		expect(JSON.parse(JSON.stringify(res[0]))).toEqual(
 			// { id: expect.any(String), name: 'newSpace1' },
 			{ name: 'newSpace2' },
 		);
@@ -522,7 +524,7 @@ describe('Mutations: Init', () => {
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(godUser, { noMetadata: true });
-		expect(res).toEqual({
+		expect(res[0]).toEqual({
 			id: 'squarepusher',
 			name: 'Tom Jenkinson',
 			email: 'tom@warp.com',
@@ -574,9 +576,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const fieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		// @ts-expect-error - TODO description
 		const kindId = mutated?.find((m) => m.name === 'myTest')?.id;
 
 		const kinds = await bormClient.query(
@@ -665,11 +665,8 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-		// @ts-expect-error - TODO description
 		const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		// @ts-expect-error - TODO description
 		const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
 
 		const kinds = await bormClient.query(
@@ -774,7 +771,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
 		// console.log('myTestKind1Id', myTestKind1Id);
 

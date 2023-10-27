@@ -45,3 +45,6 @@ pnpm-lock.yaml
 
 #tests
 coverage
+
+#compiled js
+tests/mocks/buildSchema.js

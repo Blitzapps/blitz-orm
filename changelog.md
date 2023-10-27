@@ -1,5 +1,20 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+## 0.5.0(2023-10-27)
+### Breaking changes
+- Mutation outputs are always arrays (even if the input is a single object, without nested things)
+- Removed symbols in the output of mutations
+
+### Features 
+- Types: New type gen (Ex: `type UserType = TypeGen<typeof typesSchema.entities.User>`)
+- TYpes Schema builder to generate an schema with inherited fields
+
+### Bug fixes / Chore
+- Fixed module stuff
+- Chore: Rearranged types
+- Types: Removed signatures of borm.query and borm.mutate
+
+
 
 ## 0.4.7-8(2023-10-26)
 - Chore: As module

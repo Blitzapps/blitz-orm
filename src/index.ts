@@ -5,16 +5,7 @@ import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
-import type {
-	BQLResponse,
-	BQLResponseMulti,
-	BQLResponseSingle,
-	BormConfig,
-	BormSchema,
-	DBHandles,
-	RawBQLMutation,
-	RawBQLQuery,
-} from './types';
+import type { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
 
 export * from './types';
 
@@ -109,29 +100,8 @@ class BormClient {
 		return bormDefine(this.config, this.schema, this.dbHandles);
 	};
 
-	//overloads are order dependent
-	async query<T extends Record<string, any>>(
-		query: RawBQLQuery & { $filter: Record<string, any> } & ({ $entity: string } | { $relation: string }),
-		queryConfig?: any,
-	): Promise<(BQLResponseSingle & T)[] | (BQLResponseSingle & T)>;
-	async query<T extends Record<string, any>>(
-		query: RawBQLQuery & { $id: string },
-		queryConfig?: any,
-	): Promise<BQLResponseSingle & T>;
-	async query<T extends Record<string, any>>(
-		query: RawBQLQuery & { $id: string[] },
-		queryConfig?: any,
-	): Promise<(BQLResponseSingle & T)[]>;
-	async query<T extends Record<string, any>>(
-		query: Omit<RawBQLQuery, '$id'> & ({ $entity: string } | { $relation: string }),
-		queryConfig?: any,
-	): Promise<(BQLResponseSingle & T)[]>;
-
-	// Implementation of the query function
-	async query<T extends Record<string, any>>(
-		query: RawBQLQuery,
-		queryConfig?: any,
-	): Promise<(BQLResponseSingle & T) | (BQLResponseSingle & T)[]> {
+	/// no types yet, but we can do "as ..." after getting the type fro the schema
+	query = async (query: RawBQLQuery, queryConfig?: any) => {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,
@@ -139,14 +109,9 @@ class BormClient {
 		};
 		// @ts-expect-error - enforceConnection ensures dbHandles is defined
 		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
-	}
+	};
 
-	async mutate<T extends Record<string, any>>(
-		mutation: RawBQLMutation,
-		mutationConfig?: any,
-	): Promise<BQLResponseSingle & T>;
-	async mutate(mutation: RawBQLMutation[], mutationConfig?: any): Promise<BQLResponseMulti>;
-	async mutate(mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any): Promise<BQLResponse> {
+	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: any) => {
 		await this.#enforceConnection();
 		const mConfig = {
 			...this.config,
@@ -158,7 +123,7 @@ class BormClient {
 		};
 		// @ts-expect-error - enforceConnection ensures dbHandles is defined
 		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
-	}
+	};
 
 	close = async () => {
 		if (!this.dbHandles) {

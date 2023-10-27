@@ -52,7 +52,7 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 					delete value.$id;
 				}
 
-				const symbols = Object.getOwnPropertySymbols(obj);
+				const symbols = Object.getOwnPropertySymbols(value);
 				symbols.forEach((symbol) => {
 					delete value[symbol];
 				});
@@ -196,7 +196,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		}
 		// @ts-expect-error - TODO description
 		const output = cleanOutput(res.bqlRes, config);
-		// @ts-expect-error - TODO description
 		res.bqlRes = output;
 
 		return;

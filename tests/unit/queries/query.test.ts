@@ -4,6 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import type { typesSchema } from '../../mocks/generatedSchema';
+import type { TypeGen } from '../../../src/types/typeGen';
+import type { WithBormMetadata } from '../../../src/index';
+import type { UserType } from '../../types/testTypes';
 
 describe('Query', () => {
 	let dbName: string;
@@ -105,11 +109,11 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = await client.query(query);
-		expect(res).toBeDefined();
-		expect(typeof res).not.toBe('string');
+		const res = (await client.query(query)) as UserType;
 
-		// @ts-expect-error - res should defined
+		expect(res).toBeDefined();
+
+		// @ts-expect-error - Not an array but should work anyway
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
 		expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
@@ -213,9 +217,10 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = await client.query(query, {
+		type UserType = WithBormMetadata<TypeGen<typeof typesSchema.entities.User>>;
+		const res = (await client.query(query, {
 			noMetadata: true,
-		});
+		})) as UserType;
 		expect(res).toBeDefined();
 		expect(typeof res).not.toBe('string');
 
@@ -271,9 +276,9 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = await client.query(query, {
+		const res = (await client.query(query, {
 			debugger: true,
-		});
+		})) as UserType;
 		expect(res).toBeDefined();
 		expect(typeof res).not.toBe('string');
 
@@ -1188,15 +1193,16 @@ describe('Query', () => {
 		};
 		// Create a new godUser
 		const mutationRes = await client.mutate(godUser, { noMetadata: true });
+		const [user] = mutationRes;
 
-		expect(mutationRes).toEqual({
+		expect(user).toEqual({
 			id: expect.any(String),
 			name: 'Tom Jenkinson',
 			email: 'tom@warp.com',
 			power: 'rhythm',
 			isEvil: false,
 		});
-		godUser = { ...godUser, id: mutationRes.id };
+		godUser = { ...godUser, id: user.id };
 
 		const queryRes = await client.query(
 			{

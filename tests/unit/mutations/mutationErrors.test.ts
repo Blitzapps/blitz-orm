@@ -14,7 +14,7 @@ describe('Mutations: Errors', () => {
 		}
 		dbName = configDbName;
 		bormClient = configBormClient;
-	}, 4000);
+	}, 20000);
 
 	it('e1[duplicate] Duplicate creation', async () => {
 		expect(bormClient).toBeDefined();

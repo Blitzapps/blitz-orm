@@ -20,6 +20,7 @@ import type {
 	RawBQLQuery as RawBQLRequest,
 	TQLRequest,
 	FilledBQLMutationBlock,
+	BQLResponseMulti,
 } from '../types';
 
 export type RelationName = string;
@@ -89,7 +90,7 @@ const runPipeline = async (
 	root = true,
 	// todo: ts antoine
 	// eslint-disable-next-line consistent-return
-): Promise<BQLResponse | void> => {
+): Promise<BQLResponse> => {
 	// console.log('Heeeeey', pipeline);
 	// todo: ts antoine
 	// eslint-disable-next-line no-restricted-syntax
@@ -113,9 +114,10 @@ const runPipeline = async (
 			return { ...res.bqlRes, $debugger: { tqlRequest: req.tqlRequest } } as BQLResponse;
 		}
 
-		//@ts-expect-error TODO: split type output of mutation pipeline and query pipeline
-		return res.bqlRes as BQLResponse | null | void;
+		//TODO: split type output of mutation pipeline and query pipeline
+		return res.bqlRes as BQLResponse;
 	}
+	return res.bqlRes as BQLResponse;
 };
 
 export const queryPipeline = (
@@ -150,4 +152,4 @@ export const mutationPipeline = (
 			dbHandles,
 		},
 		{},
-	);
+	) as Promise<BQLResponseMulti>;

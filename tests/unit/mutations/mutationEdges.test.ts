@@ -3,6 +3,7 @@ import 'jest';
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort } from '../../helpers/matchers';
+import type { KindType } from '../../types/testTypes';
 
 describe('Mutations: Edges', () => {
 	let dbName: string;
@@ -32,12 +33,11 @@ describe('Mutations: Edges', () => {
 					},
 				],
 			},
-			{ noMetadata: true },
+			{ noMetadata: false },
 		);
 
 		/// We get the id by its tempId
-		//@ts-expect-error types not perfectly done yet
-		const tagId = editedUser?.find((m) => m[Symbol.for('$tempId')] === 'newTagId')?.id;
+		const tagId = editedUser?.find((m) => m.$tempId === '_:newTagId')?.id;
 
 		const resUser = await bormClient.query(
 			{
@@ -107,7 +107,7 @@ describe('Mutations: Edges', () => {
 					},
 				],
 			},
-			{ noMetadata: true },
+			{ noMetadata: false },
 		);
 
 		//expect mutation to be an array
@@ -116,16 +116,14 @@ describe('Mutations: Edges', () => {
 
 		//THis test also test the autogeneration of ids as we are not defining them we need to catch them to delete them
 		const createdTagsIds = mutation
-			// @ts-expect-error - Symbol stuff
-			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTag')
-			// @ts-expect-error - There is an id
+			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTag')
 			.map((obj) => obj.id);
 
 		const createdTagGroupsIds = mutation
-			// @ts-expect-error - Symbol stuff
-			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTagGroup')
-			// @ts-expect-error - There is an id
+			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTagGroup')
 			.map((obj) => obj.id);
+
+		expect(createdTagsIds.length).toBe(2);
 
 		const resUser = await bormClient.query(
 			{
@@ -780,7 +778,10 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const kindBook = await bormClient.query({ $relation: 'Kind', $id: 'kind-book' }, { noMetadata: true });
+		const kindBook = (await bormClient.query(
+			{ $relation: 'Kind', $id: 'kind-book' },
+			{ noMetadata: true },
+		)) as KindType;
 		expect(kindBook?.dataFields).toEqual(['firstDataField']);
 
 		if (!newRelRes || !Array.isArray(newRelRes) || typeof newRelRes[0] === 'string') {
@@ -914,17 +915,15 @@ describe('Mutations: Edges', () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
-			[
-				// unlink all color in all the groups linked to usertag tag.2
-				{
-					$relation: 'UserTag',
-					$id: 'tag-2',
-					group: {
-						$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
-						color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
-					},
+			// unlink all color in all the groups linked to usertag tag.2
+			{
+				$relation: 'UserTag',
+				$id: 'tag-2',
+				group: {
+					$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
+					color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
 				},
-			],
+			},
 			{ noMetadata: true },
 		);
 
@@ -932,6 +931,8 @@ describe('Mutations: Edges', () => {
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: ['id', { $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
+
+		//console.log('withoutColor', withoutColor);
 
 		expect(withoutColor).toEqual({
 			id: 'tag-2',
@@ -946,6 +947,8 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
+
+		//console.log('allGroups', allGroups);
 
 		expect(deepSort(allGroups, 'id')).toEqual([
 			{

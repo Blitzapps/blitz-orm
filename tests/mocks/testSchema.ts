@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
+//* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
 	shared: true,
@@ -110,7 +111,7 @@ export const testSchema: BormSchema = {
 			idFields: ['id'], // could be a namecomposite key
 			defaultDBConnector: { id: 'default' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 			dataFields: [
-				{ ...id },
+				id,
 				{ ...name, rights: ['CREATE', 'UPDATE'] },
 				{
 					path: 'email',
@@ -493,4 +494,4 @@ export const testSchema: BormSchema = {
 			],
 		},
 	},
-};
+} as const;
