@@ -460,6 +460,36 @@ describe('Mutations: batched and tempId', () => {
 		]);
 	});
 
+	it('dpq3[delete pre-query] delete something that does not exist', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$relation: 'ThingRelation',
+			$id: 'tr6',
+			// thing2
+			root: { $id: 'thing2', $op: 'delete' },
+			// thing5
+			things: [{ $id: 'thing1', $op: 'delete' }],
+			// thing1
+			// extra: { $id: 'thing1', $op: 'unlink' },
+		});
+
+		const queryRes = await bormClient.query(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr6',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(queryRes).toBeDefined();
+		expect(queryRes).toEqual({
+			id: 'tr6',
+			things: ['thing5'],
+			extra: 'thing1',
+		});
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});

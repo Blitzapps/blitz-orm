@@ -353,7 +353,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 									const edgeType3 = {
 										...objWithMetaDataOnly,
 										$relation: value.$relation,
-										$op: op,
+										// TODO - SAM: confirm that this doesn't break tests
+										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
 										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
