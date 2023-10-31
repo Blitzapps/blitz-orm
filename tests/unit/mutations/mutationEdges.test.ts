@@ -1194,6 +1194,127 @@ describe('Mutations: Init', () => {
 		});
 	});
 
+	it('TODO:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'h1-user',
+				accounts: [
+					{
+						id: 'h1-account1',
+					},
+				],
+			},
+			{
+				$entity: 'Account',
+				id: 'h1-account2',
+			},
+			{
+				$entity: 'Account',
+				id: 'h1-account3',
+			},
+		]);
+
+		///this one should actually only link account-ml3
+		await bormClient.mutate({
+			$relation: 'User-Accounts',
+			id: 'h1-user-account1and3',
+			user: 'h1-user',
+			accounts: ['h1-account2', 'h1-account3'],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'h1-user',
+			accounts: [{ $op: 'unlink', $id: 'h1-account3' }], //should not unlink account-ml1
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'h1-user',
+			$fields: ['accounts'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(res)).toEqual({
+			$entity: 'User',
+			$id: 'h1-user',
+			accounts: ['h1-account1', 'h1-account2'],
+		});
+
+		//delete all
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: 'user',
+			},
+			{
+				$entity: 'Account',
+				$op: 'delete',
+				$id: 'h1-account1',
+			},
+			{
+				$entity: 'Account',
+				$op: 'delete',
+				$id: 'h1-account2',
+			},
+			{
+				$entity: 'Account',
+				$op: 'delete',
+				$id: 'h1-account3',
+			},
+		]);
+	});
+
+	it('h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'Account',
+				id: 'account-ml2',
+			},
+			{
+				$entity: 'Account',
+				id: 'account-ml2',
+			},
+			{
+				$entity: 'Account',
+				id: 'account-ml2',
+			},
+		]);
+
+		///this one should actually only link account-ml3
+		await bormClient.mutate({
+			$relation: 'User-Accounts',
+			id: 'user-ml1-account-ml1',
+			user: 'user-ml1',
+			accounts: ['account-ml1', 'account-ml3'],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'user-ml1',
+			accounts: [{ $op: 'unlink', $id: 'account-ml3' }],
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'user-ml1',
+			$fields: ['accounts'],
+		});
+
+		// @ts-expect-error - TODO description
+		expect(deepSort(res)).toEqual({
+			$entity: 'User',
+			$id: 'user-ml1',
+			accounts: ['account-ml1', 'account-ml2'],
+		});
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity
