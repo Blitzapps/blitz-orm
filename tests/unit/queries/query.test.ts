@@ -1438,3 +1438,92 @@ describe('Query', () => {
 		await cleanup(dbName);
 	});
 });
+it('test1[entity,filter] - $filter by non-unique field', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { name: 'Antoine' },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
+
+it('test2[entity,filter] - $filter by multiple fields', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { name: 'Antoine', email: 'antoine@test.com' },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
+
+it('test3[entity,filter] - $filter by nested field', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { 'accounts.provider': 'github' },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
+
+it('test4[entity,filter] - $filter by multiple nested fields', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { 'accounts.provider': 'github', 'spaces.id': 'space-1' },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
+
+it('test5[entity,filter] - $filter by array field', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { 'spaces.id': { $in: ['space-1', 'space-2'] } },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
+
+it('test6[entity,filter] - $filter by nested array field', async () => {
+	expect(client).toBeDefined();
+	const res = await client.query({
+		$entity: 'User',
+		$filter: { 'accounts.provider': { $in: ['github', 'google'] } },
+		$fields: ['id'],
+	});
+	expect(res).toBeDefined();
+	expect(res).not.toBeInstanceOf(String);
+
+	expect(deepSort(res)).toEqual([
+		{ $entity: 'User', $id: 'user1', id: 'user1' },
+	]);
+});
