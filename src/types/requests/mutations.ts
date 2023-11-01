@@ -13,7 +13,12 @@ export type BQLMutationBlock = {
 } & ({ $entity: string } | { $relation: string }); // | { $attribute: string });
 export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'>;
 
-export type RawBQLMutation = (
+export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (
+	| {
+			$id?: string;
+			$op?: 'create' | 'link' | 'delete' | 'update';
+			$tempId?: string;
+	  }
 	| {
 			$entity: string;
 	  }
@@ -21,7 +26,7 @@ export type RawBQLMutation = (
 			$relation: string;
 	  }
 ) &
-	Record<string, any>; /// TODO : explicitly type available fields
+	T; /// TODO : explicitly type available fields
 
 export type ParsedBQLMutation = {
 	things: BQLMutationBlock[];

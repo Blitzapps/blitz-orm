@@ -1,5 +1,9 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+
+## 0.5.1(2023-11-01)
+- Types: Mutation accepts generic
+
 ## 0.5.0(2023-10-27)
 ### Breaking changes
 - Mutation outputs are always arrays (even if the input is a single object, without nested things)
