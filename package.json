@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.5.1",
+	"version": "0.5.2",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -68,7 +68,7 @@
 		"tsup": "^7.2.0",
 		"typescript": "^5.2.2"
 	},
-	"description": "Blitz-orm is a public package that can be open-sourced",
+	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
 	"bugs": {
 		"url": "https://github.com/Blitzapps/blitz-orm/issues"
 	},

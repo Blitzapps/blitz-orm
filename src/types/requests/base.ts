@@ -2,6 +2,7 @@ export type ThingType = 'entity' | 'relation' | 'attribute';
 
 export type BormMetadata = {
 	$id: string;
+	$op?: string;
 	$entity?: string;
 	$relation?: string; //instead of a union, two optionals from now. Wil lchange when using $thing and $thingType
 	$tempId?: string;
