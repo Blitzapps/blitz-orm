@@ -5,6 +5,11 @@ $user-2 isa User, has id "user2", has name "Loic", has User·email "loic@test.co
 $user-3 isa User, has id "user3", has name "Ann", has User·email "ann@test.com";
 $user-4 isa User, has id "user4", has name "Ben", has User·email "ben@test.com";
 $user-5 isa User, has id "user5", has name "Charlize", has User·email "charlize@test.com";
+$user-6 isa User, has id "user6", has name "John", has User·email "john@test.com";
+$user-7 isa User, has id "user7", has name "Jane", has User·email "jane@test.com";
+$user-8 isa User, has id "user8", has name "Bob", has User·email "bob@test.com";
+$user-9 isa User, has id "user9", has name "Alice", has User·email "alice@test.com";
+$user-10 isa User, has id "user10", has name "Charlie", has User·email "charlie@test.com";
 
 $thing1 isa Thing, has id "thing1", has stuff "A";
 $thing2 isa Thing, has id "thing2", has stuff "B";
@@ -53,6 +58,21 @@ $user-account-1-2 (user: $user-1, accounts: $account-1-2) isa User-Accounts, has
 $user-account-1-3 (user: $user-1, accounts: $account-1-3) isa User-Accounts, has id 'ua1-3';
 $user-account-2-1 (user: $user-2, accounts: $account-2-1) isa User-Accounts, has id 'ua2-1';
 $user-account-3-1 (user: $user-3, accounts: $account-3-1) isa User-Accounts, has id 'ua3-1';
+$account-4-1 isa Account, has id "account4-1", has Account·provider "google";
+$account-5-1 isa Account, has id "account5-1", has Account·provider "facebook";
+$account-6-1 isa Account, has id "account6-1", has Account·provider "github";
+$account-7-1 isa Account, has id "account7-1", has Account·provider "google";
+$account-8-1 isa Account, has id "account8-1", has Account·provider "facebook";
+$account-9-1 isa Account, has id "account9-1", has Account·provider "github";
+$account-10-1 isa Account, has id "account10-1", has Account·provider "google";
+
+$user-account-4-1 (user: $user-4, accounts: $account-4-1) isa User-Accounts, has id 'ua4-1';
+$user-account-5-1 (user: $user-5, accounts: $account-5-1) isa User-Accounts, has id 'ua5-1';
+$user-account-6-1 (user: $user-6, accounts: $account-6-1) isa User-Accounts, has id 'ua6-1';
+$user-account-7-1 (user: $user-7, accounts: $account-7-1) isa User-Accounts, has id 'ua7-1';
+$user-account-8-1 (user: $user-8, accounts: $account-8-1) isa User-Accounts, has id 'ua8-1';
+$user-account-9-1 (user: $user-9, accounts: $account-9-1) isa User-Accounts, has id 'ua9-1';
+$user-account-10-1 (user: $user-10, accounts: $account-10-1) isa User-Accounts, has id 'ua10-1';
 
 
 $space-1 isa Space, has id "space-1", has name "Production";
@@ -77,6 +97,19 @@ $tag-4 (users: $user-2) isa UserTag, has id 'tag-4';
 
 $group-1 (tags: $tag-1, tags: $tag-2, color: $yellow) isa UserTagGroup, has id 'utg-1';
 $group-2 (tags: $tag-3, color:$blue, space: $space-3) isa UserTagGroup, has id 'utg-2';
+$tag-5 (users: $user-4) isa UserTag, has id 'tag-5';
+$tag-6 (users: $user-5, users: $user-6) isa UserTag, has id 'tag-6';
+$tag-7 (users: $user-7) isa UserTag, has id 'tag-7';
+$tag-8 (users: $user-8) isa UserTag, has id 'tag-8';
+
+$group-3 (tags: $tag-5, tags: $tag-6, color: $yellow) isa UserTagGroup, has id 'utg-3';
+$group-4 (tags: $tag-7, color:$blue, space: $space-3) isa UserTagGroup, has id 'utg-4';
+
+(users: $user-4, spaces: $space-1) isa Space-User, has id 'u4-s1';
+(users: $user-5, spaces: $space-2) isa Space-User, has id 'u5-s2';
+(users: $user-6, spaces: $space-1) isa Space-User, has id 'u6-s1';
+(users: $user-7, spaces: $space-2) isa Space-User, has id 'u7-s2';
+(users: $user-8, spaces: $space-2, power: $power1) isa Space-User, has id 'u8-s2';
 
 #$red isa Color, has Color·name 'red';
 #$blue isa Color, has Color·name 'blue';
@@ -89,4 +122,10 @@ $self1 (space:$space-2) isa Self, has id 'self1';
 $self2 (space:$space-2, owner: $self1) isa Self, has id 'self2';
 $self3 (space:$space-2, owner: $self2) isa Self, has id 'self3';
 $self4 (space:$space-2, owner: $self2) isa Self, has id 'self4';
+$kind-magazine (space: $space-2) isa Kind, has id 'kind-magazine', has Kind·name 'magazine';
+
+$self5 (space:$space-2) isa Self, has id 'self5';
+$self6 (space:$space-2, owner: $self5) isa Self, has id 'self6';
+$self7 (space:$space-2, owner: $self6) isa Self, has id 'self7';
+$self8 (space:$space-2, owner: $self6) isa Self, has id 'self8';
 
