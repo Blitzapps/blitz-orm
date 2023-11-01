@@ -16,7 +16,7 @@ export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (
 	| {
 			$id?: string;
-			$op?: 'create' | 'link' | 'delete' | 'update';
+			$op?: 'create' | 'delete' | 'update'; //link and unlink can't happen in the root level but we will need to do a full tree type later that includes metadata
 			$tempId?: string;
 	  }
 	| {
