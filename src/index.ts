@@ -36,7 +36,7 @@ class BormClient {
 					// const clientErr = undefined;
 					const [clientErr, client] = await tryit(TypeDB.coreClient)(dbc.url);
 					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Client"
 						}`;
@@ -46,7 +46,7 @@ class BormClient {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
 						dbHandles.typeDB.set(dbc.id, { client, session });
 					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
@@ -57,7 +57,7 @@ class BormClient {
 					const [clientErr, client] = await tryit(TypeDB.clusterClient)(dbc.addresses, dbc.credentials);
 
 					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Cluster Client"
 						}`;
@@ -67,7 +67,7 @@ class BormClient {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
 						dbHandles.typeDB.set(dbc.id, { client, session });
 					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
