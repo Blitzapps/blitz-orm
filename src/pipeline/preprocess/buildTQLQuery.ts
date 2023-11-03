@@ -42,8 +42,8 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			  }))
 			: [];
 
-	// when typeQL stops combination: const queryStr = `match $${thingPath} ${rolesQuery} isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} group $${thingPath};`;
-	const queryStr = `match $${thingPath}  isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} group $${thingPath};`;
+	// when typeQL stops combination: const queryStr = `match $${thingPath} ${rolesQuery} isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} get; group $${thingPath};`;
+	const queryStr = `match $${thingPath}  isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} get; group $${thingPath};`;
 
 	const rolesObj = allRoles.map((role) => {
 		// todo role played by multiple linkfields
@@ -55,7 +55,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 		return {
 			path: role.path,
 			owner: thingPath,
-			request: `match $${thingPath} (${role.path}: ${role.var} ) isa ${thingPath} ${idFilter} ${role.var} isa ${roleThingName}, has id ${role.var}_id; group $${thingPath};`,
+			request: `match $${thingPath} (${role.path}: ${role.var} ) isa ${thingPath} ${idFilter} ${role.var} isa ${roleThingName}, has id ${role.var}_id; get; group $${thingPath};`,
 		};
 	});
 	const relations = currentThingSchema.linkFields?.flatMap((linkField) => {
@@ -98,7 +98,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			)
 			.join(' ');
 
-		const group = `group $${linkField.plays};`;
+		const group = `get; group $${linkField.plays};`;
 		const request = `${entityMatch} ${roles} ${relationMatchEnd} ${relationIdFilters} ${group}`;
 		return { relation: relationPath, entity: thingPath, request };
 	});

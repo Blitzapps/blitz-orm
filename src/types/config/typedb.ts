@@ -1,4 +1,4 @@
-import type { TypeDBClient, TypeDBCredential, TypeDBSession } from 'typedb-client';
+import type { TypeDBDriver, TypeDBCredential, TypeDBSession } from 'typedb-driver';
 
 export interface TypeDBProviderObject {
 	provider: 'typeDB';
@@ -11,4 +11,4 @@ export interface TypeDBClusterProviderObject {
 	credentials: TypeDBCredential;
 }
 
-export type TypeDBHandles = Map<string, { client: TypeDBClient; session: TypeDBSession }>;
+export type TypeDBHandles = Map<string, { client: TypeDBDriver; session: TypeDBSession }>;
