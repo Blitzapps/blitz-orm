@@ -46,13 +46,14 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
-		"husky": "^8.0.3",
-		"immer": "^10.0.3",
-		"object-traversal": "^1.0.1",
-		"radash": "^11.0.0",
-		"typedb-driver": "^2.25.2",
-		"uuid": "^9.0.1"
-	},
+			"husky": "^8.0.3",
+			"immer": "^10.0.3",
+			"object-traversal": "^1.0.1",
+			"radash": "^11.0.0",
+			"typedb-driver": "^2.25.2",
+			"uuid": "^9.0.1",
+			"@blitznocode/eslint-config": "^1.1.0"
+		},
 	"devDependencies": {
 		"@blitznocode/eslint-config": "^1.1.0",
 		"@types/jest": "^29.5.7",
