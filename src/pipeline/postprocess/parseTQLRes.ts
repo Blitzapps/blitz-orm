@@ -191,10 +191,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 					}
 					return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id } } as BQLMutationBlock;
 				}
-				if (exp.$op === 'delete' || exp.$op === 'unlink') {
-					// todo when typeDB confirms deletions, check them here
-					return exp as BQLMutationBlock;
-				}
+				if (exp.$op === 'delete' || exp.$op === 'unlink') return exp as BQLMutationBlock;
 				if (exp.$op === 'match') {
 					return undefined;
 				}
