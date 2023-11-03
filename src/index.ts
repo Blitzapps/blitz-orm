@@ -1,5 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-driver';
+import * as traceback from 'traceback';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -40,7 +41,7 @@ class BormClient {
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Client"
 						}`;
-						throw new Error(message);
+						console.error(traceback.format(new Error(message)));
 					}
 					try {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
@@ -50,7 +51,7 @@ class BormClient {
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
-						throw new Error(message);
+						console.error(traceback.format(new Error(message)));
 					}
 				}
 				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
@@ -61,7 +62,7 @@ class BormClient {
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Cluster Client"
 						}`;
-						throw new Error(message);
+						console.error(traceback.format(new Error(message)));
 					}
 					try {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
@@ -71,7 +72,7 @@ class BormClient {
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
-						throw new Error(message);
+						console.error(traceback.format(new Error(message)));
 					}
 				}
 			}),
@@ -85,7 +86,7 @@ class BormClient {
 		if (!this.dbHandles) {
 			await this.init();
 			if (!this.dbHandles) {
-				throw new Error("Can't init BormClient");
+				console.error(traceback.format(new Error("Can't init BormClient")));
 			}
 		}
 	};
