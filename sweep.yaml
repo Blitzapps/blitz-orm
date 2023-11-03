@@ -21,10 +21,20 @@ gha_enabled: True
 # Example:
 #
 # description: sweepai/sweep is a python project. The main api endpoints are in sweepai/api.py. Write code that adheres to PEP8.
-description: 'Blitz ORM is a unique project that uses the Blitz framework to provide an object-relational mapping solution. It is built with TypeScript and follows the DDD (Domain-Driven Design) principles. The project is structured around entities, repositories, and services, providing a clean and maintainable codebase. It also includes a comprehensive suite of unit tests to ensure code quality and reliability.'
+description: Blitz ORM is a unique project that uses the Blitz framework to provide an object-relational mapping solution. It is built with TypeScript and follows the DDD (Domain-Driven Design) principles. The project is structured around entities, repositories, and services, providing a clean and maintainable codebase. It also includes a comprehensive suite of unit tests to ensure code quality and reliability.
 
 # This sets whether to create pull requests as drafts. If this is set to True, then all pull requests will be created as drafts and GitHub Actions will not be triggered.
 draft: False
+
+# This is a list of directories that Sweep will not be able to edit.
+blocked_dirs: []
+
+# This is the description of your project. It will be used by sweep when creating PRs. You can tell Sweep what's unique about your project, what frameworks you use, or anything else you want.
+#
+# Example:
+#
+# description: sweepai/sweep is a python project. The main api endpoints are in sweepai/api.py. Write code that adheres to PEP8.
+# Removed duplicate description and draft keys
 
 # This is a list of directories that Sweep will not be able to edit.
 blocked_dirs: []
