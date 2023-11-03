@@ -1,4 +1,4 @@
-import { SessionType, TransactionType } from 'typedb-client';
+import { SessionType, TransactionType } from 'typedb-driver';
 
 import type { BormConfig, BormSchema, LinkField } from '../types';
 

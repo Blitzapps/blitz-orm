@@ -1,7 +1,10 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.5.1-2(2023-11-01)
+## 0.6.0(2023-11-02)
+- Chore: Updated to last version of typeDB, might not work with older versions
+
+## 0.5.1-3(2023-11-01)
 - Types: Mutation accepts generic
 - Types: Fixes
 

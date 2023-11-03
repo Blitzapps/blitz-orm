@@ -239,31 +239,32 @@ describe('Query', () => {
 			/// if this fails, other stuff fails, for some reason, fix this first
 			'$debugger': {
 				tqlRequest: {
-					entity: 'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; group $User;',
+					entity:
+						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; get; group $User;',
 					relations: [
 						{
 							entity: 'User',
 							relation: 'User-Accounts',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; group $user;',
+								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'User-Sessions',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; group $user;',
+								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'Space-User',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; group $users;',
+								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
 						},
 						{
 							entity: 'User',
 							relation: 'UserTag',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; group $users;',
+								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
 						},
 					],
 				},

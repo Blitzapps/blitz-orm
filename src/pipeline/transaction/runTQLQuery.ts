@@ -1,4 +1,4 @@
-import { TransactionType } from 'typedb-client';
+import { TransactionType } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
 
@@ -28,16 +28,16 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 	if (!transaction) {
 		throw new Error("Can't create transaction");
 	}
-	const entityStream = transaction.query.matchGroup(tqlRequest.entity);
+	const entityStream = transaction.query.getGroup(tqlRequest.entity);
 
 	const rolesStreams = tqlRequest.roles?.map((role) => ({
 		...role,
-		stream: transaction.query.matchGroup(role.request),
+		stream: transaction.query.getGroup(role.request),
 	}));
 
 	const relationStreams = tqlRequest.relations?.map((relation) => ({
 		...relation,
-		stream: transaction.query.matchGroup(relation.request),
+		stream: transaction.query.getGroup(relation.request),
 	}));
 	const entityConceptMapGroups = await entityStream.collect();
 

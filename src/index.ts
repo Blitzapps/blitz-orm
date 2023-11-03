@@ -1,5 +1,5 @@
 import { tryit } from 'radash';
-import { TypeDB, SessionType } from 'typedb-client';
+import { TypeDB, SessionType } from 'typedb-driver';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -34,7 +34,7 @@ class BormClient {
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
-					const [clientErr, client] = await tryit(TypeDB.coreClient)(dbc.url);
+					const [clientErr, client] = await tryit(TypeDB.coreDriver)(dbc.url);
 					if (clientErr) {
 						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
@@ -54,7 +54,7 @@ class BormClient {
 					}
 				}
 				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
-					const [clientErr, client] = await tryit(TypeDB.clusterClient)(dbc.addresses, dbc.credentials);
+					const [clientErr, client] = await tryit(TypeDB.enterpriseDriver)(dbc.addresses, dbc.credentials);
 
 					if (clientErr) {
 						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${

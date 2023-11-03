@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 
-import { SessionType, TransactionType, TypeDB } from 'typedb-client';
+import { SessionType, TransactionType, TypeDB } from 'typedb-driver';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { Provider } from '../../src/index';
@@ -20,10 +20,10 @@ const providerConfig = {
 
 const createClient = async (connector: any) => {
 	if (provider === 'typeDB') {
-		return TypeDB.coreClient(connector.url);
+		return TypeDB.coreDriver(connector.url);
 	}
 	if (provider === 'typeDBCluster') {
-		return TypeDB.clusterClient(connector.addresses, connector.credentials);
+		return TypeDB.enterpriseDriver(connector.addresses, connector.credentials);
 	}
 	throw new Error('Invalid provider');
 };
