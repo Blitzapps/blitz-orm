@@ -1,6 +1,5 @@
-import { TypeDBCredential } from 'typedb-client';
-
 import type { BormConfig } from '../../src/index';
+import { TypeDBCredential } from 'typedb-driver';
 
 export const cloudConfig: BormConfig = {
 	server: {

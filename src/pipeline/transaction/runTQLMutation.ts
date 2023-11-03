@@ -1,4 +1,4 @@
-import { TransactionType } from 'typedb-client';
+import { TransactionType } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
 
