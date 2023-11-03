@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
+import * as traceback from 'traceback';
 
 import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
