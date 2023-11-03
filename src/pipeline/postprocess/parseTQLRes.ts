@@ -1,5 +1,6 @@
 import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
 import type { Concept, ConceptMapGroup } from 'typedb-driver';
+import * as traceback from 'traceback';
 
 import { extractChildEntities, getPath } from '../../helpers';
 import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
@@ -15,7 +16,7 @@ const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBo
 		const currentSchema = schema.entities[thingName] ? schema.entities[thingName] : schema.relations[thingName];
 
 		if (!currentSchema.idFields) {
-			throw new Error(`No idFields defined for ${thingName}`);
+			console.error(traceback.format(new Error(`No idFields defined for ${thingName}`)));
 		}
 		const thingType = schema.entities[thingName] ? 'entity' : 'relation';
 		// * Extract the attribute list from the concept map group
@@ -115,10 +116,10 @@ const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: Enriche
 		// TODO: Multiple inverse roles
 		(_k, v) => {
 			if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
-				throw new Error('a role can be played by two entities throws the same relation');
+				console.error(traceback.format(new Error('a role can be played by two entities throws the same relation')));
 			}
 			if (!v.playedBy) {
-				throw new Error('Role not being played by nobody');
+				console.error(traceback.format(new Error('Role not being played by nobody')));
 			}
 			// We extract the role that it plays
 
@@ -138,9 +139,9 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 	const { schema, bqlRequest, config, tqlRequest } = req;
 	const { rawTqlRes } = res;
 	if (!bqlRequest) {
-		throw new Error('BQL request not parsed');
+		console.error(traceback.format(new Error('BQL request not parsed')));
 	} else if (!rawTqlRes) {
-		throw new Error('TQL query not executed');
+		console.error(traceback.format(new Error('TQL query not executed')));
 	}
 	const { query } = bqlRequest;
 
@@ -153,7 +154,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 		}
 		const { mutation } = bqlRequest;
 		if (!mutation) {
-			throw new Error('TQL mutation not executed');
+			console.error(traceback.format(new Error('TQL mutation not executed')));
 		}
 		// console.log('config.mutation', config.mutation);
 
@@ -167,9 +168,9 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 				// console.log('rawTqlRes.insertions', rawTqlRes.insertions);
 				// console.log('currentNode', currentNode);
 
-				// console.log('current:', JSON.stringify(x));
-
-				if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
+					if (!currentNode?.asThing().iid) {
+						console.error(traceback.format(new Error(`Thing not received on mutation: ${JSON.stringify(exp)}. Probably the relation had all its edges deleted instead of replaced`)));
+					}
 					if (
 						!currentNode?.asThing().iid
 						// deletions are not confirmed in typeDB
@@ -197,7 +198,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 				if (exp.$op === 'match') {
 					return undefined;
 				}
-				throw new Error(`Unsupported op ${exp.$op}`);
+				console.error(traceback.format(new Error(`Unsupported op ${exp.$op}`)));
 
 				// console.log('config', config);
 			})
@@ -210,7 +211,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
 	// <--------------- QUERIES
 	if (!rawTqlRes.entity) {
-		throw new Error('TQL query not executed');
+		console.error(traceback.format(new Error('TQL query not executed')));
 	}
 	// console.log('rawTqlRes', rawTqlRes);
 	// entities and relations queried directly
