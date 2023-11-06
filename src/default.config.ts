@@ -5,6 +5,7 @@ export const defaultConfig: Partial<BormConfig> = {
 		noMetadata: false,
 		simplifiedLinks: true,
 		debugger: false,
+		returnNulls: false,
 	},
 
 	mutation: {},

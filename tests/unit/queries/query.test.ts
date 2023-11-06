@@ -76,7 +76,6 @@ describe('Query', () => {
 			{
 				$entity: 'User',
 				$id: 'user4',
-				email: 'ben@test.com',
 				id: 'user4',
 				name: 'Ben',
 			},
@@ -287,6 +286,22 @@ describe('Query', () => {
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
+	});
+
+	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
+		expect(client).toBeDefined();
+		const query = { $entity: 'User', $id: 'user4', $fields: ['spaces', 'email', 'user-tags'] };
+		const expectedRes = {
+			'$entity': 'User',
+			'email': null, //Example field
+			'$id': 'user4',
+			'spaces': null, //example linkfield from intermediary relation
+			'user-tags': null, //example linkfield from direct relation
+		};
+		const res = await client.query(query, { returnNulls: true });
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('r1[relation] - basic', async () => {

@@ -1,18 +1,23 @@
 import type { TypeDBProviderObject, TypeDBClusterProviderObject, TypeDBHandles } from './typedb';
 
+export type QueryConfig = {
+	noMetadata?: boolean;
+	returnNulls?: boolean;
+	simplifiedLinks?: boolean;
+	debugger?: boolean;
+};
+
+export type MutateConfig = {
+	noMetadata?: boolean;
+};
+
 export type BormConfig = {
 	server: {
 		provider: 'blitz-orm-js';
 	};
 	// queryDefaults
-	query?: {
-		noMetadata?: boolean;
-		simplifiedLinks?: boolean;
-		debugger?: boolean;
-	};
-	mutation?: {
-		noMetadata?: boolean;
-	};
+	query?: QueryConfig;
+	mutation?: MutateConfig;
 	dbConnectors: [ProviderObject, ...ProviderObject[]]; // minimum one
 };
 

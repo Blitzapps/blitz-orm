@@ -3,7 +3,7 @@ insert
 $user-1 isa User, has id "user1", has name "Antoine", has User·email "antoine@test.com";
 $user-2 isa User, has id "user2", has name "Loic", has User·email "loic@test.com";
 $user-3 isa User, has id "user3", has name "Ann", has User·email "ann@test.com";
-$user-4 isa User, has id "user4", has name "Ben", has User·email "ben@test.com";
+$user-4 isa User, has id "user4", has name "Ben";
 $user-5 isa User, has id "user5", has name "Charlize", has User·email "charlize@test.com";
 
 $thing1 isa Thing, has id "thing1", has stuff "A";
