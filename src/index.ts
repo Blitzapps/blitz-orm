@@ -5,7 +5,7 @@ import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
-import type { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
+import type { BormConfig, BormSchema, DBHandles, QueryConfig, RawBQLMutation, RawBQLQuery } from './types';
 
 export * from './types';
 
@@ -101,7 +101,7 @@ class BormClient {
 	};
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
-	query = async (query: RawBQLQuery, queryConfig?: any) => {
+	query = async (query: RawBQLQuery, queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,

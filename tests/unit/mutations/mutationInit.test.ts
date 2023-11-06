@@ -1139,7 +1139,6 @@ describe('Mutations: Init', () => {
 				id: 'user3',
 			},
 			{
-				email: 'ben@test.com',
 				id: 'user4',
 			},
 			{
