@@ -1,5 +1,5 @@
 import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
-import type { Concept, ConceptMapGroup } from 'typedb-client';
+import type { Concept, ConceptMapGroup } from 'typedb-driver';
 
 import { extractChildEntities, getPath } from '../../helpers';
 import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';

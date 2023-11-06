@@ -76,7 +76,6 @@ describe('Query', () => {
 			{
 				$entity: 'User',
 				$id: 'user4',
-				email: 'ben@test.com',
 				id: 'user4',
 				name: 'Ben',
 			},
@@ -239,31 +238,32 @@ describe('Query', () => {
 			/// if this fails, other stuff fails, for some reason, fix this first
 			'$debugger': {
 				tqlRequest: {
-					entity: 'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; group $User;',
+					entity:
+						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; get; group $User;',
 					relations: [
 						{
 							entity: 'User',
 							relation: 'User-Accounts',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; group $user;',
+								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'User-Sessions',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; group $user;',
+								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'Space-User',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; group $users;',
+								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
 						},
 						{
 							entity: 'User',
 							relation: 'UserTag',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; group $users;',
+								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
 						},
 					],
 				},
@@ -286,6 +286,22 @@ describe('Query', () => {
 		expectArraysInObjectToContainSameElements(res, expectedRes);
 
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
+	});
+
+	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
+		expect(client).toBeDefined();
+		const query = { $entity: 'User', $id: 'user4', $fields: ['spaces', 'email', 'user-tags'] };
+		const expectedRes = {
+			'$entity': 'User',
+			'email': null, //Example field
+			'$id': 'user4',
+			'spaces': null, //example linkfield from intermediary relation
+			'user-tags': null, //example linkfield from direct relation
+		};
+		const res = await client.query(query, { returnNulls: true });
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('r1[relation] - basic', async () => {

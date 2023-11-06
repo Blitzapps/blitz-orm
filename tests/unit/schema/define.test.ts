@@ -16,7 +16,10 @@ describe('Mutation init', () => {
 		bormClient = configBormClient;
 	}, 15000);
 
-	it('b1[create] Basic', async () => {
+	it('Todo:b1[create] Basic', async () => {
+		/*
+    todo: Now we can't use the name of the relation if the relation has been extended. 
+    */
 		expect(bormClient).toBeDefined();
 
 		await bormClient.define();
