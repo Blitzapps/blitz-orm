@@ -1,6 +1,9 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.6.2(2023-11-08)
+- Typedb-driver fixed, now we can connect to any IP
+
 ## 0.6.1(2023-11-07)
 - Feature: Added returnNulls to explicitly return nulls of queried fields when empty
 - Types: Added query config type
