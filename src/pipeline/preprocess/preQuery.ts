@@ -14,7 +14,12 @@ export const preQuery: PipelineOperation = async (req) => {
 		let hasReplace = false;
 
 		traverse(blocks, ({ value: val }) => {
-			if (val.$op === 'replace') {
+			if (!isObject(val)) {
+				return;
+			}
+			const value = val as BQLMutationBlock; /// removing undefined values, nulls are no shaked as they are used to delete fields
+
+			if (value.$op === 'replace') {
 				hasReplace = true;
 				return false; // Stops the traversal once a replace is found
 			}
@@ -172,9 +177,9 @@ export const preQuery: PipelineOperation = async (req) => {
 
 		// @ts-expect-error - todo
 		const filledReplaces = fillReplaces(filledBqlRequest);
-		// console.log('filledReplaces: ', JSON.stringify(filledReplaces, null, 2));
 
 		// @ts-expect-error - todo
 		req.filledBqlRequest = filledReplaces;
 	}
+	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
 };
