@@ -85,7 +85,7 @@ describe('Mutations: Init', () => {
 		firstUser = { ...firstUser, id: user.id };
 	});
 
-	it('b2[update] Basic', async () => {
+	it('b2a[update] Basic', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(
 			{
@@ -116,6 +116,38 @@ describe('Mutations: Init', () => {
 			email: 'john@test.com',
 			$entity: 'User',
 			$id: firstUser.id,
+		});
+	});
+
+	it('TODO:b2b[delete attribute] Delete attribute with null', async () => {
+		expect(bormClient).toBeDefined();
+		await bormClient.mutate(
+			{
+				$entity: 'User',
+				$id: firstUser.id,
+				name: 'Johns not',
+				email: null,
+			},
+			{ noMetadata: true },
+		);
+
+		const res2 = await bormClient.query({
+			$entity: 'User',
+			$id: firstUser.id,
+		});
+		expect(res2).toEqual({
+			id: firstUser.id,
+			name: 'Johns not',
+			email: null,
+			$entity: 'User',
+			$id: firstUser.id,
+		});
+
+		/// get it back
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: firstUser.id,
+			email: 'john@test.com',
 		});
 	});
 
