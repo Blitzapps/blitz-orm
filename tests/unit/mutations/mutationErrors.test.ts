@@ -292,17 +292,15 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'delete', $id: 'jnsndadsn' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'delete', $id: 'jnsndadsn' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
-				expect(error.message).toBe('[BQLE-Q-M-1] Cannot delete $id:"jnsndadsn" because it does not exist in the DB');
+				// expect(error.message).toBe('[BQLE-Q-M-1] Cannot delete $id:"jnsndadsn" because it does not exist in the DB');
 				expect(error.message).toBe(
 					'[BQLE-Q-M-2] Cannot delete $id:"jnsndadsn" because it is not linked to $id:"tag-1"',
 				);
@@ -320,13 +318,11 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'link', $id: 'jnsndadsn' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'link', $id: 'jnsndadsn' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe('[BQLE-Q-M-1] Cannot link $id:"jnsndadsn" because it does not exist in the DB');
@@ -344,17 +340,15 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'update', $id: 'jnsndadsn', name: 'new' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'update', $id: 'jnsndadsn', name: 'new' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
-				expect(error.message).toBe('[BQLE-Q-M-1] Cannot update $id:"jnsndadsn" because it does not exist in the DB');
+				// expect(error.message).toBe('[BQLE-Q-M-1] Cannot update $id:"jnsndadsn" because it does not exist in the DB');
 				expect(error.message).toBe(
 					'[BQLE-Q-M-2] Cannot update $id:"jnsndadsn" because it is not linked to $id:"tag-1"',
 				);
@@ -372,17 +366,15 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'update', $id: 'jnsndadsn' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'unlink', $id: 'jnsndadsn' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
-				expect(error.message).toBe('[BQLE-Q-M-1] Cannot unlink $id:"jnsndadsn" because it does not exist in the DB');
+				// expect(error.message).toBe('[BQLE-Q-M-1] Cannot unlink $id:"jnsndadsn" because it does not exist in the DB');
 				expect(error.message).toBe(
 					'[BQLE-Q-M-2] Cannot unlink $id:"jnsndadsn" because it is not linked to $id:"tag-1"',
 				);
@@ -400,13 +392,11 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'delete', $id: 'user3' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'delete', $id: 'user3' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
@@ -425,13 +415,11 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'update', $id: 'user3', name: 'new' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'update', $id: 'user3', name: 'new' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe('[BQLE-Q-M-2] Cannot update $id:"user3" because it is not linked to $id:"tag-1"');
@@ -449,13 +437,11 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate([
-				{
-					$relation: 'UserTag',
-					$id: 'tag-1',
-					users: [{ $op: 'update', $id: 'user3' }],
-				},
-			]);
+			await bormClient.mutate({
+				$relation: 'UserTag',
+				$id: 'tag-1',
+				users: [{ $op: 'unlink', $id: 'user3' }],
+			});
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe('[BQLE-Q-M-2] Cannot unlink $id:"user3" because it is not linked to $id:"tag-1"');
@@ -469,7 +455,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:e-v1[virtual] Cant insert virtual', async () => {
+	it('e-v1[virtual] Cant insert virtual', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -492,7 +478,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('e-pq1[create, nested] With pre-query, create when there is already something error', async () => {
+	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		expect(bormClient).toBeDefined();
 
@@ -510,7 +496,9 @@ describe('Mutations: Errors', () => {
 			);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe('You already have user filled for this.');
+				expect(error.message).toBe(
+					'[BQLE-Q-M-2] Cannot link on:"root-account3-1.user" because it is already occupied.',
+				);
 			} else {
 				expect(true).toBe(false);
 			}

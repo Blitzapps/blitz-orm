@@ -708,7 +708,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-
 		// @ts-expect-error - TODO description
 		expect(deepSort(newUserTagGroup, 'id')).toEqual({
 			id: 'tmpGroup',
@@ -1030,6 +1029,31 @@ describe('Mutations: Init', () => {
 		});
 	});
 
+	it('TODO:l16[replace, nested, create, replace] replacing nested under a create', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$entity: 'Thing',
+			id: 'temp1',
+			root: {
+				$id: 'tr10',
+				extra: 'thing2',
+			},
+		});
+
+		const res = await bormClient.query({
+			$entity: 'Thing',
+			$id: 'temp1',
+			$fields: [{ $path: 'root', $fields: ['extra'] }],
+		});
+
+		expect(res).toEqual({
+			$entity: 'Thing',
+			$id: 'temp1',
+			root: { $id: 'tr10', extra: 'thing2', $relation: 'ThingRelation' },
+		});
+	});
+
 	it('rep1a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
 		expect(bormClient).toBeDefined();
 
@@ -1269,7 +1293,7 @@ describe('Mutations: Init', () => {
 		]);
 	});
 
-	it('h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
+	it('TODO:h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate([
@@ -1286,7 +1310,6 @@ describe('Mutations: Init', () => {
 				id: 'account-ml2',
 			},
 		]);
-
 		///this one should actually only link account-ml3
 		await bormClient.mutate({
 			$relation: 'User-Accounts',

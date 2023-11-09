@@ -416,14 +416,13 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 					const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
 
-					// /// Replaces are temporally unsupported, they should work tho when the currentValue is being created (so we are sure it is an add and not a replace)
-					// if (value.$op === 'replace') {
-					// 	if (parentOp !== 'create') {
-					// 		throw new Error('Unsupported: For replaces, please do an unlink + a link instead');
-					// 	} else {
-					// 		value.$op = 'link';
-					// 	}
-					// }
+					// todo: move the getOp logic to the first traverse of the fill so that the $op is available
+					// We are doing something twice from the former traverse
+					if (value.$op === 'replace') {
+						if (parentOp === 'create') {
+							value.$op = 'link';
+						}
+					}
 
 					// console.log('currentValue', isDraft(value) ? current(value) : value);
 

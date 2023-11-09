@@ -735,10 +735,8 @@ describe('Mutations: Init', () => {
 		);
 	});
 
-	// TODO - SAM: fix test
 	it('n3[delete, nested] nested delete', async () => {
 		expect(bormClient).toBeDefined();
-		console.log('==========MUTATION 1');
 
 		const mutated = await bormClient.mutate(
 			{
@@ -768,7 +766,6 @@ describe('Mutations: Init', () => {
 		// console.log('myTestKind1Id', myTestKind1Id);
 
 		/// delete both things
-		console.log('==========MUTATION 2');
 		await bormClient.mutate(
 			{
 				$relation: 'Kind',
@@ -823,7 +820,6 @@ describe('Mutations: Init', () => {
 		await bormClient.query({ $entity: 'Space' });
 	});
 
-	// TODO - SAM: fix test
 	it('u1[update, multiple] Shared ids', async () => {
 		expect(bormClient).toBeDefined();
 

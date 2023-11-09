@@ -1,18 +1,21 @@
-import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
-import { get, isObject } from 'radash';
-import { v4 as uuidv4 } from 'uuid';
-
+import { isObject } from 'radash';
 import type { FilledBQLMutationBlock } from '../../types';
 import { queryPipeline, type PipelineOperation } from '../pipeline';
+import { produce } from 'immer';
+import { v4 as uuidv4 } from 'uuid';
 
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest } = req;
+	const isBatchedMutation = Array.isArray(filledBqlRequest);
+	if (isBatchedMutation) {
+		return;
+	}
 	let newFilled: FilledBQLMutationBlock | FilledBQLMutationBlock[] = filledBqlRequest as
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
-
+	// 1. Convert mutation to Query
 	// console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 	// TODO: get filter replaces to work
 	const convertMutationToQuery = (
@@ -83,178 +86,274 @@ export const preQuery: PipelineOperation = async (req) => {
 		return blocks;
 	};
 	const preQueryBlocks = convertMutationToQuery(filledBqlRequest as FilledBQLMutationBlock | FilledBQLMutationBlock[]);
-	// console.log('preQueryBlocks: ', preQueryBlocks);
+	// console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
 
+	// 2. Perform pre-query and get response
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
 	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
-
-	// 1. Cannot $link when you already have something already in place, instead must replaces
-	const checkForFoundFields = (
+	const getObjectPath = (parent: any, key: string) => {
+		const idField = parent.$id || parent.id || parent.$bzId;
+		return `${parent.$objectPath ? (idField ? parent.$objectPath : parent.$objectPath.split('.')[0]) : 'root'}${
+			idField ? `-${idField}` : ''
+		}.${key}`;
+	};
+	// 3. Store paths on each child object
+	const storePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) => {
-			traverse(draft, ({ value: val, key, parent }: any) => {
-				// Check if it's a defined operation
-				// @ts-expect-error todo
-				if (isObject(val) && val.$op === 'link' && parent && parent[key].$op === 'link') {
-					// Extract the parent key name (i.e., the entity being created)
-					// @ts-expect-error todo
-					// TODO: allow for arrays
-					if (!Array.isArray(preQueryRes) && preQueryRes && preQueryRes[key] && !parseInt(key)) {
-						// @ts-expect-error todo
-
-						if (preQueryRes[key].$op !== 'link') {
-							throw new Error(`You already have ${key} filled for this.`);
-						}
-					}
-				}
-			});
-		});
-	};
-	newFilled = checkForFoundFields(newFilled);
-
-	// 2. Cannot delete something that isn't in your targeted role
-	const checkForDeleting = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) => {
-			traverse(draft, (o) => {
-				const { value } = o;
-				const draftPath = o.meta.nodePath || '';
-				// todo: include update, replace, and unlink
-				if (value && typeof value === 'object' && value.$op === 'delete' && isObject(preQueryRes)) {
-					let found = false;
-					traverse(preQueryRes, ({ value: preValue, meta }) => {
-						const prePath = meta.nodePath || '';
-						const draftParentPath = JSON.stringify(draftPath.slice(0, -1));
-						const preParentPath = JSON.stringify(prePath.slice(0, -1));
-						if (draftParentPath === preParentPath && preValue === value.$id) {
-							found = true;
-							return false; // Exit the traversal once found
-						}
-					});
-					if (!found) {
-						const parent = get(draft, draftPath.slice(0, -1));
-						const key = draftPath[draftPath.length - 1];
-						// Remove the delete operation from the draft
-						if (Array.isArray(parent)) {
-							const index = parent.findIndex((item) => item === value);
-							if (index > -1) {
-								parent.splice(index, 1);
-							}
-						} else {
-							// @ts-expect-error todo
-							parent ? delete parent[key] : null;
-						}
-					}
-				}
-			});
-		});
-	};
-
-	// 3. Check for operation types
-	const checkForOperations = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
-		let hasReplace = false;
-		let hasDelete = false;
-
-		traverse(blocks, ({ value: val }) => {
-			if (val.$op === 'replace') {
-				hasReplace = true;
-			}
-			if (val.$op === 'delete') {
-				hasDelete = true;
-			}
-			return true;
-		});
-
-		return { hasReplace, hasDelete };
-	};
-
-	const { hasReplace, hasDelete } = checkForOperations(newFilled);
-
-	if (hasDelete) {
-		newFilled = checkForDeleting(newFilled);
-		// console.log('after deleting: ', JSON.stringify(newFilled, null, 2));
-	}
-	if (hasReplace) {
-		const fillReplaces = (
-			blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-		): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-			return produce(blocks, (draft) =>
-				traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
-					if (key && !key?.includes('$') && (Array.isArray(val) || isObject(val))) {
-						const values = Array.isArray(val) ? val : [val];
-
-						const currentEntityOrRelation: { $entity?: string; $relation?: string } = {};
-
-						values.forEach((thing) => {
-							if (thing.$op === 'replace') {
+		return produce(blocks, (draft) =>
+			traverse(draft, (context) => {
+				const { key, parent } = context;
+				// console.log('info: ', JSON.stringify({ key, parent }, null, 2));
+				if (parent && key && !key.includes('$')) {
+					if (Array.isArray(parent[key])) {
+						parent[key].forEach((o: any) => {
+							if (typeof o !== 'string') {
 								// eslint-disable-next-line no-param-reassign
-								thing.$op = 'link';
-							}
-
-							// Capture the current entity or relation
-							if (thing.$entity) {
-								currentEntityOrRelation.$entity = thing.$entity;
-							} else if (thing.$relation) {
-								currentEntityOrRelation.$relation = thing.$relation;
+								o.$objectPath = getObjectPath(parent, key);
 							}
 						});
+					} else if (isObject(parent[key])) {
+						parent[key].$objectPath = getObjectPath(parent, key);
+					}
+				}
+			}),
+		);
+	};
+	// @ts-expect-error todo
+	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
+	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
+	type Cache<K extends string, V extends string> = {
+		[key in K]: V;
+	};
+	const cache: Cache<string, string> = {};
+	// 4. Create cache of paths
+	const cachePaths = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, (context) => {
+				const { key, parent } = context;
+				if (parent && key && parent.$id && !key.includes('$')) {
+					const cacheKey = getObjectPath(parent, key);
+					if (Array.isArray(parent[key])) {
+						// @ts-expect-error todo
+						const cacheArray = [];
+						// @ts-expect-error todo
+						parent[key].forEach((val) => {
+							if (isObject(val)) {
+								// @ts-expect-error todo
+								cacheArray.push(val.$id.toString());
+							} else {
+								cacheArray.push(val.toString());
+							}
+						});
+						// @ts-expect-error todo
+						cache[cacheKey] = cacheArray;
+					} else {
+						const val = parent[key];
+						if (isObject(val)) {
+							// @ts-expect-error todo
+							cache[cacheKey] = val.$id.toString();
+						} else {
+							cache[cacheKey] = val.toString();
+						}
+					}
+				}
+			}),
+		);
+	};
+	// @ts-expect-error todo
+	cachePaths(storedPaths);
+	// console.log('cache: ', cache);
 
-						let idsFromQueryRes: any[] = [];
-						const matchingQueryObj = Array.isArray(preQueryRes)
-							? // @ts-expect-error - todo
-							  preQueryRes.find((item) => item.$id === parent.$id)
-							: preQueryRes;
-						// @ts-expect-error - todo
-						const queryVal = matchingQueryObj ? matchingQueryObj[key] : null;
+	// 5. Prune mutation
 
-						if (Array.isArray(queryVal)) {
-							idsFromQueryRes = queryVal.map((thing) => (typeof thing === 'object' ? thing.$id : thing));
-						} else if (typeof queryVal === 'string') {
-							idsFromQueryRes = [queryVal];
+	const checkId = (
+		path: string,
+		id: string | string[],
+	): { found: boolean; cardinality: 'ONE' | 'MANY'; isOccupied: boolean } => {
+		let found: boolean = false;
+		const cardinality = Array.isArray(cache[path]) ? 'MANY' : 'ONE';
+		// @ts-expect-error todo
+		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
+		// const ids: string[] = cache[path];
+
+		// console.log('paths: ', JSON.stringify({ path, id, ids }, null, 2));
+
+		if (ids) {
+			const foundIds = !Array.isArray(id) ? ids.filter((o) => o === id) : ids.filter((o) => id.includes(o));
+			found = foundIds.length > 0;
+		}
+
+		return { found, cardinality, isOccupied: cache[path] ? true : false };
+	};
+	const getOtherIds = (path: string, replaces: { $id: string }[]): string[] => {
+		let otherIds: string[] = [];
+		// @ts-expect-error todo
+		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
+
+		// console.log('paths: ', JSON.stringify({ ids }, null, 2));
+		const replacesIds = replaces.map((o) => o.$id);
+		if (ids) {
+			otherIds = ids.filter((o) => !replacesIds.includes(o));
+		}
+
+		return otherIds;
+	};
+	const prunedMutation = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, (context) => {
+				const { key, value, parent } = context;
+				if (
+					parent &&
+					key &&
+					!key.includes('$') &&
+					(Array.isArray(value) || isObject(value)) &&
+					!Array.isArray(parent)
+				) {
+					if (Array.isArray(parent[key])) {
+						parent[key].forEach((o: any) => {
+							if (typeof o !== 'string') {
+								// eslint-disable-next-line no-param-reassign
+								o.$objectPath = getObjectPath(parent, key);
+							}
+						});
+					} else if (isObject(parent[key])) {
+						parent[key].$objectPath = getObjectPath(parent, key);
+					}
+					// console.log('after paths: ', JSON.stringify(parent[key], null, 2));
+				}
+				// a. only work for role fields that are arrays or objects
+				if (
+					key &&
+					parent &&
+					!key?.includes('$') &&
+					(Array.isArray(value) || isObject(value)) &&
+					!Array.isArray(parent)
+				) {
+					let values = Array.isArray(value) ? value : [value];
+
+					const currentEntityOrRelation: { $entity?: string; $relation?: string } = {};
+					// @ts-expect-error todo
+					const replaces = [];
+					// @ts-expect-error todo
+					const doNothing = [];
+					const pathToThing = getObjectPath(parent, key);
+
+					values.forEach((thing) => {
+						// todo: fetch the proper idField 'thing.color'
+						const idField = thing.$id || thing.id;
+						const { found, cardinality, isOccupied } = checkId(pathToThing, idField);
+
+						if (thing.$op && idField) {
+							switch (thing.$op) {
+								case 'delete':
+									if (!found) {
+										throw new Error(
+											`[BQLE-Q-M-2] Cannot delete $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+										);
+									}
+									break;
+								case 'update':
+									if (!found) {
+										throw new Error(
+											`[BQLE-Q-M-2] Cannot update $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+										);
+									}
+									break;
+
+								case 'unlink':
+									if (!found) {
+										throw new Error(
+											`[BQLE-Q-M-2] Cannot unlink $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+										);
+									}
+									break;
+
+								case 'link':
+									if (found) {
+										throw new Error(
+											`[BQLE-Q-M-2] Cannot link $id:"${idField}" because it is already linked to $id:"${parent.$id}"`,
+										);
+									}
+									break;
+								case 'replace':
+									replaces.push(thing);
+									// eslint-disable-next-line no-param-reassign
+									thing.$op = 'link';
+
+									if (found) {
+										doNothing.push(idField);
+									}
+									break;
+
+								case 'create':
+									// todo: only for cardinality one
+									// eslint-disable-next-line no-param-reassign
+									replaces.push(thing);
+									break;
+
+								default:
+									break;
+							}
+						} else if (thing.$op === 'link' && !found && cardinality === 'ONE' && isOccupied) {
+							throw new Error(`[BQLE-Q-M-2] Cannot link on:"${thing.$objectPath}" because it is already occupied.`);
 						}
 
-						idsFromQueryRes.forEach((id: any) => {
-							const valueWithReplaceOp =
-								queryVal[0].$op === 'replace'
-									? null
-									: values.find((thing: any) => thing.$id === id && thing.$op === 'link');
-							// console.log('valueWithReplaceOp: ', JSON.stringify({ valueWithReplaceOp, queryVal }, null, 2));
+						// eslint-disable-next-line no-param-reassign
+					});
+					if (replaces.length > 0) {
+						// @ts-expect-error todo
+						const otherIds = getOtherIds(pathToThing, replaces);
+						// console.log('otherIds: ', JSON.stringify({ otherIds, pathToThing }, null, 2));
 
-							if (!valueWithReplaceOp && !values.some((thing: any) => thing.$id === id)) {
+						otherIds.forEach((id: string) => {
+							const valueWithReplaceOp = values.find((thing) => thing.$id === id && thing.$op === 'link');
+							// console.log('valueWithReplaceOp: ', JSON.stringify({ valueWithReplaceOp, queryVal }, null, 2));
+							// Capture the current entity or relation
+							// @ts-expect-error todo
+							const [firstThing] = replaces;
+							if (firstThing.$entity) {
+								currentEntityOrRelation.$entity = firstThing.$entity;
+							} else if (firstThing.$relation) {
+								currentEntityOrRelation.$relation = firstThing.$relation;
+							}
+							if (!valueWithReplaceOp && !values.some((thing) => thing.$id === id)) {
 								const unlinkOp = {
 									...currentEntityOrRelation,
 									$op: 'unlink',
 									$id: id,
 									$bzId: `T_${uuidv4()}`,
 								};
-
-								if (Array.isArray(val)) {
-									val.push(unlinkOp);
+								if (Array.isArray(value)) {
+									value.push(unlinkOp);
 								} else {
-									// @ts-expect-error todo
 									// eslint-disable-next-line no-param-reassign
-									parent[key] = [val, unlinkOp];
+									values = [value, unlinkOp];
 								}
 							} else if (valueWithReplaceOp) {
 								// Remove $op: 'link' for id that is already present in preQueryRes
-								const index = values.findIndex((thing: any) => thing.$id === id && thing.$op === 'link');
+								const index = values.findIndex((thing) => thing.$id === id && thing.$op === 'link');
 								if (index > -1) {
 									values.splice(index, 1);
 								}
 							}
 						});
 					}
-				}),
-			);
-		};
-
-		newFilled = fillReplaces(newFilled);
+					// @ts-expect-error todo
+					const filtered = values.filter((o) => !doNothing.includes(o.$id));
+					parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+				}
+			}),
+		);
+	};
+	if (preQueryRes) {
+		newFilled = prunedMutation(newFilled);
+		// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+		req.filledBqlRequest = newFilled;
 	}
-
-	// console.log('newFilled: ', JSON.stringify(newFilled, null, 2));
-
-	req.filledBqlRequest = newFilled;
 };

@@ -8,6 +8,7 @@ description sub attribute, value string;
 
 
 stuff sub attribute, value string;
+Thing·stuff sub attribute, value string;
 
 
 # User
@@ -50,6 +51,7 @@ Space sub entity,
 Thing sub entity,
     owns id@key,
     owns stuff,
+    
     plays ThingRelation:root,
     plays ThingRelation:extra,
     plays ThingRelation:things;

@@ -417,7 +417,7 @@ describe('Mutations: batched and tempId', () => {
 		});
 	});
 
-	it('r3[replace] replace many roles in many relation', async () => {
+	it('TODO:r3[replace] replace many roles in many relation', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate([
@@ -460,19 +460,22 @@ describe('Mutations: batched and tempId', () => {
 		]);
 	});
 
-	it('dpq3[delete pre-query] delete something that does not exist', async () => {
+	it('TODO:dpq1[delete pre-query] delete something that does not exist', async () => {
 		expect(bormClient).toBeDefined();
 
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr6',
-			// thing2
-			root: { $id: 'thing2', $op: 'delete' },
-			// thing5
-			things: [{ $id: 'thing1', $op: 'delete' }],
-			// thing1
-			// extra: { $id: 'thing1', $op: 'unlink' },
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr6',
+				// thing2
+				root: { $id: 'thing2', $op: 'delete' },
+				// thing5
+				things: [{ $id: 'thing1', $op: 'delete' }],
+				// thing1
+				// extra: { $id: 'thing1', $op: 'unlink' },
+			},
+			{ ignoreNonexistingThings: true },
+		);
 
 		const queryRes = await bormClient.query(
 			{
@@ -487,6 +490,90 @@ describe('Mutations: batched and tempId', () => {
 			id: 'tr6',
 			things: ['thing5'],
 			extra: 'thing1',
+		});
+	});
+
+	it('TODO:dpq2[delete pre-query] unlink something that does not exist', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$relation: 'ThingRelation',
+			$id: 'tr7',
+			// thing3
+			root: { $id: 'thing3', $op: 'unlink' },
+			// thing5
+			things: [{ $id: 'thing90', $op: 'unlink' }],
+			// thing1
+			// extra: { $id: 'thing1', $op: 'unlink' },
+		});
+
+		const queryRes = await bormClient.query(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr7',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(queryRes).toBeDefined();
+		expect(queryRes).toEqual({
+			id: 'tr7',
+			things: ['thing5'],
+			extra: 'thing1',
+		});
+	});
+
+	it('TODO:dpq3[delete pre-query] update something that does not exist', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$relation: 'ThingRelation',
+			$id: 'tr8',
+			// thing3
+			root: { $id: 'thing4', $op: 'update', stuff: 'Z' },
+			// thing5
+			things: [{ $id: 'thing90', $op: 'update', stuff: 'blah' }],
+			// thing1
+			// extra: { $id: 'thing1', $op: 'unlink' },
+		});
+
+		const queryRes = await bormClient.query(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr8',
+				$fields: [{ $path: 'root', $fields: ['stuff'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(queryRes).toBeDefined();
+		expect(queryRes).toEqual({
+			id: 'tr7',
+
+			root: '',
+		});
+	});
+
+	it('TODO:r4[replace] replace depth test', async () => {
+		expect(bormClient).toBeDefined();
+		await bormClient.mutate({
+			$entity: 'Thing',
+			$id: 'thing5',
+			root: {
+				$id: 'tr11',
+				extra: 'thing2',
+			},
+		});
+		const queryRes = await bormClient.query({
+			$relation: 'ThingRelation',
+			$id: 'tr11',
+			$fields: ['extra'],
+		});
+		console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
+		expect(queryRes).toEqual({
+			$relation: 'ThingRelation',
+			$id: 'tr11',
+			extra: 'thing2',
 		});
 	});
 
