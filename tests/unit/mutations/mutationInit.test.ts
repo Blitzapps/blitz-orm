@@ -85,7 +85,7 @@ describe('Mutations: Init', () => {
 		firstUser = { ...firstUser, id: user.id };
 	});
 
-	it('b2[update] Basic', async () => {
+	it('b2a[update] Basic', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(
 			{
