@@ -159,28 +159,14 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
 		// todo: check if something weird happened
 		const expected = [...mutation.things, ...mutation.edges];
-		// console.log('expected', expected);
 		const result = expected
 			.map((exp) => {
 				//! reads all the insertions and gets the first match. This means each id must be unique
 				const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-				// console.log('rawTqlRes.insertions', rawTqlRes.insertions);
-				// console.log('currentNode', currentNode);
 
 				// console.log('current:', JSON.stringify(x));
 
 				if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
-					if (
-						!currentNode?.asThing().iid
-						// deletions are not confirmed in typeDB
-					) {
-						throw new Error(
-							`Thing not received on mutation: ${JSON.stringify(
-								exp,
-							)}. Probably the relation had all its edges deleted instead of replaced`,
-						);
-					}
-
 					const dbIdd = currentNode?.asThing().iid;
 					if (config.mutation?.noMetadata) {
 						return mapEntries(exp, (k: string, v) => [

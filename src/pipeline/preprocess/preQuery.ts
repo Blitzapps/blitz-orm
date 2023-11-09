@@ -14,6 +14,9 @@ export const preQuery: PipelineOperation = async (req) => {
 		let hasReplace = false;
 
 		traverse(blocks, ({ value: val }) => {
+			if (!val) {
+				return true;
+			}
 			if (val.$op === 'replace') {
 				hasReplace = true;
 				return false; // Stops the traversal once a replace is found
@@ -177,4 +180,5 @@ export const preQuery: PipelineOperation = async (req) => {
 		// @ts-expect-error - todo
 		req.filledBqlRequest = filledReplaces;
 	}
+	// console.log('\n\nconst preQuery_END =', JSON.stringify(req, null, 4));
 };

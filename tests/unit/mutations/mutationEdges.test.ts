@@ -830,6 +830,7 @@ describe('Mutations: Edges', () => {
 			computeType: 'EDITABLE',
 			id: 'firstDataField',
 			name: 'testField',
+			description: '',
 			space: 'space-2',
 			type: 'TEXT',
 		});
