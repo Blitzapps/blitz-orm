@@ -24,7 +24,6 @@ describe('Query', () => {
 
 	it('v1[validation] - $entity missing', async () => {
 		expect(client).toBeDefined();
-		// @ts-expect-error - $entity is missing
 		await expect(client.query({})).rejects.toThrow();
 	});
 
@@ -601,6 +600,56 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
+	it('r8[relation, nested, deep] - deep nested', async () => {
+		expect(client).toBeDefined();
+		const query = {
+			$entity: 'Space',
+			$id: 'space-2',
+			$fields: [
+				'id',
+				{
+					$path: 'users',
+					$id: 'user2',
+					$fields: [
+						'id',
+						{ $path: 'user-tags', $fields: [{ $path: 'color', $fields: ['id', 'user-tags', 'group'] }, 'id'] },
+					],
+				},
+			],
+		};
+		const expectedRes = {
+			$entity: 'Space',
+			$id: 'space-2',
+			id: 'space-2',
+			users: {
+				'$entity': 'User',
+				'$id': 'user2',
+				'id': 'user2',
+				'user-tags': [
+					{
+						$id: 'tag-3',
+						id: 'tag-3',
+						$relation: 'UserTag',
+						color: {
+							'$entity': 'Color',
+							'$id': 'blue',
+							'id': 'blue',
+							'group': 'utg-2',
+							'user-tags': ['tag-3'],
+						},
+					},
+					{
+						$id: 'tag-4',
+						id: 'tag-4',
+						$relation: 'UserTag',
+					},
+				],
+			},
+		};
+		const res = await client.query(query);
+		expect(res).toBeDefined();
+
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
 		});
@@ -719,8 +768,16 @@ describe('Query', () => {
 		];
 		const res = await client.query(query);
 		expect(res).toBeDefined();
-		expect(res).not.toBeInstanceOf(String);
-
+		
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		const resWithoutMetadata = await client.query(query, {
+			noMetadata: true,
+		});
+		
+		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+		});
+		const res = await client.query(query);
+		expect(res).toBeDefined();
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 		const resWithoutMetadata = await client.query(query, {
 			noMetadata: true,
