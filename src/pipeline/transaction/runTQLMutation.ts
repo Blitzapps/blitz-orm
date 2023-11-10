@@ -1,6 +1,7 @@
 import { TransactionType } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
+import { getSessionOrOpenNewOne } from './helpers';
 
 export const runTQLMutation: PipelineOperation = async (req, res) => {
 	const { dbHandles, tqlRequest, bqlRequest, config } = req;
@@ -14,17 +15,10 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 		throw new Error('BQL mutation not parsed');
 	}
 
-	const singleHandlerV0 = config.dbConnectors[0].id;
-	const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
+	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 
-	if (!session) {
-		throw new Error('Session not found');
-	}
-
-	if (!session.isOpen()) {
-		throw new Error('Session is closed');
-	}
 	const mutateTransaction = await session.transaction(TransactionType.WRITE);
+
 	if (!mutateTransaction) {
 		throw new Error("Can't create transaction");
 	}
