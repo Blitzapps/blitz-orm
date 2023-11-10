@@ -36,12 +36,10 @@ const godUser = {
 };
 
 const spaceOne = {
-	id: undefined,
 	name: 'Space 1',
 };
 
 const spaceTwo = {
-	id: undefined,
 	name: 'Space 2',
 };
 
@@ -55,108 +53,101 @@ const spaceFour = {
 	name: 'Space 4',
 };
 
-describe('Mutations: Init', () => {
-	let dbName: string;
-	let bormClient: BormClient;
+let dbName: string;
+let bormClient: BormClient;
 
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 15000);
+beforeAll(async () => {
+	const { dbName: configDbName, bormClient: configBormClient } = await init();
+	if (!configBormClient) {
+		throw new Error('Failed to initialize BormClient');
+	}
+	dbName = configDbName;
+	bormClient = configBormClient;
+}, 15000);
 
-	it('b1[create] Basic', async () => {
-		expect(bormClient).toBeDefined();
+expect(bormClient).toBeDefined();
 
-		const res = await bormClient.mutate(firstUser, { noMetadata: true });
-		const expectedUnit = {
-			id: '$unitId',
-			name: 'John',
-			email: 'wrong email',
-		};
+const res = await bormClient.mutate(firstUser, { noMetadata: true });
+const expectedUnit = {
+	id: '$unitId',
+	name: 'John',
+	email: 'wrong email',
+};
 
-		expect(res).toBeInstanceOf(Array);
-		const [user] = res;
-		// @ts-expect-error - TODO description
-		expectArraysInObjectToContainSameElements(user, expectedUnit);
-		firstUser = { ...firstUser, id: user.id };
-	});
+expect(res).toBeInstanceOf(Array);
+const [user] = res;
+expectArraysInObjectToContainSameElements(user, expectedUnit);
+firstUser = { ...firstUser, id: user.id };
+});
 
-	it('b2a[update] Basic', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(
-			{
-				$entity: 'User',
-				$id: firstUser.id,
-				name: 'Johns not',
-				email: 'john@test.com',
-			},
-			{ noMetadata: true },
-		);
+expect(bormClient).toBeDefined();
+const res = await bormClient.mutate(
+	{
+		$entity: 'User',
+		$id: firstUser.id,
+		name: 'Johns not',
+		email: 'john@test.com',
+	},
+	{ noMetadata: true },
+);
 
-		expect(res[0]).toEqual({
-			name: 'Johns not',
-			email: 'john@test.com',
-		});
+expect(res[0]).toEqual({
+	name: 'Johns not',
+	email: 'john@test.com',
+});
 
-		if (!firstUser.id) {
-			throw new Error('firstUser.id is undefined');
-		}
+if (!firstUser.id) {
+	throw new Error('firstUser.id is undefined');
+}
 
-		const res2 = await bormClient.query({
-			$entity: 'User',
-			$id: firstUser.id,
-		});
-		expect(res2).toEqual({
-			id: firstUser.id,
-			name: 'Johns not',
-			email: 'john@test.com',
-			$entity: 'User',
-			$id: firstUser.id,
-		});
-	});
+const res2 = await bormClient.query({
+	$entity: 'User',
+	$id: firstUser.id,
+});
+expect(res2).toEqual({
+	id: firstUser.id,
+	name: 'Johns not',
+	email: 'john@test.com',
+	$entity: 'User',
+	$id: firstUser.id,
+});
 
-	test.only('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
-		await bormClient.mutate(
-			{
-				$op: 'create',
-				$entity: 'User',
-				id: 'b2b-user',
-				name: 'Foo',
-				email: 'foo@test.com',
-			},
-			{ noMetadata: false },
-		);
+await bormClient.mutate(
+	{
+		$op: 'create',
+		$entity: 'User',
+		id: 'b2b-user',
+		name: 'Foo',
+		email: 'foo@test.com',
+	},
+	{ noMetadata: false },
+);
 
-		const res = await bormClient.mutate(
-			{
-				$op: 'update',
-				$entity: 'User',
-				$id: 'b2b-user',
-				name: null,
-			},
-			{ noMetadata: true },
-		);
+const res = await bormClient.mutate(
+	{
+		$op: 'update',
+		$entity: 'User',
+		$id: 'b2b-user',
+		name: null,
+	},
+	{ noMetadata: true },
+);
 
-		expect(res[0]).toEqual({
-			name: null,
-		});
+expect(res[0]).toEqual({
+	name: null,
+});
 
-		const res2 = await bormClient.query(
-			{
-				$entity: 'User',
-				$id: 'b2b-user',
-				$fields: ['name', 'email'],
-			},
-			{ noMetadata: true },
-		);
-		expect(res2).toEqual({ email: 'foo@test.com' });
-	});
+const res2 = await bormClient.query(
+	{
+		$entity: 'User',
+		$id: 'b2b-user',
+		$fields: ['name', 'email'],
+	},
+	{ noMetadata: true },
+);
+expect(res2).toEqual({ email: 'foo@test.com' });
 
-	test.only('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
+test.only('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
