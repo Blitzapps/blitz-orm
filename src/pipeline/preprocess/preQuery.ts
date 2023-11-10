@@ -9,7 +9,6 @@ import { queryPipeline, type PipelineOperation } from '../pipeline';
 
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest } = req;
-	// check for replaces, if there are, perform pre-query
 	const checkForReplaces = (blocks: BQLMutationBlock | BQLMutationBlock[]): boolean => {
 		let hasReplace = false;
 
@@ -17,21 +16,18 @@ export const preQuery: PipelineOperation = async (req) => {
 			if (!isObject(val)) {
 				return;
 			}
-			const value = val as BQLMutationBlock; /// removing undefined values, nulls are no shaked as they are used to delete fields
+			const value = val as BQLMutationBlock;
 
 			if (value.$op === 'replace') {
 				hasReplace = true;
-				return false; // Stops the traversal once a replace is found
+				return false;
 			}
 			return true;
 		});
 
 		return hasReplace;
 	};
-	// @ts-expect-error - todo
 	const hasReplace = checkForReplaces(filledBqlRequest);
-
-	// console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 	// TODO: get filter replaces to work
 	const convertMutationToQuery = (
 		blocks: BQLMutationBlock | BQLMutationBlock[],
@@ -72,14 +68,8 @@ export const preQuery: PipelineOperation = async (req) => {
 		}
 		return blocks;
 	};
-	// @ts-expect-error - todo
 	const query = convertMutationToQuery(filledBqlRequest);
-	// console.log('pre-query: ', query);
-
-	// @ts-expect-error - todo
 	const queryRes = await queryPipeline(query, req.config, req.schema, req.dbHandles);
-	// console.log('pre-queryRes: ', JSON.stringify(queryRes, null, 2));
-	// TODO: check query res if already has a value, if does do not allow for creates
 	const checkForFoundFields = (
 		blocks: BQLMutationBlock | BQLMutationBlock[],
 	): BQLMutationBlock | BQLMutationBlock[] => {
@@ -145,7 +135,6 @@ export const preQuery: PipelineOperation = async (req) => {
 								queryVal[0].$op === 'replace'
 									? null
 									: values.find((thing: any) => thing.$id === id && thing.$op === 'link');
-							// console.log('valueWithReplaceOp: ', JSON.stringify({ valueWithReplaceOp, queryVal }, null, 2));
 
 							if (!valueWithReplaceOp && !values.some((thing: any) => thing.$id === id)) {
 								const unlinkOp = {
@@ -175,11 +164,7 @@ export const preQuery: PipelineOperation = async (req) => {
 			);
 		};
 
-		// @ts-expect-error - todo
 		const filledReplaces = fillReplaces(filledBqlRequest);
-		// console.log('filledReplaces: ', JSON.stringify(filledReplaces, null, 2));
-
-		// @ts-expect-error - todo
 		req.filledBqlRequest = filledReplaces;
 	}
 };
