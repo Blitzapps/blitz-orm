@@ -29,14 +29,13 @@ describe('Mutations: Edges', () => {
 					{
 						name: 'a tag',
 						$tempId: '_:newTagId',
-						group: { color: { id: 'purple' } }, // create new
+						group: { color: { id: 'purple' } },
 					},
 				],
 			},
 			{ noMetadata: false },
 		);
 
-		/// We get the id by its tempId
 		const tagId = editedUser?.find((m) => m.$tempId === '_:newTagId')?.id;
 
 		const resUser = await bormClient.query(
@@ -59,7 +58,6 @@ describe('Mutations: Edges', () => {
 			'user-tags': [{ id: expect.any(String), name: 'a tag', group: { color: 'purple' } }],
 		});
 
-		/// delete the created tag and created color
 		await bormClient.mutate(
 			{
 				$relation: 'UserTag',
@@ -70,7 +68,6 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		///check the color purple is been deleted
 		const resColors = await bormClient.query(
 			{
 				$entity: 'Color',
@@ -99,22 +96,20 @@ describe('Mutations: Edges', () => {
 				'user-tags': [
 					{
 						name: 'another tag',
-						group: { color: { $id: 'yellow' } }, // link to pre-existing
+						group: { color: { $id: 'yellow' } },
 					},
 					{
 						name: 'yet another tag',
-						group: { color: { $id: 'blue' } }, // link to pre-existing
+						group: { color: { $id: 'blue' } },
 					},
 				],
 			},
 			{ noMetadata: false },
 		);
 
-		//expect mutation to be an array
 		expect(mutation).toBeDefined();
 		expect(mutation).toBeInstanceOf(Array);
 
-		//THis test also test the autogeneration of ids as we are not defining them we need to catch them to delete them
 		const createdTagsIds = mutation
 			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTag')
 			.map((obj) => obj.id);
@@ -156,7 +151,6 @@ describe('Mutations: Edges', () => {
 			]),
 		});
 
-		/// now delete the two new tags
 		await bormClient.mutate(
 			{
 				$relation: 'UserTag',
@@ -177,11 +171,6 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
-		// todo 4 cases
-		// case 1: Unlink a simple a-b relation (Edge = delete)
-		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)
-		// case 3: Unlink with a relation that is a role of a relation (Edge = 'unlink',just unlink things connected to the role)
-		// case 4: Unlink in a >3 role relation (Edge = 'unlink',ensure the other >2 roles stay connected )
 		expect(bormClient).toBeDefined();
 		const originalState = await bormClient.query(
 			{
@@ -196,7 +185,6 @@ describe('Mutations: Edges', () => {
 			id: 'user2',
 			spaces: ['space-2'],
 		});
-		/// do the unlinks
 		await bormClient.mutate(
 			{
 				$entity: 'User',
@@ -221,7 +209,6 @@ describe('Mutations: Edges', () => {
 			id: 'user2',
 		});
 
-		/// recover original state
 		await bormClient.mutate(
 			{
 				$entity: 'User',
@@ -234,7 +221,6 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l3rel[unlink, simple, relation] unlink link in relation but one role per time', async () => {
-		// todo: When the relation is the self relation being modified, no need to have it as match and then as op in the edges
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
@@ -273,11 +259,10 @@ describe('Mutations: Edges', () => {
 			id: 'u3-s2',
 			power: 'power1',
 		});
-		// Recover the state
 		await bormClient.mutate({
 			$relation: 'Space-User',
 			$id: 'u3-s2',
-			spaces: [{ $op: 'link', $id: 'space-2' }], // todo: simplify when replaces work
+			spaces: [{ $op: 'link', $id: 'space-2' }],
 			users: [{ $op: 'link', $id: 'user3' }],
 		});
 	});
