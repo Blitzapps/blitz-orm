@@ -25,8 +25,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		insertion?: string;
 		op: string;
 	} => {
-		// console.log('--------nodeToTypeQL-----------');
-		// console.log('id', node.$id);
 		const op = node.$op as string;
 		const bzId = `$${node.$bzId}`;
 		const currentSchema = getCurrentSchema(schema, node);
@@ -80,13 +78,10 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			if (k.startsWith('$') || k === idField) {
 				return '';
 			}
-			// if (k.startsWith('$') || !v) return '';
 			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			// console.log('currentDataField', currentDataField);
 			const fieldDbPath = currentDataField?.path;
 
 			if (!fieldDbPath) {
-				// throw new Error('noFieldDbPath');
 				return '';
 			}
 			const dbField = currentDataField.dbPath;
@@ -206,8 +201,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const roles = fromRoleFields.length > 0 ? `( ${fromRoleFieldsTql.join(' , ')} )` : '';
 
-		// console.log('roles', roles);
-
 		const relationTql = !roles
 			? ''
 			: `${bzId} ${roles} ${
@@ -283,8 +276,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			// if (op === 'unlink') return `${bzId} ($roles-${node.$bzId}: $players-${node.$bzId});`;
 			return '';
 		};
-
-		/* const getPreDeletionBatch = () => {
       if (op === 'unlink') {
         return fromRoleFields
           .filter((y) => y)
@@ -343,28 +334,36 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
 	};
 
-	// const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
-	// const edgeStreams = edgesWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies], 'edges'));
-
-	// console.log('thingStreams', JSON.stringify(thingStreams, null, 3));
-	// console.log('edgeStreams', edgeStreams);
-
 	const nodeOperations = toTypeQL(mutation.things);
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(mutation.edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	// console.log('nodeOperations', nodeOperations);
-	// console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
-	// console.log('allOperations', allOperations);
-
-	// todo: split BQL mutation in N DBstreams per DB
-	// todo: then pack them per DB,
-	// const dbHandleList = config.dbConnectors.map((x) => x.id);
-
-	// const creations = [];
-
+	const tqlRequest = shake(
+		{
+			insertionMatches: allOperations
+				.map((x) => x.insertionMatch)
+				.join(' ')
+				.trim(),
+			deletionMatches: allOperations
+				.map((x) => x.deletionMatch)
+				.join(' ')
+				.trim(),
+			insertions: allOperations
+				.map((x) => x.insertion)
+				.join(' ')
+				.trim(),
+			deletions: allOperations
+				.map((x) => x.deletion)
+				.join(' ')
+				.trim(),
+		},
+		(x) => !x,
+	);
+	req.tqlRequest = tqlRequest;
+};
+		return {
 	const tqlRequest = shake(
 		{
 			// preDeletionBatch: allOperations.flatMap((x) => x.preDeletionBatch).filter((y) => y !== undefined),
