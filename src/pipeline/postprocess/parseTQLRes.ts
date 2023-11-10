@@ -147,24 +147,18 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 	// <--------------- MUTATIONS
 	if (!query) {
 		if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
-			// if no insertions and no delete operations
-			res.bqlRes = {}; // return an empty object to continue further steps without error
+			res.bqlRes = {};
 			return;
 		}
 		const { mutation } = bqlRequest;
 		if (!mutation) {
 			throw new Error('TQL mutation not executed');
 		}
-		// console.log('config.mutation', config.mutation);
 
-		// todo: check if something weird happened
 		const expected = [...mutation.things, ...mutation.edges];
 		const result = expected
 			.map((exp) => {
-				//! reads all the insertions and gets the first match. This means each id must be unique
 				const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-
-				// console.log('current:', JSON.stringify(x));
 
 				if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
 					const dbIdd = currentNode?.asThing().iid;
@@ -189,36 +183,21 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 			})
 			.filter((z) => z);
 
-		// todo
 		res.bqlRes = result;
 		return;
 	}
 
-	// <--------------- QUERIES
 	if (!rawTqlRes.entity) {
 		throw new Error('TQL query not executed');
 	}
-	// console.log('rawTqlRes', rawTqlRes);
-	// entities and relations queried directly
+
 	const entities = extractEntities(rawTqlRes.entity, schema);
 
-	/// these are mid-relations, every Thing can have relations, even relations.
 	const relations = rawTqlRes.relations?.map((relation) => {
 		const currentRelSchema = schema.relations[relation.relation];
 
 		const currentRelroles = extractRelRoles(currentRelSchema, schema);
-		// for every currentRelSchema property, we get the paths that play that relation
 
-		/* workaround that might be needed later 
-    const currentRelPlayers = listify(currentRelSchema.roles, (_k, v) => {
-      if (!v.playedBy) throw new Error('Role not being played by anybody');
-      const paths = v.playedBy.flatMap((x) => x.path);
-      return paths;
-    }).flat(1);
-
-    // remove duplicates between roles and players
-    const allPlayers = new Set([...currentRelroles, ...currentRelPlayers]);
-    */
 		const links = extractRelations(
 			relation.conceptMapGroups,
 			[
@@ -264,8 +243,6 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
 	/// RELATIONS: extract from relations
 	relations?.forEach((relation) => {
-		// console.log('relation', relation);
-
 		const relationName = relation.name;
 		const relationCache = cache.relations.get(relationName) || [];
 		relationCache.push(...relation.links);
