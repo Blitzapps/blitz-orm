@@ -5,17 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { Provider } from '../../src/index';
 import BormClient from '../../src/index';
-// import { cloudConfig } from '../mocks/cloudConfig';
 import { testConfig } from '../mocks/testConfig';
 import { testSchema } from '../mocks/testSchema';
 
-// to replace by the provider being tested. In the future, test every provider
-// const provider: Provider = 'typeDBCluster';
 const provider: Provider = 'typeDB';
 
 const providerConfig = {
 	typeDB: testConfig,
-	// typeDBCluster: cloudConfig,
 };
 
 const createClient = async (connector: any) => {
