@@ -3,7 +3,7 @@
 
 # This setting contains a list of rules that Sweep will check for. If any of these rules are broken in a new commit, Sweep will create an pull request to fix the broken rule.
 rules:
-  - All docstrings and comments should be up to date.
+  - All docstrings and comments should be up to date
   - Do not include large chunks of commented out code.
   - Ensure that error logs use traceback during exceptions.
   - All new business logic should have corresponding unit tests in the same directory.
