@@ -1,6 +1,7 @@
 import { TransactionType } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
+import { getSessionOrOpenNewOne } from './helpers';
 
 export const runTQLQuery: PipelineOperation = async (req, res) => {
 	const { dbHandles, bqlRequest, tqlRequest, config } = req;
@@ -18,12 +19,8 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 		throw new Error('BQL request is not a query');
 	}
 
-	const singleHandlerV0 = config.dbConnectors[0].id;
+	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 
-	const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
-	if (!session?.isOpen()) {
-		throw new Error('Session is closed');
-	}
 	const transaction = await session.transaction(TransactionType.READ);
 	if (!transaction) {
 		throw new Error("Can't create transaction");
