@@ -3,15 +3,14 @@
 
 # This setting contains a list of rules that Sweep will check for. If any of these rules are broken in a new commit, Sweep will create an pull request to fix the broken rule.
 rules:
-  - "All docstrings and comments should be up to date."
-  - "Do not include large chunks of commented out code."
-  - "Ensure that error logs use traceback during exceptions."
-  - "All new business logic should have corresponding unit tests in the same directory."
-  - "Avoid using debug log or print statements in production code."
-  - "Provide descriptive and informative descriptions in package.json."
-
-# This is the branch that Sweep will develop from and make pull requests to. Most people use 'main' or 'master' but some users also use 'dev' or 'staging'.
-branch: 'main'
+  - All docstrings and comments should be up to date
+  - Do not include large chunks of commented out code.
+  - Ensure that error logs use traceback during exceptions.
+  - All new business logic should have corresponding unit tests in the same directory.
+  - Avoid using debug log or print statements in production code.
+  - Provide descriptive and informative descriptions in package.json.
+branch: main
+# description and draft keys already exist below
 
 # By default Sweep will read the logs and outputs from your existing Github Actions. To disable this, set this to false.
 gha_enabled: True
@@ -21,13 +20,23 @@ gha_enabled: True
 # Example:
 #
 # description: sweepai/sweep is a python project. The main api endpoints are in sweepai/api.py. Write code that adheres to PEP8.
-description: ''
+# description key already exists above
 
 # This sets whether to create pull requests as drafts. If this is set to True, then all pull requests will be created as drafts and GitHub Actions will not be triggered.
-draft: False
+# draft key already exists above
 
 # This is a list of directories that Sweep will not be able to edit.
-blocked_dirs: []
+# blocked_dirs key already exists below
+
+# This is the description of your project. It will be used by sweep when creating PRs. You can tell Sweep what's unique about your project, what frameworks you use, or anything else you want.
+#
+# Example:
+#
+# description: sweepai/sweep is a python project. The main api endpoints are in sweepai/api.py. Write code that adheres to PEP8.
+# description and draft keys already exist above
+
+# This is a list of directories that Sweep will not be able to edit.
+# blocked_dirs key already exists above
 
 # This is a list of documentation links that Sweep will use to help it understand your code. You can add links to documentation for any packages you use here.
 #

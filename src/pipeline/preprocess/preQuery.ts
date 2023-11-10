@@ -177,9 +177,9 @@ export const preQuery: PipelineOperation = async (req) => {
 
 		// @ts-expect-error - todo
 		const filledReplaces = fillReplaces(filledBqlRequest);
+		// console.log('filledReplaces: ', JSON.stringify(filledReplaces, null, 2));
 
 		// @ts-expect-error - todo
 		req.filledBqlRequest = filledReplaces;
 	}
-	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
 };

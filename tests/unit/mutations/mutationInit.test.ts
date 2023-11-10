@@ -119,36 +119,117 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	it('TODO:b2b[delete attribute] Delete attribute with null', async () => {
-		expect(bormClient).toBeDefined();
+	test.only('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
+				$op: 'create',
 				$entity: 'User',
-				$id: firstUser.id,
-				name: 'Johns not',
-				email: null,
+				id: 'b2b-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2b-user',
+				name: null,
 			},
 			{ noMetadata: true },
 		);
 
-		const res2 = await bormClient.query({
-			$entity: 'User',
-			$id: firstUser.id,
-		});
-		expect(res2).toEqual({
-			id: firstUser.id,
-			name: 'Johns not',
-			email: null,
-			$entity: 'User',
-			$id: firstUser.id,
+		expect(res[0]).toEqual({
+			name: null,
 		});
 
-		/// get it back
-		await bormClient.mutate({
-			$entity: 'User',
-			$id: firstUser.id,
-			email: 'john@test.com',
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2b-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ email: 'foo@test.com' });
+	});
+
+	test.only('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
+		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2c-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2c-user',
+				name: null,
+				email: 'bar@test.com',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			name: null,
+			email: 'bar@test.com',
 		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2c-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ email: 'bar@test.com' });
+	});
+
+	test.only('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
+		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2d-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2d-user',
+				email: '',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			email: '',
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2d-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ name: 'Foo', email: '' });
 	});
 
 	it('b3e[delete, entity] Basic', async () => {

@@ -1269,6 +1269,7 @@ describe('Query', () => {
 							'id': 'blue',
 							'group': 'utg-2',
 							'user-tags': ['tag-3'],
+							'isBlue': true,
 						},
 					},
 					{
