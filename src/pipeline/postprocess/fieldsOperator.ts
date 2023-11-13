@@ -54,8 +54,7 @@ export const processFieldsOperator: PipelineOperation = async (req, res) => {
 
 	const initialFields = bqlRequest?.query?.$fields;
 	filtered = Array.isArray(filtered)
-		? // @ts-expect-error - isArray checks for array
-		  res.bqlRes.map((r: BQLResponseSingle) => filterBQLRes(r, config, initialFields))
+		? res.bqlRes.map((r: BQLResponseSingle) => filterBQLRes(r, config, initialFields))
 		: filterBQLRes(filtered, config, initialFields);
 
 	res.bqlRes = filtered;

@@ -41,7 +41,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const attributes = listify(node, (k, v) => {
 			// @ts-expect-error - TODO description
-			if (k.startsWith('$') || k === idField || !v) {
+			if (k.startsWith('$') || k === idField || v === undefined || v === null) {
 				return '';
 			}
 			// if (k.startsWith('$') || !v) return '';
@@ -58,7 +58,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			if (['TEXT', 'ID', 'EMAIL'].includes(currentDataField.contentType)) {
 				return `has ${dbField} '${v}'`;
 			}
-			if (['NUMBER'].includes(currentDataField.contentType)) {
+			if (['NUMBER', 'BOOLEAN'].includes(currentDataField.contentType)) {
 				return `has ${dbField} ${v}`;
 			}
 			if (currentDataField.contentType === 'DATE') {
@@ -75,9 +75,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const attributesVar = `${bzId}-atts`;
 
-		const matchAttributes = listify(node, (k, v) => {
+		const matchAttributes = listify(node, (k) => {
 			// @ts-expect-error - TODO description
-			if (k.startsWith('$') || k === idField || !v) {
+			if (k.startsWith('$') || k === idField) {
 				return '';
 			}
 			// if (k.startsWith('$') || !v) return '';
@@ -116,8 +116,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 					throw new Error('update without attributes');
 				}
 				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar};
-        ${matchAttributes.join(' or ')};
-      `;
+        ${matchAttributes.join(' or ')};`;
 			}
 			return '';
 		};
@@ -389,6 +388,5 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		},
 		(x) => !x,
 	);
-	// console.log('tqlRequest', tqlRequest);
 	req.tqlRequest = tqlRequest;
 };

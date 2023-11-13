@@ -78,14 +78,14 @@ describe('Mutations: Init', () => {
 			email: 'wrong email',
 		};
 
-		expect(res).toBeInstanceOf(Object);
+		expect(res).toBeInstanceOf(Array);
+		const [user] = res;
 		// @ts-expect-error - TODO description
-		expectArraysInObjectToContainSameElements(res, expectedUnit);
-		// @ts-expect-error - TODO description
-		firstUser = { ...firstUser, id: res.id };
+		expectArraysInObjectToContainSameElements(user, expectedUnit);
+		firstUser = { ...firstUser, id: user.id };
 	});
 
-	it('b2[update] Basic', async () => {
+	it('b2a[update] Basic', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(
 			{
@@ -97,10 +97,14 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		expect(res).toEqual({
+		expect(res[0]).toEqual({
 			name: 'Johns not',
 			email: 'john@test.com',
 		});
+
+		if (!firstUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
 
 		const res2 = await bormClient.query({
 			$entity: 'User',
@@ -113,6 +117,119 @@ describe('Mutations: Init', () => {
 			$entity: 'User',
 			$id: firstUser.id,
 		});
+	});
+
+	test('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
+		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2b-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2b-user',
+				name: null,
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			name: null,
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2b-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ email: 'foo@test.com' });
+	});
+
+	test('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
+		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2c-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2c-user',
+				name: null,
+				email: 'bar@test.com',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			name: null,
+			email: 'bar@test.com',
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2c-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ email: 'bar@test.com' });
+	});
+
+	test('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
+		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2d-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2d-user',
+				email: '',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			email: '',
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2d-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ name: 'Foo', email: '' });
 	});
 
 	it('b3e[delete, entity] Basic', async () => {
@@ -129,10 +246,15 @@ describe('Mutations: Init', () => {
 			$id: firstUser.id,
 		});
 
+		if (!firstUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
 		const res2 = await bormClient.query({
 			$entity: 'User',
-			$id: firstUser.id,
+			$id: firstUser.id as string,
 		});
+
 		expect(res2).toBeNull();
 	});
 
@@ -212,7 +334,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - res2 is defined
 		expect(deepSort(res2, 'id')).toEqual({
 			id: 'r1',
 			user: {
@@ -306,6 +427,10 @@ describe('Mutations: Init', () => {
 			},
 		]);
 
+		if (!secondUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
 		const res2 = await bormClient.query(
 			{
 				$entity: 'User',
@@ -313,7 +438,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(res2)).toEqual({
 			id: secondUser.id,
 			name: 'Jane',
@@ -363,8 +487,7 @@ describe('Mutations: Init', () => {
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
 		// @ts-expect-error - TODO description
 		spaceFour.id = res2?.find((r) => r.name === 'Space 4').id;
-		// @ts-expect-error - TODO description
-		thirdUser.id = res1.id;
+		thirdUser.id = res1[0].id;
 
 		expect(res1).toBeDefined();
 		expect(res1).toBeInstanceOf(Object);
@@ -442,10 +565,14 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		expect(JSON.parse(JSON.stringify(res))).toEqual(
+		expect(JSON.parse(JSON.stringify(res[0]))).toEqual(
 			// { id: expect.any(String), name: 'newSpace1' },
 			{ name: 'newSpace2' },
 		);
+
+		if (!secondUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
 
 		const res2 = await bormClient.query(
 			{
@@ -509,7 +636,7 @@ describe('Mutations: Init', () => {
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(godUser, { noMetadata: true });
-		expect(res).toEqual({
+		expect(res[0]).toEqual({
 			id: 'squarepusher',
 			name: 'Tom Jenkinson',
 			email: 'tom@warp.com',
@@ -561,9 +688,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const fieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		// @ts-expect-error - TODO description
 		const kindId = mutated?.find((m) => m.name === 'myTest')?.id;
 
 		const kinds = await bormClient.query(
@@ -652,11 +777,8 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-		// @ts-expect-error - TODO description
 		const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		// @ts-expect-error - TODO description
 		const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
 
 		const kinds = await bormClient.query(
@@ -761,7 +883,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
 		// console.log('myTestKind1Id', myTestKind1Id);
 
@@ -887,7 +1008,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
 		expect(deepSort(allUsers, 'name')).toEqual([
 			{
 				name: 'Ann',
@@ -945,7 +1065,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		/// expect only original users
-		// @ts-expect-error - TODO description
 		expect(deepSort(allUsers2, 'name')).toEqual([
 			{
 				name: 'Ann',
@@ -993,8 +1112,6 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-
-		// @ts-expect-error - TODO description
 
 		expect(deepSort(allSpaces, 'id')).toEqual([
 			{
@@ -1056,7 +1173,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(allSpaces, 'id')).toEqual([
 			{
 				id: 'newSpaceFourId',
@@ -1120,7 +1236,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(allOriginalUsers, 'id')).toEqual([
 			{
 				email: 'antoine@test.com',
@@ -1135,7 +1250,6 @@ describe('Mutations: Init', () => {
 				id: 'user3',
 			},
 			{
-				email: 'ben@test.com',
 				id: 'user4',
 			},
 			{

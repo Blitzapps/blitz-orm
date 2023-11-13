@@ -22,53 +22,45 @@ const isStringOrHasShow = <TValue extends { $show?: boolean }>(value: TValue | s
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
 	produce(obj, (draft) =>
-		traverse(
-			draft,
-			({ value }: TraversalCallbackContext) => {
-				// if it is an array or an object, then return
+		traverse(draft, ({ value }: TraversalCallbackContext) => {
+			// if it is an array or an object, then return as they will be managed later
+			if (Array.isArray(value) || !(typeof value === 'object') || value === null) {
+				return;
+			}
+			if (value.$tempId) {
+				value.$tempId = `_:${value.$tempId}`;
+			}
+			if (value.$fields) {
+				delete value.$fields;
+			}
+			if (value.$filter) {
+				delete value.$filter;
+			}
+			if (value.$show) {
+				delete value.$show;
+			}
+			if (value.$bzId) {
+				delete value.$bzId;
+			}
 
-				if (Array.isArray(value) || !(typeof value === 'object')) {
-					return;
-				}
-				if (value.$tempId) {
-					value.$tempId = `_:${value.$tempId}`;
-				}
-				if (value.$fields) {
-					delete value.$fields;
-				}
-				if (value.$filter) {
-					delete value.$filter;
-				}
-				if (value.$show) {
-					delete value.$show;
-				}
-				if (value.$bzId) {
-					delete value.$bzId;
-				}
+			if (config.query?.noMetadata && (value.$entity || value.$relation)) {
+				delete value.$entity;
+				delete value.$relation;
+				delete value.$id;
+			}
 
-				if (config.query?.noMetadata && (value.$entity || value.$relation)) {
-					delete value.$entity;
-					delete value.$relation;
-					delete value.$id;
-				}
+			const symbols = Object.getOwnPropertySymbols(value);
+			symbols.forEach((symbol) => {
+				delete value[symbol];
+			});
 
-				const symbols = Object.getOwnPropertySymbols(obj);
-				symbols.forEach((symbol) => {
-					delete value[symbol];
+			if (value.$excludedFields) {
+				value.$excludedFields.forEach((field: any) => {
+					delete value[field];
 				});
-
-				if (value.$excludedFields) {
-					value.$excludedFields.forEach((field: any) => {
-						delete value[field];
-					});
-					delete value.$excludedFields;
-				}
-			},
-
-			/* if (Array.isArray(value) && value.length === 0) {
-      value = null;
-    } */
-		),
+				delete value.$excludedFields;
+			}
+		}),
 	);
 
 const filterChildrenEntities = (things: [string, Entity][], ids: string | string[], node: RawBQLQuery, path: string) =>
@@ -196,7 +188,6 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		}
 		// @ts-expect-error - TODO description
 		const output = cleanOutput(res.bqlRes, config);
-		// @ts-expect-error - TODO description
 		res.bqlRes = output;
 
 		return;
@@ -254,7 +245,17 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 				const currentIds = Array.isArray(value.$id) ? value.$id : [value.$id];
 				const currentSchema = '$relation' in value ? schema.relations[value.$relation] : schema.entities[value.$entity];
 
-				const { dataFields, roleFields } = getCurrentFields(currentSchema);
+				const { dataFields, roleFields, fields } = getCurrentFields(currentSchema);
+
+				if (config.query?.returnNulls) {
+					/// by default, all queried values are null, then they will be override by the different things if they find values
+					/// this enables to update caches if values have been deleted
+					const queriedPaths = value.$fields ? value.$fields.map((x) => (typeof x === 'string' ? x : x.$path)) : fields;
+					queriedPaths.forEach((path) => {
+						// @ts-expect-error - TODO description
+						value[path] = null;
+					});
+				}
 
 				// #region DATAFIELDS
 				const currentEntities = cache.entities.get(thingName);
@@ -271,8 +272,11 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 						const { virtualFields } = currentSchema;
 						//for each vitualFIelfd present in the queried datas print them
 						virtualFields?.forEach((virtualField) => {
-							// @ts-expect-error - No need to compute if it was received somehow from the DB or if it is not a virtual field
-							if (queriedDataFields?.includes(virtualField) && value[virtualField] === undefined) {
+							if (
+								queriedDataFields?.includes(virtualField) &&
+								// @ts-expect-error - No need to compute if it was received somehow from the DB or if it is not a virtual field
+								(value[virtualField] === undefined || value[virtualField] === null)
+							) {
 								const fieldSchema = currentSchema.dataFields?.find((x) => x.path === virtualField);
 								const computedValue = compute({ currentThing: entity, fieldSchema: fieldSchema });
 
@@ -413,6 +417,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 									// @ts-expect-error - TODO description
 									value[linkField.path] = children;
 								}
+
 								return null;
 							});
 

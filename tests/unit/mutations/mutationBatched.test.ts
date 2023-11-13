@@ -2,7 +2,7 @@ import 'jest';
 
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
-import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
 describe('Mutations: batched and tempId', () => {
 	let dbName: string;
@@ -444,15 +444,15 @@ describe('Mutations: batched and tempId', () => {
 		);
 
 		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual([
+		expect(deepSort(queryRes, 'id')).toEqual([
 			{
-				id: 'tr5',
+				id: 'tr4',
 				things: ['thing4'],
 				root: 'thing4',
 				extra: 'thing1',
 			},
 			{
-				id: 'tr4',
+				id: 'tr5',
 				things: ['thing4'],
 				root: 'thing4',
 				extra: 'thing1',

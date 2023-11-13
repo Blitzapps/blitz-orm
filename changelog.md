@@ -1,5 +1,59 @@
 # Changelog
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
+## 0.6.3(2023-11-10)
+- Fix: Sessions not being reopened when needed
+- Fix: Attribute deletion with null, and enabling '' as a string value
+
+## 0.6.2(2023-11-08)
+- Typedb-driver fixed, now we can connect to any IP
+
+## 0.6.1(2023-11-07)
+- Feature: Added returnNulls to explicitly return nulls of queried fields when empty
+- Types: Added query config type
+
+## 0.6.0(2023-11-02)
+- Chore: Updated to last version of typeDB, might not work with older versions
+
+## 0.5.1-3(2023-11-01)
+- Types: Mutation accepts generic
+- Types: Fixes
+
+## 0.5.0(2023-10-27)
+### Breaking changes
+- Mutation outputs are always arrays (even if the input is a single object, without nested things)
+- Removed symbols in the output of mutations
+
+### Features 
+- Types: New type gen (Ex: `type UserType = TypeGen<typeof typesSchema.entities.User>`)
+- TYpes Schema builder to generate an schema with inherited fields
+
+### Bug fixes / Chore
+- Fixed module stuff
+- Chore: Rearranged types
+- Types: Removed signatures of borm.query and borm.mutate
+
+
+
+## 0.4.7-8(2023-10-26)
+- Chore: As module
+
+## 0.4.6(2023-10-26)
+- Types: $filter can infer the array vs object dilema (yet)
+
+## 0.4.5(2023-10-26)
+- Types: Queries might also get arrays when $id is not specified
+
+## 0.4.4(2023-10-26)
+- Types: Now single mutations and queries can accept a T type to complement the output
+
+## 0.4.3(2023-10-26)
+- Types: Mutation type now depends on the mutation input
+
+## 0.4.2(2023-10-26)
+- Types: Reversed and fixed single output
+
+## 0.4.1(2023-10-26)
+- Types: Fix mutation output
 
 ## 0.4.0(2023-10-24)
 - Can now replace by id

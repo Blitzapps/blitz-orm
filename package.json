@@ -1,11 +1,20 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.4.0",
-	"main": "dist/index.js",
+	"version": "0.6.3",
+	"main": "dist/index.cjs",
+	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
+	"type": "commonjs",
+	"exports": {
+		".": {
+			"require": "./dist/index.cjs",
+			"import": "./dist/index.mjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
 	"scripts": {
-		"build": "tsup --dts --treeshake --minify",
-		"dev": "tsup --dts --watch",
+		"build": "tsup src/index.ts --format cjs,esm --clean --dts --treeshake --minify",
+		"dev": "tsup --dts --watch --sourcemap",
 		"knip": "knip",
 		"husky:prepare": "husky install",
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
@@ -16,6 +25,7 @@
 		"pub": "pnpm build && pnpm publish",
 		"test": "jest --coverage",
 		"test:ignoreTodo": "jest -t \"^(?!.*TODO:).*\" --detectOpenHandles",
+		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "jest --watch",
 		"types": "tsc --noEmit"
 	},
@@ -40,25 +50,26 @@
 		"immer": "^10.0.3",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
-		"typedb-client": "^2.18.2",
+		"typedb-driver": "^2.25.3",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
-		"@blitznocode/eslint-config": "^1.0.2",
-		"@types/jest": "^29.5.5",
-		"@types/node": "^20.8.6",
-		"@types/uuid": "^9.0.5",
-		"eslint": "^8.51.0",
+		"@blitznocode/eslint-config": "^1.1.0",
+		"@types/jest": "^29.5.7",
+		"@types/node": "^20.8.10",
+		"@types/uuid": "^9.0.6",
+		"esbuild": "^0.19.5",
+		"eslint": "^8.52.0",
 		"jest": "^29.7.0",
-		"knip": "^2.34.0",
-		"lint-staged": "^15.0.1",
+		"knip": "^2.39.0",
+		"lint-staged": "^15.0.2",
 		"only-allow": "^1.2.1",
 		"prettier": "^3.0.3",
 		"ts-jest": "^29.1.1",
 		"tsup": "^7.2.0",
 		"typescript": "^5.2.2"
 	},
-	"description": "Blitz-orm is a public package that can be open-sourced",
+	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
 	"bugs": {
 		"url": "https://github.com/Blitzapps/blitz-orm/issues"
 	},

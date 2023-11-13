@@ -1,6 +1,7 @@
-import { TransactionType } from 'typedb-client';
+import { TransactionType } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
+import { getSessionOrOpenNewOne } from './helpers';
 
 export const runTQLQuery: PipelineOperation = async (req, res) => {
 	const { dbHandles, bqlRequest, tqlRequest, config } = req;
@@ -18,26 +19,22 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 		throw new Error('BQL request is not a query');
 	}
 
-	const singleHandlerV0 = config.dbConnectors[0].id;
+	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 
-	const session = dbHandles.typeDB.get(singleHandlerV0)?.session;
-	if (!session?.isOpen()) {
-		throw new Error('Session is closed');
-	}
 	const transaction = await session.transaction(TransactionType.READ);
 	if (!transaction) {
 		throw new Error("Can't create transaction");
 	}
-	const entityStream = transaction.query.matchGroup(tqlRequest.entity);
+	const entityStream = transaction.query.getGroup(tqlRequest.entity);
 
 	const rolesStreams = tqlRequest.roles?.map((role) => ({
 		...role,
-		stream: transaction.query.matchGroup(role.request),
+		stream: transaction.query.getGroup(role.request),
 	}));
 
 	const relationStreams = tqlRequest.relations?.map((relation) => ({
 		...relation,
-		stream: transaction.query.matchGroup(relation.request),
+		stream: transaction.query.getGroup(relation.request),
 	}));
 	const entityConceptMapGroups = await entityStream.collect();
 

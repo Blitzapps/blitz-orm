@@ -59,6 +59,16 @@ Blitz-orm is currently in alpha version and not ready for production use. Some k
 ## What is Currently Working
 To see what is currently working and find examples, please check the test folder, where you will find a variety of queries and mutations.
 
+## TypeGen
+This orm includes a basic typeGen that gets you types depending on the structure of the borm Schema. You can use it like this:
+```
+type UserType = GenerateType<typeof typesSchema.relations.User>;
+
+```
+Due to typescript limitations and also to be able to type fields from extended things, you will need to compile your bormSchema to a particular format. In order to make this work you can see the example that we have in the tests that you can run with `pnpm test:buildSchema`. 
+
+You can also use it with your base schema without compiling but some fields might not be there and you might need to ignore some ts errors. Also you will need "as const" at the end of your schema.
+
 ## The future of this package
 - Achieve 100% compatibility with typeDB functions
 - Enhance functionality with new features such as, cardinality management, ordered attributes, Vectors (ordered relations)...

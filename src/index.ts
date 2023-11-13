@@ -1,11 +1,11 @@
 import { tryit } from 'radash';
-import { TypeDB, SessionType } from 'typedb-client';
+import { TypeDB, SessionType } from 'typedb-driver';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
-import type { BormConfig, BormSchema, DBHandles, RawBQLMutation, RawBQLQuery } from './types';
+import type { BormConfig, BormSchema, DBHandles, QueryConfig, RawBQLMutation, RawBQLQuery } from './types';
 
 export * from './types';
 
@@ -34,9 +34,9 @@ class BormClient {
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
-					const [clientErr, client] = await tryit(TypeDB.coreClient)(dbc.url);
+					const [clientErr, client] = await tryit(TypeDB.coreDriver)(dbc.url);
 					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Client"
 						}`;
@@ -46,7 +46,7 @@ class BormClient {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
 						dbHandles.typeDB.set(dbc.id, { client, session });
 					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
@@ -54,10 +54,10 @@ class BormClient {
 					}
 				}
 				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
-					const [clientErr, client] = await tryit(TypeDB.clusterClient)(dbc.addresses, dbc.credentials);
+					const [clientErr, client] = await tryit(TypeDB.enterpriseDriver)(dbc.addresses, dbc.credentials);
 
 					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
 							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
 							clientErr.message ?? "Can't create TypeDB Cluster Client"
 						}`;
@@ -67,7 +67,7 @@ class BormClient {
 						const session = await client.session(dbc.dbName, SessionType.DATA);
 						dbHandles.typeDB.set(dbc.id, { client, session });
 					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}] ${
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
 							// eslint-disable-next-line no-underscore-dangle
 							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
 						}`;
@@ -100,7 +100,8 @@ class BormClient {
 		return bormDefine(this.config, this.schema, this.dbHandles);
 	};
 
-	query = async (query: RawBQLQuery, queryConfig?: any) => {
+	/// no types yet, but we can do "as ..." after getting the type fro the schema
+	query = async (query: RawBQLQuery, queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,

@@ -1,73 +1,70 @@
 {
-  "editor.tabSize": 2,
-  "editor.detectIndentation": false,
-  "jest.autoRun": {
-    "watch": false,
-    "onSave": "test-file"
-  },
-  "search.exclude": {
-    "package-lock.json": true
-  },
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": [
-    "source.addMissingImports",
-    "source.fixAll.eslint"
-  ],
-  // Overriding multiple language files isn't available on VScode yet
-  "[json][jsonc]": {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "cSpell.words": [
-    "anyofterms",
-    "atts",
-    "blitzapps",
-    "Borm",
-    "datafield",
-    "Datagrid",
-    "datepicker",
-    "dgraph",
-    "Dismissable",
-    "headlessui",
-    "Immer",
-    "lilypad",
-    "linkfield",
-    "listify",
-    "mantine",
-    "multiplayed",
-    "radash",
-    "reling",
-    "superjson",
-    "tailwindcss",
-    "tanstack",
-    "tryit",
-    "typedb",
-    "Uids",
-    "Upsert",
-    "uuidv",
-    "vals",
-    "zustand"
-  ],
-  "[typescript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
-  "eslint.workingDirectories": [
-    {
-      "pattern": "./apps/*/"
-    },
-    {
-      "pattern": "./packages/*/"
-    }
-  ],
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "files.exclude": {
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
-    "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "**/node_modules": true
-  }
+	"editor.tabSize": 2,
+	"editor.detectIndentation": false,
+	"jest.autoRun": {
+		"watch": false,
+		"onSave": "test-file"
+	},
+	"search.exclude": {
+		"package-lock.json": true
+	},
+	"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+	"editor.formatOnSave": false,
+	"editor.codeActionsOnSave": ["source.addMissingImports", "source.fixAll.eslint"],
+	// Overriding multiple language files isn't available on VScode yet
+	"[json][jsonc]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"cSpell.words": [
+		"anyofterms",
+		"atts",
+		"blitzapps",
+		"Borm",
+		"datafield",
+		"Datagrid",
+		"datepicker",
+		"dgraph",
+		"Dismissable",
+		"headlessui",
+		"Immer",
+		"lilypad",
+		"linkfield",
+		"listify",
+		"mantine",
+		"multiplayed",
+		"radash",
+		"reling",
+		"superjson",
+		"tailwindcss",
+		"tanstack",
+		"tryit",
+		"typedb",
+		"Uids",
+		"Upsert",
+		"uuidv",
+		"vals",
+		"zustand"
+	],
+	"[typescript]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"eslint.workingDirectories": [
+		{
+			"pattern": "./apps/*/"
+		},
+		{
+			"pattern": "./packages/*/"
+		}
+	],
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"**/Thumbs.db": true,
+		"**/node_modules": true
+	}
 }

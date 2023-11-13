@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import type { ConceptMap, ConceptMapGroup } from 'typedb-client';
+import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
 import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
@@ -20,6 +20,7 @@ import type {
 	RawBQLQuery as RawBQLRequest,
 	TQLRequest,
 	FilledBQLMutationBlock,
+	BQLResponseMulti,
 } from '../types';
 
 export type RelationName = string;
@@ -61,7 +62,7 @@ type Response = {
 		relations: Map<RelationName, Map<EntityName, EntityID>[]>;
 		roleLinks: Map<EntityID, { [path: string]: EntityID | EntityID[] }>;
 	};
-	bqlRes?: BQLResponse;
+	bqlRes?: BQLResponse | null;
 };
 
 type NextPipeline = {
@@ -89,7 +90,7 @@ const runPipeline = async (
 	root = true,
 	// todo: ts antoine
 	// eslint-disable-next-line consistent-return
-): Promise<BQLResponse | void> => {
+): Promise<BQLResponse> => {
 	// console.log('Heeeeey', pipeline);
 	// todo: ts antoine
 	// eslint-disable-next-line no-restricted-syntax
@@ -113,8 +114,10 @@ const runPipeline = async (
 			return { ...res.bqlRes, $debugger: { tqlRequest: req.tqlRequest } } as BQLResponse;
 		}
 
-		return res.bqlRes;
+		//TODO: split type output of mutation pipeline and query pipeline
+		return res.bqlRes as BQLResponse;
 	}
+	return res.bqlRes as BQLResponse;
 };
 
 export const queryPipeline = (
@@ -149,4 +152,4 @@ export const mutationPipeline = (
 			dbHandles,
 		},
 		{},
-	);
+	) as Promise<BQLResponseMulti>;

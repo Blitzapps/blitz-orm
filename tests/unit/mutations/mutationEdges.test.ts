@@ -3,8 +3,9 @@ import 'jest';
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort } from '../../helpers/matchers';
+import type { KindType } from '../../types/testTypes';
 
-describe('Mutations: Init', () => {
+describe('Mutations: Edges', () => {
 	let dbName: string;
 	let bormClient: BormClient;
 
@@ -32,12 +33,11 @@ describe('Mutations: Init', () => {
 					},
 				],
 			},
-			{ noMetadata: true },
+			{ noMetadata: false },
 		);
 
 		/// We get the id by its tempId
-		//@ts-expect-error types not perfectly done yet
-		const tagId = editedUser?.find((m) => m[Symbol.for('$tempId')] === 'newTagId')?.id;
+		const tagId = editedUser?.find((m) => m.$tempId === '_:newTagId')?.id;
 
 		const resUser = await bormClient.query(
 			{
@@ -79,7 +79,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		//@ts-expect-error deepsort not typed yet
 		expect(deepSort(resColors, 'id')).toEqual([
 			{
 				id: 'blue',
@@ -93,7 +92,7 @@ describe('Mutations: Init', () => {
 	it('l2[link, nested, relation] Create and update 3-level nested. Also test getting ids by type', async () => {
 		expect(bormClient).toBeDefined();
 
-		const mutation = (await bormClient.mutate(
+		const mutation = await bormClient.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user4',
@@ -108,8 +107,8 @@ describe('Mutations: Init', () => {
 					},
 				],
 			},
-			{ noMetadata: true },
-		)) as object[];
+			{ noMetadata: false },
+		);
 
 		//expect mutation to be an array
 		expect(mutation).toBeDefined();
@@ -117,16 +116,14 @@ describe('Mutations: Init', () => {
 
 		//THis test also test the autogeneration of ids as we are not defining them we need to catch them to delete them
 		const createdTagsIds = mutation
-			// @ts-expect-error - Symbol stuff
-			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTag')
-			// @ts-expect-error - There is an id
+			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTag')
 			.map((obj) => obj.id);
 
 		const createdTagGroupsIds = mutation
-			// @ts-expect-error - Symbol stuff
-			?.filter((obj) => obj[Symbol.for('$op')] === 'create' && obj[Symbol.for('$relation')] === 'UserTagGroup')
-			// @ts-expect-error - There is an id
+			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTagGroup')
 			.map((obj) => obj.id);
+
+		expect(createdTagsIds.length).toBe(2);
 
 		const resUser = await bormClient.query(
 			{
@@ -306,7 +303,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		expect(user).toBeDefined();
-		// @ts-expect-error - TODO description
 		expect(deepSort(user, 'id')).toEqual({
 			'id': 'user3',
 			'user-tags': ['tag-2', 'tag-3'],
@@ -370,7 +366,6 @@ describe('Mutations: Init', () => {
 		);
 		expect(userTag).toBeDefined();
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(userTag, 'id')).toEqual({
 			id: 'tag-2',
 			// todo: add 'user2'
@@ -429,7 +424,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		expect(userTagGroup).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(userTagGroup, 'id')).toEqual({
 			id: 'utg-2',
 			tags: ['tag-2', 'tag-3', 'tag-4'], // user2 linked in l4
@@ -456,7 +451,7 @@ describe('Mutations: Init', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -499,7 +494,7 @@ describe('Mutations: Init', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -558,7 +553,7 @@ describe('Mutations: Init', () => {
 		});
 
 		expect(UserTagGroupModified).toBeDefined();
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
 			$relation: 'UserTagGroup',
 			id: 'utg-2',
@@ -661,7 +656,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(newUserTag, 'id')).toEqual({
 			id: 'tmpTag',
 			users: ['user1', 'user3', 'user5'],
@@ -708,7 +702,7 @@ describe('Mutations: Init', () => {
 			},
 			{ noMetadata: true },
 		);
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(newUserTagGroup, 'id')).toEqual({
 			id: 'tmpGroup',
 			tags: ['tag-1', 'tag-4'],
@@ -737,7 +731,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		const res = await bormClient.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(res, 'id')).toEqual({
 			id: 'u1-s1-s2',
 			spaces: ['space-1', 'space-2'],
@@ -752,7 +746,7 @@ describe('Mutations: Init', () => {
 		/// get user 2, space 2 and then add a new dataField to it linked to the existing 'kind-book'
 
 		const preSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+
 		expect(deepSort(preSpace, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['kind-book'],
@@ -784,8 +778,10 @@ describe('Mutations: Init', () => {
 			],
 		});
 
-		const kindBook = await bormClient.query({ $relation: 'Kind', $id: 'kind-book' }, { noMetadata: true });
-		// @ts-expect-error - TODO description
+		const kindBook = (await bormClient.query(
+			{ $relation: 'Kind', $id: 'kind-book' },
+			{ noMetadata: true },
+		)) as KindType;
 		expect(kindBook?.dataFields).toEqual(['firstDataField']);
 
 		if (!newRelRes || !Array.isArray(newRelRes) || typeof newRelRes[0] === 'string') {
@@ -794,7 +790,6 @@ describe('Mutations: Init', () => {
 
 		const postSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(postSpace, 'id')).toEqual({
 			objects: ['firstDataField', 'kind-book', 'self1', 'self2', 'self3', 'self4'],
 			definitions: ['firstDataField', 'kind-book'],
@@ -835,6 +830,7 @@ describe('Mutations: Init', () => {
 			computeType: 'EDITABLE',
 			id: 'firstDataField',
 			name: 'testField',
+			description: '',
 			space: 'space-2',
 			type: 'TEXT',
 		});
@@ -920,17 +916,15 @@ describe('Mutations: Init', () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
-			[
-				// unlink all color in all the groups linked to usertag tag.2
-				{
-					$relation: 'UserTag',
-					$id: 'tag-2',
-					group: {
-						$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
-						color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
-					},
+			// unlink all color in all the groups linked to usertag tag.2
+			{
+				$relation: 'UserTag',
+				$id: 'tag-2',
+				group: {
+					$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
+					color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
 				},
-			],
+			},
 			{ noMetadata: true },
 		);
 
@@ -938,6 +932,8 @@ describe('Mutations: Init', () => {
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: ['id', { $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
+
+		//console.log('withoutColor', withoutColor);
 
 		expect(withoutColor).toEqual({
 			id: 'tag-2',
@@ -953,7 +949,8 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
+		//console.log('allGroups', allGroups);
+
 		expect(deepSort(allGroups, 'id')).toEqual([
 			{
 				id: 'utg-1',
@@ -989,7 +986,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(userTags, 'id')).toEqual([
 			{
 				id: 'tag-1',
@@ -1081,7 +1077,6 @@ describe('Mutations: Init', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1123,7 +1118,6 @@ describe('Mutations: Init', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1163,7 +1157,6 @@ describe('Mutations: Init', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1203,7 +1196,6 @@ describe('Mutations: Init', () => {
 			$fields: ['tags'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(tmpUTG)).toEqual({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
@@ -1261,7 +1253,6 @@ describe('Mutations: Init', () => {
 			$fields: ['accounts'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'h1-user',
@@ -1330,7 +1321,6 @@ describe('Mutations: Init', () => {
 			$fields: ['accounts'],
 		});
 
-		// @ts-expect-error - TODO description
 		expect(deepSort(res)).toEqual({
 			$entity: 'User',
 			$id: 'user-ml1',

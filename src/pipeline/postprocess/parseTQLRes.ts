@@ -1,8 +1,8 @@
-import { isArray, isString, listify, mapEntries, flat, unique } from 'radash';
-import type { Concept, ConceptMapGroup } from 'typedb-client';
+import { isArray, isString, listify, mapEntries, unique, flat } from 'radash';
+import type { Concept, ConceptMapGroup } from 'typedb-driver';
 
 import { extractChildEntities, getPath } from '../../helpers';
-import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation, BQLResponse } from '../../types';
+import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBormRelation } from '../../types';
 import type { Entity, EntityName, ID, PipelineOperation, RelationName } from '../pipeline';
 
 const extractEntities = (conceptMapGroups: ConceptMapGroup[], schema: EnrichedBormSchema): Entity[] => {
@@ -149,7 +149,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 	if (!query) {
 		if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
 			// if no insertions and no delete operations
-			res.bqlRes = {} as BQLResponse; // return an empty object to continue further steps without error
+			res.bqlRes = {}; // return an empty object to continue further steps without error
 			return;
 		}
 		const { mutation } = bqlRequest;
@@ -160,28 +160,14 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 
 		// todo: check if something weird happened
 		const expected = [...mutation.things, ...mutation.edges];
-		// console.log('expected', expected);
 		const result = expected
 			.map((exp) => {
 				//! reads all the insertions and gets the first match. This means each id must be unique
 				const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-				// console.log('rawTqlRes.insertions', rawTqlRes.insertions);
-				// console.log('currentNode', currentNode);
 
 				// console.log('current:', JSON.stringify(x));
 
 				if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
-					if (
-						!currentNode?.asThing().iid
-						// deletions are not confirmed in typeDB
-					) {
-						throw new Error(
-							`Thing not received on mutation: ${JSON.stringify(
-								exp,
-							)}. Probably the relation had all its edges deleted instead of replaced`,
-						);
-					}
-
 					const dbIdd = currentNode?.asThing().iid;
 					if (config.mutation?.noMetadata) {
 						return mapEntries(exp, (k: string, v) => [
@@ -205,8 +191,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 			.filter((z) => z);
 
 		// todo
-		// @ts-expect-error - TODO description
-		res.bqlRes = result.length > 1 ? result : result[0];
+		res.bqlRes = result;
 		return;
 	}
 
