@@ -18,7 +18,11 @@ import { compute } from '../../engine/compute';
 
 // parseBQLQueryObjectives:
 // 1) Validate the query (getRawBQLQuery)
-// 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
+// This function sanitizes the temporary ID of a node.
+// It ensures that the ID starts with "_:", contains only alphanumeric characters, hyphens, and underscores,
+// and is no longer than 36 characters (including the "_:" prefix).
+// If the ID does not meet these conditions, an error is thrown.
+// The function returns the sanitized ID.
 
 const sanitizeTempId = (id: string): string => {
 	// Ensure the string starts with "_:"
@@ -31,12 +35,12 @@ const sanitizeTempId = (id: string): string => {
 
 	// Ensure there are no symbols (only alphanumeric characters, hyphens, and underscores)
 	if (!/^[a-zA-Z0-9-_]+$/.test(sanitizedId)) {
-		throw new Error('$tempId must contain only alphanumeric characters, hyphens, and underscores.');
+		throw new Error('Temporary ID must contain only alphanumeric characters, hyphens, and underscores.');
 	}
 
 	// Ensure the ID is no longer than 36 characters (including the "_:" prefix)
 	if (id.length > 36) {
-		throw new Error('$tempId must not be longer than 36 characters.');
+		throw new Error('Temporary ID must not be longer than 36 characters.');
 	}
 
 	return sanitizedId;
@@ -89,22 +93,24 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 					const currentSchema = getCurrentSchema(schema, value);
 
-					const nodePathArray = meta.nodePath?.split('.');
-
-					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
-
-					if (!currentSchema) {
-						throw new Error(`Schema not found for ${value.$entity || value.$relation}`);
-					}
-
-					value.$bzId = value.$tempId ?? `T_${uuidv4()}`;
-
-					value[Symbol.for('schema') as any] = currentSchema;
-					value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
-
-					const { usedLinkFields, usedRoleFields } = getCurrentFields(currentSchema, value);
-
-					type RoleFieldMap = {
+	// This function removes undefined properties from the BQL mutation blocks and sanitizes the temporary IDs.
+	// It traverses the blocks and for each block, it removes undefined properties and sanitizes the temporary ID.
+	// The function returns the processed blocks.
+	
+	const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
+				if (isObject(val)) {
+					// Remove undefined properties
+					val = shake(val, (att) => att === undefined);
+				}
+				if (key === '$tempId') {
+					// Sanitize the temporary ID
+					parent[key] = sanitizeTempId(val);
+				}
+			}),
+		);
+	};
 						fieldType: 'roleField';
 						path: string;
 						schema: EnrichedRoleField;
@@ -136,9 +142,24 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 							  )
 							: [];
 
-					/// validations
-					/// If the current value uses at least one linkfield with target === 'role' and at least another field with target === 'relation', throw an unsupported (yet) error
-					if (
+	// This function removes undefined properties from the BQL mutation blocks and sanitizes the temporary IDs.
+	// It traverses the blocks and for each block, it removes undefined properties and sanitizes the temporary ID.
+	// The function returns the processed blocks.
+	
+	const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
+				if (isObject(val)) {
+					// Remove undefined properties
+					val = shake(val, (att) => att === undefined);
+				}
+				if (key === '$tempId') {
+					// Sanitize the temporary ID
+					parent[key] = sanitizeTempId(val);
+				}
+			}),
+		);
+	};
 						usedLinkFieldsMap.some((x) => x.schema?.target === 'role') &&
 						usedLinkFieldsMap.some((x) => x.schema?.target === 'relation')
 					) {
@@ -550,11 +571,42 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
               }
               /// link, update, unlink or delete, without id, it gets a generic
               if (!value.$tempId) {
-                // const localId = `all-${uuidv4()}`;
-                // value.$tempId = tempId; No longer using this workaround, isLocalid is better
-                // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
-                // value.$id = localId; /// we also need to setup it as the $id for chained stuff
-                /// we need to tag it as a nonDbid
+					type RoleFieldMap = {
+						fieldType: 'roleField';
+						path: string;
+						schema: EnrichedRoleField;
+					};
+
+					type LinkFieldMap = {
+						fieldType: 'linkField';
+						path: string;
+						schema: EnrichedLinkField;
+					};
+
+					const usedLinkFieldsMap = usedLinkFields.map(
+						(linkFieldPath): LinkFieldMap => ({
+							fieldType: 'linkField',
+							path: linkFieldPath,
+							// @ts-expect-error - TODO description
+	const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
+		// This function converts strings to objects in the BQL mutation blocks.
+		// It traverses the blocks and for each block, it checks if the value is an object.
+		// If the value is an object, it removes undefined properties and sanitizes the temporary ID.
+		// The function returns the processed blocks.
+
+		return produce(blocks, (draft) =>
+			traverse(draft, ({ value: val, meta, key }: TraversalCallbackContext) => {
+				if (isObject(val)) {
+					// Remove undefined properties
+					val = shake(val, (att) => att === undefined);
+					// Sanitize the temporary ID
+					if (key === '$tempId') {
+						parent[key] = sanitizeTempId(val);
+					}
+				}
+			}),
+		);
+	};
                 value[Symbol.for('isLocalId') as any] = true;
               }
               /// if value.$idTemp id nothing to change, it keeps the current tempId
