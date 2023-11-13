@@ -16,7 +16,6 @@ export const preQuery: PipelineOperation = async (req) => {
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
 	// 1. Convert mutation to Query
-	///console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 	// TODO: get filter replaces to work
 	const convertMutationToQuery = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -86,12 +85,10 @@ export const preQuery: PipelineOperation = async (req) => {
 		return blocks;
 	};
 	const preQueryBlocks = convertMutationToQuery(filledBqlRequest as FilledBQLMutationBlock | FilledBQLMutationBlock[]);
-	// console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
 
 	// 2. Perform pre-query and get response
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
-	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
 	const getObjectPath = (parent: any, key: string) => {
 		const idField = parent.$id || parent.id || parent.$bzId;
 		return `${parent.$objectPath ? (idField ? parent.$objectPath : parent.$objectPath.split('.')[0]) : 'root'}${
@@ -123,7 +120,6 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	// @ts-expect-error todo
 	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
-	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
 	};
@@ -166,7 +162,6 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	// @ts-expect-error todo
 	cachePaths(storedPaths);
-	// console.log('cache: ', cache);
 
 	// 5. Prune mutation
 
@@ -180,8 +175,6 @@ export const preQuery: PipelineOperation = async (req) => {
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
 		// const ids: string[] = cache[path];
 
-		// console.log('paths: ', JSON.stringify({ path, id, ids }, null, 2));
-
 		if (ids) {
 			const foundIds = !Array.isArray(id) ? ids.filter((o) => o === id) : ids.filter((o) => id.includes(o));
 			found = foundIds.length > 0;
@@ -193,8 +186,6 @@ export const preQuery: PipelineOperation = async (req) => {
 		let otherIds: string[] = [];
 		// @ts-expect-error todo
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
-
-		// console.log('paths: ', JSON.stringify({ ids }, null, 2));
 		const replacesIds = replaces.map((o) => o.$id);
 		if (ids) {
 			otherIds = ids.filter((o) => !replacesIds.includes(o));
