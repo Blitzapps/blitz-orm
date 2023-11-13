@@ -44,7 +44,6 @@ describe('Mutations: Errors', () => {
 		};
 
 		const res = await bormClient.mutate(mutation);
-		// console.log('res', res);
 		expect(res).toStrictEqual({});
 	});
 
@@ -100,8 +99,6 @@ describe('Mutations: Errors', () => {
 				expect(true).toBe(false);
 			}
 		}
-	});
-
 	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
 		expect(bormClient).toBeDefined();
 
@@ -122,9 +119,22 @@ describe('Mutations: Errors', () => {
 				},
 			]);
 		} catch (error: any) {
+	it('e7a[tempId, deletion] Delete tempId', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					name: 'Peter',
+					email: 'Peter@test.ru',
+					accounts: [{ provider: 'google', $tempId: '_:acc1', $op: 'delete' }],
+				},
+			]);
+		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation\'s role is of cardinality ONE.\n',
+					'Invalid op delete for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.',
 				);
 			} else {
 				expect(true).toBe(false);
@@ -136,9 +146,11 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('e7b[tempId, unlink] Unlink tempId', async () => {
+	});
+
 	it('TODO:e6[tempId] Somwhere there is a tempId that has no definition', async () => {
 		expect(bormClient).toBeDefined();
-		// todo: antoine query of nested tempIds without op="create"
 
 		try {
 			await bormClient.mutate([
@@ -173,7 +185,34 @@ describe('Mutations: Errors', () => {
 
 	it('e7a[tempId, deletion] Delete tempId', async () => {
 		expect(bormClient).toBeDefined();
-		// todo: antoine query of nested tempIds without op="create"
+	it('e7b[tempId, unlink] Unlink tempId', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					name: 'Peter',
+					email: 'Peter@test.ru',
+					accounts: [{ provider: 'google', $tempId: '_:acc1', $op: 'unlink' }],
+				},
+			]);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe(
+					'Invalid op unlink for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.',
+				);
+			} else {
+				expect(true).toBe(false);
+			}
+
+			return;
+		}
+
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('e8a[multi, create, link] Uncompatible tempId ops', async () => {
 
 		try {
 			await bormClient.mutate([
