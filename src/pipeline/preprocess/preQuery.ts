@@ -16,7 +16,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
 	// 1. Convert mutation to Query
-	console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
+	// console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 	// TODO: get filter replaces to work
 	const convertMutationToQuery = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -40,12 +40,7 @@ export const preQuery: PipelineOperation = async (req) => {
 			});
 
 			if (!relation && !entity) {
-				throw new Error('Neither $relation nor $entity found in the blocks');
-			}
-
-			const result: any = { $id: ids };
-
-			if (relation) {
+	const preQueryBlocks = convertMutationToQuery(filledBqlRequest as FilledBQLMutationBlock | FilledBQLMutationBlock[]);
 				result.$relation = relation;
 			}
 
@@ -91,7 +86,6 @@ export const preQuery: PipelineOperation = async (req) => {
 	// 2. Perform pre-query and get response
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
-	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
 	const getObjectPath = (parent: any, key: string) => {
 		const idField = parent.$id || parent.id || parent.$bzId;
 		return `${parent.$objectPath ? (idField ? parent.$objectPath : parent.$objectPath.split('.')[0]) : 'root'}${
@@ -115,12 +109,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							}
 						});
 					} else if (isObject(parent[key])) {
-						parent[key].$objectPath = getObjectPath(parent, key);
-					}
-				}
-			}),
-		);
-	};
+	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
 	// @ts-expect-error todo
 	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
 	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
@@ -129,12 +118,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	const cache: Cache<string, string> = {};
 	// 4. Create cache of paths
-	const cachePaths = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) =>
-			traverse(draft, (context) => {
-				const { key, parent } = context;
+	const otherIds = getOtherIds(pathToThing, replaces);
 				if (parent && key && parent.$id && !key.includes('$')) {
 					const cacheKey = getObjectPath(parent, key);
 					if (Array.isArray(parent[key])) {
@@ -157,10 +141,8 @@ export const preQuery: PipelineOperation = async (req) => {
 							// @ts-expect-error todo
 							cache[cacheKey] = val.$id.toString();
 						} else {
-							cache[cacheKey] = val.toString();
-						}
-					}
-				}
+				newFilled = prunedMutation(newFilled);
+				req.filledBqlRequest = newFilled;
 			}),
 		);
 	};
