@@ -98,63 +98,63 @@ export const preQuery: PipelineOperation = async (req) => {
 			idField ? `-${idField}` : ''
 		}.${key}`;
 	};
-	// 3. Store paths on each child object
+	// The storePaths function traverses the blocks and assigns a unique object path to each child object.
 	const storePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
 				const { key, parent } = context;
-				// console.log('info: ', JSON.stringify({ key, parent }, null, 2));
+				// If the parent and key exist and the key does not include '$', assign a unique object path to the child object.
 				if (parent && key && !key.includes('$')) {
 					if (Array.isArray(parent[key])) {
 						parent[key].forEach((o: any) => {
 							if (typeof o !== 'string') {
-								// eslint-disable-next-line no-param-reassign
+								// Assign a unique object path to the child object.
 								o.$objectPath = getObjectPath(parent, key);
 							}
 						});
 					} else if (isObject(parent[key])) {
+						// Assign a unique object path to the child object.
 						parent[key].$objectPath = getObjectPath(parent, key);
 					}
 				}
 			}),
 		);
 	};
-	// @ts-expect-error todo
+	// If preQueryRes exists, call the storePaths function with preQueryRes as the argument. Otherwise, return an empty object.
 	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
-	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
 	};
+	// Initialize an empty cache object.
 	const cache: Cache<string, string> = {};
-	// 4. Create cache of paths
+	// The cachePaths function creates a cache of paths for each block.
 	const cachePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
 				const { key, parent } = context;
+				// If the parent and key exist, the parent has an id, and the key does not include '$', proceed with caching the path.
 				if (parent && key && parent.$id && !key.includes('$')) {
 					const cacheKey = getObjectPath(parent, key);
+					// If the parent's key is an array, create a cache array and add each value to it.
 					if (Array.isArray(parent[key])) {
-						// @ts-expect-error todo
 						const cacheArray = [];
-						// @ts-expect-error todo
 						parent[key].forEach((val) => {
 							if (isObject(val)) {
-								// @ts-expect-error todo
 								cacheArray.push(val.$id.toString());
 							} else {
 								cacheArray.push(val.toString());
 							}
 						});
-						// @ts-expect-error todo
+						// Add the cache array to the cache object with the cacheKey as the key.
 						cache[cacheKey] = cacheArray;
 					} else {
+						// If the parent's key is not an array, add the value to the cache object with the cacheKey as the key.
 						const val = parent[key];
 						if (isObject(val)) {
-							// @ts-expect-error todo
 							cache[cacheKey] = val.$id.toString();
 						} else {
 							cache[cacheKey] = val.toString();
@@ -174,34 +174,39 @@ export const preQuery: PipelineOperation = async (req) => {
 		path: string,
 		id: string | string[],
 	): { found: boolean; cardinality: 'ONE' | 'MANY'; isOccupied: boolean } => {
+		// Initialize the found variable as false.
 		let found: boolean = false;
+		// Determine the cardinality based on whether the cache[path] is an array.
 		const cardinality = Array.isArray(cache[path]) ? 'MANY' : 'ONE';
-		// @ts-expect-error todo
+		// Get the ids from the cache using the path.
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
-		// const ids: string[] = cache[path];
 
-		// console.log('paths: ', JSON.stringify({ path, id, ids }, null, 2));
-
+		// If ids exist, check if the id is found in the ids.
 		if (ids) {
 			const foundIds = !Array.isArray(id) ? ids.filter((o) => o === id) : ids.filter((o) => id.includes(o));
 			found = foundIds.length > 0;
 		}
 
+		// Return an object containing the found status, cardinality, and whether the path is occupied in the cache.
 		return { found, cardinality, isOccupied: cache[path] ? true : false };
 	};
+	// The getOtherIds function returns an array of ids that are not included in the replaces array.
 	const getOtherIds = (path: string, replaces: { $id: string }[]): string[] => {
+		// Initialize an empty array for otherIds.
 		let otherIds: string[] = [];
-		// @ts-expect-error todo
+		// Get the ids from the cache using the path.
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
-
-		// console.log('paths: ', JSON.stringify({ ids }, null, 2));
+		// Get the ids from the replaces array.
 		const replacesIds = replaces.map((o) => o.$id);
+		// If ids exist, filter out the ids that are included in the replacesIds.
 		if (ids) {
 			otherIds = ids.filter((o) => !replacesIds.includes(o));
 		}
 
+		// Return the otherIds array.
 		return otherIds;
 	};
+	// The prunedMutation function prunes the mutation based on the pre-query response.
 	const prunedMutation = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
