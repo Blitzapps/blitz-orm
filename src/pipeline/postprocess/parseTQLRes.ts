@@ -110,73 +110,77 @@ const extractRoles = (
 };
 
 const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: EnrichedBormSchema) => {
+	// This function extracts the roles played by the current relation schema and returns a flattened list of unique roles.
 	const currentRelRoles = listify(
 		currentRelSchema.roles,
-		// TODO: Multiple inverse roles
 		(_k, v) => {
+			// If a role is played by more than one entity in the same relation, throw an error.
 			if ([...new Set(v.playedBy?.map((x) => x.thing))].length !== 1) {
-				throw new Error('a role can be played by two entities throws the same relation');
+				throw new Error('A role can be played by two entities within the same relation');
 			}
+			// If a role is not played by any entity, throw an error.
 			if (!v.playedBy) {
-				throw new Error('Role not being played by nobody');
+				throw new Error('Role is not being played by any entity');
 			}
-			// We extract the role that it plays
-
+			// Extract the role that it plays
 			const playedBy = v.playedBy[0].plays;
-
-			// TODO: should recursively get children of children
+			// Extract the child entities of the role
 			const childEntities = extractChildEntities(schema.entities, playedBy);
-
+			// Return the role and its child entities
 			return [playedBy, ...childEntities];
 		},
 	);
-
-	//todo: remove unique? it does not impact any test
+	// Return a flattened list of unique roles
 	return unique(flat(currentRelRoles));
 };
 
 export const parseTQLRes: PipelineOperation = async (req, res) => {
+	// This function parses the TQL response and performs the necessary operations based on the request.
 	const { schema, bqlRequest, config, tqlRequest } = req;
 	const { rawTqlRes } = res;
+	// If the BQL request is not parsed, throw an error.
 	if (!bqlRequest) {
 		throw new Error('BQL request not parsed');
-	} else if (!rawTqlRes) {
+	} 
+	// If the TQL query is not executed, throw an error.
+	else if (!rawTqlRes) {
 		throw new Error('TQL query not executed');
 	}
 	const { query } = bqlRequest;
 
-	// <--------------- MUTATIONS
+	// If there is no query, it means we are dealing with mutations.
 	if (!query) {
+		// If there are no insertions and no delete operations, return an empty object to continue further steps without error.
 		if (rawTqlRes.insertions?.length === 0 && !tqlRequest?.deletions) {
-			// if no insertions and no delete operations
-			res.bqlRes = {}; // return an empty object to continue further steps without error
+			res.bqlRes = {}; 
 			return;
 		}
+		// If the TQL mutation is not executed, throw an error.
 		const { mutation } = bqlRequest;
 		if (!mutation) {
 			throw new Error('TQL mutation not executed');
 		}
-		// console.log('config.mutation', config.mutation);
-
-		// todo: check if something weird happened
+		// Prepare the expected result by combining the things and edges from the mutation.
 		const expected = [...mutation.things, ...mutation.edges];
+		// Map over the expected result to generate the actual result.
 		const result = expected
 			.map((exp) => {
-				//! reads all the insertions and gets the first match. This means each id must be unique
+				// Read all the insertions and get the first match. This means each id must be unique.
 				const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-
-				// console.log('current:', JSON.stringify(x));
-
+				// If the operation is 'create', 'update', or 'link', generate the mutation block.
 				if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
 					const dbIdd = currentNode?.asThing().iid;
+					// If no metadata is required, return the mutation block without metadata.
 					if (config.mutation?.noMetadata) {
 						return mapEntries(exp, (k: string, v) => [
 							k.toString().startsWith('$') ? Symbol.for(k) : k,
 							v,
 						]) as BQLMutationBlock;
 					}
+					// Otherwise, return the mutation block with metadata.
 					return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id } } as BQLMutationBlock;
 				}
+				// If the operation is 'delete' or 'unlink', return the mutation block as is.
 				if (exp.$op === 'delete' || exp.$op === 'unlink') {
 					// todo when typeDB confirms deletions, check them here
 					return exp as BQLMutationBlock;
