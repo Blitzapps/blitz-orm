@@ -110,7 +110,7 @@ const extractRoles = (
 };
 
 const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: EnrichedBormSchema) => {
-	const currentRelroles = listify(
+	const currentRelRoles = listify(
 		currentRelSchema.roles,
 		// TODO: Multiple inverse roles
 		(_k, v) => {
@@ -123,15 +123,16 @@ const extractRelRoles = (currentRelSchema: EnrichedBormRelation, schema: Enriche
 			// We extract the role that it plays
 
 			const playedBy = v.playedBy[0].plays;
-			// TODO: should recursively get child of childs
 
+			// TODO: should recursively get children of children
 			const childEntities = extractChildEntities(schema.entities, playedBy);
 
 			return [playedBy, ...childEntities];
 		},
 	);
 
-	return unique(flat(currentRelroles));
+	//todo: remove unique? it does not impact any test
+	return unique(flat(currentRelRoles));
 };
 
 export const parseTQLRes: PipelineOperation = async (req, res) => {
@@ -206,7 +207,7 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
 	const relations = rawTqlRes.relations?.map((relation) => {
 		const currentRelSchema = schema.relations[relation.relation];
 
-		const currentRelroles = extractRelRoles(currentRelSchema, schema);
+		const currentRelRoles = extractRelRoles(currentRelSchema, schema);
 		// for every currentRelSchema property, we get the paths that play that relation
 
 		/* workaround that might be needed later 
@@ -217,12 +218,12 @@ export const parseTQLRes: PipelineOperation = async (req, res) => {
     }).flat(1);
 
     // remove duplicates between roles and players
-    const allPlayers = new Set([...currentRelroles, ...currentRelPlayers]);
+    const allPlayers = new Set([...currentRelRoles, ...currentRelPlayers]);
     */
 		const links = extractRelations(
 			relation.conceptMapGroups,
 			[
-				...currentRelroles,
+				...currentRelRoles,
 				currentRelSchema.name, // for cases where the relation is the actual thing fetched
 			],
 			schema,

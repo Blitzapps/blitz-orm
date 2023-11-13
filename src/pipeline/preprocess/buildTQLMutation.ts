@@ -58,7 +58,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			if (['TEXT', 'ID', 'EMAIL'].includes(currentDataField.contentType)) {
 				return `has ${dbField} '${v}'`;
 			}
-			if (['NUMBER'].includes(currentDataField.contentType)) {
+			if (['NUMBER', 'BOOLEAN'].includes(currentDataField.contentType)) {
 				return `has ${dbField} ${v}`;
 			}
 			if (currentDataField.contentType === 'DATE') {

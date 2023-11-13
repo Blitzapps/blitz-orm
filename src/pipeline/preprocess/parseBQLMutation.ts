@@ -210,7 +210,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 						}
 						// todo: probably check replaces
 						if (value.$op === 'replace') {
-							throw new Error('Unsupported: Replaces not implemented yet');
+							// Currently pre-queries do not cross reference data nested below a create operation
+							throw new Error('Unsupported: Nested replaces not implemented yet');
 						}
 						return 'match';
 					};
@@ -353,7 +354,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 									const edgeType3 = {
 										...objWithMetaDataOnly,
 										$relation: value.$relation,
-										$op: op,
+										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
 										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
