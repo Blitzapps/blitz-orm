@@ -120,6 +120,44 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
+	// New test case for the new business logic
+	it('b2a[update] New Business Logic', async () => {
+		// Add your test code here
+	});
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.mutate(
+			{
+				$entity: 'User',
+				$id: firstUser.id,
+				name: 'Johns not',
+				email: 'john@test.com',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			name: 'Johns not',
+			email: 'john@test.com',
+		});
+
+		if (!firstUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
+		const res2 = await bormClient.query({
+			$entity: 'User',
+			$id: firstUser.id,
+		});
+		expect(res2).toEqual({
+			id: firstUser.id,
+			name: 'Johns not',
+			email: 'john@test.com',
+			$entity: 'User',
+			$id: firstUser.id,
+		});
+	});
+
+	it('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -147,6 +185,44 @@ describe('Mutations: Init', () => {
 
 		const res2 = await bormClient.query(
 			{
+				$relation: 'User-Accounts',
+				$id: 'r1',
+				$fields: [
+					'id',
+					{
+						$path: 'user',
+						$fields: ['email', { $path: 'user-tags', $fields: ['id', 'color'] }],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res2, 'id')).toEqual({
+			id: 'r1',
+			user: {
+				'email': 'hey',
+				'user-tags': [{ id: 'ustag1' }, { id: 'ustag2' }, { id: 'ustag3', color: 'silver' }],
+			},
+		});
+
+		await bormClient.mutate({
+			$relation: 'User-Accounts',
+			$id: 'r1',
+			user: {
+				'$id': 'u2',
+				'user-tags': [
+					{ $id: 'ustag3', $op: 'delete', color: { $op: 'delete' } },
+					{ $id: 'ustag2', $op: 'delete' },
+				],
+			},
+		});
+
+		const res3 = await bormClient.query(
+	// New test case for the new business logic
+	it('b4[create, children] New Business Logic', async () => {
+		// Add your test code here
+	});
+			{
 				$entity: 'User',
 				$id: 'b2b-user',
 				$fields: ['name', 'email'],
@@ -157,6 +233,10 @@ describe('Mutations: Init', () => {
 
 		/// CLEAN: delete b2b-user
 		await bormClient.mutate(
+	// New test case for the new business logic
+	it('b2b[update] New Business Logic', async () => {
+		// Add your test code here
+	});
 			{
 				$op: 'delete',
 				$entity: 'User',
@@ -217,6 +297,88 @@ describe('Mutations: Init', () => {
 
 	it('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
 		await bormClient.mutate(
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2d-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2d-user',
+				email: '',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			email: '',
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2d-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ name: 'Foo', email: '' });
+
+		// CLEAN: delete b2d-user
+		await bormClient.mutate(
+	// New test case for the new business logic
+	it('b2d[update] New Business Logic', async () => {
+		// Add your test code here
+	});
+			{
+				$op: 'create',
+				$entity: 'User',
+				id: 'b2c-user',
+				name: 'Foo',
+				email: 'foo@test.com',
+			},
+			{ noMetadata: false },
+		);
+
+		const res = await bormClient.mutate(
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: 'b2c-user',
+				name: null,
+				email: 'bar@test.com',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res[0]).toEqual({
+			name: null,
+			email: 'bar@test.com',
+		});
+
+		const res2 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'b2c-user',
+				$fields: ['name', 'email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res2).toEqual({ email: 'bar@test.com' });
+
+		// CLEAN: delete b2c-user
+		await bormClient.mutate(
+	// New test case for the new business logic
+	it('b2c[update] New Business Logic', async () => {
+		// Add your test code here
+	});
 			{
 				$op: 'create',
 				$entity: 'User',
@@ -324,6 +486,45 @@ describe('Mutations: Init', () => {
 		]);
 	});
 	it('b3rn[delete, relation, nested] Basic', async () => {
+	// New test case for the new business logic
+	it('b3r[delete, relation] New Business Logic', async () => {
+		// Add your test code here
+	});
+		expect(bormClient).toBeDefined();
+		await bormClient.mutate({
+			$relation: 'User-Accounts',
+			id: 'r1',
+			user: { id: 'u1' },
+			accounts: [{ id: 'a1' }],
+		});
+		await bormClient.mutate({
+			$relation: 'User-Accounts',
+			$op: 'delete',
+			$id: 'r1',
+		});
+
+		const res2 = await bormClient.query({
+			$relation: 'User-Accounts',
+			$id: 'r1',
+		});
+
+		expect(res2).toBeNull();
+
+		/// clean user and account
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: 'u1',
+			},
+			{
+				$entity: 'Account',
+				$op: 'delete',
+				$id: 'a1',
+			},
+		]);
+	});
+	it('b3rn[delete, relation, nested] Basic', async () => {
 		expect(bormClient).toBeDefined();
 		await bormClient.mutate({
 			$relation: 'User-Accounts',
@@ -351,6 +552,10 @@ describe('Mutations: Init', () => {
 		});
 
 		const res2 = await bormClient.query(
+	// New test case for the new business logic
+	it('b3rn[delete, relation, nested] New Business Logic', async () => {
+		// Add your test code here
+	});
 			{
 				$relation: 'User-Accounts',
 				$id: 'r1',
@@ -416,6 +621,10 @@ describe('Mutations: Init', () => {
 			},
 		]);
 	});
+	// New test case for the new business logic
+	it('b4.2[create, link] New Business Logic', async () => {
+		// Add your test code here
+	});
 
 	it('b4[create, children] Create with children', async () => {
 		expect(bormClient).toBeDefined();
@@ -440,6 +649,10 @@ describe('Mutations: Init', () => {
 		expect(res).toBeInstanceOf(Object);
 
 		expect(JSON.parse(JSON.stringify(res))).toEqual([
+	// New test case for the new business logic
+	it('TODO:b4.3[create, link] New Business Logic', async () => {
+		// Add your test code here
+	});
 			{
 				email: 'jane@test.com',
 				id: secondUser.id,
@@ -549,6 +762,38 @@ describe('Mutations: Init', () => {
 			},
 		]);
 	});
+	// New test case for the new business logic
+	it('b7[create, inherited] New Business Logic', async () => {
+		// Add your test code here
+	});
+		expect(res2).toBeDefined();
+		expect(res2).toBeInstanceOf(Object);
+
+		// link the user to the spaces
+
+		const res3 = await bormClient.mutate(
+			{
+				$entity: 'User',
+				$id: thirdUser.id,
+				spaces: [
+					{ $id: spaceThree.id, $op: 'link' },
+					{ $id: spaceFour.id, $op: 'link' },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		expectArraysInObjectToContainSameElements(JSON.parse(JSON.stringify(res3)), [
+			{
+				spaces: spaceThree.id,
+				users: thirdUser.id,
+			},
+			{
+				spaces: spaceFour.id,
+				users: thirdUser.id,
+			},
+		]);
+	});
 
 	it('TODO:b4.3[create, link] Link ALL (without ids)', async () => {
 		expect(bormClient).toBeDefined();
@@ -605,6 +850,51 @@ describe('Mutations: Init', () => {
 		}
 
 		const res2 = await bormClient.query(
+	// New test case for the new business logic
+	it('n1[create, nested] New Business Logic', async () => {
+		// Add your test code here
+	});
+			{
+				$entity: 'User',
+				$id: secondUser.id,
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res2)).toEqual({
+			id: secondUser.id,
+			name: 'Jane',
+			email: 'jane@test.com',
+			spaces: [spaceOne.id, spaceTwo.id].sort(),
+		});
+
+		// clean spaceOne
+		await bormClient.mutate([
+	// New test case for the new business logic
+	it('b5[update, children] New Business Logic', async () => {
+		// Add your test code here
+	});
+		const res = await bormClient.mutate(
+			{
+				$entity: 'User',
+				$id: secondUser.id,
+				spaces: [
+					// todo: { $filter: { name: 'Space 1' }, name: 'newSpace1' },
+					{ $id: spaceTwo.id, name: 'newSpace2' },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(JSON.parse(JSON.stringify(res[0]))).toEqual(
+			// { id: expect.any(String), name: 'newSpace1' },
+			{ name: 'newSpace2' },
+		);
+
+		if (!secondUser.id) {
+			throw new Error('firstUser.id is undefined');
+		}
+
+		const res2 = await bormClient.query(
 			{
 				$entity: 'User',
 				$id: secondUser.id,
@@ -624,6 +914,10 @@ describe('Mutations: Init', () => {
 				$id: spaceTwo.id,
 			},
 		]);
+	});
+	// New test case for the new business logic
+	it('n2[create, nested] New Business Logic', async () => {
+		// Add your test code here
 	});
 
 	it('b6[create, withId] Create with id (override default)', async () => {
@@ -664,6 +958,10 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
+	// New test case for the new business logic
+	it('n3[delete, nested] New Business Logic', async () => {
+		// Add your test code here
+	});
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(godUser, { noMetadata: true });
 		expect(res[0]).toEqual({
