@@ -16,6 +16,9 @@
 		"editor.formatOnSave": true,
 		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	},
+	"markdownlint.config": {
+		"MD024": false
+	},
 	"cSpell.words": [
 		"anyofterms",
 		"atts",
