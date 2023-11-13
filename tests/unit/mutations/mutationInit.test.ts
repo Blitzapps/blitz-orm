@@ -4,7 +4,12 @@ import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
-// some random issues forced a let here
+=======
+```
+<<<<<<< REPLACE (index=1)
+const spaceOne = {
+=======
+const spaceOne = {
 let firstUser = {
 	$entity: 'User',
 	name: 'John',
@@ -749,8 +754,6 @@ describe('Mutations: Init', () => {
 			],
 			{ noMetadata: true },
 		);
-	});
-
 	it('n2[create, nested] nested, self referenced', async () => {
 		expect(bormClient).toBeDefined();
 
@@ -1088,6 +1091,8 @@ describe('Mutations: Init', () => {
 				name: 'Loic',
 			},
 		]);
+	afterAll(async () => {
+		await cleanup(dbName);
 	});
 
 	it('u2[update, multiple, nested(many), noId] Update only children (no id)', async () => {
