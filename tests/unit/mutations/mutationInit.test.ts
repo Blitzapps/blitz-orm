@@ -427,7 +427,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
 
 		// @ts-expect-error - TODO description
 		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
@@ -511,7 +510,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
 
 		// @ts-expect-error - TODO description
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
@@ -1300,26 +1298,6 @@ describe('Mutations: Init', () => {
 		]);
 	});
 
-	/*
-  it('f1[json] Basic nested json-like field', async () => {
-    /// In general, this json-like is used only as a way to group properties that actually belong to the entity
-    /// So Address is maybe not the best example, it should probably be a node itself.
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.mutate([
-      {
-        $entity: 'User',
-        $id: 'user3',
-        address: {
-          $embeddedObject: true,
-          city: 'Moscow',
-          street: 'Lenina',
-          house: 1,
-        },
-      },
-    ]);
-    expect(res?.length).toBe(17);
-  });
-*/
 
 	afterAll(async () => {
 		await cleanup(dbName);
