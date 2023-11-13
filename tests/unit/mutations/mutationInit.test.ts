@@ -427,7 +427,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
+		
 
 		// @ts-expect-error - TODO description
 		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
@@ -511,7 +511,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
+		
 
 		// @ts-expect-error - TODO description
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
