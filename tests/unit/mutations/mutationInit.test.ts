@@ -155,7 +155,6 @@ describe('Mutations: Init', () => {
 		);
 		expect(res2).toEqual({ email: 'foo@test.com' });
 
-		/// CLEAN: delete b2b-user
 		await bormClient.mutate(
 			{
 				$op: 'delete',
@@ -204,7 +203,6 @@ describe('Mutations: Init', () => {
 		);
 		expect(res2).toEqual({ email: 'bar@test.com' });
 
-		// CLEAN: delete b2c-user
 		await bormClient.mutate(
 			{
 				$op: 'delete',
@@ -427,7 +425,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
+		console.log('res', res);
 
 		// @ts-expect-error - TODO description
 		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
@@ -511,7 +509,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
+		console.log('res', res);
 
 		// @ts-expect-error - TODO description
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
