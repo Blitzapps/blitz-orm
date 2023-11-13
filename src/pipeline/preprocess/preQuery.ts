@@ -16,7 +16,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
 	// 1. Convert mutation to Query
-	console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
+	///console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 	// TODO: get filter replaces to work
 	const convertMutationToQuery = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -353,7 +353,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	if (preQueryRes) {
 		newFilled = prunedMutation(newFilled);
-		console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+		///console.log('pruned: ', JSON.stringify(newFilled, null, 2));
 		req.filledBqlRequest = newFilled;
 	}
 };

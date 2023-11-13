@@ -119,7 +119,7 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	test('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
+	it('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -154,9 +154,19 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		expect(res2).toEqual({ email: 'foo@test.com' });
+
+		/// CLEAN: delete b2b-user
+		await bormClient.mutate(
+			{
+				$op: 'delete',
+				$entity: 'User',
+				$id: 'b2b-user',
+			},
+			{ noMetadata: true },
+		);
 	});
 
-	test('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
+	it('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -193,9 +203,19 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		expect(res2).toEqual({ email: 'bar@test.com' });
+
+		// CLEAN: delete b2c-user
+		await bormClient.mutate(
+			{
+				$op: 'delete',
+				$entity: 'User',
+				$id: 'b2c-user',
+			},
+			{ noMetadata: true },
+		);
 	});
 
-	test('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
+	it('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -230,6 +250,16 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 		expect(res2).toEqual({ name: 'Foo', email: '' });
+
+		// CLEAN: delete b2d-user
+		await bormClient.mutate(
+			{
+				$op: 'delete',
+				$entity: 'User',
+				$id: 'b2d-user',
+			},
+			{ noMetadata: true },
+		);
 	});
 
 	it('b3e[delete, entity] Basic', async () => {
@@ -618,7 +648,7 @@ describe('Mutations: Init', () => {
 			{ id: 'green' },
 		]);
 
-		///delete the newly created colors
+		/// CLEAN: delete the newly created colors
 		await bormClient.mutate([
 			{
 				$entity: 'Color',
@@ -1006,8 +1036,10 @@ describe('Mutations: Init', () => {
 				$entity: 'User',
 				$fields: ['name'],
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, returnNulls: true },
 		);
+
+		console.log('allUsers', allUsers);
 		expect(deepSort(allUsers, 'name')).toEqual([
 			{
 				name: 'Ann',
