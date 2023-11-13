@@ -63,9 +63,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 	};
 
 	const shakedBqlRequest = shakeBqlRequest(rawBqlRequest);
-
-	// console.log('shakedBqlRequest', JSON.stringify(shakedBqlRequest, null, 3));
-
 	const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, ({ value: val, meta, key }: TraversalCallbackContext) => {
@@ -85,25 +82,16 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					if (value.$op === 'create' && value.$id) {
 						throw new Error("Can't write to computed field $id. Try writing to the id field directly.");
 					}
-					// console.log('<---------------------value', isDraft(value) ? current(value) : value);
-
 					const currentSchema = getCurrentSchema(schema, value);
-
 					const nodePathArray = meta.nodePath?.split('.');
-
 					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
-
 					if (!currentSchema) {
 						throw new Error(`Schema not found for ${value.$entity || value.$relation}`);
 					}
-
 					value.$bzId = value.$tempId ?? `T_${uuidv4()}`;
-
 					value[Symbol.for('schema') as any] = currentSchema;
 					value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
-
 					const { usedLinkFields, usedRoleFields } = getCurrentFields(currentSchema, value);
-
 					type RoleFieldMap = {
 						fieldType: 'roleField';
 						path: string;
@@ -197,16 +185,10 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 							}
 							return '$self';
 						};
-
 						const relation = getCurrentRelation();
 						const relationSchema =
 							relation === '$self' ? (currentSchema as EnrichedBormRelation) : schema.relations[relation];
-
-						// console.log('relationSchema', relationSchema);
-
 						const currentFieldRole = oFind(relationSchema.roles, (k, _v) => k === currentField.path);
-
-						// console.log('currentFieldRole', currentFieldRole);
 
 						if (currentFieldRole?.playedBy?.length === 0) {
 							throw new Error(`unused role: ${currentPath}.${currentField.path}`);
@@ -289,35 +271,23 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 							[Symbol.for('relFieldSchema') as any]: currentFieldSchema,
 						};
 
-						// console.log('childrenThingObj', childrenThingObj);
-
 						if (isObject(currentValue)) {
-							/// probably here we are missing some link + update data for instance (the update data)
-							// todo: for that reason it could be a good idea to send the other object as a thing outside?
-							// todo: Another alternative could be to send the full object and treat this later
-
 							value[currentField.path] = {
 								...childrenThingObj,
 								...currentValue,
 							};
-
-							// console.log('[obj]value', value[field as string]);
 						}
-						// todo: this does not allow the case accounts: ['id1','id2',{$tempId:'temp1'}] ideally tempIds should have some indicator like :_temp1 later so we can do ['id1','id2',':_tempid'] instead
 
 						/// we already know it's 'MANY'
-						if (Array.isArray(currentValue)) {
-							// todo: check for arrays that are values and not vectors
-							if (currentValue.every((x) => isObject(x))) {
-								value[currentField.path] = currentValue.map((y) => {
-									/// when a tempId is specified, in a relation, same as with $id, is a link by default
-									return {
-										...childrenThingObj,
-										...y,
-									};
-								});
-								// console.log('[obj-arr]value', value[field as string]);
-							} else if (currentValue.every((x) => typeof x === 'string')) {
+						if (currentValue.every((x) => isObject(x))) {
+							value[currentField.path] = currentValue.map((y) => {
+								/// when a tempId is specified, in a relation, same as with $id, is a link by default
+								return {
+									...childrenThingObj,
+									...y,
+								};
+							});
+						} else if (currentValue.every((x) => typeof x === 'string')) {
 								value[currentField.path] = currentValue.map((y) => ({
 									...childrenThingObj,
 									$op: value.$op === 'create' ? 'link' : 'replace',
@@ -347,15 +317,30 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 						}
 					});
 
-					// console.log('value', current(value));
-
-					if (!notRoot && !value.$entity && !value.$relation) {
+						if (currentFieldRole?.playedBy?.length === 0) {
+							throw new Error(`unused role: ${currentPath}.${currentField.path}`);
+						}
+						if (!currentFieldSchema) {
+							throw new Error(`Field ${currentField.path} not found in schema`);
+						}
+						const oppositeFields =
+							currentField.fieldType === 'linkField'
+								? (currentFieldSchema as EnrichedLinkField)?.oppositeLinkFieldsPlayedBy
+								: (currentFieldSchema as EnrichedRoleField)?.playedBy;
+						if (!oppositeFields) {
+							throw new Error(`No opposite fields found for ${JSON.stringify(currentFieldSchema)}`);
+						}
+						if ([...new Set(oppositeFields?.map((x) => x.thing))].length > 1) {
 						throw new Error('Root things must specify $entity or $relation');
 					}
 					if (!notRoot) {
 						// no need to do nothing with root objects or objects that already
 					}
 					// we will get the $entity/$relation of the nonRoot that don't have it
+					});
+					if (!notRoot && !value.$entity && !value.$relation) {
+						throw new Error('Root things must specify $entity or $relation');
+					}
 				}
 			}),
 		);
@@ -375,13 +360,8 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					if (key === '$filter' || meta.nodePath?.includes('.$filter.')) {
 						return;
 					}
-					const value = val as BQLMutationBlock;
-					// console.log('value', value);
-					// const currentTempId = value.$tempId || uuuiidv4();
-
-					const nodePathArray = meta.nodePath?.split('.');
-
-					///nodes with tempId require always an op because we can't know if it is a create or an update
+	const withObjects = stringToObjects(shakedBqlRequest);
+	const fill = (blocks: BQLMutationBlock | BQLMutationBlock[]): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 					if (value.$tempId) {
 						if (
 							!(value.$op === undefined || value.$op === 'link' || value.$op === 'create' || value.$op === 'update')
@@ -394,46 +374,40 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
 
-					const currentPath = !notRoot
+					const nodePathArray = meta.nodePath?.split('.');
+					if (value.$tempId) {
+						if (
+							!(value.$op === undefined || value.$op === 'link' || value.$op === 'create' || value.$op === 'update')
+						) {
+							throw new Error(
+								`Invalid op ${value.$op} for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.`,
+							);
+						}
+					}
+					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
 						? meta.nodePath || '' /// keep the number in the root or set to root ''
 						: Array.isArray(parent)
 						? nodePathArray?.slice(0, -1).join('.')
 						: meta.nodePath;
-
 					const currentSchema = getCurrentSchema(schema, value);
-					// todo:
 					const { unidentifiedFields, dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
-
-					/// get parent node
 					const parentMeta = current(value)[Symbol.for('parent') as any];
 					const parentPath = notRoot && parentMeta.path;
 					const parentNode = !parentPath ? draft : getNodeByPath(draft, parentPath); /// draft instead of blocks as the $op is computed
-					const parentOp = parentNode?.$op;
-
 					if (notRoot && !parentOp) {
 						throw new Error('Error: Parent $op not detected');
 					}
-
 					const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
-
-					// todo: move the getOp logic to the first traverse of the fill so that the $op is available
-					// We are doing something twice from the former traverse
 					if (value.$op === 'replace') {
 						if (parentOp === 'create') {
 							value.$op = 'link';
 						}
 					}
-
-					// console.log('currentValue', isDraft(value) ? current(value) : value);
-
 					const hasUpdatedDataFields = Object.keys(value).some((x) => dataFields?.includes(x));
-
-					const hasUpdatedChildren = Object.keys(value).some((x) => [...roleFields, ...linkFields]?.includes(x));
 					const getOp = () => {
 						if (value.$op) {
 							return value.$op;
 						} // if there is an op, then thats the one
-						/// nested objects are create by default, unless is too ambiguous
 						if (
 							notRoot &&
 							!value.$id &&
@@ -446,7 +420,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 						if (value.$tempId) {
 							return 'create';
 						}
-						// todo: can move these to the first level traversal
 						if ((value.$id || value.$filter) && hasUpdatedDataFields) {
 							return 'update';
 						} // if there is an id or a filter, is an update. If it was a delete,it has been specified
@@ -542,19 +515,27 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
           // if a valid id is setup, move it to $id
           if (!value.$id) {
             if (value[idField]) {
-              /// this is in creation when adding an id
-              // value.$id = value[idField];
+						if (Array.isArray(currentValue)) {
             } else {
               if (value.$op === 'create') {
                 // throw new Error(`No id found for ${JSON.stringify(value)}`);
               }
               /// link, update, unlink or delete, without id, it gets a generic
               if (!value.$tempId) {
-                // const localId = `all-${uuidv4()}`;
-                // value.$tempId = tempId; No longer using this workaround, isLocalid is better
-                // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
-                // value.$id = localId; /// we also need to setup it as the $id for chained stuff
-                /// we need to tag it as a nonDbid
+						if (currentFieldRole?.playedBy?.length === 0) {
+							throw new Error(`unused role: ${currentPath}.${currentField.path}`);
+						}
+						if (!currentFieldSchema) {
+							throw new Error(`Field ${currentField.path} not found in schema`);
+						}
+						const oppositeFields =
+							currentField.fieldType === 'linkField'
+								? (currentFieldSchema as EnrichedLinkField)?.oppositeLinkFieldsPlayedBy
+								: (currentFieldSchema as EnrichedRoleField)?.playedBy;
+						if (!oppositeFields) {
+							throw new Error(`No opposite fields found for ${JSON.stringify(currentFieldSchema)}`);
+						}
+						if ([...new Set(oppositeFields?.map((x) => x.thing))].length > 1) {
                 value[Symbol.for('isLocalId') as any] = true;
               }
               /// if value.$idTemp id nothing to change, it keeps the current tempId
