@@ -119,7 +119,7 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	test.only('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
+	test('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -156,7 +156,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toEqual({ email: 'foo@test.com' });
 	});
 
-	test.only('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
+	test('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -195,7 +195,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toEqual({ email: 'bar@test.com' });
 	});
 
-	test.only('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
+	test('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
 		await bormClient.mutate(
 			{
 				$op: 'create',
@@ -293,7 +293,6 @@ describe('Mutations: Init', () => {
 			},
 		]);
 	});
-
 	it('b3rn[delete, relation, nested] Basic', async () => {
 		expect(bormClient).toBeDefined();
 		await bormClient.mutate({
@@ -888,7 +887,6 @@ describe('Mutations: Init', () => {
 		// console.log('myTestKind1Id', myTestKind1Id);
 
 		/// delete both things
-
 		await bormClient.mutate(
 			{
 				$relation: 'Kind',
