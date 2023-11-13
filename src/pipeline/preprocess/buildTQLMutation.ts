@@ -25,8 +25,13 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		insertion?: string;
 		op: string;
 	} => {
-		// console.log('--------nodeToTypeQL-----------');
-		// console.log('id', node.$id);
+		// This function converts a node into a TypeQL object.
+		// It takes a BQLMutationBlock as input and returns an object with the following properties:
+		// preDeletionBatch, deletionMatch, insertionMatch, deletion, insertion, and op.
+		// The function first extracts the operation type, the node's bzId, and the current schema.
+		// It then determines the thingDbPath based on the defaultDBConnector or the node's entity or relation.
+		// The idValue is extracted from the node, and the idField is determined based on the idFields in the current schema.
+		// Note: Composite ids are not currently supported.
 		const op = node.$op as string;
 		const bzId = `$${node.$bzId}`;
 		const currentSchema = getCurrentSchema(schema, node);
@@ -36,21 +41,25 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const idValue = node.$id;
 
-		// todo: composite ids
 		const idField = idFields?.[0];
 
 		const attributes = listify(node, (k, v) => {
-			// @ts-expect-error - TODO description
+			// The listify function is used to generate a list of attributes for the node.
+			// It iterates over the node's properties and returns a string for each property that doesn't start with '$', 
+			// is not the idField, and is not undefined or null.
+			// For each property, it finds the corresponding data field in the current schema and determines the fieldDbPath.
+			// If the fieldDbPath is not found, it returns an empty string.
+			// Otherwise, it returns a string that represents the attribute in TypeQL format.
+			// The format of the string depends on the contentType of the currentDataField.
+			// For 'TEXT', 'ID', and 'EMAIL' contentTypes, the string is in the format `has ${dbField} '${v}'`.
+			// For 'NUMBER' and 'BOOLEAN' contentTypes, the string is in the format `has ${dbField} ${v}`.
 			if (k.startsWith('$') || k === idField || v === undefined || v === null) {
 				return '';
 			}
-			// if (k.startsWith('$') || !v) return '';
 			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			// console.log('currentDataField', currentDataField);
 			const fieldDbPath = currentDataField?.path;
 
 			if (!fieldDbPath) {
-				// throw new Error('noFieldDbPath');
 				return '';
 			}
 			const dbField = currentDataField.dbPath;
@@ -58,8 +67,13 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			if (['TEXT', 'ID', 'EMAIL'].includes(currentDataField.contentType)) {
 				return `has ${dbField} '${v}'`;
 			}
-			if (['NUMBER', 'BOOLEAN'].includes(currentDataField.contentType)) {
-				return `has ${dbField} ${v}`;
+			// For 'NUMBER' and 'BOOLEAN' contentTypes, the string is in the format `has ${dbField} ${v}`.
+			// For 'DATE' contentType, the value is first checked to ensure it is not NaN.
+			// If the value is an instance of Date, the string is in the format `has ${dbField} ${v.toISOString().replace('Z', '')}`.
+			// Otherwise, the value is converted to a Date and the string is in the format `has ${dbField} ${new Date(v).toISOString().replace('Z', '')}`.
+			// If the contentType is not supported, an error is thrown.
+			// The resulting list of attribute strings is then filtered to remove any empty strings.
+			return `has ${dbField} ${v}`;
 			}
 			if (currentDataField.contentType === 'DATE') {
 				if (Number.isNaN(v.valueOf())) {
@@ -73,20 +87,38 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			throw new Error(`Unsupported contentType ${currentDataField.contentType}`);
 		}).filter((x) => x);
 
+		// The attributesVar is a string that represents the variable for the attributes in TypeQL format.
 		const attributesVar = `${bzId}-atts`;
 
-		const matchAttributes = listify(node, (k) => {
-			// @ts-expect-error - TODO description
+		const isLocalId: boolean = node[Symbol.for('isLocalId') as any];
+
+		// The idValueTQL is a string that represents the id value in TypeQL format.
+		// If the idValue is an array, it is converted to a string using the join method with '|' as the separator.
+		// Otherwise, the idValue is converted to a string.
+		const idValueTQL = isArray(idValue) ? `like '${idValue.join('|')}'` : `'${idValue}'`;
+
+		// The idAttributes is a list of strings that represent the id attributes in TypeQL format.
+		// If the id is not a local id and the idValue exists, the idAttributes includes a string in the format `has ${idField} ${idValueTQL}`.
+		// Otherwise, the idAttributes is an empty list.
+		// Note: If the node is a relation, only the id fields are added in the lines where the roles are also added to avoid defining them twice.
+		const idAttributes =
+			!isLocalId && idValue 
+				? [`has ${idField} ${idValueTQL}`]
+				: [];
+
+		// The allAttributes is a string that represents all the attributes (id and other attributes) in TypeQL format.
+		// It is generated by joining the idAttributes and attributes with a comma and filtering out any empty strings.
+		const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
+
+		// The getDeletionMatchInNodes function generates a string that represents the deletion match in TypeQL format.
+		const getDeletionMatchInNodes = () => {
 			if (k.startsWith('$') || k === idField) {
 				return '';
 			}
-			// if (k.startsWith('$') || !v) return '';
 			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			// console.log('currentDataField', currentDataField);
 			const fieldDbPath = currentDataField?.path;
 
 			if (!fieldDbPath) {
-				// throw new Error('noFieldDbPath');
 				return '';
 			}
 			const dbField = currentDataField.dbPath;
@@ -94,7 +126,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			return `{${attributesVar} isa ${dbField};}`;
 		}).filter((x) => x);
 
-		const isLocalId: boolean = node[Symbol.for('isLocalId') as any]; /// this are local ids that are ony used to define links between stuff but that are not in the db (the "all-xxx" ids)
+		// The isLocalId is a boolean that indicates whether the node's id is a local id.
+		// Local ids are only used to define links between stuff but are not in the database.
+		const isLocalId: boolean = node[Symbol.for('isLocalId') as any];
 
 		const idValueTQL = isArray(idValue) ? `like '${idValue.join('|')}'` : `'${idValue}'`;
 		const idAttributes =
@@ -105,9 +139,12 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
 
+		// The getDeletionMatchInNodes function generates a string that represents the deletion match in TypeQL format.
+		// If the operation is 'delete', 'unlink', or 'match', the string is in the format `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`.
+		// If the operation is 'update' and there are matchAttributes, the string is in the format `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar}; ${matchAttributes.join(' or ')};`.
+		// Otherwise, an empty string is returned.
+		// Note: The function assumes that parents belong to grandparents.
 		const getDeletionMatchInNodes = () => {
-			// if (node.$tempId) return ''; /// commented because we need tempIds to work when replacing a unlink/link all operation
-			// todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
 			if (op === 'delete' || op === 'unlink' || op === 'match') {
 				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
 			}
@@ -115,21 +152,24 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				if (!matchAttributes.length) {
 					throw new Error('update without attributes');
 				}
-				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar};
-        ${matchAttributes.join(' or ')};`;
+				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')}, has ${attributesVar}; ${matchAttributes.join(' or ')};`;
 			}
 			return '';
-		};
-
+		// The getInsertionMatchInNodes function generates a string that represents the insertion match in TypeQL format.
+		// If the operation is 'update', 'link', or 'match', the string is in the format `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`.
+		// Otherwise, an empty string is returned.
+		// Note: The function assumes that parents belong to grandparents.
 		const getInsertionMatchInNodes = () => {
-			// todo: ensure parents belong to grandparents. [https://github.com/Blitzapps/blitz/issues/9]
-			// if (node.$tempId) return ''; /// same as getDeletionMatch
 			if (op === 'update' || op === 'link' || op === 'match') {
 				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
 			}
 			return '';
 		};
 
+		// If the node has an entity or relation, the function returns an object with the following properties:
+		// op, deletionMatch, insertionMatch, insertion, and deletion.
+		// The values of these properties are determined based on the operation type and whether there are attributes or matchAttributes.
+		// If the node does not have an entity or relation, an error is thrown.
 		if (node.$entity || node.$relation) {
 			return {
 				op,
