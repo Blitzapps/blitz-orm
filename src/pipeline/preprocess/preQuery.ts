@@ -7,11 +7,39 @@ import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
 export const preQuery: PipelineOperation = async (req) => {
-	const { filledBqlRequest } = req;
+	const { filledBqlRequest, config } = req;
 	const isBatchedMutation = Array.isArray(filledBqlRequest);
+
+	///0 ignore this step if its a batched mutation or if it does not have deletions or unlinks
+	if (!filledBqlRequest) {
+		throw new Error('[BQLE-M-0] No filledBqlRequest found');
+	}
+
+	const ops: string[] = [];
+	traverse(filledBqlRequest, ({ key, value }) => {
+		if (key === '$op') {
+			if (!ops.includes(value)) {
+				ops.push(value);
+			}
+		}
+	});
+
+	if (config.mutation?.preQuery === false) {
+		if (ops.includes('replace')) {
+			throw new Error('[BQLE-M-4] Cannot replace without preQuery=true');
+		}
+		return;
+	}
+
+	if (!ops.includes('delete') && !ops.includes('unlink') && !ops.includes('replace')) {
+		return;
+	}
+
+	///temporally skipping batchedMutations
 	if (isBatchedMutation) {
 		return;
 	}
+
 	let newFilled: FilledBQLMutationBlock | FilledBQLMutationBlock[] = filledBqlRequest as
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
@@ -145,7 +173,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							if (isObject(val)) {
 								// @ts-expect-error todo
 								cacheArray.push(val.$id.toString());
-							} else {
+							} else if (val) {
 								cacheArray.push(val.toString());
 							}
 						});
@@ -156,7 +184,7 @@ export const preQuery: PipelineOperation = async (req) => {
 						if (isObject(val)) {
 							// @ts-expect-error todo
 							cache[cacheKey] = val.$id.toString();
-						} else {
+						} else if (val) {
 							cache[cacheKey] = val.toString();
 						}
 					}

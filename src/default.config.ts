@@ -8,5 +8,8 @@ export const defaultConfig: Partial<BormConfig> = {
 		returnNulls: false,
 	},
 
-	mutation: {},
+	mutation: {
+		noMetadata: false,
+		preQuery: false,
+	},
 };
