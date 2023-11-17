@@ -1197,6 +1197,61 @@ describe('Query', () => {
 		});
 	});
 
+	it('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
+		expect(client).toBeDefined();
+
+		const res = await client.query(
+			{
+				$entity: 'Space',
+				$id: 'space-2',
+				$fields: [
+					{ $path: 'users', $id: 'user2', $fields: ['id', 'name'] },
+					{ $path: 'users', $id: 'user3', $fields: ['id', { $path: 'accounts', $fields: ['id', 'provider'] }] },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			$entity: 'Space',
+			users: [
+				{
+					id: 'user2',
+					name: 'user2name',
+				},
+				{
+					id: 'user3',
+					accounts: [{ id: 'accountZ', provider: 'whatever' }],
+				},
+			],
+		});
+	});
+
+	it('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
+		expect(client).toBeDefined();
+
+		const res = await client.query(
+			{
+				$entity: 'Space',
+				$id: 'space-2',
+				$fields: ['users', { $path: 'users', $id: 'user3', $fields: ['id', 'name'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			$entity: 'Space',
+			users: [
+				'user2',
+				{
+					id: 'user3',
+					name: 'user3name',
+				},
+				'user4',
+			],
+		});
+	});
+
 	it('xf1[excludedFields] Testing excluded fields', async () => {
 		expect(client).toBeDefined();
 		let godUser = {

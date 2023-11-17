@@ -361,18 +361,24 @@ describe('Mutations: batched and tempId', () => {
 	it('r1[replace] replace single roles in relation', async () => {
 		expect(bormClient).toBeDefined();
 		// cardinality one
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr2',
-			root: 'thing4',
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr2',
+				root: 'thing4',
+			},
+			{ preQuery: true },
+		);
 
 		// cardinality many
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr2',
-			things: ['thing4'],
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr2',
+				things: ['thing4'],
+			},
+			{ preQuery: true },
+		);
 		const queryRes = await bormClient.query(
 			{
 				$relation: 'ThingRelation',
@@ -393,12 +399,15 @@ describe('Mutations: batched and tempId', () => {
 	it('r2[replace] replace many roles in relation', async () => {
 		expect(bormClient).toBeDefined();
 
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr3',
-			root: 'thing4',
-			things: ['thing4'],
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'ThingRelation',
+				$id: 'tr3',
+				root: 'thing4',
+				things: ['thing4'],
+			},
+			{ preQuery: true },
+		);
 
 		const queryRes = await bormClient.query(
 			{
@@ -474,7 +483,7 @@ describe('Mutations: batched and tempId', () => {
 				// thing1
 				// extra: { $id: 'thing1', $op: 'unlink' },
 			},
-			{ ignoreNonexistingThings: true },
+			//{ ignoreNonexistingThings: true },
 		);
 
 		const queryRes = await bormClient.query(

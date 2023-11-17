@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.6.5(2023-11-17)
+
+- Feat: optional pre-queries
+- Warning: replaces no longer working until 0.7.0
+
 ## 0.6.4(2023-11-13)
 
 - Feat: Pre-queries are now doing pruning
