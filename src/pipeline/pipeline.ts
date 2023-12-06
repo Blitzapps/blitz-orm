@@ -1,14 +1,11 @@
 /* eslint-disable no-await-in-loop */
 import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
-import { dispatchPipeline } from './control';
 import { buildBQLTree, parseTQLRes } from './postprocess';
-import { parseBQLQuery, buildTQLQuery } from './preprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
 import { fillBQLMutation } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
 import { preQuery } from './preprocess/preQuery';
-import { runTQLQuery } from './transaction';
 import { runTQLMutation } from './transaction/runTQLMutation';
 import type {
 	BormConfig,
@@ -22,6 +19,10 @@ import type {
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
 } from '../types';
+import { newBuildTQLQuery } from './preprocess/newBuildTQLQuery';
+import { enrichBQLQuery } from './preprocess/enrichBQLQuery';
+import { newRunTQLQuery } from './transaction/newRunTQLQuery';
+import { parseTQLQuery } from './postprocess/parseTQLQuery';
 
 export type RelationName = string;
 export type EntityName = string;
@@ -38,6 +39,8 @@ type Request = {
 	config: BormConfig;
 	tqlRequest?: TQLRequest;
 	dbHandles: DBHandles;
+	// todo: define type
+	enrichedBqlQuery?: any;
 };
 
 type Response = {
@@ -63,6 +66,7 @@ type Response = {
 		roleLinks: Map<EntityID, { [path: string]: EntityID | EntityID[] }>;
 	};
 	bqlRes?: BQLResponse | null;
+	parsedTqlRes?: BQLResponse | null;
 };
 
 type NextPipeline = {
@@ -76,12 +80,12 @@ export type PipelineOperation = (req: Request, res: Response) => Promise<void | 
 type Pipeline = PipelineOperation[];
 
 const Pipelines: Record<string, Pipeline> = {
-	query: [parseBQLQuery, buildTQLQuery, runTQLQuery, parseTQLRes, dispatchPipeline],
-	mutation: [fillBQLMutation, preQuery, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes],
+	query: [enrichBQLQuery, newBuildTQLQuery, newRunTQLQuery, parseTQLQuery],
+	mutation: [fillBQLMutation, preQuery, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes, buildBQLTree],
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];
-const finalPipeline = [buildBQLTree];
+// const finalPipeline = [];
 
 const runPipeline = async (
 	pipeline: Pipeline,
@@ -106,7 +110,7 @@ const runPipeline = async (
 		}
 	}
 	if (root) {
-		await runPipeline(finalPipeline, req, res, false);
+		// await runPipeline(finalPipeline, req, res, false);
 		// console.log(res.tqlRes?.entities.map((e) => e.entries));
 		/// when debugging add the tqlRequest
 		/// todo: At some point, make the debugger more precise so we can decide what to add in this object (for instance also the answer?)

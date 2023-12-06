@@ -1,11 +1,12 @@
 import type { PipelineOperation } from '../pipeline';
 
+const separator = '___';
+
 export const newBuildTQLQuery: PipelineOperation = async (req) => {
 	const { enrichedBqlQuery } = req;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL query not enriched');
 	}
-	console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 
 	let tqlStr = '';
 
@@ -66,7 +67,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			const { $fields } = roleField;
 			tqlStr += `"${dotPath}.${roleField.$as}":{ \n`;
 			tqlStr += '\tmatch \n';
-			tqlStr += `\t$${$path} (${roleField.$as}: $${$path}_${roleField.$as}) isa ${roleField.$intermediary}; \n`;
+			tqlStr += `\t$${$path} (${roleField.$as}: $${$path}${separator}${roleField.$as}) isa ${roleField.$intermediary}; \n`;
 
 			if ($fields) {
 				tqlStr += '\tfetch \n';
@@ -74,18 +75,18 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
 			if (dataFields && dataFields.length > 0) {
 				// @ts-expect-error todo
-				processDataFields(dataFields, `${$path}_${roleField.$as}`, `${$path}.${roleField.$as}`);
+				processDataFields(dataFields, `${$path}${separator}${roleField.$as}`, `${$path}.${roleField.$as}`);
 			}
 
 			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
 			if (linkFields && linkFields.length > 0) {
 				// @ts-expect-error todo
-				processLinkFields(linkFields, `${$path}_${roleField.$as}`, `${$path}.${roleField.$as}`);
+				processLinkFields(linkFields, `${$path}${separator}${roleField.$as}`, `${$path}.${roleField.$as}`);
 			}
 			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
 			if (roleFields && roleFields.length > 0) {
 				// @ts-expect-error todo
-				processRoleFields(roleFields, `${$path}_${roleField.$as}`, `${$path}.${roleField.$as}`);
+				processRoleFields(roleFields, `${$path}${separator}${roleField.$as}`, `${$path}.${roleField.$as}`);
 			}
 			tqlStr += '}; \n';
 		}
@@ -110,11 +111,12 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			const { $fields } = linkField;
 			tqlStr += `"${dotPath}.${linkField.$as}":{ \n`;
 			tqlStr += '\tmatch \n';
-			// intermediary
+			// a. intermediary
 			if (linkField.$target === 'role') {
-				tqlStr += `\t$${$path}_intermediary (${linkField.$path}: $${$path}, ${linkField.$as}: $${$path}_${linkField.$as}) isa ${linkField.$intermediary}; \n`;
+				tqlStr += `\t$${$path}_intermediary (${linkField.$path}: $${$path}, ${linkField.$as}: $${$path}${separator}${linkField.$as}) isa ${linkField.$intermediary}; \n`;
 			} else {
-				tqlStr += `\t$${$path}_${linkField.$as} (${linkField.$plays}: $${$path}) isa ${linkField.$thing}; \n`;
+				// b. no intermediary
+				tqlStr += `\t$${$path}${separator}${linkField.$as} (${linkField.$plays}: $${$path}) isa ${linkField.$thing}; \n`;
 			}
 			if ($fields) {
 				tqlStr += '\tfetch \n';
@@ -122,19 +124,19 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
 			if (dataFields && dataFields.length > 0) {
 				// @ts-expect-error todo
-				processDataFields(dataFields, `${$path}_${linkField.$as}`, `${$path}.${linkField.$as}`);
+				processDataFields(dataFields, `${$path}${separator}${linkField.$as}`);
 			}
 
 			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
 			if (linkFields && linkFields.length > 0) {
 				// @ts-expect-error todo
-				processLinkFields(linkFields, `${$path}_${linkField.$as}`, `${$path}.${linkField.$as}`);
+				processLinkFields(linkFields, `${$path}${separator}${linkField.$as}`, `${$path}.${linkField.$as}`);
 			}
 
 			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
 			if (roleFields && roleFields.length > 0) {
 				// @ts-expect-error todo
-				processRoleFields(roleFields, `${$path}_${linkField.$as}`, `${$path}.${linkField.$as}`);
+				processRoleFields(roleFields, `${$path}${separator}${linkField.$as}`, `${$path}.${linkField.$as}`);
 			}
 			tqlStr += '}; \n';
 		}
@@ -153,7 +155,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
 			if (dataFields && dataFields.length > 0) {
 				// @ts-expect-error todo
-				processDataFields(dataFields, $path, $path);
+				processDataFields(dataFields, $path);
 			}
 
 			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
@@ -170,9 +172,8 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 		}
 	};
 	builder(enrichedBqlQuery);
-	console.log('=== TQL STRING ===');
-	console.log(tqlStr);
 
+	// todo: type the tqlRequest
 	// @ts-expect-error todo
 	req.tqlRequest = tqlStr;
 };

@@ -5,54 +5,52 @@ import { getCurrentSchema } from '../../helpers';
 import { isObject } from 'radash';
 import type { BQLMutationBlock } from '../../types';
 
+// todo: use rawBQL $as in place of $as for enriched
+
 const createDataField = (field: any, fieldStr: string) => {
 	return {
 		$path: fieldStr,
 		$thingType: 'attribute',
 		$as: fieldStr,
 		$fieldType: 'data',
-
 		...(typeof field !== 'string' && { $fields: field.$fields }),
 	};
 };
 
 const createLinkField = (field: any, fieldStr: string, linkField: any) => {
-	if (linkField.oppositeLinkFieldsPlayedBy.length === 1) {
-		const { target, oppositeLinkFieldsPlayedBy } = linkField;
+	const { target, oppositeLinkFieldsPlayedBy } = linkField;
+
+	return oppositeLinkFieldsPlayedBy.map((playedBy: any) => {
 		return {
-			$thingType: target === 'role' ? oppositeLinkFieldsPlayedBy[0].thingType : 'relation',
+			$thingType: target === 'role' ? playedBy.thingType : 'relation',
 			$plays: linkField.plays,
-			$path: oppositeLinkFieldsPlayedBy[0].path,
+			$path: playedBy.path,
 			$as: fieldStr,
-			$thing: target === 'role' ? oppositeLinkFieldsPlayedBy[0].thing : linkField.relation,
+
+			$thing: target === 'role' ? playedBy.thing : linkField.relation,
 			$fields: field.$fields || ['id'],
 			$fieldType: 'link',
 			$target: target,
-			$intermediary: oppositeLinkFieldsPlayedBy[0].relation,
+			$intermediary: playedBy.relation,
 		};
-	} else {
-		// todo: work for multiple playedBy
-		throw new Error('Multiple oppositeLinkFieldsPlayedBy not yet enabled');
-	}
+	});
 };
 
 const createRoleField = (field: any, fieldStr: string, roleField: any) => {
-	if (roleField.playedBy.length === 1) {
-		const [{ thing, thingType, relation }] = roleField.playedBy;
+	return roleField.playedBy.map((playedBy: any) => {
+		const { thing, thingType, relation } = playedBy;
 
 		return {
 			$thingType: thingType,
 			$path: fieldStr,
 			$as: fieldStr,
+
 			$thing: thing,
 			$fields: field.$fields || ['id'],
 			$fieldType: 'role',
 			$intermediary: relation,
 		};
-	} else {
-		// todo: work for multiple roles
-		throw new Error('Multiple playedBy roles not yet enabled');
-	}
+	});
 };
 
 // todo: discern between ids for string and objects for $path
@@ -111,13 +109,38 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						delete value.$relation;
 					}
 
-					// todo: when thingType isn't specified it is thingType = thing
-					if (isObject(value) && '$fields' in value) {
+					if (isObject(value) && '$thing' in value) {
 						const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
-
 						const currentSchema = getCurrentSchema(schema, node);
-						const newFields = value.$fields?.map((field: any) => processField(field, currentSchema)).filter(Boolean);
-						value.$fields = newFields;
+						// if no fields, then it's all fields
+						if (value.$fields) {
+							const newFields = value.$fields
+								?.flatMap((field: any) => {
+									const processed = processField(field, currentSchema);
+									if (Array.isArray(processed)) {
+										return processed;
+									} else {
+										return [processed];
+									}
+								})
+								.filter(Boolean);
+							value.$fields = newFields;
+						} else {
+							const dataFields = currentSchema.dataFields?.map((field) => field.path) || [];
+							const linkFields = currentSchema.linkFields?.map((field) => field.path) || [];
+							const allFields = [...dataFields, ...linkFields];
+							const newFields = allFields
+								?.flatMap((field: any) => {
+									const processed = processField(field, currentSchema);
+									if (Array.isArray(processed)) {
+										return processed;
+									} else {
+										return [processed];
+									}
+								})
+								.filter(Boolean);
+							value.$fields = newFields;
+						}
 					}
 				}
 			}),

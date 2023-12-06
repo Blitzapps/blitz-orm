@@ -1451,6 +1451,48 @@ describe('Query', () => {
 
 	// NESTED
 
+	it.only('s1[new query] - filter by single $id', async () => {
+		expect(client).toBeDefined();
+		const expectedRes = {
+			'$entity': 'User',
+			'$id': 'user1',
+			'name': 'Antoine',
+			'email': 'antoine@test.com',
+			'id': 'user1',
+			'accounts': ['account1-1', 'account1-2', 'account1-3'],
+			'spaces': [
+				{ id: 'space-1', users: ['user1', 'user5'] },
+				{ id: 'space-2', users: ['user2', 'user3', 'user1'] },
+			],
+			'user-tags': [
+				{ id: 'tag-1', users: ['user1'] },
+				{ id: 'tag-2', users: ['user1', 'user3'] },
+			],
+		};
+
+		const res = (await client.query({
+			$entity: 'User',
+			$id: 'user1',
+			$fields: [
+				'id',
+				'name',
+				'email',
+				'accounts',
+				{
+					$path: 'spaces',
+					$as: 'spaces_as',
+					$fields: ['id', 'users'],
+				},
+				{ $path: 'user-tags', $fields: ['id', { $path: 'users', $fields: ['id', 'name', 'spaces'] }] },
+			],
+		})) as UserType;
+
+		expect(res).toBeDefined();
+
+		// @ts-expect-error - Not an array but should work anyway
+		expectArraysInObjectToContainSameElements(res, expectedRes);
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});
