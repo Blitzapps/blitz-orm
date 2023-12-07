@@ -1457,10 +1457,10 @@ describe('Query', () => {
 			'$entity': 'User',
 			'$id': 'user1',
 			'name': 'Antoine',
-			'email': 'antoine@test.com',
+			'email_as': 'antoine@test.com',
 			'id': 'user1',
 			'accounts': ['account1-1', 'account1-2', 'account1-3'],
-			'spaces': [
+			'spaces_as': [
 				{ id: 'space-1', users: ['user1', 'user5'] },
 				{ id: 'space-2', users: ['user2', 'user3', 'user1'] },
 			],
@@ -1471,17 +1471,22 @@ describe('Query', () => {
 		};
 
 		const res = (await client.query({
+			// $relation: 'Space-User',
+			// $fields: ['id', 'users', 'spaces'],
 			$entity: 'User',
 			$id: 'user1',
 			$fields: [
 				'id',
 				'name',
-				'email',
+				{ $path: 'email', $as: 'email_as' },
 				'accounts',
 				{
 					$path: 'spaces',
 					$as: 'spaces_as',
-					$fields: ['id', 'users'],
+					$fields: [
+						{ $path: 'id', $as: 'space_id' },
+						{ $path: 'users', $as: 'space_users', $fields: [{ $path: 'id', $as: 'space_user_id' }] },
+					],
 				},
 				{ $path: 'user-tags', $fields: ['id', { $path: 'users', $fields: ['id', 'name', 'spaces'] }] },
 			],

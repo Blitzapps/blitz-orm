@@ -6,18 +6,21 @@ import { isObject } from 'radash';
 import type { BQLMutationBlock } from '../../types';
 
 // todo: use rawBQL $as in place of $as for enriched
+// todo: add new $_ in place for $as to use in build TQL query
 
-const createDataField = (field: any, fieldStr: string) => {
+const createDataField = (field: any, fieldStr: string, $justId: boolean) => {
 	return {
 		$path: fieldStr,
 		$thingType: 'attribute',
-		$as: fieldStr,
+		$as: field.$as || fieldStr,
+		$var: fieldStr,
 		$fieldType: 'data',
+		$justId,
 		...(typeof field !== 'string' && { $fields: field.$fields }),
 	};
 };
 
-const createLinkField = (field: any, fieldStr: string, linkField: any) => {
+const createLinkField = (field: any, fieldStr: string, linkField: any, $justId: boolean) => {
 	const { target, oppositeLinkFieldsPlayedBy } = linkField;
 
 	return oppositeLinkFieldsPlayedBy.map((playedBy: any) => {
@@ -25,30 +28,32 @@ const createLinkField = (field: any, fieldStr: string, linkField: any) => {
 			$thingType: target === 'role' ? playedBy.thingType : 'relation',
 			$plays: linkField.plays,
 			$path: playedBy.path,
-			$as: fieldStr,
-
+			$as: field.$as || fieldStr,
+			$var: fieldStr,
 			$thing: target === 'role' ? playedBy.thing : linkField.relation,
 			$fields: field.$fields || ['id'],
 			$fieldType: 'link',
 			$target: target,
 			$intermediary: playedBy.relation,
+			$justId,
 		};
 	});
 };
 
-const createRoleField = (field: any, fieldStr: string, roleField: any) => {
+const createRoleField = (field: any, fieldStr: string, roleField: any, $justId: boolean) => {
 	return roleField.playedBy.map((playedBy: any) => {
 		const { thing, thingType, relation } = playedBy;
 
 		return {
 			$thingType: thingType,
 			$path: fieldStr,
-			$as: fieldStr,
-
+			$as: field.$as || fieldStr,
+			$var: fieldStr,
 			$thing: thing,
 			$fields: field.$fields || ['id'],
 			$fieldType: 'role',
 			$intermediary: relation,
+			$justId,
 		};
 	});
 };
@@ -56,16 +61,17 @@ const createRoleField = (field: any, fieldStr: string, roleField: any) => {
 // todo: discern between ids for string and objects for $path
 const processField = (field: any, schema: any) => {
 	const fieldStr = typeof field === 'string' ? field : field.$path;
+	const justId = typeof field === 'string';
 	const isDataField = schema.dataFields?.some((dataField: any) => dataField.path === fieldStr);
 	const isLinkField = schema.linkFields?.find((linkField: any) => linkField.path === fieldStr);
 	const isRoleField = schema.roles?.[fieldStr];
 
 	if (isDataField) {
-		return createDataField(field, fieldStr);
+		return createDataField(field, fieldStr, justId);
 	} else if (isLinkField) {
-		return createLinkField(field, fieldStr, isLinkField);
+		return createLinkField(field, fieldStr, isLinkField, justId);
 	} else if (isRoleField) {
-		return createRoleField(field, fieldStr, isRoleField);
+		return createRoleField(field, fieldStr, isRoleField, justId);
 	}
 	return null;
 };
@@ -84,6 +90,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				const value: BQLMutationBlock = val;
 				if (isObject(value)) {
 					// 1. Moving $id into filter based on schema's idFields
+
 					if (value.$id) {
 						const currentSchema = getCurrentSchema(schema, value);
 						value.$path = currentSchema.name;
@@ -97,6 +104,10 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						} else {
 							throw new Error('Multiple ids not yet enabled / composite ids');
 						}
+					} else if ('$entity' in value || '$relation' in value) {
+						const currentSchema = getCurrentSchema(schema, value);
+						value.$path = currentSchema.name;
+						value.$as = currentSchema.name;
 					}
 					// 2. Converting $entity or $relation into $thingType and $thing
 					if (value.$entity) {
@@ -148,7 +159,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 	};
 
 	const enrichedBqlQuery = parser([rawBqlQuery]);
-	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
+	console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 
 	req.enrichedBqlQuery = enrichedBqlQuery;
 };
