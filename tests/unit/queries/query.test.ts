@@ -44,7 +44,25 @@ describe('Query', () => {
 		const query = { $entity: 'User' };
 		const expectedRes = [
 			{
-				'$entity': 'User',
+				$id: 'god1',
+				$thing: 'God',
+				$thingType: 'entity',
+				email: 'afx@rephlex.com',
+				id: 'god1',
+				name: 'Richard David James',
+			},
+			{
+				$id: 'superuser1',
+				$thing: 'SuperUser',
+				$thingType: 'entity',
+				email: 'black.mamba@deadly-viper.com',
+				id: 'superuser1',
+				name: 'Beatrix Kiddo',
+			},
+			{
+				// '$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user1',
 				'name': 'Antoine',
 				'email': 'antoine@test.com',
@@ -54,7 +72,9 @@ describe('Query', () => {
 				'user-tags': ['tag-1', 'tag-2'],
 			},
 			{
-				'$entity': 'User',
+				// '$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user2',
 				'name': 'Loic',
 				'email': 'loic@test.com',
@@ -64,7 +84,9 @@ describe('Query', () => {
 				'user-tags': ['tag-3', 'tag-4'],
 			},
 			{
-				'$entity': 'User',
+				// '$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user3',
 				'name': 'Ann',
 				'email': 'ann@test.com',
@@ -74,13 +96,17 @@ describe('Query', () => {
 				'user-tags': ['tag-2'],
 			},
 			{
-				$entity: 'User',
+				// $entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user4',
 				id: 'user4',
 				name: 'Ben',
 			},
 			{
-				$entity: 'User',
+				// $entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user5',
 				email: 'charlize@test.com',
 				id: 'user5',
@@ -94,11 +120,34 @@ describe('Query', () => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
+	it('e1.b[entity] - basic and direct link to relation sub entity', async () => {
+		expect(client).toBeDefined();
+		const query = { $entity: 'God' };
+		const expectedRes = [
+			{
+				$id: 'god1',
+				$thing: 'God',
+				$thingType: 'entity',
+				email: 'afx@rephlex.com',
+				id: 'god1',
+				name: 'Richard David James',
+				isEvil: true,
+				power: 'mind control',
+			},
+		];
+		const res = await client.query(query);
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+	});
+
 	it('e2[entity] - filter by single $id', async () => {
 		expect(client).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
-			'$entity': 'User',
+			// '$entity': 'User',
+			'$thing': 'User',
+			'$thingType': 'entity',
 			'$id': 'user1',
 			'name': 'Antoine',
 			'email': 'antoine@test.com',
@@ -111,13 +160,14 @@ describe('Query', () => {
 		const res = (await client.query(query)) as UserType;
 
 		expect(res).toBeDefined();
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
 
-		// @ts-expect-error - Not an array but should work anyway
-		expectArraysInObjectToContainSameElements(res, expectedRes);
+		// // @ts-expect-error - Not an array but should work anyway
+		// expectArraysInObjectToContainSameElements(res, expectedRes);
 
-		expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
+		// expect(res['user-tags']).toEqual(expect.arrayContaining(expectedRes['user-tags']));
 
-		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
+		// expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
 	it('e3[entity, nested] - direct link to relation, query nested ', async () => {
@@ -125,12 +175,26 @@ describe('Query', () => {
 		const query = { $entity: 'User', $fields: ['id', { $path: 'user-tags' }] };
 		const expectedRes = [
 			{
-				'$entity': 'User',
+				$id: 'god1',
+				$thing: 'God',
+				$thingType: 'entity',
+				id: 'god1',
+			},
+			{
+				$id: 'superuser1',
+				$thing: 'SuperUser',
+				$thingType: 'entity',
+				id: 'superuser1',
+			},
+			{
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user1',
 				'id': 'user1',
 				'user-tags': [
 					{
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						$id: 'tag-1',
 						id: 'tag-1',
 						users: ['user1'],
@@ -138,7 +202,8 @@ describe('Query', () => {
 						group: 'utg-1',
 					},
 					{
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						$id: 'tag-2',
 						id: 'tag-2',
 						users: ['user1', 'user3'],
@@ -148,12 +213,14 @@ describe('Query', () => {
 				],
 			},
 			{
-				'$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user2',
 				'id': 'user2',
 				'user-tags': [
 					{
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						$id: 'tag-3',
 						id: 'tag-3',
 						users: ['user2'],
@@ -161,7 +228,8 @@ describe('Query', () => {
 						group: 'utg-2',
 					},
 					{
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						$id: 'tag-4',
 						id: 'tag-4',
 						users: ['user2'],
@@ -169,12 +237,14 @@ describe('Query', () => {
 				],
 			},
 			{
-				'$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user3',
 				'id': 'user3',
 				'user-tags': [
 					{
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						$id: 'tag-2',
 						id: 'tag-2',
 						users: ['user1', 'user3'],
@@ -184,12 +254,14 @@ describe('Query', () => {
 				],
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user4',
 				id: 'user4',
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user5',
 				id: 'user5',
 			},
@@ -309,35 +381,45 @@ describe('Query', () => {
 		const query = { $relation: 'User-Accounts' };
 		const expectedRes = [
 			{
-				$relation: 'User-Accounts',
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-1',
 				id: 'ua1-1',
 				user: 'user1',
 				accounts: ['account1-1'],
 			},
 			{
-				$relation: 'User-Accounts',
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-2',
 				id: 'ua1-2',
 				user: 'user1',
 				accounts: ['account1-2'],
 			},
 			{
-				$relation: 'User-Accounts',
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-3',
 				id: 'ua1-3',
 				user: 'user1',
 				accounts: ['account1-3'],
 			},
 			{
-				$relation: 'User-Accounts',
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua2-1',
 				id: 'ua2-1',
 				user: 'user2',
 				accounts: ['account2-1'],
 			},
 			{
-				$relation: 'User-Accounts',
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua3-1',
 				id: 'ua3-1',
 				user: 'user3',
@@ -354,7 +436,7 @@ describe('Query', () => {
 		});
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(
-			expectedRes.map(({ $id: _id, $relation: _entity, ...rest }) => rest),
+			expectedRes.map(({ $id: _id, $thing: _thing, $thingType: _thingType, ...rest }) => rest),
 		);
 	});
 
@@ -363,27 +445,32 @@ describe('Query', () => {
 		const query = { $relation: 'User-Accounts', $fields: ['user'] };
 		const expectedRes = [
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-1',
 				user: 'user1',
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-2',
 				user: 'user1',
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-3',
 				user: 'user1',
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua2-1',
 				user: 'user2',
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua3-1',
 				user: 'user3',
 			},
@@ -396,7 +483,7 @@ describe('Query', () => {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'user')).toEqual(
-			expectedRes.map(({ $id: _id, $relation: _entity, ...rest }) => rest),
+			expectedRes.map(({ $id: _id, $thing: _thing, $thingType: _thingType, ...rest }) => rest),
 		);
 	});
 
@@ -408,51 +495,61 @@ describe('Query', () => {
 		};
 		const expectedRes = [
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-1',
 				id: 'ua1-1',
 				user: {
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 					$id: 'user1',
 					name: 'Antoine',
 				},
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-2',
 				id: 'ua1-2',
 				user: {
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 					$id: 'user1',
 					name: 'Antoine',
 				},
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua1-3',
 				id: 'ua1-3',
 				user: {
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 					$id: 'user1',
 					name: 'Antoine',
 				},
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua2-1',
 				id: 'ua2-1',
 				user: {
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 					$id: 'user2',
 					name: 'Loic',
 				},
 			},
 			{
-				$relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
 				$id: 'ua3-1',
 				id: 'ua3-1',
 				user: {
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 					$id: 'user3',
 					name: 'Ann',
 				},
@@ -484,35 +581,39 @@ describe('Query', () => {
 			{
 				$id: 'tag-1',
 				id: 'tag-1',
-				$relation: 'UserTag',
-				color: { $id: 'yellow', $entity: 'Color', id: 'yellow' },
-				group: { $id: 'utg-1', $relation: 'UserTagGroup', id: 'utg-1' },
-				users: [{ $id: 'user1', $entity: 'User', id: 'user1' }],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				color: { $id: 'yellow', $thing: 'Color', $thingType: 'entity', id: 'yellow' },
+				group: { $id: 'utg-1', $thing: 'UserTagGroup', $thingType: 'relation', id: 'utg-1' },
+				users: [{ $id: 'user1', $thing: 'User', $thingType: 'entity', id: 'user1' }],
 			},
 			{
 				$id: 'tag-2',
 				id: 'tag-2',
-				$relation: 'UserTag',
-				color: { $id: 'yellow', $entity: 'Color', id: 'yellow' },
-				group: { $id: 'utg-1', $relation: 'UserTagGroup', id: 'utg-1' },
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				color: { $id: 'yellow', $thing: 'Color', $thingType: 'entity', id: 'yellow' },
+				group: { $id: 'utg-1', $thing: 'UserTagGroup', $thingType: 'relation', id: 'utg-1' },
 				users: [
-					{ $id: 'user1', $entity: 'User', id: 'user1' },
-					{ $id: 'user3', $entity: 'User', id: 'user3' },
+					{ $id: 'user1', $thing: 'User', $thingType: 'entity', id: 'user1' },
+					{ $id: 'user3', $thing: 'User', $thingType: 'entity', id: 'user3' },
 				],
 			},
 			{
 				$id: 'tag-3',
 				id: 'tag-3',
-				$relation: 'UserTag',
-				color: { $id: 'blue', $entity: 'Color', id: 'blue' },
-				group: { $id: 'utg-2', $relation: 'UserTagGroup', id: 'utg-2' },
-				users: [{ $id: 'user2', $entity: 'User', id: 'user2' }],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				color: { $id: 'blue', $thing: 'Color', $thingType: 'entity', id: 'blue' },
+				group: { $id: 'utg-2', $thing: 'UserTagGroup', $thingType: 'relation', id: 'utg-2' },
+				users: [{ $id: 'user2', $thing: 'User', $thingType: 'entity', id: 'user2' }],
 			},
 			{
 				$id: 'tag-4',
 				id: 'tag-4',
-				$relation: 'UserTag',
-				users: [{ $id: 'user2', $entity: 'User', id: 'user2' }],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				users: [{ $id: 'user2', $thing: 'User', $thingType: 'entity', id: 'user2' }],
 			},
 		];
 		const res = await client.query(query);
@@ -534,14 +635,16 @@ describe('Query', () => {
 		const expectedRes = [
 			{
 				'$id': 'blue',
-				'$entity': 'Color',
+				'$thing': 'Color',
+				'$thingType': 'entity',
 				'id': 'blue',
 				'group': 'utg-2',
 				'user-tags': ['tag-3'],
 			}, // group 1's color
 			{
 				'$id': 'yellow',
-				'$entity': 'Color',
+				'$thing': 'Color',
+				'$thingType': 'entity',
 				'id': 'yellow',
 				'group': 'utg-1',
 				'user-tags': ['tag-1', 'tag-2'],
@@ -567,7 +670,8 @@ describe('Query', () => {
 		const expectedRes = [
 			{
 				$id: 'tag-1',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: 'yellow',
 				group: 'utg-1',
 				id: 'tag-1',
@@ -575,7 +679,8 @@ describe('Query', () => {
 			},
 			{
 				$id: 'tag-2',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: 'yellow',
 				group: 'utg-1',
 				id: 'tag-2',
@@ -583,7 +688,8 @@ describe('Query', () => {
 			},
 			{
 				$id: 'tag-3',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: 'blue',
 				group: 'utg-2',
 				id: 'tag-3',
@@ -591,7 +697,8 @@ describe('Query', () => {
 			},
 			{
 				$id: 'tag-4',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				id: 'tag-4',
 				users: ['user2'],
 			},
@@ -623,17 +730,20 @@ describe('Query', () => {
 			{
 				$id: 'tag-1',
 				id: 'tag-1',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: {
 					'$id': 'yellow',
-					'$entity': 'Color',
+					'$thing': 'Color',
+					'$thingType': 'entity',
 					'id': 'yellow',
 					'group': 'utg-1',
 					'user-tags': ['tag-1', 'tag-2'],
 				},
 				group: {
 					$id: 'utg-1',
-					$relation: 'UserTagGroup',
+					$thing: 'UserTagGroup',
+					$thingType: 'relation',
 					id: 'utg-1',
 					color: 'yellow',
 					tags: ['tag-1', 'tag-2'],
@@ -641,7 +751,8 @@ describe('Query', () => {
 				users: [
 					{
 						$id: 'user1',
-						$entity: 'User',
+						$thing: 'User',
+						$thingType: 'entity',
 						id: 'user1',
 						spaces: ['space-1', 'space-2'],
 					},
@@ -650,17 +761,20 @@ describe('Query', () => {
 			{
 				$id: 'tag-2',
 				id: 'tag-2',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: {
 					'$id': 'yellow',
-					'$entity': 'Color',
+					'$thing': 'Color',
+					'$thingType': 'entity',
 					'id': 'yellow',
 					'group': 'utg-1',
 					'user-tags': ['tag-1', 'tag-2'],
 				},
 				group: {
 					$id: 'utg-1',
-					$relation: 'UserTagGroup',
+					$thing: 'UserTagGroup',
+					$thingType: 'relation',
 					id: 'utg-1',
 					color: 'yellow',
 					tags: ['tag-1', 'tag-2'],
@@ -668,27 +782,31 @@ describe('Query', () => {
 				users: [
 					{
 						$id: 'user1',
-						$entity: 'User',
+						$thing: 'User',
+						$thingType: 'entity',
 						id: 'user1',
 						spaces: ['space-1', 'space-2'],
 					},
-					{ $id: 'user3', $entity: 'User', id: 'user3', spaces: ['space-2'] },
+					{ $id: 'user3', $thing: 'User', $thingType: 'entity', id: 'user3', spaces: ['space-2'] },
 				],
 			},
 			{
 				$id: 'tag-3',
 				id: 'tag-3',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				color: {
 					'$id': 'blue',
-					'$entity': 'Color',
+					'$thing': 'Color',
+					'$thingType': 'entity',
 					'id': 'blue',
 					'group': 'utg-2',
 					'user-tags': ['tag-3'],
 				},
 				group: {
 					$id: 'utg-2',
-					$relation: 'UserTagGroup',
+					$thing: 'UserTagGroup',
+					$thingType: 'relation',
 					id: 'utg-2',
 					color: 'blue',
 					space: 'space-3',
@@ -697,7 +815,8 @@ describe('Query', () => {
 				users: [
 					{
 						$id: 'user2',
-						$entity: 'User',
+						$thing: 'User',
+						$thingType: 'entity',
 						id: 'user2',
 						spaces: ['space-2'],
 					},
@@ -705,11 +824,13 @@ describe('Query', () => {
 			},
 			{
 				$id: 'tag-4',
-				$relation: 'UserTag',
+				$thing: 'UserTag',
+				$thingType: 'relation',
 				id: 'tag-4',
 				users: [
 					{
-						$entity: 'User',
+						$thing: 'User',
+						$thingType: 'entity',
 						$id: 'user2',
 						id: 'user2',
 						spaces: ['space-2'],
@@ -747,20 +868,24 @@ describe('Query', () => {
 			],
 		};
 		const expectedRes = {
-			$entity: 'Space',
+			$thing: 'Space',
+			$thingType: 'entity',
 			$id: 'space-2',
 			id: 'space-2',
 			users: {
-				'$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user2',
 				'id': 'user2',
 				'user-tags': [
 					{
 						$id: 'tag-3',
 						id: 'tag-3',
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						color: {
-							'$entity': 'Color',
+							'$thing': 'Color',
+							'$thingType': 'entity',
 							'$id': 'blue',
 							'id': 'blue',
 							'group': 'utg-2',
@@ -770,7 +895,8 @@ describe('Query', () => {
 					{
 						$id: 'tag-4',
 						id: 'tag-4',
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 					},
 				],
 			},
@@ -799,7 +925,8 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: 'utg-1',
 			tags: ['tag-1', 'tag-2'],
 			color: 'yellow',
@@ -815,7 +942,7 @@ describe('Query', () => {
 			$id: 'user1',
 			$fields: ['id'],
 		});
-		expect(validRes).toEqual({ $entity: 'User', $id: 'user1', id: 'user1' });
+		expect(validRes).toEqual({ $thing: 'User', $thingType: 'entity', $id: 'user1', id: 'user1' });
 	});
 
 	it('ef2[entity] - $id multiple', async () => {
@@ -829,8 +956,8 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual([
-			{ $entity: 'User', $id: 'user1', id: 'user1' },
-			{ $entity: 'User', $id: 'user2', id: 'user2' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user1', id: 'user1' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user2', id: 'user2' },
 		]);
 	});
 
@@ -841,11 +968,23 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual([
-			{ $entity: 'User', $id: 'user1', id: 'user1' },
-			{ $entity: 'User', $id: 'user2', id: 'user2' },
-			{ $entity: 'User', $id: 'user3', id: 'user3' },
-			{ $entity: 'User', $id: 'user4', id: 'user4' },
-			{ $entity: 'User', $id: 'user5', id: 'user5' },
+			{
+				$id: 'god1',
+				$thing: 'God',
+				$thingType: 'entity',
+				id: 'god1',
+			},
+			{
+				$id: 'superuser1',
+				$thing: 'SuperUser',
+				$thingType: 'entity',
+				id: 'superuser1',
+			},
+			{ $thing: 'User', $thingType: 'entity', $id: 'user1', id: 'user1' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user2', id: 'user2' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user3', id: 'user3' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user4', id: 'user4' },
+			{ $thing: 'User', $thingType: 'entity', $id: 'user5', id: 'user5' },
 		]);
 	});
 
@@ -857,7 +996,8 @@ describe('Query', () => {
 			$fields: ['name', 'email'],
 		});
 		expect(res).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			email: 'antoine@test.com',
@@ -872,7 +1012,7 @@ describe('Query', () => {
 			$fields: ['name'],
 		});
 		// notice now it is an array. Multiple users could be called "Antoine"
-		expect(res).toEqual([{ $entity: 'User', $id: 'user1', name: 'Antoine' }]);
+		expect(res).toEqual([{ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' }]);
 	});
 
 	// can also be the id field!
@@ -883,7 +1023,7 @@ describe('Query', () => {
 			$filter: { id: 'user1' },
 			$fields: ['name'],
 		});
-		expect(res).toEqual({ $entity: 'User', $id: 'user1', name: 'Antoine' });
+		expect(res).toEqual({ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' });
 	});
 
 	it('ef7[entity,unique] - $filter unique field', async () => {
@@ -895,7 +1035,8 @@ describe('Query', () => {
 		});
 		// and now its not an array again, we used at least one property in the filter that is either the single key specified in idFields: ['id'] or has a validations.unique:true
 		expect(res).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			email: 'antoine@test.com',
@@ -913,7 +1054,8 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			accounts: ['account1-1', 'account1-2', 'account1-3'],
@@ -932,26 +1074,30 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			accounts: [
 				{
-					$entity: 'Account',
+					$thing: 'Account',
+					$thingType: 'entity',
 					$id: 'account1-1',
 					id: 'account1-1',
 					provider: 'google',
 					user: 'user1',
 				},
 				{
-					$entity: 'Account',
+					$thing: 'Account',
+					$thingType: 'entity',
 					$id: 'account1-2',
 					id: 'account1-2',
 					provider: 'facebook',
 					user: 'user1',
 				},
 				{
-					$entity: 'Account',
+					$thing: 'Account',
+					$thingType: 'entity',
 					$id: 'account1-3',
 					id: 'account1-3',
 					provider: 'github',
@@ -992,13 +1138,14 @@ describe('Query', () => {
 		});
 		expect(res).toBeDefined();
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			accounts: [
-				{ $entity: 'Account', $id: 'account1-1', provider: 'google' },
-				{ $entity: 'Account', $id: 'account1-2', provider: 'facebook' },
-				{ $entity: 'Account', $id: 'account1-3', provider: 'github' },
+				{ $thing: 'Account', $thingType: 'entity', $id: 'account1-1', provider: 'google' },
+				{ $thing: 'Account', $thingType: 'entity', $id: 'account1-2', provider: 'facebook' },
+				{ $thing: 'Account', $thingType: 'entity', $id: 'account1-3', provider: 'github' },
 			],
 		});
 	});
@@ -1020,25 +1167,29 @@ describe('Query', () => {
 
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-
+		console.log('res', JSON.stringify(res, null, 2));
 		expect(deepSort(res)).toEqual([
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user1',
 				name: 'Antoine',
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user2',
 				name: 'Loic',
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user3',
 				name: 'Ann',
 				// accounts here has to be a single object, not an array because we specified an id in the nested query
 				accounts: {
-					$entity: 'Account',
+					$thing: 'Account',
+					$thingType: 'entity',
 					$id: 'account3-1',
 					provider: 'facebook',
 				},
@@ -1063,14 +1214,17 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			spaces: {
 				$id: 'space-1',
-				$entity: 'Space',
+				$thing: 'Space',
+				$thingType: 'entity',
 				users: {
 					$id: 'user1',
-					$entity: 'User',
+					$thing: 'User',
+					$thingType: 'entity',
 				},
 			},
 		});
@@ -1088,12 +1242,14 @@ describe('Query', () => {
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'user1',
 			name: 'Antoine',
 			accounts: [
 				{
-					$entity: 'Account',
+					$thing: 'Account',
+					$thingType: 'entity',
 					$id: 'account1-3',
 					id: 'account1-3',
 					provider: 'github',
@@ -1122,22 +1278,25 @@ describe('Query', () => {
 
 		expect(deepSort(res)).toEqual([
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user1',
 				name: 'Antoine',
 				accounts: [
 					// array, we can't know it was only one
-					{ $entity: 'Account', $id: 'account1-1', provider: 'google' },
+					{ $thing: 'Account', $thingType: 'entity', $id: 'account1-1', provider: 'google' },
 				],
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user2',
 				name: 'Loic',
-				accounts: [{ $entity: 'Account', $id: 'account2-1', provider: 'google' }],
+				accounts: [{ $thing: 'Account', $thingType: 'entity', $id: 'account2-1', provider: 'google' }],
 			},
 			{
-				$entity: 'User',
+				$thing: 'User',
+				$thingType: 'entity',
 				$id: 'user3',
 				name: 'Ann',
 			},
@@ -1188,10 +1347,7 @@ describe('Query', () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
 		expect(client).toBeDefined();
 
-		const res = await client.query(
-			{ $entity: 'Space', $id: 'space-2', $fields: [{ $path: 'objects', $fields: ['id'] }] },
-			{ noMetadata: true },
-		);
+		const res = await client.query({ $entity: 'Space', $id: 'space-2', $fields: ['objects'] }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 		});
@@ -1451,51 +1607,56 @@ describe('Query', () => {
 
 	// NESTED
 
-	it.only('s1[new query] - filter by single $id', async () => {
+	it('a1[as query] - as for attributes and roles and links', async () => {
 		expect(client).toBeDefined();
 		const expectedRes = {
-			'$entity': 'User',
-			'$id': 'user1',
-			'name': 'Antoine',
 			'email_as': 'antoine@test.com',
 			'id': 'user1',
-			'accounts': ['account1-1', 'account1-2', 'account1-3'],
-			'spaces_as': [
-				{ id: 'space-1', users: ['user1', 'user5'] },
-				{ id: 'space-2', users: ['user2', 'user3', 'user1'] },
-			],
-			'user-tags': [
-				{ id: 'tag-1', users: ['user1'] },
-				{ id: 'tag-2', users: ['user1', 'user3'] },
+			'user-tags_as': [
+				{
+					id: 'tag-2',
+					users_as: [
+						{
+							id: 'user3',
+							name: 'Ann',
+						},
+						{
+							id: 'user1',
+							name: 'Antoine',
+						},
+					],
+				},
+				{
+					id: 'tag-1',
+					users_as: [
+						{
+							name: 'Antoine',
+							id: 'user1',
+						},
+					],
+				},
 			],
 		};
 
-		const res = (await client.query({
-			// $relation: 'Space-User',
-			// $fields: ['id', 'users', 'spaces'],
-			$entity: 'User',
-			$id: 'user1',
-			$fields: [
-				'id',
-				'name',
-				{ $path: 'email', $as: 'email_as' },
-				'accounts',
-				{
-					$path: 'spaces',
-					$as: 'spaces_as',
-					$fields: [
-						{ $path: 'id', $as: 'space_id' },
-						{ $path: 'users', $as: 'space_users', $fields: [{ $path: 'id', $as: 'space_user_id' }] },
-					],
-				},
-				{ $path: 'user-tags', $fields: ['id', { $path: 'users', $fields: ['id', 'name', 'spaces'] }] },
-			],
-		})) as UserType;
+		const res = (await client.query(
+			{
+				$entity: 'User',
+				$id: 'user1',
+				$fields: [
+					'id',
+					{ $path: 'email', $as: 'email_as' },
+					{
+						$path: 'user-tags',
+						$as: 'user-tags_as',
+						$fields: ['id', { $path: 'users', $as: 'users_as', $fields: ['id', 'name'] }],
+					},
+				],
+			},
+			{ noMetadata: true },
+		)) as UserType;
 
 		expect(res).toBeDefined();
-
-		// @ts-expect-error - Not an array but should work anyway
-		expectArraysInObjectToContainSameElements(res, expectedRes);
+		expect(res).toEqual(expectedRes);
 	});
 
 	afterAll(async () => {

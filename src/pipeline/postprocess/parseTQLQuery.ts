@@ -2,35 +2,22 @@ import { getCurrentSchema } from '../../helpers';
 import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
-// type TQLRoot = 'attribute' | 'entity' | 'relation';
-
-// type TQLDataFieldRes =
-// 	| {
-// 			[key: string]: {
-// 				type: {
-// 					label: string;
-// 					root: TQLRoot;
-// 				};
-// 				value: string;
-// 				value_type: 'string';
-// 			}[];
-// 	  }
-// 	| {
-// 			type: {
-// 				label: string;
-// 				root: TQLRoot;
-// 			};
-// 	  };
 const parseMetaData = (str: string) => {
-	const asRegex = /as:([a-zA-Z0-9_]+)/;
-	const justIdRegex = /justId:([a-zA-Z0-9_]+)/;
+	const asRegex = /as:([a-zA-Z0-9_\-·]+)/;
+	const justIdRegex = /justId:([a-zA-Z0-9_\-·]+)/;
+	const idNotIncludedRegex = /idNotIncluded:([a-zA-Z0-9_\-·]+)/;
+	const filterByUniqueRegex = /filterByUnique:([a-zA-Z0-9_\-·]+)/;
 
 	const asMatch = str.match(asRegex);
 	const justIdMatch = str.match(justIdRegex);
+	const idNotIncludedMatch = str.match(idNotIncludedRegex);
+	const filterByUniqueMatch = str.match(filterByUniqueRegex);
 
 	return {
 		as: asMatch ? asMatch[1] : null,
 		justId: justIdMatch ? justIdMatch[1] : null,
+		idNotIncluded: idNotIncludedMatch ? idNotIncludedMatch[1] : null,
+		filterByUnique: filterByUniqueMatch ? filterByUniqueMatch[1] : null,
 	};
 };
 const parseArrayMetadata = (str: string) => {
@@ -40,8 +27,8 @@ const parseArrayMetadata = (str: string) => {
 			let jsonString = str.replace('$metadata:', '');
 
 			// Enclose keys and values in quotes
-			jsonString = jsonString.replace(/([-\w]+):/g, '"$1":');
-			jsonString = jsonString.replace(/:([-\w]+)/g, ':"$1"');
+			jsonString = jsonString.replace(/([a-zA-Z0-9_\-·]+):/g, '"$1":');
+			jsonString = jsonString.replace(/:([a-zA-Z0-9_\-·]+)/g, ':"$1"');
 
 			return jsonString;
 		};
@@ -53,7 +40,7 @@ const parseArrayMetadata = (str: string) => {
 };
 
 export const parseTQLQuery: PipelineOperation = async (req, res) => {
-	const { enrichedBqlQuery, rawBqlRequest, schema } = req;
+	const { enrichedBqlQuery, rawBqlRequest, schema, config } = req;
 	const { rawTqlRes } = res;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL request not enriched');
@@ -71,13 +58,20 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 
 		for (const key in dataFields) {
 			if (key !== 'type' && !key.includes('$')) {
-				const field = currentSchema.dataFields?.filter((field: any) => field.path === key);
+				const field = currentSchema.dataFields?.filter((field: any) => field.path === key || field.dbPath === key);
+				// todo: more idFields other than id
+				const isIdField = key === 'id';
 				const $asKey = Array.isArray($as) ? $as.find((o: any) => o[key])?.[key] : key;
-
-				if (field?.[0].cardinality === 'ONE') {
-					// @ts-expect-error todo
-					dataFieldsRes[$asKey] = dataFields[key][0].value;
-				} else if (field?.[0].cardinality === 'MANY') {
+				if (field?.[0]?.cardinality === 'ONE') {
+					if (dataFields[key][0]) {
+						// @ts-expect-error todo
+						dataFieldsRes[$asKey] = dataFields[key][0].value;
+						if (isIdField && !config.query?.noMetadata) {
+							// @ts-expect-error todo
+							dataFieldsRes.$id = dataFields[key][0].value;
+						}
+					}
+				} else if (field?.[0]?.cardinality === 'MANY') {
 					const fields = dataFields[key].map((o: { value: string }) => o.value);
 					// @ts-expect-error todo
 					dataFieldsRes[$asKey] = fields;
@@ -86,55 +80,99 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		}
 		return dataFieldsRes;
 	};
-	const parseRoleFields = (roleFields: { $roleFields: object[]; $key: string }[]) => {
+
+	const parseRoleFields = (
+		roleFields: { $roleFields: object[]; $key: string; $metaData: string; $cardinality: 'MANY' | 'ONE' }[],
+	) => {
 		const linkFieldsRes: object = {};
 		// each linkField
 		for (const roleField of roleFields) {
-			const { $roleFields, $key } = roleField;
+			const { $roleFields, $metaData, $cardinality } = roleField;
 			const items = [];
+			const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
 			// each item of specific linkField
 			for (const item of $roleFields) {
-				const { dataFields, currentSchema, linkFields, roleFields } = parseFields(item);
-
+				const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(item);
 				const parsedDataFields = parseDataFields(dataFields, currentSchema);
-				const parsedLinkFields = parseLinkFields(linkFields);
-				const parsedRoleFields = parseRoleFields(roleFields);
-				items.push({ ...parsedDataFields, ...parsedLinkFields, ...parsedRoleFields });
+
+				if (justId === 'T') {
+					const idObj = { ...parsedDataFields };
+					// @ts-expect-error todo
+					items.push(idObj.id);
+				} else {
+					// @ts-expect-error todo
+					const parsedLinkFields = parseLinkFields(linkFields);
+					const parsedRoleFields = parseRoleFields(roleFields);
+					const resDataFields = parsedDataFields;
+					if (idNotIncluded === 'true') {
+						// @ts-expect-error todo
+						for (const field of currentSchema.idFields) {
+							// @ts-expect-error todo
+							delete resDataFields[field];
+						}
+					}
+					items.push({
+						...resDataFields,
+						...parsedLinkFields,
+						...parsedRoleFields,
+						...(!config.query?.noMetadata && { ...schemaValue }),
+					});
+				}
 			}
-			// @ts-expect-error todo
-			linkFieldsRes[$key] = items;
+			if (items.length > 0) {
+				// @ts-expect-error todo
+				linkFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
+			}
 		}
 		return linkFieldsRes;
 	};
 
-	const parseLinkFields = (linkFields: { $linkFields: object[]; $key: string; $metaData: string }[]) => {
+	const parseLinkFields = (
+		linkFields: { $linkFields: object[]; $key: string; $metaData: string; $cardinality: 'MANY' | 'ONE' }[],
+	) => {
 		const linkFieldsRes: object = {};
 		// each linkField
 		for (const linkField of linkFields) {
-			const { $linkFields, $metaData } = linkField;
-			const { as, justId } = parseMetaData($metaData);
+			const { $linkFields, $metaData, $cardinality } = linkField;
+			const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
 
 			const items = [];
 			// each item of specific linkField
 			for (const item of $linkFields) {
 				const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(item);
+				const parsedDataFields = parseDataFields(dataFields, currentSchema);
 				if (justId === 'T') {
-					const parsedDataFields = parseDataFields(dataFields, currentSchema);
 					const idObj = { ...parsedDataFields };
 					// @ts-expect-error todo
 					items.push(idObj.id);
 				} else {
-					const parsedDataFields = parseDataFields(dataFields, currentSchema);
+					// @ts-expect-error todo
 					const parsedLinkFields = parseLinkFields(linkFields);
 					const parsedRoleFields = parseRoleFields(roleFields);
-					items.push({ ...parsedDataFields, ...parsedLinkFields, ...parsedRoleFields, ...schemaValue });
+					const resDataFields = parsedDataFields;
+					if (idNotIncluded === 'true') {
+						// @ts-expect-error todo
+						for (const field of currentSchema.idFields) {
+							// @ts-expect-error todo
+							delete resDataFields[field];
+						}
+					}
+					items.push({
+						...resDataFields,
+						...parsedLinkFields,
+						...parsedRoleFields,
+						...(!config.query?.noMetadata && { ...schemaValue }),
+					});
 				}
 			}
-			// @ts-expect-error todo
-			linkFieldsRes[as] = items;
+			if (items.length > 0) {
+				// @ts-expect-error todo
+				linkFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
+			}
 		}
 		return linkFieldsRes;
 	};
+
 	const parseFields = (obj: any) => {
 		let dataFields: object = {};
 
@@ -152,6 +190,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 				dataFields.$metaData = $metaData;
 			}
 		}
+		console.log('obj', JSON.stringify(obj, null, 2));
 		// @ts-expect-error todo
 		const dataFieldsThing = dataFields.type;
 		const schemaValue: { $thing: string; $thingType: string } = {
@@ -168,18 +207,26 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 				const _keys = key.split('.');
 				const identifier = _keys[_keys.length - 1];
 				const $metaData = _keys[_keys.length - 2];
-
 				const foundLinkField = currentSchema.linkFields?.find(
 					(o) => o.path === identifier && identifier !== 'dataFields',
 				);
 				// @ts-expect-error todo
 				const foundRoleField = currentSchema.roles?.[identifier];
-				// todo: make identifier the same as $as in enriched bql
 				if (foundLinkField) {
-					linkFields.push({ $linkFields: obj[key], $key: identifier, $metaData });
+					linkFields.push({
+						$linkFields: obj[key],
+						$key: identifier,
+						$metaData,
+						$cardinality: foundLinkField.cardinality,
+					});
 				}
 				if (foundRoleField) {
-					roleFields.push({ $roleFields: obj[key], $key: identifier, $metaData });
+					roleFields.push({
+						$roleFields: obj[key],
+						$key: identifier,
+						$metaData,
+						$cardinality: foundRoleField.cardinality,
+					});
 				}
 			}
 		}
@@ -191,19 +238,45 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		tqlRes.forEach((resObj) => {
 			const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(resObj);
 			const parsedDataFields = parseDataFields(dataFields, currentSchema);
-
+			// @ts-expect-error todo
 			const parsedLinkFields = parseLinkFields(linkFields);
 			const parsedRoleFields = parseRoleFields(roleFields);
+			const resDataFields = parsedDataFields;
 
-			res.push({ ...parsedDataFields, ...parsedLinkFields, ...parsedRoleFields, ...schemaValue });
+			let finalObj = {
+				...parsedLinkFields,
+				...parsedRoleFields,
+				...(!config.query?.noMetadata && { ...schemaValue }),
+				...(!config.query?.noMetadata &&
+					rawBqlRequest.$id && {
+						// todo: use dynamic idField, not "id"
+						// @ts-expect-error todo
+						...{ $id: Array.isArray(rawBqlRequest.$id) ? resDataFields['id'] : rawBqlRequest.$id },
+					}),
+			};
+			const idNotIncluded =
+				rawBqlRequest?.$fields?.filter(
+					(field: any) => currentSchema?.idFields?.includes(field) || currentSchema?.idFields?.includes(field.$path),
+				).length === 0;
+			if (idNotIncluded) {
+				// @ts-expect-error todo
+				for (const field of currentSchema.idFields) {
+					// @ts-expect-error todo
+					delete resDataFields[field];
+				}
+			}
+			finalObj = { ...finalObj, ...resDataFields };
+			res.push(finalObj);
 		});
 		return res;
 	};
 
 	const parsedTqlRes = parser(rawTqlRes as object[]);
-
 	console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
 	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
-
-	res.bqlRes = parsedTqlRes;
+	const response =
+		(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
+			? parsedTqlRes?.[0]
+			: parsedTqlRes;
+	res.bqlRes = Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
 };
