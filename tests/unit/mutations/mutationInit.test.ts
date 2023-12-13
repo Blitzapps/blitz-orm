@@ -114,7 +114,8 @@ describe('Mutations: Init', () => {
 			id: firstUser.id,
 			name: 'Johns not',
 			email: 'john@test.com',
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: firstUser.id,
 		});
 	});
@@ -1048,6 +1049,9 @@ describe('Mutations: Init', () => {
 				name: 'Antoine',
 			},
 			{
+				name: 'Beatrix Kiddo',
+			},
+			{
 				name: 'Ben',
 			},
 			{
@@ -1061,6 +1065,12 @@ describe('Mutations: Init', () => {
 			},
 			{
 				name: 'Loic',
+			},
+			{
+				name: 'Richard David James',
+			},
+			{
+				name: 'Tom Jenkinson',
 			},
 			{
 				name: 'updated',
@@ -1105,6 +1115,9 @@ describe('Mutations: Init', () => {
 				name: 'Antoine',
 			},
 			{
+				name: 'Beatrix Kiddo',
+			},
+			{
 				name: 'Ben',
 			},
 			{
@@ -1118,6 +1131,12 @@ describe('Mutations: Init', () => {
 			},
 			{
 				name: 'Loic',
+			},
+			{
+				name: 'Richard David James',
+			},
+			{
+				name: 'Tom Jenkinson',
 			},
 		]);
 	});

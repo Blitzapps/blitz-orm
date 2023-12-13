@@ -54,28 +54,33 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			$var: string;
 			$fieldType: 'data';
 			$justId: boolean;
+			$isVirtual: boolean;
 		}[],
 		$path: string,
 	) => {
-		// let justId = false;
-		let postStr = '';
-		let $asMetaData = '';
-		for (let i = 0; i < dataFields.length; i++) {
-			postStr += ` ${dataFields[i].$dbPath}`;
-			$asMetaData += `{${dataFields[i].$dbPath}:${dataFields[i].$as}}`;
-			if (i < dataFields.length - 1) {
-				postStr += ',';
-				$asMetaData += ',';
-			} else {
-				postStr += ';\n';
-			}
-			// if (dataFields[i].$justId) {
-			// 	justId = true;
-			// }
-		}
-		const $metaData = `$metadata:{as:[${$asMetaData}]}`;
+		const postStrParts = [];
+		const asMetaDataParts = [];
+		const virtualMetaDataParts = [];
 
-		tqlStr += `$${$path} as "${$path}.${$metaData}.dataFields": `;
+		let $asMetaData = '';
+		let $virtualMetaData = '';
+
+		for (let i = 0; i < dataFields.length; i++) {
+			if (!dataFields[i].$isVirtual) {
+				postStrParts.push(` ${dataFields[i].$dbPath}`);
+			} else {
+				virtualMetaDataParts.push(`${dataFields[i].$dbPath}`);
+			}
+			asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
+		}
+
+		const postStr = `${postStrParts.join(',')};\n`;
+		$asMetaData = asMetaDataParts.join(',');
+		$virtualMetaData = virtualMetaDataParts.join(',');
+
+		const $metaData = `$metadata:{as:[${$asMetaData}],virtual:[${$virtualMetaData}]}`;
+
+		tqlStr += `$${$path} as "${$path}.${$metaData}.$dataFields": `;
 		tqlStr += postStr;
 	};
 
@@ -202,44 +207,79 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += '}; \n';
 		}
 	};
+	const isBatched = enrichedBqlQuery.length > 1;
+	const tqlStrings: string[] = [];
 
 	const builder = (enrichedBqlQuery: ValueBlock[]) => {
-		for (const query of enrichedBqlQuery) {
-			const { $path, $thing, $filter, $fields } = query;
-			tqlStr += `match \n \t $${$path} isa ${$thing} `;
-			if ($filter) {
-				// @ts-expect-error todo
-				processFilters($filter, $path);
-			} else {
-				tqlStr += '; ';
-			}
-			if ($fields) {
-				tqlStr += 'fetch \n';
-			}
-			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-			if (dataFields && dataFields.length > 0) {
-				// @ts-expect-error todo
-				processDataFields(dataFields, $path);
-			}
+		// Batched
+		if (isBatched) {
+			for (const query of enrichedBqlQuery) {
+				const { $path, $thing, $filter, $fields } = query;
+				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				if ($filter) {
+					// @ts-expect-error todo
+					processFilters($filter, $path);
+				} else {
+					tqlStr += '; ';
+				}
+				if ($fields) {
+					tqlStr += 'fetch \n';
+				}
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, $path);
+				}
 
-			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-			if (linkFields && linkFields.length > 0) {
-				// @ts-expect-error todo
-				processLinkFields(linkFields, $path, $path);
-			}
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, $path, $path);
+				}
 
-			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-			if (roleFields && roleFields.length > 0) {
-				// @ts-expect-error todo
-				processRoleFields(roleFields, $path, $path);
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, $path, $path);
+				}
+				tqlStrings.push(tqlStr);
+				tqlStr = '';
+			}
+		} else {
+			for (const query of enrichedBqlQuery) {
+				const { $path, $thing, $filter, $fields } = query;
+				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				if ($filter) {
+					// @ts-expect-error todo
+					processFilters($filter, $path);
+				} else {
+					tqlStr += '; ';
+				}
+				if ($fields) {
+					tqlStr += 'fetch \n';
+				}
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, $path);
+				}
+
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, $path, $path);
+				}
+
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, $path, $path);
+				}
 			}
 		}
 	};
 	builder(enrichedBqlQuery);
-	// console.log('enriched: ', JSON.stringify(enrichedBqlQuery, null, 2));
-	console.log(tqlStr);
-
 	// todo: type the tqlRequest
 	// @ts-expect-error todo
-	req.tqlRequest = tqlStr;
+	req.tqlRequest = isBatched ? tqlStrings : tqlStr;
 };

@@ -13,6 +13,7 @@ const getAllFields = (currentSchema: any) => {
 	return allFields;
 };
 
+// todo: validations.unique in dataFields
 const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 	const fields = Object.keys($filter || {});
 	let $filteredByUnique = false;
@@ -55,10 +56,24 @@ const processFilter = ($filter: any, currentSchema: EnrichedBormEntity | Enriche
 export const enrichBQLQuery: PipelineOperation = async (req) => {
 	const { rawBqlRequest: rawBqlQuery, schema } = req;
 
-	if (!('$entity' in rawBqlQuery) && !('$relation' in rawBqlQuery)) {
-		throw new Error('No entity specified in query');
+	if (!Array.isArray(rawBqlQuery)) {
+		if (
+			!('$entity' in rawBqlQuery) &&
+			!('$relation' in rawBqlQuery) &&
+			(!('$thing' in rawBqlQuery) || !('$thingType' in rawBqlQuery))
+		) {
+			throw new Error('No entity specified in query');
+		}
+	} else {
+		for (const item of rawBqlQuery) {
+			if (!('$entity' in item) && !('$relation' in item) && (!('$thing' in item) || !('$thingType' in item))) {
+				throw new Error('No entity specified in query');
+			}
+		}
 	}
-	const createDataField = (field: any, fieldStr: string, $justId: boolean, dbPath: string) => {
+
+	const createDataField = (field: any, fieldStr: string, $justId: boolean, dbPath: string, isVirtual?: boolean) => {
+		// todo: get all dependencies of the virtual field in the query and then remove from the output
 		return {
 			$path: fieldStr,
 			$dbPath: dbPath,
@@ -69,6 +84,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			$justId,
 			$id: field.$id,
 			$filter: field.$filter,
+			$isVirtual: isVirtual,
 			// ...(typeof field !== 'string' && { $fields: [...field.$fields, ...['id']] }),
 		};
 	};
@@ -180,7 +196,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 		const isRoleField = schema.roles?.[fieldStr];
 
 		if (isDataField) {
-			return createDataField(field, fieldStr, justId, isDataField.dbPath);
+			return createDataField(field, fieldStr, justId, isDataField.dbPath, isDataField.isVirtual);
 		} else if (isLinkField) {
 			return createLinkField(field, fieldStr, isLinkField, justId, isLinkField.dbPath);
 		} else if (isRoleField) {
@@ -278,8 +294,8 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 		);
 	};
 
-	const enrichedBqlQuery = parser([rawBqlQuery]);
-	console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
+	const enrichedBqlQuery = parser(Array.isArray(rawBqlQuery) ? rawBqlQuery : [rawBqlQuery]);
+	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 
 	req.enrichedBqlQuery = enrichedBqlQuery;
 };

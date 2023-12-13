@@ -10,7 +10,7 @@ export type BQLMutationBlock = {
 	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
 	$tempId?: string;
 	$op?: string;
-} & ({ $entity: string } | { $relation: string }); // | { $attribute: string });
+} & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' }); // | { $attribute: string });
 export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'>;
 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (

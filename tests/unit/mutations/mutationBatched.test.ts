@@ -40,7 +40,8 @@ describe('Mutations: batched and tempId', () => {
 		const account = await bormClient.query({ $entity: 'Account', $id: acc1Id });
 		expect(account).toBeDefined();
 		expect(account).toEqual({
-			$entity: 'Account',
+			$thing: 'Account',
+			$thingType: 'entity',
 			$id: acc1Id,
 			id: acc1Id,
 			provider: 'MetaMask',
@@ -73,7 +74,8 @@ describe('Mutations: batched and tempId', () => {
 		});
 		expect(utg).toBeDefined();
 		expect(utg).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: utg1Id,
 			id: utg1Id,
 			tags: [expect.any(String)],
@@ -109,7 +111,8 @@ describe('Mutations: batched and tempId', () => {
 		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
 		expect(res2).toBeDefined();
 		expect(res2).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: beaId,
 			id: beaId,
 			name: 'Bea',
@@ -245,7 +248,8 @@ describe('Mutations: batched and tempId', () => {
 		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
 		expect(res2).toBeDefined();
 		expect(res2).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: beaId,
 			id: beaId,
 			name: 'Bea',

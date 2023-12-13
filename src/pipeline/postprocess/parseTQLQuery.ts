@@ -1,3 +1,4 @@
+import { compute } from '../../engine/compute';
 import { getCurrentSchema } from '../../helpers';
 import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
@@ -26,35 +27,62 @@ const parseArrayMetadata = (str: string) => {
 			// Remove $metadata: from the string
 			let jsonString = str.replace('$metadata:', '');
 
-			// Enclose keys and values in quotes
-			jsonString = jsonString.replace(/([a-zA-Z0-9_\-·]+):/g, '"$1":');
-			jsonString = jsonString.replace(/:([a-zA-Z0-9_\-·]+)/g, ':"$1"');
+			// Enclose keys in quotes
+			jsonString = jsonString.replace(/([a-zA-Z0-9_\-·]+)(?=:)/g, '"$1"');
+
+			// Enclose values in quotes, handling nested object values separately
+			jsonString = jsonString.replace(/:(\s*)([a-zA-Z0-9_\-·]+)/g, (match, p1, p2) => {
+				// Check if the value is part of an object
+				if (/^{.*}$/.test(p2)) {
+					return `:${p2}`;
+				} else {
+					return `:${p1}"${p2}"`;
+				}
+			});
+
+			// Convert array elements (non-object) to strings
+			jsonString = jsonString.replace(/\[([^\]]+)\]/g, (match, p1) => {
+				return `[${p1
+					.split(',')
+					.map((s: string) => {
+						// Check if element is an object-like structure
+						if (s.trim().startsWith('{') && s.trim().endsWith('}')) {
+							return s.trim();
+						} else {
+							return `"${s.trim()}"`;
+						}
+					})
+					.join(',')}]`;
+			});
 
 			return jsonString;
 		};
 		const converted = convertToJson(str);
-		return JSON.parse(converted);
+
+		const parsed = JSON.parse(converted);
+		return parsed;
 	} catch (e) {
-		return { as: {} };
+		console.error(e);
+		return { as: [], virtual: [] };
 	}
 };
 
 export const parseTQLQuery: PipelineOperation = async (req, res) => {
 	const { enrichedBqlQuery, rawBqlRequest, schema, config } = req;
-	const { rawTqlRes } = res;
+	const { rawTqlRes, isBatched } = res;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL request not enriched');
 	} else if (!rawTqlRes) {
 		throw new Error('TQL query not executed');
 	}
-	console.log('rawTqlRes', JSON.stringify(rawTqlRes, null, 2));
+	// console.log('parse.rawTqlRes', JSON.stringify(rawTqlRes, null, 2));
 	// console.log('rawBqlRequest', JSON.stringify(rawBqlRequest, null, 2));
 
 	const parseDataFields = (dataFields: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 		const dataFieldsRes: object = {};
 		const { $metaData } = dataFields;
 
-		const { as: $as } = parseArrayMetadata($metaData);
+		const { as: $as, virtual } = parseArrayMetadata($metaData);
 
 		for (const key in dataFields) {
 			if (key !== 'type' && !key.includes('$')) {
@@ -70,6 +98,9 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 							// @ts-expect-error todo
 							dataFieldsRes.$id = dataFields[key][0].value;
 						}
+					} else if (config.query?.returnNulls) {
+						// @ts-expect-error todo
+						dataFieldsRes[$asKey] = null;
 					}
 				} else if (field?.[0]?.cardinality === 'MANY') {
 					const fields = dataFields[key].map((o: { value: string }) => o.value);
@@ -78,13 +109,22 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 				}
 			}
 		}
+		for (const key of virtual) {
+			const $asKey = $as.find((o: any) => o[key])?.[key];
+			const field = currentSchema.dataFields?.find((field: any) => field.isVirtual && field.dbPath === key);
+			// @ts-expect-error todo
+			const computedValue = compute({ currentThing: dataFieldsRes, fieldSchema: field });
+
+			// @ts-expect-error todo
+			dataFieldsRes[$asKey] = computedValue;
+		}
 		return dataFieldsRes;
 	};
 
 	const parseRoleFields = (
 		roleFields: { $roleFields: object[]; $key: string; $metaData: string; $cardinality: 'MANY' | 'ONE' }[],
 	) => {
-		const linkFieldsRes: object = {};
+		const roleFieldsRes: object = {};
 		// each linkField
 		for (const roleField of roleFields) {
 			const { $roleFields, $metaData, $cardinality } = roleField;
@@ -121,10 +161,13 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 			}
 			if (items.length > 0) {
 				// @ts-expect-error todo
-				linkFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
+				roleFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
+			} else if (config.query?.returnNulls) {
+				// @ts-expect-error todo
+				roleFieldsRes[as] = null;
 			}
 		}
-		return linkFieldsRes;
+		return roleFieldsRes;
 	};
 
 	const parseLinkFields = (
@@ -168,30 +211,31 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 			if (items.length > 0) {
 				// @ts-expect-error todo
 				linkFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
+			} else if (config.query?.returnNulls) {
+				// @ts-expect-error todo
+				linkFieldsRes[as] = null;
 			}
 		}
 		return linkFieldsRes;
 	};
 
 	const parseFields = (obj: any) => {
-		let dataFields: object = {};
+		let dataFields;
 
 		for (const key in obj) {
 			let $metaData;
-			if (key.endsWith('.dataFields')) {
+			if (key.endsWith('.$dataFields')) {
 				dataFields = obj[key];
 				const _keys = key.split('.');
 				$metaData = _keys[_keys.length - 2];
 			}
-			// const identifier = _keys[_keys.length - 1];
-
 			if ($metaData) {
-				// @ts-expect-error todo
 				dataFields.$metaData = $metaData;
 			}
 		}
-		console.log('obj', JSON.stringify(obj, null, 2));
-		// @ts-expect-error todo
+		if (dataFields.length === 0) {
+			throw new Error('No datafields');
+		}
 		const dataFieldsThing = dataFields.type;
 		const schemaValue: { $thing: string; $thingType: string } = {
 			$thing: dataFieldsThing.label,
@@ -233,10 +277,11 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 
 		return { dataFields, schemaValue, currentSchema, linkFields, roleFields };
 	};
-	const parser = (tqlRes: object[]) => {
+
+	const realParse = (tqlRes: object[]) => {
 		const res: any = [];
-		tqlRes.forEach((resObj) => {
-			const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(resObj);
+		tqlRes.forEach((resItem) => {
+			const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(resItem);
 			const parsedDataFields = parseDataFields(dataFields, currentSchema);
 			// @ts-expect-error todo
 			const parsedLinkFields = parseLinkFields(linkFields);
@@ -271,12 +316,29 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		return res;
 	};
 
-	const parsedTqlRes = parser(rawTqlRes as object[]);
-	console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
+	const parser = (tqlRes: any) => {
+		if (isBatched) {
+			const finalRes: any[] = [];
+			tqlRes.forEach((resItems: object[]) => {
+				const parsedItems = realParse(resItems);
+				const response =
+					(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
+						? parsedItems?.[0]
+						: parsedItems;
+				finalRes.push(Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null);
+			});
+			res.bqlRes = finalRes;
+		} else {
+			const parsedItems = realParse(tqlRes);
+			const response =
+				(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
+					? parsedItems?.[0]
+					: parsedItems;
+			res.bqlRes = Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
+		}
+	};
+
+	parser(rawTqlRes);
+	// console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
 	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
-	const response =
-		(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
-			? parsedTqlRes?.[0]
-			: parsedTqlRes;
-	res.bqlRes = Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
 };

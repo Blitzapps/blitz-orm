@@ -301,7 +301,7 @@ describe('Query', () => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('opt2[options, debugger', async () => {
+	it('TODO:opt2[options, debugger', async () => {
 		expect(client).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
@@ -362,9 +362,14 @@ describe('Query', () => {
 
 	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
 		expect(client).toBeDefined();
-		const query = { $entity: 'User', $id: 'user4', $fields: ['spaces', 'email', 'user-tags'] };
+		const query = {
+			$entity: 'User',
+			$id: 'user4',
+			$fields: ['spaces', 'email', 'user-tags'],
+		};
 		const expectedRes = {
-			'$entity': 'User',
+			'$thing': 'User',
+			'$thingType': 'entity',
 			'email': null, //Example field
 			'$id': 'user4',
 			'spaces': null, //example linkfield from intermediary relation
@@ -1392,7 +1397,7 @@ describe('Query', () => {
 		});
 	});
 
-	it('TODO:xf2[excludedFields, deep] - deep nested', async () => {
+	it('xf2[excludedFields, deep] - deep nested', async () => {
 		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Space',
@@ -1407,20 +1412,24 @@ describe('Query', () => {
 			],
 		};
 		const expectedRes = {
-			$entity: 'Space',
+			$thing: 'Space',
+			$thingType: 'entity',
 			$id: 'space-2',
 			id: 'space-2',
 			users: {
-				'$entity': 'User',
+				'$thing': 'User',
+				'$thingType': 'entity',
 				'$id': 'user2',
 				'id': 'user2',
 				'user-tags': [
 					{
 						$id: 'tag-3',
 						id: 'tag-3',
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 						color: {
-							'$entity': 'Color',
+							'$thing': 'Color',
+							'$thingType': 'entity',
 							'$id': 'blue',
 							'id': 'blue',
 							'group': 'utg-2',
@@ -1431,7 +1440,8 @@ describe('Query', () => {
 					{
 						$id: 'tag-4',
 						id: 'tag-4',
-						$relation: 'UserTag',
+						$thing: 'UserTag',
+						$thingType: 'relation',
 					},
 				],
 			},
@@ -1456,6 +1466,7 @@ describe('Query', () => {
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
 			{ noMetadata: true },
 		);
+
 		expect(deepSort(res, 'id')).toEqual([
 			{
 				id: 'blue',
@@ -1652,6 +1663,37 @@ describe('Query', () => {
 					},
 				],
 			},
+			{ noMetadata: true },
+		)) as UserType;
+
+		expect(res).toBeDefined();
+		expect(res).toEqual(expectedRes);
+	});
+
+	it('bq1[batched query] - as for attributes and roles and links', async () => {
+		expect(client).toBeDefined();
+		const expectedRes = [
+			{
+				id: 'user1',
+			},
+			{
+				id: 'space-1',
+			},
+		];
+
+		const res = (await client.query(
+			[
+				{
+					$entity: 'User',
+					$fields: ['id'],
+					$id: 'user1',
+				},
+				{
+					$entity: 'Space',
+					$fields: ['id'],
+					$id: 'space-1',
+				},
+			],
 			{ noMetadata: true },
 		)) as UserType;
 

@@ -67,6 +67,7 @@ type Response = {
 	};
 	bqlRes?: BQLResponse | null;
 	parsedTqlRes?: BQLResponse | null;
+	isBatched?: boolean;
 };
 
 type NextPipeline = {

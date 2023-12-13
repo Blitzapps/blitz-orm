@@ -453,7 +453,8 @@ describe('Mutations: Edges', () => {
 		expect(UserTagGroupModified).toBeDefined();
 
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			id: 'utg-2',
 			$id: 'utg-2',
 			color: 'blue',
@@ -496,7 +497,8 @@ describe('Mutations: Edges', () => {
 		expect(UserTagGroupModified).toBeDefined();
 
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			id: 'utg-2',
 			$id: 'utg-2',
 			space: 'space-3',
@@ -555,7 +557,8 @@ describe('Mutations: Edges', () => {
 		expect(UserTagGroupModified).toBeDefined();
 
 		expect(deepSort(UserTagGroupModified, 'id')).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			id: 'utg-2',
 			$id: 'utg-2',
 			space: 'space-3',
@@ -1044,7 +1047,8 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(res).toEqual({
-			$entity: 'Thing',
+			$thing: 'Thing',
+			$thingType: 'entity',
 			$id: 'temp1',
 			root: { $id: 'tr10', extra: 'thing2', $relation: 'ThingRelation' },
 		});
@@ -1078,7 +1082,8 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(deepSort(tmpUTG)).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: 'tmpUTG',
 			tags: ['tag-2', 'tag-3'],
 		});
@@ -1119,7 +1124,8 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(deepSort(tmpUTG)).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: 'tmpUTG',
 			tags: ['tag-3', 'tag-4'],
 		});
@@ -1158,7 +1164,8 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(deepSort(tmpUTG)).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: 'tmpUTG',
 			tags: ['tag-3', 'tag-4'],
 		});
@@ -1197,7 +1204,8 @@ describe('Mutations: Edges', () => {
 		});
 
 		expect(deepSort(tmpUTG)).toEqual({
-			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
 			$id: 'tmpUTG',
 			tags: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
 		});

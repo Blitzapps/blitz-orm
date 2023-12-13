@@ -100,5 +100,8 @@ export type CardinalityType = 'ONE' | 'MANY' | 'INTERVAL';
 
 export type RightType = 'CREATE' | 'DELETE' | 'UPDATE' | 'LINK' | 'UNLINK';
 
-export type BQLFieldObj = { $path: string; $as?: string } & Omit<RawBQLQuery, '$entity' | '$relation'>;
+export type BQLFieldObj = { $path: string; $as?: string } & Omit<
+	RawBQLQuery,
+	'$entity' | '$relation' | '$thing' | '$thingType'
+>;
 export type BQLField = string | BQLFieldObj;
