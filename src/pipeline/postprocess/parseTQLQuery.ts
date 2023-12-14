@@ -247,12 +247,12 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		const linkFields = [];
 		const roleFields = [];
 		for (const key in obj) {
-			if (!key.endsWith('.dataFields')) {
+			if (!key.endsWith('.$dataFields')) {
 				const _keys = key.split('.');
 				const identifier = _keys[_keys.length - 1];
 				const $metaData = _keys[_keys.length - 2];
 				const foundLinkField = currentSchema.linkFields?.find(
-					(o) => o.path === identifier && identifier !== 'dataFields',
+					(o) => o.path === identifier && identifier !== '$dataFields',
 				);
 				// @ts-expect-error todo
 				const foundRoleField = currentSchema.roles?.[identifier];
@@ -327,18 +327,19 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						: parsedItems;
 				finalRes.push(Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null);
 			});
-			res.bqlRes = finalRes;
+			return finalRes;
 		} else {
 			const parsedItems = realParse(tqlRes);
 			const response =
 				(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
 					? parsedItems?.[0]
 					: parsedItems;
-			res.bqlRes = Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
+			return Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
 		}
 	};
 
-	parser(rawTqlRes);
+	const parsedTqlRes = parser(rawTqlRes);
 	// console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
+	res.bqlRes = parsedTqlRes;
 	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 };

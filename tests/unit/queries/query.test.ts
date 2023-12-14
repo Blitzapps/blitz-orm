@@ -1172,7 +1172,6 @@ describe('Query', () => {
 
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		console.log('res', JSON.stringify(res, null, 2));
 		expect(deepSort(res)).toEqual([
 			{
 				$thing: 'User',

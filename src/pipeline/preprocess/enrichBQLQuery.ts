@@ -13,14 +13,17 @@ const getAllFields = (currentSchema: any) => {
 	return allFields;
 };
 
-// todo: validations.unique in dataFields
 const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 	const fields = Object.keys($filter || {});
 	let $filteredByUnique = false;
 	for (const field of fields) {
 		if (!Array.isArray($filter[field])) {
 			const idFieldFound = currentSchema.idFields?.find((idField) => idField === field);
-			if (idFieldFound) {
+			const uniqueDataFieldFound = currentSchema.dataFields?.find(
+				(f) => (f.dbPath === field || f.path === field) && f.validations.unique,
+			);
+
+			if (idFieldFound || uniqueDataFieldFound) {
 				$filteredByUnique = true;
 			}
 		}

@@ -1040,7 +1040,6 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true, returnNulls: true },
 		);
 
-		console.log('allUsers', allUsers);
 		expect(deepSort(allUsers, 'name')).toEqual([
 			{
 				name: 'Ann',

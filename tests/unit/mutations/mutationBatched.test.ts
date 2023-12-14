@@ -573,7 +573,6 @@ describe('Mutations: batched and tempId', () => {
 			$id: 'tr11',
 			$fields: ['extra'],
 		});
-		console.log('queryRes: ', JSON.stringify(queryRes, null, 2));
 		expect(queryRes).toEqual({
 			$relation: 'ThingRelation',
 			$id: 'tr11',
