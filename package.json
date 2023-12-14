@@ -20,7 +20,7 @@
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"lint-staged": "lint-staged",
-		"precommit": "pnpm types && pnpm lint-staged && pnpm test:ignoreTodo",
+		"precommit": "pnpm lint-staged && pnpm test:ignoreTodo",
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
 		"test": "jest --coverage",

@@ -1256,13 +1256,15 @@ describe('Mutations: Edges', () => {
 		});
 
 		const res = await bormClient.query({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'h1-user',
 			$fields: ['accounts'],
 		});
 
 		expect(deepSort(res)).toEqual({
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: 'h1-user',
 			accounts: ['h1-account1', 'h1-account2'],
 		});

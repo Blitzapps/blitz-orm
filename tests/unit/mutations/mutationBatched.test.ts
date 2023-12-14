@@ -569,12 +569,14 @@ describe('Mutations: batched and tempId', () => {
 			},
 		});
 		const queryRes = await bormClient.query({
-			$relation: 'ThingRelation',
+			$thing: 'ThingRelation',
+			$thingType: 'relation',
 			$id: 'tr11',
 			$fields: ['extra'],
 		});
 		expect(queryRes).toEqual({
-			$relation: 'ThingRelation',
+			$thing: 'ThingRelation',
+			$thingType: 'relation',
 			$id: 'tr11',
 			extra: 'thing2',
 		});
