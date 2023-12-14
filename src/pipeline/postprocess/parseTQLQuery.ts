@@ -339,7 +339,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 	};
 
 	const parsedTqlRes = parser(rawTqlRes);
-	console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
+	// console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
 	res.bqlRes = parsedTqlRes;
 	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 };

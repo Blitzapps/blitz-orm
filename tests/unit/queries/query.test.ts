@@ -1617,31 +1617,31 @@ describe('Query', () => {
 
 	// NESTED
 
-	it('a1[as query] - as for attributes and roles and links', async () => {
+	it('a1[$as] - as for attributes and roles and links', async () => {
 		expect(client).toBeDefined();
 		const expectedRes = {
 			'email_as': 'antoine@test.com',
 			'id': 'user1',
 			'user-tags_as': [
 				{
-					id: 'tag-2',
-					users_as: [
-						{
-							id: 'user3',
-							name: 'Ann',
-						},
-						{
-							id: 'user1',
-							name: 'Antoine',
-						},
-					],
-				},
-				{
 					id: 'tag-1',
 					users_as: [
 						{
 							name: 'Antoine',
 							id: 'user1',
+						},
+					],
+				},
+				{
+					id: 'tag-2',
+					users_as: [
+						{
+							id: 'user1',
+							name: 'Antoine',
+						},
+						{
+							id: 'user3',
+							name: 'Ann',
 						},
 					],
 				},
@@ -1666,7 +1666,7 @@ describe('Query', () => {
 		)) as UserType;
 
 		expect(res).toBeDefined();
-		expect(res).toEqual(expectedRes);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('bq1[batched query] - as for attributes and roles and links', async () => {
