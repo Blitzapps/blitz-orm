@@ -1700,6 +1700,40 @@ describe('Query', () => {
 		expect(res).toEqual(expectedRes);
 	});
 
+	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
+		expect(client).toBeDefined();
+
+		const expectedRes = {
+			users: {
+				id: 'user1',
+			},
+			spaces: {
+				id: 'space-1',
+			},
+		};
+
+		const res = (await client.query(
+			{
+				// @ts-expect-error change RawBQLQuery type
+				$queryType: 'batched',
+				users: {
+					$entity: 'User',
+					$fields: ['id'],
+					$id: 'user1',
+				},
+				spaces: {
+					$entity: 'Space',
+					$fields: ['id'],
+					$id: 'space-1',
+				},
+			},
+			{ noMetadata: true },
+		)) as UserType;
+
+		expect(res).toBeDefined();
+		expect(res).toEqual(expectedRes);
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});

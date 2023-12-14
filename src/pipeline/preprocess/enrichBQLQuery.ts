@@ -20,7 +20,7 @@ const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | E
 		if (!Array.isArray($filter[field])) {
 			const idFieldFound = currentSchema.idFields?.find((idField) => idField === field);
 			const uniqueDataFieldFound = currentSchema.dataFields?.find(
-				(f) => (f.dbPath === field || f.path === field) && f.validations.unique,
+				(f) => (f.dbPath === field || f.path === field) && f?.validations?.unique,
 			);
 
 			if (idFieldFound || uniqueDataFieldFound) {
