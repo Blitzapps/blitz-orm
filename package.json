@@ -46,7 +46,6 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
-		"husky": "^8.0.3",
 		"immer": "^10.0.3",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
@@ -54,6 +53,7 @@
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
+		"husky": "^8.0.3",
 		"@blitznocode/eslint-config": "^1.1.0",
 		"@types/jest": "^29.5.7",
 		"@types/node": "^20.8.10",
