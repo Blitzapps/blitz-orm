@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
-import { buildBQLTree, parseTQLRes } from './postprocess';
+import { buildBQLTree, parseTQLMutation } from './postprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
 import { fillBQLMutation } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
@@ -19,9 +19,9 @@ import type {
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
 } from '../types';
-import { newBuildTQLQuery } from './preprocess/newBuildTQLQuery';
+import { newBuildTQLQuery } from './preprocess/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/enrichBQLQuery';
-import { newRunTQLQuery } from './transaction/newRunTQLQuery';
+import { newRunTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/parseTQLQuery';
 
 export type RelationName = string;
@@ -82,7 +82,15 @@ type Pipeline = PipelineOperation[];
 
 const Pipelines: Record<string, Pipeline> = {
 	query: [enrichBQLQuery, newBuildTQLQuery, newRunTQLQuery, parseTQLQuery],
-	mutation: [fillBQLMutation, preQuery, parseBQLMutation, buildTQLMutation, runTQLMutation, parseTQLRes, buildBQLTree],
+	mutation: [
+		fillBQLMutation,
+		preQuery,
+		parseBQLMutation,
+		buildTQLMutation,
+		runTQLMutation,
+		parseTQLMutation,
+		buildBQLTree,
+	],
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];
