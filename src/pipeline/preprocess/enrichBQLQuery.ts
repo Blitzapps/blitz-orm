@@ -291,6 +291,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						if (value.$excludedFields) {
 							value.$fields = value.$fields.filter((f: { $path: string }) => !value.$excludedFields.includes(f.$path));
 						}
+						value.$filter = processFilter(value.$filter, currentSchema);
 					}
 				}
 			}),

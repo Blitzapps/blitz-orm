@@ -24,6 +24,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 	const processFilters = ($filter: object, $var: string) => {
 		let simpleHas = '';
 		let orHas = '';
+
 		for (const key in $filter) {
 			// @ts-expect-error todo
 			const filterKey = $filter[key];
