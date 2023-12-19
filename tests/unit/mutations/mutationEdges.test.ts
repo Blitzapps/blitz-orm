@@ -204,7 +204,7 @@ describe('Mutations: Edges', () => {
 				spaces: null,
 				accounts: null,
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 
 		const user = await bormClient.query(
@@ -229,7 +229,7 @@ describe('Mutations: Edges', () => {
 				spaces: ['space-2'],
 				accounts: ['account2-1'],
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 	});
 
@@ -680,23 +680,29 @@ describe('Mutations: Edges', () => {
 		// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
 
 		/// This test requires pre-queries to work in typeDB
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'tmpGroup',
-			space: { id: 'tempSpace' }, /// one linkfield is linked
-			color: { id: 'tempYellow' },
-			tags: ['tag-1', 'tag-2'],
-			/// group is undefined,
-			/// the replace must work in both!
-		});
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'tmpGroup',
-			tags: ['tag-1', 'tag-4'],
-			color: { $op: 'create', id: 'tempBlue' },
-			// group: { $op: 'link', $id: 'utg-2' },
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$op: 'create',
+				id: 'tmpGroup',
+				space: { id: 'tempSpace' }, /// one linkfield is linked
+				color: { id: 'tempYellow' },
+				tags: ['tag-1', 'tag-2'],
+				/// group is undefined,
+				/// the replace must work in both!
+			},
+			{ preQuery: true },
+		);
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'tmpGroup',
+				tags: ['tag-1', 'tag-4'],
+				color: { $op: 'create', id: 'tempBlue' },
+				// group: { $op: 'link', $id: 'utg-2' },
+			},
+			{ preQuery: true },
+		);
 
 		const newUserTagGroup = await bormClient.query(
 			{
@@ -714,12 +720,15 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// clean created groups
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'tmpGroup',
-			color: { $op: 'delete' },
-			$op: 'delete',
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'tmpGroup',
+				color: { $op: 'delete' },
+				$op: 'delete',
+			},
+			{ preQuery: true },
+		);
 	});
 
 	it('l12[link,many] Insert items in multiple', async () => {
@@ -887,14 +896,17 @@ describe('Mutations: Edges', () => {
 	it('l15[replace, nested, ONE, role] replace role in nested', async () => {
 		expect(bormClient).toBeDefined();
 
-		await bormClient.mutate({
-			$relation: 'UserTag',
-			$id: 'tag-2',
-			group: {
-				$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
-				color: 'blue', // this is not updating blue, this is updating the group, to replace current color to yellow
+		await bormClient.mutate(
+			{
+				$relation: 'UserTag',
+				$id: 'tag-2',
+				group: {
+					$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
+					color: 'blue', // this is not updating blue, this is updating the group, to replace current color to yellow
+				},
 			},
-		});
+			{ preQuery: true },
+		);
 
 		const t2 = await bormClient.query(
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: [{ $path: 'group', $fields: ['id', 'color'] }] },
@@ -907,11 +919,14 @@ describe('Mutations: Edges', () => {
 
 		// put yellow back
 
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'utg-1',
-			color: 'yellow', //replacing it back to yellow
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-1',
+				color: 'yellow', //replacing it back to yellow
+			},
+			{ preQuery: true },
+		);
 	});
 
 	it('l15b[unlink, link, nested, relation] Unlink in a nested field', async () => {
@@ -928,7 +943,7 @@ describe('Mutations: Edges', () => {
 					color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
 				},
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 
 		const withoutColor = await bormClient.query(
@@ -978,7 +993,7 @@ describe('Mutations: Edges', () => {
 					},
 				},
 			],
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 
 		const userTags = await bormClient.query(
@@ -1021,11 +1036,14 @@ describe('Mutations: Edges', () => {
 		]);
 
 		/// and now we get yellow back into utg-1 (reverted)
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'utg-1',
-			color: 'yellow',
-		});
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-1',
+				color: 'yellow',
+			},
+			{ preQuery: true },
+		);
 	});
 
 	it('TODO:l16[replace, nested, create, replace] replacing nested under a create', async () => {

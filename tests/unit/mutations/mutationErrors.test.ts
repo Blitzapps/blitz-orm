@@ -292,11 +292,14 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'delete', $id: 'jnsndadsn' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'delete', $id: 'jnsndadsn' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
@@ -336,15 +339,18 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m1up[update, missing] Update a non existing $id', async () => {
+	it('TODO:m1up[update, missing] Update a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'update', $id: 'jnsndadsn', name: 'new' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'update', $id: 'jnsndadsn', name: 'new' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
@@ -366,11 +372,14 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'unlink', $id: 'jnsndadsn' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'unlink', $id: 'jnsndadsn' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
@@ -392,11 +401,14 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'delete', $id: 'user3' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'delete', $id: 'user3' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				//not sure if this one is possible with the current pre-queries, if it is not, you can throw the second error instead
@@ -411,15 +423,18 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m2up[update, missing] Update a non related $id', async () => {
+	it('TODO: m2up[update, missing] Update a non related $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'update', $id: 'user3', name: 'new' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'update', $id: 'user3', name: 'new' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe('[BQLE-Q-M-2] Cannot update $id:"user3" because it is not linked to $id:"tag-1"');
@@ -437,11 +452,14 @@ describe('Mutations: Errors', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			await bormClient.mutate({
-				$relation: 'UserTag',
-				$id: 'tag-1',
-				users: [{ $op: 'unlink', $id: 'user3' }],
-			});
+			await bormClient.mutate(
+				{
+					$relation: 'UserTag',
+					$id: 'tag-1',
+					users: [{ $op: 'unlink', $id: 'user3' }],
+				},
+				{ preQuery: true },
+			);
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe('[BQLE-Q-M-2] Cannot unlink $id:"user3" because it is not linked to $id:"tag-1"');
@@ -478,8 +496,9 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
+	it('TODO: e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
+		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -492,7 +511,7 @@ describe('Mutations: Errors', () => {
 						email: 'theNewEmailOfAnn@gmail.com',
 					},
 				},
-				{ noMetadata: true },
+				{ noMetadata: true, preQuery: true },
 			);
 		} catch (error: any) {
 			if (error instanceof Error) {

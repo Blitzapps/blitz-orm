@@ -9,6 +9,7 @@ export type QueryConfig = {
 
 export type MutateConfig = {
 	noMetadata?: boolean;
+	preQuery?: boolean;
 };
 
 export type BormConfig = {
