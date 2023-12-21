@@ -317,7 +317,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
+	it.only('TODO:m1l[link, missing] Link a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {

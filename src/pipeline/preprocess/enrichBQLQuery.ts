@@ -15,45 +15,39 @@ const getAllFields = (currentSchema: any) => {
 
 const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 	const fields = Object.keys($filter || {});
-	let $filteredByUnique = false;
-	for (const field of fields) {
+
+	return fields.some((field) => {
 		if (!Array.isArray($filter[field])) {
-			const idFieldFound = currentSchema.idFields?.find((idField) => idField === field);
-			const uniqueDataFieldFound = currentSchema.dataFields?.find(
+			const isIdField = currentSchema.idFields?.includes(field);
+			const isUniqueDataField = currentSchema.dataFields?.some(
 				(f) => (f.dbPath === field || f.path === field) && f?.validations?.unique,
 			);
 
-			if (idFieldFound || uniqueDataFieldFound) {
-				$filteredByUnique = true;
-			}
+			return isIdField || isUniqueDataField;
 		}
-	}
-	return $filteredByUnique;
+		return false;
+	});
 };
 
 const processFilter = ($filter: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
-	const newFilter = {};
-	const dataFields =
-		currentSchema.dataFields?.map((field: any) => {
-			return { path: field.path, dbPath: field.dbPath };
-		}) || [];
-	const linkFields =
-		currentSchema.linkFields?.map((field: any) => {
-			return { path: field.path, dbPath: field.dbPath };
-		}) || [];
-	const roleFields =
-		// @ts-expect-error todo
-		Object.keys(currentSchema.roles || {}).map((field: string) => {
-			return { path: field, dbPath: field };
-		}) || [];
+	// Map data fields, link fields, and role fields to a simplified structure
+	const dataFields = currentSchema.dataFields?.map((field) => ({ path: field.path, dbPath: field.dbPath })) || [];
+	// @ts-expect-error todo
+	const linkFields = currentSchema.linkFields?.map((field) => ({ path: field.path, dbPath: field.dbPath })) || [];
+	// @ts-expect-error todo
+	const roleFields = Object.keys(currentSchema.roles || {}).map((field) => ({ path: field, dbPath: field })) || [];
+
+	// Combine all fields into a single array
 	const allFields = [...dataFields, ...linkFields, ...roleFields];
 
-	for (const filter in $filter) {
-		const field = allFields.find((o) => o.path === filter);
+	// Reduce the filter object to a new structure
+	return Object.entries($filter || {}).reduce((newFilter, [filterKey, filterValue]) => {
+		const field = allFields.find((o) => o.path === filterKey);
 		// @ts-expect-error todo
-		newFilter[field?.dbPath || field?.path] = $filter[filter];
-	}
-	return newFilter;
+		// eslint-disable-next-line no-param-reassign
+		newFilter[field?.dbPath || filterKey] = filterValue;
+		return newFilter;
+	}, {});
 };
 
 export const enrichBQLQuery: PipelineOperation = async (req) => {
@@ -89,6 +83,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			$filter: field.$filter,
 			$isVirtual: isVirtual,
 			// ...(typeof field !== 'string' && { $fields: [...field.$fields, ...['id']] }),
+			$filterProcessed: true,
 		};
 	};
 
@@ -140,6 +135,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$filter: processFilter(field.$filter, currentSchema),
 				$idNotIncluded: idNotIncluded,
 				$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
+				$filterProcessed: true,
 			};
 		});
 	};
@@ -188,6 +184,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$idNotIncluded: idNotIncluded,
 				$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 				$playedBy: playedBy,
+				$filterProcessed: true,
 			};
 		});
 	};
@@ -251,6 +248,9 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						const currentSchema = getCurrentSchema(schema, node);
 						if (value.$filter) {
 							value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
+							if (!value.$filterProcessed) {
+								value.$filter = processFilter(value.$filter, currentSchema);
+							}
 						}
 						// if no fields, then it's all fields
 						if (value.$fields) {
@@ -291,7 +291,6 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						if (value.$excludedFields) {
 							value.$fields = value.$fields.filter((f: { $path: string }) => !value.$excludedFields.includes(f.$path));
 						}
-						value.$filter = processFilter(value.$filter, currentSchema);
 					}
 				}
 			}),

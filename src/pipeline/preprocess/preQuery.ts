@@ -1,4 +1,3 @@
-import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import type { FilledBQLMutationBlock } from '../../types';
@@ -6,9 +5,11 @@ import { queryPipeline, type PipelineOperation } from '../pipeline';
 import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
+// todo: nested replaces
+// todo: nested deletions
+
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config } = req;
-	const isBatchedMutation = Array.isArray(filledBqlRequest);
 
 	///0 ignore this step if its a batched mutation or if it does not have deletions or unlinks
 	if (!filledBqlRequest) {
@@ -36,121 +37,90 @@ export const preQuery: PipelineOperation = async (req) => {
 	}
 
 	///temporally skipping batchedMutations
-	if (isBatchedMutation) {
-		return;
-	}
 
 	let newFilled: FilledBQLMutationBlock | FilledBQLMutationBlock[] = filledBqlRequest as
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
 	// 1. Convert mutation to Query
-	///console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
-	// TODO: get filter replaces to work
-	const convertMutationToQuery = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		if (Array.isArray(blocks)) {
-			const ids: string[] = [];
-			let relation: string | null = null;
-			let entity: string | null = null;
-			traverse(blocks, ({ value: val, key, meta }: TraversalCallbackContext) => {
-				// Only capture root level $relation, $entity, and $id
-				if (meta.depth === 2) {
-					// Extracting $relation or $entity
-					if (key === '$relation') {
-						relation = val;
-					} else if (key === '$entity') {
-						entity = val;
-					} else if (key === '$id' && typeof val === 'string') {
-						ids.push(val);
+	console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
+
+	// todo: create second set of queries to find if toBeLinked items exist
+	const convertMutationToQuery = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
+		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
+			const $fields: any[] = [];
+			const filteredBlock = {};
+			const toRemoveFromRoot = ['$op', '$bzId', '$parentKey'];
+			const toRemove = ['$relation', '$entity', '$id', ...toRemoveFromRoot];
+			for (const k in block) {
+				if (toRemoveFromRoot.includes(k)) {
+					continue;
+				}
+				if (toRemove.includes(k) && !root) {
+					continue;
+				}
+				if (!k.includes('$') && (isObject(block[k]) || Array.isArray(block[k]))) {
+					const v = block[k];
+					if (Array.isArray(v) && v.length > 0) {
+						$fields.push({ $path: k, ...processBlock(v[0]) });
+					} else {
+						$fields.push({ $path: k, ...processBlock(v) });
 					}
+				} else {
+					// @ts-expect-error todo
+					filteredBlock[k] = block[k];
 				}
-			});
-
-			if (!relation && !entity) {
-				throw new Error('Neither $relation nor $entity found in the blocks');
 			}
-
-			const result: any = { $id: ids };
-
-			if (relation) {
-				result.$relation = relation;
-			}
-
-			if (entity) {
-				result.$entity = entity;
-			}
-
-			return result;
-		} else if (isObject(blocks)) {
-			const result: any = {
-				...(blocks.$relation && {
-					$relation: blocks.$relation,
-				}),
-				...(blocks.$entity && {
-					$entity: blocks.$entity,
-				}),
-				$id: blocks.$id || blocks.id,
-			};
-			traverse(blocks, ({ key, value, meta }) => {
-				if (key === '$op' && value === 'match' && meta.nodePath) {
-					const pathComponents = meta.nodePath.split('.').slice(0, -1); // we remove the $op from the end
-					let currentPath: any = result;
-					pathComponents.forEach((component) => {
-						if (!currentPath.$fields) {
-							currentPath.$fields = [];
-						}
-						let existingPath = currentPath.$fields.find((f: any) => f.$path === component);
-						if (!existingPath) {
-							existingPath = { $path: component };
-							currentPath.$fields.push(existingPath);
-						}
-						currentPath = existingPath;
-					});
-				}
-			});
-			return result;
+			return { ...filteredBlock, $fields };
+		};
+		if (Array.isArray(blocks)) {
+			return blocks.map((block) => processBlock(block, true));
+		} else {
+			return processBlock(blocks, true);
 		}
-		return blocks;
 	};
+
 	const preQueryBlocks = convertMutationToQuery(filledBqlRequest as FilledBQLMutationBlock | FilledBQLMutationBlock[]);
-	// console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
+	console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
 
 	// 2. Perform pre-query and get response
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
-	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
+	console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
 	const getObjectPath = (parent: any, key: string) => {
+		const separator = '___';
 		const idField = parent.$id || parent.id || parent.$bzId;
-		return `${parent.$objectPath ? (idField ? parent.$objectPath : parent.$objectPath.split('.')[0]) : 'root'}${
-			idField ? `-${idField}` : ''
-		}.${key}`;
+		return `${parent.$objectPath}${idField ? `.${idField}` : ''}${separator}${key}`;
 	};
+	// todo: fix storePaths to store actual paths (they're not being correctly stored)
 	// 3. Store paths on each child object
 	const storePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
-				const { key, parent } = context;
-				// console.log('info: ', JSON.stringify({ key, parent }, null, 2));
-				if (parent && key && !key.includes('$')) {
+				const { key, parent, value } = context;
+				// if its the root
+				if (!parent && isObject(value)) {
+					// @ts-expect-error todo
+					value.$objectPath === '|ROOT|';
+				} else if (parent && key) {
 					if (Array.isArray(parent[key])) {
-						parent[key].forEach((o: any) => {
-							if (typeof o !== 'string') {
-								// eslint-disable-next-line no-param-reassign
-								o.$objectPath = getObjectPath(parent, key);
-							}
+						const vals: any[] = [];
+						const path = getObjectPath(parent, key);
+						parent[key].forEach((item: any) => {
+							vals.push({ ...item, ...{ $objectPath: path } });
 						});
+						parent[key] = vals;
 					} else if (isObject(parent[key])) {
-						parent[key].$objectPath = getObjectPath(parent, key);
+						const path = getObjectPath(parent, key);
+						parent[key].$objectPath = path;
 					}
 				}
 			}),
 		);
 	};
 	// @ts-expect-error todo
-	const storedPaths = preQueryRes ? storePaths(preQueryRes) : {};
+	const storedPaths = storePaths(preQueryRes);
 	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
@@ -163,6 +133,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
 				const { key, parent } = context;
+
 				if (parent && key && parent.$id && !key.includes('$')) {
 					const cacheKey = getObjectPath(parent, key);
 					if (Array.isArray(parent[key])) {
@@ -192,7 +163,6 @@ export const preQuery: PipelineOperation = async (req) => {
 			}),
 		);
 	};
-	// @ts-expect-error todo
 	cachePaths(storedPaths);
 	// console.log('cache: ', cache);
 
@@ -217,6 +187,7 @@ export const preQuery: PipelineOperation = async (req) => {
 
 		return { found, cardinality, isOccupied: cache[path] ? true : false };
 	};
+
 	const getOtherIds = (path: string, replaces: { $id: string }[]): string[] => {
 		let otherIds: string[] = [];
 		// @ts-expect-error todo
@@ -230,6 +201,8 @@ export const preQuery: PipelineOperation = async (req) => {
 
 		return otherIds;
 	};
+	// TODO: should be unlink 1, nothing to 3, link 5
+
 	const prunedMutation = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -381,7 +354,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	if (preQueryRes) {
 		newFilled = prunedMutation(newFilled);
-		///console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+		// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
 		req.filledBqlRequest = newFilled;
 	}
 };

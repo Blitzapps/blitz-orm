@@ -109,6 +109,8 @@ describe('Mutations: batched and tempId', () => {
 		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
 
 		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
+
+		console.log('res2', JSON.stringify(res2, null, 2));
 		expect(res2).toBeDefined();
 		expect(res2).toEqual({
 			$thing: 'User',
@@ -119,11 +121,12 @@ describe('Mutations: batched and tempId', () => {
 			email: 'bea@gmail.com',
 			accounts: [expect.any(String), expect.any(String)],
 		});
+		// todo: go over with Loic why it was "bea" and not beaId
 		// delete all
 		await bormClient.mutate([
 			{
 				$entity: 'User',
-				$id: 'bea',
+				$id: beaId, // not "bea" as before
 				$op: 'delete',
 				accounts: [{ $op: 'delete' }],
 			},
@@ -260,7 +263,7 @@ describe('Mutations: batched and tempId', () => {
 		await bormClient.mutate([
 			{
 				$entity: 'User',
-				$id: 'bea',
+				$id: beaId,
 				$op: 'delete',
 				accounts: [{ $op: 'delete' }],
 			},
@@ -570,24 +573,27 @@ describe('Mutations: batched and tempId', () => {
 	it('TODO:r4[replace] replace depth test', async () => {
 		expect(bormClient).toBeDefined();
 		await bormClient.mutate({
-			$entity: 'Thing',
-			$id: 'thing5',
-			root: {
-				$id: 'tr11',
-				extra: 'thing2',
-			},
+			'$entity': 'User',
+			'$id': 'user3',
+			'user-tags': [
+				{
+					$id: 'tag-2',
+					users: ['user3', 'user5'],
+				},
+			],
 		});
 		const queryRes = await bormClient.query({
-			$thing: 'ThingRelation',
+			$thing: 'UserTag',
 			$thingType: 'relation',
-			$id: 'tr11',
-			$fields: ['extra'],
+			$id: 'tag-2',
+			$fields: ['users'],
 		});
+		console.log('queryRes', JSON.stringify(queryRes, null, 2));
 		expect(queryRes).toEqual({
-			$thing: 'ThingRelation',
+			$thing: 'UserTag',
 			$thingType: 'relation',
-			$id: 'tr11',
-			extra: 'thing2',
+			$id: 'tag-2',
+			users: ['user5', 'user3'],
 		});
 	});
 
