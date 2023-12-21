@@ -317,9 +317,9 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it.only('TODO:m1l[link, missing] Link a non existing $id', async () => {
+	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
-
+		// needs more than regular pre query
 		try {
 			await bormClient.mutate({
 				$relation: 'UserTag',
@@ -339,7 +339,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:m1up[update, missing] Update a non existing $id', async () => {
+	it('m1up[update, missing] Update a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -423,7 +423,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO: m2up[update, missing] Update a non related $id', async () => {
+	it('m2up[update, missing] Update a non related $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -496,7 +496,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO: e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
+	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
 		expect(bormClient).toBeDefined();
@@ -516,7 +516,7 @@ describe('Mutations: Errors', () => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'[BQLE-Q-M-2] Cannot link on:"root-account3-1.user" because it is already occupied.',
+					'[BQLE-Q-M-2] Cannot link on:"root.account3-1___user" because it is already occupied.',
 				);
 			} else {
 				expect(true).toBe(false);

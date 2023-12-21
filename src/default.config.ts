@@ -11,5 +11,6 @@ export const defaultConfig: Partial<BormConfig> = {
 	mutation: {
 		noMetadata: false,
 		preQuery: true,
+		ignoreNonexistingThings: false,
 	},
 };

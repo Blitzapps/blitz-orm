@@ -7,9 +7,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 // todo: nested replaces
 // todo: nested deletions
+export const preQueryPathSeparator = '___';
 
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config } = req;
+	// console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 
 	///0 ignore this step if its a batched mutation or if it does not have deletions or unlinks
 	if (!filledBqlRequest) {
@@ -32,7 +34,15 @@ export const preQuery: PipelineOperation = async (req) => {
 		return;
 	}
 
-	if (!ops.includes('delete') && !ops.includes('unlink') && !ops.includes('replace')) {
+	if (
+		!ops.includes('delete') &&
+		!ops.includes('unlink') &&
+		!ops.includes('replace')
+		// todo: fix to include these without breaking the response for $ops nested in $op create
+		// &&
+		// !ops.includes('update') &&
+		// !ops.includes('link')
+	) {
 		return;
 	}
 
@@ -42,9 +52,8 @@ export const preQuery: PipelineOperation = async (req) => {
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
 	// 1. Convert mutation to Query
-	console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 
-	// todo: create second set of queries to find if toBeLinked items exist
+	// todo: create second set of queries to find if items to be linked exist in db
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
 			const $fields: any[] = [];
@@ -80,16 +89,15 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 
 	const preQueryBlocks = convertMutationToQuery(filledBqlRequest as FilledBQLMutationBlock | FilledBQLMutationBlock[]);
-	console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
+	// console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
 
 	// 2. Perform pre-query and get response
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
-	console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
+	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
 	const getObjectPath = (parent: any, key: string) => {
-		const separator = '___';
 		const idField = parent.$id || parent.id || parent.$bzId;
-		return `${parent.$objectPath}${idField ? `.${idField}` : ''}${separator}${key}`;
+		return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
 	};
 	// todo: fix storePaths to store actual paths (they're not being correctly stored)
 	// 3. Store paths on each child object
@@ -98,12 +106,9 @@ export const preQuery: PipelineOperation = async (req) => {
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
-				const { key, parent, value } = context;
+				const { key, parent } = context;
 				// if its the root
-				if (!parent && isObject(value)) {
-					// @ts-expect-error todo
-					value.$objectPath === '|ROOT|';
-				} else if (parent && key) {
+				if (parent && key) {
 					if (Array.isArray(parent[key])) {
 						const vals: any[] = [];
 						const path = getObjectPath(parent, key);
@@ -120,7 +125,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		);
 	};
 	// @ts-expect-error todo
-	const storedPaths = storePaths(preQueryRes);
+	const storedPaths = storePaths(preQueryRes || {});
 	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
