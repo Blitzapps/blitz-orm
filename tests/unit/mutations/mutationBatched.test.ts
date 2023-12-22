@@ -33,7 +33,6 @@ describe('Mutations: batched and tempId', () => {
 				provider: 'MetaMask',
 			},
 		]);
-		console.log('res', JSON.stringify(res, null, 2));
 		expect(res?.length).toBe(5);
 		const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
 
@@ -120,7 +119,6 @@ describe('Mutations: batched and tempId', () => {
 			email: 'bea@gmail.com',
 			accounts: [expect.any(String), expect.any(String)],
 		});
-		// todo: go over with Loic why it was "bea" and not beaId
 		// delete all
 		await bormClient.mutate([
 			{

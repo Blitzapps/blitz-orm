@@ -527,6 +527,58 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('e-c1d[create, nested delete] With pre-query, cannot delete under a create', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					$op: 'create',
+					user: {
+						$op: 'delete',
+						email: 'theNewEmailOfAnn@gmail.com',
+					},
+				},
+				{ noMetadata: true, preQuery: true },
+			);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot delete under a create');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('e-c1ul[create, nested unlink] With pre-query, cannot unlink under a create', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					$op: 'create',
+					user: {
+						$op: 'unlink',
+						email: 'theNewEmailOfAnn@gmail.com',
+					},
+				},
+				{ noMetadata: true, preQuery: true },
+			);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot unlink under a create');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});

@@ -11,9 +11,7 @@ export const preQueryPathSeparator = '___';
 
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config } = req;
-	// console.log('filledBqlRequest: ', JSON.stringify(filledBqlRequest, null, 2));
 
-	///0 ignore this step if its a batched mutation or if it does not have deletions or unlinks
 	if (!filledBqlRequest) {
 		throw new Error('[BQLE-M-0] No filledBqlRequest found');
 	}
@@ -37,22 +35,18 @@ export const preQuery: PipelineOperation = async (req) => {
 	if (
 		!ops.includes('delete') &&
 		!ops.includes('unlink') &&
-		!ops.includes('replace')
-		// todo: fix to include these without breaking the response for $ops nested in $op create
-		// &&
-		// !ops.includes('update') &&
-		// !ops.includes('link')
+		!ops.includes('replace') &&
+		!ops.includes('update') &&
+		!ops.includes('link')
 	) {
 		return;
 	}
 
-	///temporally skipping batchedMutations
-
 	let newFilled: FilledBQLMutationBlock | FilledBQLMutationBlock[] = filledBqlRequest as
 		| FilledBQLMutationBlock
 		| FilledBQLMutationBlock[];
-	// 1. Convert mutation to Query
 
+	// 1. Convert mutation to Query
 	// todo: create second set of queries to find if items to be linked exist in db
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
@@ -92,14 +86,16 @@ export const preQuery: PipelineOperation = async (req) => {
 	// console.log('preQueryBlocks: ', JSON.stringify(preQueryBlocks, null, 2));
 
 	// 2. Perform pre-query and get response
+
 	// @ts-expect-error - todo
 	const preQueryRes = await queryPipeline(preQueryBlocks, req.config, req.schema, req.dbHandles);
 	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
+
 	const getObjectPath = (parent: any, key: string) => {
 		const idField = parent.$id || parent.id || parent.$bzId;
 		return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
 	};
-	// todo: fix storePaths to store actual paths (they're not being correctly stored)
+
 	// 3. Store paths on each child object
 	const storePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -124,14 +120,17 @@ export const preQuery: PipelineOperation = async (req) => {
 			}),
 		);
 	};
+
 	// @ts-expect-error todo
 	const storedPaths = storePaths(preQueryRes || {});
+
 	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
+
+	// 4. Create cache of paths
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
 	};
 	const cache: Cache<string, string> = {};
-	// 4. Create cache of paths
 	const cachePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -172,7 +171,6 @@ export const preQuery: PipelineOperation = async (req) => {
 	// console.log('cache: ', cache);
 
 	// 5. Prune mutation
-
 	const checkId = (
 		path: string,
 		id: string | string[],
@@ -181,10 +179,6 @@ export const preQuery: PipelineOperation = async (req) => {
 		const cardinality = Array.isArray(cache[path]) ? 'MANY' : 'ONE';
 		// @ts-expect-error todo
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
-		// const ids: string[] = cache[path];
-
-		// console.log('paths: ', JSON.stringify({ path, id, ids }, null, 2));
-
 		if (ids) {
 			const foundIds = !Array.isArray(id) ? ids.filter((o) => o === id) : ids.filter((o) => id.includes(o));
 			found = foundIds.length > 0;
@@ -197,16 +191,12 @@ export const preQuery: PipelineOperation = async (req) => {
 		let otherIds: string[] = [];
 		// @ts-expect-error todo
 		const ids: string[] = Array.isArray(cache[path]) ? cache[path] : [cache[path]];
-
-		// console.log('paths: ', JSON.stringify({ ids }, null, 2));
 		const replacesIds = replaces.map((o) => o.$id);
 		if (ids) {
 			otherIds = ids.filter((o) => !replacesIds.includes(o));
 		}
-
 		return otherIds;
 	};
-	// TODO: should be unlink 1, nothing to 3, link 5
 
 	const prunedMutation = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -222,16 +212,23 @@ export const preQuery: PipelineOperation = async (req) => {
 					!Array.isArray(parent)
 				) {
 					if (Array.isArray(parent[key])) {
-						parent[key].forEach((o: any) => {
-							if (typeof o !== 'string') {
-								// eslint-disable-next-line no-param-reassign
-								o.$objectPath = getObjectPath(parent, key);
-							}
-						});
+						parent[key].forEach(
+							(o: string | { $objectPath: string; $parentIsCreate: boolean; $grandChildOfCreate: boolean }) => {
+								if (typeof o !== 'string') {
+									// eslint-disable-next-line no-param-reassign
+									o.$objectPath = getObjectPath(parent, key);
+									// eslint-disable-next-line no-param-reassign
+									o.$parentIsCreate = parent.$op === 'create';
+									// eslint-disable-next-line no-param-reassign
+									o.$grandChildOfCreate = parent.$parentIsCreate || parent.$grandChildOfCreate;
+								}
+							},
+						);
 					} else if (isObject(parent[key])) {
+						parent[key].$parentIsCreate = parent.$op === 'create';
+						parent[key].$grandChildOfCreate = parent.$parentIsCreate || parent.$grandChildOfCreate;
 						parent[key].$objectPath = getObjectPath(parent, key);
 					}
-					// console.log('after paths: ', JSON.stringify(parent[key], null, 2));
 				}
 				// a. only work for role fields that are arrays or objects
 				if (
@@ -242,7 +239,6 @@ export const preQuery: PipelineOperation = async (req) => {
 					!Array.isArray(parent)
 				) {
 					let values = Array.isArray(value) ? value : [value];
-
 					const currentEntityOrRelation: { $entity?: string; $relation?: string } = {};
 					// @ts-expect-error todo
 					const replaces = [];
@@ -254,73 +250,73 @@ export const preQuery: PipelineOperation = async (req) => {
 						// todo: fetch the proper idField 'thing.color'
 						const idField = thing.$id || thing.id;
 						const { found, cardinality, isOccupied } = checkId(pathToThing, idField);
+						if (thing.$op === 'link' && !found && cardinality === 'ONE' && isOccupied) {
+							throw new Error(`[BQLE-Q-M-2] Cannot link on:"${thing.$objectPath}" because it is already occupied.`);
+						}
 
-						if (thing.$op && idField) {
+						if (thing.$op) {
 							switch (thing.$op) {
 								case 'delete':
-									if (!found) {
+									if (thing.$parentIsCreate) {
+										throw new Error('Cannot delete under a create');
+									}
+									if (!found && idField) {
 										throw new Error(
 											`[BQLE-Q-M-2] Cannot delete $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
 										);
 									}
 									break;
 								case 'update':
-									if (!found) {
+									if (!found && idField) {
 										throw new Error(
 											`[BQLE-Q-M-2] Cannot update $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
 										);
 									}
 									break;
-
 								case 'unlink':
-									if (!found) {
+									if (thing.$parentIsCreate) {
+										throw new Error('Cannot unlink under a create');
+									}
+									if (!found && idField) {
 										throw new Error(
 											`[BQLE-Q-M-2] Cannot unlink $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
 										);
 									}
 									break;
-
 								case 'link':
-									if (found) {
+									if (found && idField) {
 										throw new Error(
 											`[BQLE-Q-M-2] Cannot link $id:"${idField}" because it is already linked to $id:"${parent.$id}"`,
 										);
 									}
 									break;
 								case 'replace':
+									if (thing.$parentIsCreate) {
+										throw new Error('Cannot replace under a create');
+									}
 									replaces.push(thing);
 									// eslint-disable-next-line no-param-reassign
 									thing.$op = 'link';
-
-									if (found) {
+									if (found && idField) {
 										doNothing.push(idField);
 									}
 									break;
-
 								case 'create':
-									// todo: only for cardinality one
-									// eslint-disable-next-line no-param-reassign
-									replaces.push(thing);
+									if (!thing.$parentIsCreate && !thing.$grandChildOfCreate) {
+										// todo: only for cardinality one
+										replaces.push(thing);
+									}
 									break;
-
 								default:
 									break;
 							}
-						} else if (thing.$op === 'link' && !found && cardinality === 'ONE' && isOccupied) {
-							throw new Error(`[BQLE-Q-M-2] Cannot link on:"${thing.$objectPath}" because it is already occupied.`);
 						}
-
-						// eslint-disable-next-line no-param-reassign
 					});
 					if (replaces.length > 0) {
 						// @ts-expect-error todo
 						const otherIds = getOtherIds(pathToThing, replaces);
-						// console.log('otherIds: ', JSON.stringify({ otherIds, pathToThing }, null, 2));
-
 						otherIds.forEach((id: string) => {
 							const valueWithReplaceOp = values.find((thing) => thing.$id === id && thing.$op === 'link');
-							// console.log('valueWithReplaceOp: ', JSON.stringify({ valueWithReplaceOp, queryVal }, null, 2));
-							// Capture the current entity or relation
 							// @ts-expect-error todo
 							const [firstThing] = replaces;
 							if (firstThing.$entity) {
@@ -338,7 +334,6 @@ export const preQuery: PipelineOperation = async (req) => {
 								if (Array.isArray(value)) {
 									value.push(unlinkOp);
 								} else {
-									// eslint-disable-next-line no-param-reassign
 									values = [value, unlinkOp];
 								}
 							} else if (valueWithReplaceOp) {
@@ -357,9 +352,7 @@ export const preQuery: PipelineOperation = async (req) => {
 			}),
 		);
 	};
-	if (preQueryRes) {
-		newFilled = prunedMutation(newFilled);
-		// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
-		req.filledBqlRequest = newFilled;
-	}
+	newFilled = prunedMutation(newFilled);
+	// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+	req.filledBqlRequest = newFilled;
 };
