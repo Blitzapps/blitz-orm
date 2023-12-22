@@ -1448,11 +1448,11 @@ describe('Mutations: Init', () => {
 			$id: 'tag-2',
 			$fields: ['users'],
 		});
-		expect(queryRes).toEqual({
+		expect(deepSort(queryRes)).toEqual({
 			$thing: 'UserTag',
 			$thingType: 'relation',
 			$id: 'tag-2',
-			users: ['user5', 'user3'],
+			users: ['user3', 'user5'],
 		});
 
 		// revert to original

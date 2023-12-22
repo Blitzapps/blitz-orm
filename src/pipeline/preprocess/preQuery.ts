@@ -96,37 +96,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
 	};
 
-	// 3. Store paths on each child object
-	const storePaths = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) =>
-			traverse(draft, (context) => {
-				const { key, parent } = context;
-				// if its the root
-				if (parent && key) {
-					if (Array.isArray(parent[key])) {
-						const vals: any[] = [];
-						const path = getObjectPath(parent, key);
-						parent[key].forEach((item: any) => {
-							vals.push({ ...item, ...{ $objectPath: path } });
-						});
-						parent[key] = vals;
-					} else if (isObject(parent[key])) {
-						const path = getObjectPath(parent, key);
-						parent[key].$objectPath = path;
-					}
-				}
-			}),
-		);
-	};
-
-	// @ts-expect-error todo
-	const storedPaths = storePaths(preQueryRes || {});
-
-	// console.log('storedPaths: ', JSON.stringify(storedPaths, null, 2));
-
-	// 4. Create cache of paths
+	// 3. Create cache of paths
 	type Cache<K extends string, V extends string> = {
 		[key in K]: V;
 	};
@@ -147,6 +117,9 @@ export const preQuery: PipelineOperation = async (req) => {
 						parent[key].forEach((val) => {
 							if (isObject(val)) {
 								// @ts-expect-error todo
+								// eslint-disable-next-line no-param-reassign
+								val.$objectPath = cacheKey;
+								// @ts-expect-error todo
 								cacheArray.push(val.$id.toString());
 							} else if (val) {
 								cacheArray.push(val.toString());
@@ -159,6 +132,9 @@ export const preQuery: PipelineOperation = async (req) => {
 						if (isObject(val)) {
 							// @ts-expect-error todo
 							cache[cacheKey] = val.$id.toString();
+							// @ts-expect-error todo
+							// eslint-disable-next-line no-param-reassign
+							val.$objectPath = cacheKey;
 						} else if (val) {
 							cache[cacheKey] = val.toString();
 						}
@@ -167,10 +143,11 @@ export const preQuery: PipelineOperation = async (req) => {
 			}),
 		);
 	};
-	cachePaths(storedPaths);
+	// @ts-expect-error todo
+	cachePaths(preQueryRes || {});
 	// console.log('cache: ', cache);
 
-	// 5. Prune mutation
+	// 4. Prune mutation
 	const checkId = (
 		path: string,
 		id: string | string[],
@@ -183,7 +160,6 @@ export const preQuery: PipelineOperation = async (req) => {
 			const foundIds = !Array.isArray(id) ? ids.filter((o) => o === id) : ids.filter((o) => id.includes(o));
 			found = foundIds.length > 0;
 		}
-
 		return { found, cardinality, isOccupied: cache[path] ? true : false };
 	};
 
