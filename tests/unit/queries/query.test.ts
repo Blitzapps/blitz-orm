@@ -1307,6 +1307,10 @@ describe('Query', () => {
 		]);
 	});
 
+	it('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
+		expect(true).toEqual(false);
+	});
+
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
 		expect(client).toBeDefined();
 		const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
