@@ -1356,6 +1356,629 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
+	it('lm-i1[link and unlink many, intermediary] linking and unlinking many things at once with intermediary, not batched, on-create', async () => {
+		expect(bormClient).toBeDefined();
+
+		// create user with 3 spaces
+
+		await bormClient.mutate({
+			$entity: 'User',
+			id: 'ul-many-1',
+			spaces: [
+				{
+					$op: 'link',
+					$id: 'space-1',
+				},
+				{
+					$op: 'link',
+					$id: 'space-2',
+				},
+				{
+					$op: 'link',
+					$id: 'space-3',
+				},
+			],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-1',
+			spaces: [
+				{
+					$op: 'unlink',
+					$id: 'space-1',
+				},
+				{
+					$op: 'unlink',
+					$id: 'space-2',
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-1',
+			$fields: ['spaces', 'id'],
+		});
+
+		expect(deepSort(res)).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-1',
+			id: 'ul-many-1',
+			spaces: ['space-3'],
+		});
+
+		// delete user
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-1',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:lm-i2[link and unlink many] linking and unlinking many things at once with intermediary, batched, on-create', async () => {
+		expect(bormClient).toBeDefined();
+
+		// todo: User with same id
+
+		await bormClient.mutate({
+			$entity: 'User',
+			id: 'ul-many-2',
+			spaces: [
+				{
+					$op: 'link',
+					$id: ['space-1', 'space-2', 'space-3'],
+				},
+			],
+		});
+
+		const res1 = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-2',
+			$fields: ['spaces', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-2',
+			id: 'ul-many-2',
+			spaces: ['space-1', 'space-2', 'space-3'],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-2',
+			spaces: [
+				{
+					$op: 'unlink',
+					$id: ['space-1', 'space-2'],
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-2',
+			$fields: ['spaces'],
+		});
+
+		expect(deepSort(res)).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-2',
+			spaces: ['space-3'],
+		});
+
+		// delete user
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-2',
+			$op: 'delete',
+		});
+	});
+
+	it('lm-i3[link and unlink many, intermediary] linking and unlinking many things at once with intermediary, not batched, pre-created', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$entity: 'User',
+			id: 'ul-many-3',
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-3',
+			spaces: [
+				{
+					$op: 'link',
+					$id: 'space-1',
+				},
+				{
+					$op: 'link',
+					$id: 'space-2',
+				},
+				{
+					$op: 'link',
+					$id: 'space-3',
+				},
+			],
+		});
+
+		const res1 = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-3',
+			$fields: ['spaces', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-3',
+			id: 'ul-many-3',
+			spaces: ['space-1', 'space-2', 'space-3'],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-3',
+			spaces: [
+				{
+					$op: 'unlink',
+					$id: 'space-1',
+				},
+				{
+					$op: 'unlink',
+					$id: 'space-2',
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-3',
+			$fields: ['spaces'],
+		});
+
+		expect(deepSort(res)).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-3',
+			spaces: ['space-3'],
+		});
+
+		// delete user
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-3',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:lm-i4[link and unlink many, intermediary] linking and unlinking many things at once batched with intermediary, batched, pre-created', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$entity: 'User',
+			id: 'ul-many-4',
+		});
+
+		// todo: intermediary has multiple of same ids
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-4',
+			spaces: [
+				{
+					$op: 'link',
+					$id: ['space-1', 'space-2', 'space-3'],
+				},
+			],
+		});
+
+		const res1 = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-4',
+			$fields: ['spaces', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-4',
+			id: 'ul-many-4',
+			spaces: ['space-1', 'space-2', 'space-3'],
+		});
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-4',
+			spaces: [
+				{
+					$op: 'unlink',
+					$id: ['space-1', 'space-2'],
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$entity: 'User',
+			$id: 'ul-many-4',
+			$fields: ['spaces', 'id'],
+		});
+
+		expect(deepSort(res)).toEqual({
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'ul-many-4',
+			id: 'ul-many-4',
+			spaces: ['space-3'],
+		});
+
+		// delete user
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'ul-many-4',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:lm-ni1[link and unlink many] linking and unlinking many things at once without intermediary, not batched, on-create', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				id: 'k1',
+				space: 'space-1',
+			},
+			{
+				$relation: 'Kind',
+				id: 'k2',
+				space: 'space-1',
+			},
+			{
+				$relation: 'Kind',
+				id: 'k3',
+				space: 'space-1',
+			},
+		]);
+		// console.log('LINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			id: 'link-many-1',
+			kinds: [
+				{
+					$op: 'link',
+					$id: 'k1',
+				},
+				{
+					$op: 'link',
+					$id: 'k2',
+				},
+				{
+					$op: 'link',
+					$id: 'k3',
+				},
+			],
+		});
+
+		const res1 = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-1',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-1',
+			id: 'link-many-1',
+			kinds: ['k1', 'k2', 'k3'],
+		});
+
+		// console.log('UNLINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-1',
+			kinds: [
+				{
+					$op: 'unlink',
+					$id: 'k1',
+				},
+				{
+					$op: 'unlink',
+					$id: 'k2',
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-1',
+			$fields: ['kinds', 'id'],
+		});
+
+		// todo: it's only unlinking the first unlink, error occurring after pre-query
+
+		expect(deepSort(res, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-1',
+			id: 'link-many-1',
+			kinds: ['k3'],
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-1',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
+		expect(bormClient).toBeDefined();
+
+		// console.log('CREATING AND LINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			id: 'link-many-2',
+			kinds: [
+				{
+					$op: 'link',
+					$id: ['k1', 'k2', 'k3'],
+				},
+			],
+		});
+
+		// todo: it's not creating with batched, error occurring after pre-query
+
+		const res1 = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-2',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-2',
+			id: 'link-many-2',
+			kinds: ['k1', 'k2', 'k3'],
+		});
+
+		// console.log('UNLINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-2',
+			kinds: [
+				{
+					$op: 'unlink',
+					$id: ['k1', 'k2'],
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-2',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-2',
+			id: 'link-many-2',
+			kinds: ['k3'],
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-2',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:lm-ni3[link and unlink many] linking and unlinking many things at once without intermediary, not batched, pre-created', async () => {
+		expect(bormClient).toBeDefined();
+
+		// await bormClient.mutate([
+		// 	{
+		// 		$relation: 'Kind',
+		// 		id: 'k1',
+		// 		space: 'space-1',
+		// 	},
+		// 	{
+		// 		$relation: 'Kind',
+		// 		id: 'k2',
+		// 		space: 'space-1',
+		// 	},
+		// 	{
+		// 		$relation: 'Kind',
+		// 		id: 'k3',
+		// 		space: 'space-1',
+		// 	},
+		// ]);
+
+		// console.log('CREATING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			id: 'link-many-3',
+			space: 'space-1',
+		});
+
+		// console.log('LINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-3',
+			kinds: [
+				{
+					$op: 'link',
+					$id: 'k1',
+				},
+				{
+					$op: 'link',
+					$id: 'k2',
+				},
+				{
+					$op: 'link',
+					$id: 'k3',
+				},
+			],
+		});
+
+		// todo: it's only linking 1, error occurring after pre-query
+
+		const res1 = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-3',
+			$fields: ['kinds', 'id'],
+		});
+
+		// console.log('res1: ', JSON.stringify(res1, null, 2));
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-3',
+			id: 'link-many-3',
+			kinds: ['k1', 'k2', 'k3'],
+		});
+
+		// console.log('UNLINKING...');
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-3',
+			kinds: [
+				{
+					$op: 'unlink',
+					$id: 'k1',
+				},
+				{
+					$op: 'unlink',
+					$id: 'k2',
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-3',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-3',
+			id: 'link-many-3',
+			kinds: ['k3'],
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-3',
+			$op: 'delete',
+		});
+	});
+
+	it('lm-ni4[link and unlink many] linking and unlinking many things at once without intermediary, batched, pre-created', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			id: 'link-many-4',
+			space: 'space-1',
+		});
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-4',
+			kinds: [
+				{
+					$op: 'link',
+					$id: ['k1', 'k2', 'k3'],
+				},
+			],
+		});
+
+		const res1 = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-4',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res1, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-4',
+			id: 'link-many-4',
+			kinds: ['k1', 'k2', 'k3'],
+		});
+
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-4',
+			kinds: [
+				{
+					$op: 'unlink',
+					$id: ['k1', 'k2'],
+				},
+			],
+		});
+
+		const res = await bormClient.query({
+			$relation: 'Field',
+			$id: 'link-many-4',
+			$fields: ['kinds', 'id'],
+		});
+
+		expect(deepSort(res, 'id')).toEqual({
+			$thing: 'Field',
+			$thingType: 'relation',
+			$id: 'link-many-4',
+			id: 'link-many-4',
+			kinds: ['k3'],
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$relation: 'Field',
+			$id: 'link-many-4',
+			$op: 'delete',
+		});
+
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				$id: 'k1',
+				$op: 'delete',
+			},
+			{
+				$relation: 'Kind',
+				$id: 'k2',
+				$op: 'delete',
+			},
+			{
+				$relation: 'Kind',
+				$id: 'k3',
+				$op: 'delete',
+			},
+		]);
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity

@@ -579,6 +579,58 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Field',
+				id: 'ul-many',
+				kinds: [
+					{
+						$relation: 'Kind',
+						$id: 'k1',
+					},
+					{
+						$relation: 'Kind',
+						$id: 'k2',
+					},
+					{
+						$relation: 'Kind',
+						$id: 'k3',
+					},
+				],
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Linking to things that do not exist');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('TODO:e-r1[create relation] Creating a relation without anything that links', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Field',
+				id: 'ul-many',
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('You are creating a relation that is not linked to anything');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});
