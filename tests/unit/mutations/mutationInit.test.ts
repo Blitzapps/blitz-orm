@@ -1468,7 +1468,7 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	it('TODO:ri1d[ignore ids pre-query delete] delete something that does not exist', async () => {
+	it('ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
@@ -1501,7 +1501,7 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	it('TODO:ri1ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
+	it('ri1-ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
@@ -1534,7 +1534,7 @@ describe('Mutations: Init', () => {
 		});
 	});
 
-	it('TODO:i1up[ignore ids pre-query update] update something that does not exist', async () => {
+	it('TODO:ri1-up[ignore ids pre-query update] update something that does not exist', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(

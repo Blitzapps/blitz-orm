@@ -1979,6 +1979,123 @@ describe('Mutations: Edges', () => {
 		]);
 	});
 
+	it('TODO:d-pq1[delete with pre query] delete mutation from root and delete children without intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'Space',
+				id: 'd-space-temp',
+			},
+		]);
+
+		await bormClient.mutate([
+			{
+				$relation: 'Field',
+				id: 'd-f1',
+				space: 'd-space-temp',
+				kinds: [
+					{
+						id: 'd-k1',
+						space: { id: 'd-space-2' },
+					},
+				],
+			},
+		]);
+
+		const created = await bormClient.query({
+			$relation: 'Field',
+			$id: 'd-f1',
+			$fields: [{ $path: 'kinds', $fields: ['space'] }],
+		});
+
+		console.log('created: ', JSON.stringify(created, null, 2));
+
+		await bormClient.mutate([
+			{
+				$relation: 'Field',
+				$id: 'd-f1',
+				kinds: [
+					{
+						$op: 'delete',
+						$id: 'd-k1',
+						// space: { $id: 'non-existing', $op: 'delete' },
+					},
+					{
+						$op: 'delete',
+						// $id: 'non-existing',
+					},
+				],
+			},
+		]);
+
+		const deleted = await bormClient.query({
+			$relation: 'Field',
+			$id: 'd-f1',
+			$fields: [{ $path: 'kinds', $fields: ['space'] }],
+		});
+
+		console.log('deleted: ', JSON.stringify(deleted, null, 2));
+	});
+
+	it('TODO:d-pq2[delete with pre query, intermediary] delete mutation from root and delete children with intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'delete-test',
+				spaces: [
+					{
+						id: 'd-space-1',
+						dataFields: [
+							{
+								id: 'd-dataField-1',
+								// values: [{ id: 'd-dataValue-1' }]
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		// const created = await bormClient.query({
+		// 	$entity: 'User',
+		// 	$id: 'delete-test',
+		// 	$fields: [{ $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values'] }] }],
+		// });
+
+		// console.log('created: ', JSON.stringify(created, null, 2));
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					dataFields: [
+						{
+							id: 'd-dataField-1',
+							$op: 'delete',
+							values: [
+								{ id: 'd-dataValue-1', $op: 'delete' },
+								// { id: 'd-dataValue-1-n', $op: 'delete' },
+							],
+						},
+					],
+				},
+			],
+		});
+
+		const deleted = await bormClient.query({
+			$entity: 'User',
+			$id: 'delete-test',
+			$fields: [{ $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values'] }] }],
+		});
+
+		console.log('deleted: ', JSON.stringify(deleted, null, 2));
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity

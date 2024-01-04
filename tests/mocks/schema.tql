@@ -147,8 +147,18 @@ Field sub SpaceDef,
     relates kinds;
 
 DataField sub Field,
+    plays DataValue:dataField,
+    
     owns DataField·computeType,
     owns DataField·type;
+    
+
+DataValue sub relation,
+  relates dataField,
+  owns id @key,
+  owns DataField·computeType,
+  owns DataField·type;
+
 
 Power sub entity,
     owns id,

@@ -472,7 +472,26 @@ export const testSchema: BormSchema = {
 				{ ...string, path: 'type' },
 				{ ...string, path: 'computeType' },
 			],
+			linkFields: [
+				{
+					path: 'values',
+					relation: 'DataValue',
+					cardinality: 'MANY',
+					plays: 'dataField',
+					target: 'relation',
+				},
+			],
 			defaultDBConnector: { id: 'default', as: 'Field', path: 'DataField' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+		},
+		'DataValue': {
+			idFields: ['id'],
+			dataFields: [id, { ...string, path: 'type' }, { ...string, path: 'computeType' }],
+			roles: {
+				dataField: {
+					cardinality: 'ONE',
+				},
+			},
+			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 		},
 		'Self': {
 			idFields: ['id'],

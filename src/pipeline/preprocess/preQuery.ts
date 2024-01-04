@@ -237,16 +237,24 @@ export const preQuery: PipelineOperation = async (req) => {
 										throw new Error('Cannot delete under a create');
 									}
 									if (!found && idField) {
-										throw new Error(
-											`[BQLE-Q-M-2] Cannot delete $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
-										);
+										if (!config.mutation?.ignoreNonexistingThings) {
+											throw new Error(
+												`[BQLE-Q-M-2] Cannot delete $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+											);
+										} else {
+											doNothing.push(idField);
+										}
 									}
 									break;
 								case 'update':
 									if (!found && idField) {
-										throw new Error(
-											`[BQLE-Q-M-2] Cannot update $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
-										);
+										if (!config.mutation?.ignoreNonexistingThings) {
+											throw new Error(
+												`[BQLE-Q-M-2] Cannot update $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+											);
+										} else {
+											doNothing.push(idField);
+										}
 									}
 									break;
 								case 'unlink':
@@ -254,9 +262,13 @@ export const preQuery: PipelineOperation = async (req) => {
 										throw new Error('Cannot unlink under a create');
 									}
 									if (!found && idField) {
-										throw new Error(
-											`[BQLE-Q-M-2] Cannot unlink $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
-										);
+										if (!config.mutation?.ignoreNonexistingThings) {
+											throw new Error(
+												`[BQLE-Q-M-2] Cannot unlink $id:"${idField}" because it is not linked to $id:"${parent.$id}"`,
+											);
+										} else {
+											doNothing.push(idField);
+										}
 									}
 									break;
 								case 'link':
