@@ -1979,66 +1979,7 @@ describe('Mutations: Edges', () => {
 		]);
 	});
 
-	it('TODO:d-pq1[delete with pre query] delete mutation from root and delete children without intermediary', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate([
-			{
-				$entity: 'Space',
-				id: 'd-space-temp',
-			},
-		]);
-
-		await bormClient.mutate([
-			{
-				$relation: 'Field',
-				id: 'd-f1',
-				space: 'd-space-temp',
-				kinds: [
-					{
-						id: 'd-k1',
-						space: { id: 'd-space-2' },
-					},
-				],
-			},
-		]);
-
-		const created = await bormClient.query({
-			$relation: 'Field',
-			$id: 'd-f1',
-			$fields: [{ $path: 'kinds', $fields: ['space'] }],
-		});
-
-		console.log('created: ', JSON.stringify(created, null, 2));
-
-		await bormClient.mutate([
-			{
-				$relation: 'Field',
-				$id: 'd-f1',
-				kinds: [
-					{
-						$op: 'delete',
-						$id: 'd-k1',
-						// space: { $id: 'non-existing', $op: 'delete' },
-					},
-					{
-						$op: 'delete',
-						// $id: 'non-existing',
-					},
-				],
-			},
-		]);
-
-		const deleted = await bormClient.query({
-			$relation: 'Field',
-			$id: 'd-f1',
-			$fields: [{ $path: 'kinds', $fields: ['space'] }],
-		});
-
-		console.log('deleted: ', JSON.stringify(deleted, null, 2));
-	});
-
-	it('TODO:d-pq2[delete with pre query, intermediary] delete mutation from root and delete children with intermediary', async () => {
+	it('d-pq1[delete with pre query, intermediary, nested] delete mutation from root and delete children with intermediary', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate([
@@ -2051,21 +1992,29 @@ describe('Mutations: Edges', () => {
 						dataFields: [
 							{
 								id: 'd-dataField-1',
-								// values: [{ id: 'd-dataValue-1' }]
+								values: [
+									{
+										id: 'd-dataValue-1',
+									},
+								],
+								expression: { id: 'd-expression-1' },
+							},
+							{
+								id: 'd-dataField-2',
+								values: [{ id: 'd-dataValue-2' }],
+							},
+							{
+								id: 'd-dataField-3',
+								expression: { id: 'd-expression-2' },
+							},
+							{
+								id: 'd-dataField-4',
 							},
 						],
 					},
 				],
 			},
 		]);
-
-		// const created = await bormClient.query({
-		// 	$entity: 'User',
-		// 	$id: 'delete-test',
-		// 	$fields: [{ $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values'] }] }],
-		// });
-
-		// console.log('created: ', JSON.stringify(created, null, 2));
 
 		await bormClient.mutate({
 			$entity: 'User',
@@ -2075,12 +2024,15 @@ describe('Mutations: Edges', () => {
 					$id: 'd-space-1',
 					dataFields: [
 						{
-							id: 'd-dataField-1',
 							$op: 'delete',
 							values: [
-								{ id: 'd-dataValue-1', $op: 'delete' },
-								// { id: 'd-dataValue-1-n', $op: 'delete' },
+								{
+									$op: 'delete',
+								},
 							],
+							expression: {
+								$op: 'delete',
+							},
 						},
 					],
 				},
@@ -2090,10 +2042,165 @@ describe('Mutations: Edges', () => {
 		const deleted = await bormClient.query({
 			$entity: 'User',
 			$id: 'delete-test',
-			$fields: [{ $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values'] }] }],
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+						},
+					],
+				},
+			],
 		});
 
-		console.log('deleted: ', JSON.stringify(deleted, null, 2));
+		const expressions = await bormClient.query({
+			$relation: 'Expression',
+		});
+
+		const values = await bormClient.query({
+			$relation: 'DataValue',
+		});
+
+		expect(expressions).toEqual(null);
+		expect(values).toEqual(null);
+
+		expect(deepSort(deleted, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'd-space-1',
+					id: 'd-space-1',
+
+					$thing: 'Space',
+					$thingType: 'entity',
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'delete-test',
+			id: 'delete-test',
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			$op: 'delete',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					$op: 'delete',
+				},
+			],
+		});
+	});
+
+	it('d-pq2[delete with pre query, intermediary, nested] delete mutation from root and delete children with intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'delete-test',
+				spaces: [
+					{
+						id: 'd-space-1',
+						dataFields: [
+							{
+								id: 'd-dataField-1',
+								values: [
+									{
+										id: 'd-dataValue-1',
+									},
+								],
+								expression: { id: 'd-expression-1' },
+							},
+
+							{
+								id: 'd-dataField-2',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					dataFields: [
+						{
+							$op: 'delete',
+							$id: 'd-dataField-2',
+							values: [
+								{
+									$op: 'delete',
+								},
+							],
+							expression: {
+								$op: 'delete',
+							},
+						},
+					],
+				},
+			],
+		});
+
+		const deleted = await bormClient.query({
+			$entity: 'User',
+			$id: 'delete-test',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(deleted, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'd-space-1',
+					id: 'd-space-1',
+					$thing: 'Space',
+					$thingType: 'entity',
+					dataFields: [
+						{
+							$id: 'd-dataField-1',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							expression: 'd-expression-1',
+							id: 'd-dataField-1',
+							values: [
+								{
+									$id: 'd-dataValue-1',
+									$thing: 'DataValue',
+									$thingType: 'relation',
+									id: 'd-dataValue-1',
+								},
+							],
+						},
+					],
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'delete-test',
+			id: 'delete-test',
+		});
 	});
 
 	/*

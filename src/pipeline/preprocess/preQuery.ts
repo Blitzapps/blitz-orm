@@ -2,7 +2,7 @@ import { traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import type { FilledBQLMutationBlock } from '../../types';
 import { queryPipeline, type PipelineOperation } from '../pipeline';
-import { produce } from 'immer';
+import { current, original, produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
 // todo: nested replaces
@@ -218,9 +218,9 @@ export const preQuery: PipelineOperation = async (req) => {
 					const currentEntityOrRelation: { $entity?: string; $relation?: string } = {};
 					// @ts-expect-error todo
 					const replaces = [];
-					// @ts-expect-error todo
-					const doNothing = [];
+					const doNothing: any[] = [];
 					const pathToThing = getObjectPath(parent, key);
+					// const toAddAdjacent: any[] = [];
 
 					values.forEach((thing) => {
 						// todo: fetch the proper idField 'thing.color'
@@ -300,6 +300,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							}
 						}
 					});
+
 					if (replaces.length > 0) {
 						// @ts-expect-error todo
 						const otherIds = getOtherIds(pathToThing, replaces);
@@ -333,14 +334,157 @@ export const preQuery: PipelineOperation = async (req) => {
 							}
 						});
 					}
-					// @ts-expect-error todo
-					const filtered = values.filter((o) => !doNothing.includes(o.$id));
-					parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+
+					const prunedOps: any = [];
+					const toRemove: { $bzId: string; key: string }[] = [];
+
+					values.forEach((thing) => {
+						if (thing.$op === 'delete' && !thing.$id) {
+							if (cache[thing.$objectPath]) {
+								const cachePath = Array.isArray(cache[thing.$objectPath])
+									? cache[thing.$objectPath]
+									: [cache[thing.$objectPath]];
+								const keysWithOps = Object.keys(thing).filter((o) => !o.startsWith('$'));
+								// console.log('thing', current(thing));
+								const parentSymbols = {
+									[Symbol.for('relation') as any]: current(thing)[Symbol.for('relation') as any],
+									[Symbol.for('edgeType') as any]: current(thing)[Symbol.for('edgeType') as any],
+									[Symbol.for('parent') as any]: {
+										...current(thing)[Symbol.for('parent') as any],
+										// $id: ,
+										// path: null,
+									},
+									[Symbol.for('role') as any]: current(thing)[Symbol.for('role') as any], // this is the currentChildren
+									// this is the parent
+									[Symbol.for('oppositeRole') as any]: current(thing)[Symbol.for('oppositeRole') as any],
+									[Symbol.for('relFieldSchema') as any]: current(thing)[Symbol.for('relFieldSchema') as any],
+									[Symbol.for('path') as any]: current(thing)[Symbol.for('path') as any],
+									[Symbol.for('isRoot') as any]: current(thing)[Symbol.for('isRoot') as any],
+									[Symbol.for('depth') as any]: current(thing)[Symbol.for('depth') as any],
+									[Symbol.for('schema') as any]: current(thing)[Symbol.for('schema') as any],
+									[Symbol.for('dbId') as any]: current(thing)[Symbol.for('dbId') as any],
+									[Symbol.for('index') as any]: current(thing)[Symbol.for('index') as any],
+								};
+								// @ts-expect-error todo
+								cachePath.forEach((id) => {
+									const replaceKeys: any = {};
+									keysWithOps.forEach((key) => {
+										const cacheHas = cache[`${thing.$objectPath}.${id}___${key}`];
+										if (cacheHas) {
+											const cacheHasArray = Array.isArray(cacheHas) ? cacheHas : [cacheHas];
+											const thingKey = original(thing[key]);
+											const newOps: any[] = [];
+											cacheHasArray.forEach((_id) => {
+												const $bzId = `T_${uuidv4()}`;
+												const symbols = {
+													[Symbol.for('relation') as any]: current(thing)[key][Symbol.for('relation') as any],
+													[Symbol.for('edgeType') as any]: current(thing)[key][Symbol.for('edgeType') as any],
+													[Symbol.for('parent') as any]: {
+														...current(thing)[key][Symbol.for('parent') as any],
+														$id: id,
+														// path: null,
+													},
+													[Symbol.for('role') as any]: current(thing)[key][Symbol.for('role') as any], // this is the currentChildren
+													// this is the parent
+													[Symbol.for('oppositeRole') as any]: current(thing)[key][Symbol.for('oppositeRole') as any],
+													[Symbol.for('relFieldSchema') as any]:
+														current(thing)[key][Symbol.for('relFieldSchema') as any],
+													[Symbol.for('path') as any]: current(thing)[key][Symbol.for('path') as any],
+													[Symbol.for('isRoot') as any]: current(thing)[key][Symbol.for('isRoot') as any],
+													[Symbol.for('depth') as any]: current(thing)[key][Symbol.for('depth') as any],
+													[Symbol.for('schema') as any]: current(thing)[key][Symbol.for('schema') as any],
+													[Symbol.for('dbId') as any]: current(thing)[key][Symbol.for('dbId') as any],
+													[Symbol.for('index') as any]: current(thing)[key][Symbol.for('index') as any],
+												};
+												// console.log('symbols1: ', symbols);
+												const newObj = {
+													...(Array.isArray(thingKey) ? { ...thingKey[0] } : { ...thingKey }),
+													$id: _id,
+													$bzId,
+													...symbols,
+												};
+												// if the object with delete already exists earlier in the mutation, it can't be deleted twice
+												if (!`${thing.$objectPath}.${id}___${key}`.includes(_id)) {
+													newOps.push(newObj);
+												}
+											});
+											replaceKeys[key] = Array.isArray(cacheHas) ? newOps : newOps[0];
+										}
+									});
+									const thingWithOutKeys = Object.keys(thing)
+										.filter((key) => key.startsWith('$')) // Keep only keys that start with '$'
+										.reduce((newObj, key) => {
+											// @ts-expect-error todo
+											// eslint-disable-next-line no-param-reassign
+											newObj[key] = thing[key]; // Add the filtered keys to the new object
+											return newObj;
+										}, {});
+
+									const parentBzId = `T_${uuidv4()}`;
+									// console.log('parentSymbols', parentSymbols);
+									prunedOps.push({
+										...thingWithOutKeys,
+										...replaceKeys,
+										$id: id,
+										$bzId: parentBzId,
+										...parentSymbols,
+									});
+								});
+							} else {
+								toRemove.push({ $bzId: thing.$bzId, key });
+							}
+						}
+					});
+					if (prunedOps.length > 0) {
+						// @ts-expect-error todo
+						let filtered = prunedOps.filter((o) => !doNothing.includes(o.$id));
+						filtered = filtered.filter((o: any) => !toRemove.find((x) => x.$bzId === o.$bzId));
+						parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+					} else {
+						let filtered = values.filter((o) => !doNothing.includes(o.$id));
+						filtered = filtered.filter((o) => !toRemove.find((x) => x.$bzId === o.$bzId));
+						parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+					}
 				}
 			}),
 		);
 	};
 	newFilled = prunedMutation(newFilled);
+
+	const fillPaths = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, (context) => {
+				const { parent, key, value, meta } = context;
+				if (isObject(value)) {
+					// @ts-expect-error todo
+					value[Symbol.for('path') as any] = meta.nodePath;
+				}
+
+				if (
+					key &&
+					parent &&
+					!key?.includes('$') &&
+					(Array.isArray(value) || isObject(value)) &&
+					!Array.isArray(parent)
+				) {
+					const values = Array.isArray(value) ? value : [value];
+					values.forEach((val) => {
+						// eslint-disable-next-line no-param-reassign
+						val[Symbol.for('parent') as any] = {
+							// @ts-expect-error todo
+							...value[Symbol.for('parent') as any],
+							path: parent[Symbol.for('path') as any],
+						};
+					});
+				}
+			}),
+		);
+	};
+	newFilled = fillPaths(newFilled);
+
 	// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+
 	req.filledBqlRequest = newFilled;
 };
