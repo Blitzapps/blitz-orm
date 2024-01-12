@@ -579,6 +579,50 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('TODO:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG1',
+			tags: ['tag-1', 'tag-2'], //no color
+		});
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG2',
+			tags: ['tag-1', 'tag-3'],
+			color: 'blue',
+		});
+
+		try {
+			await bormClient.mutate({
+				$id: ['tmpUTG1', 'tmpUTG2'],
+				$relation: 'UserTagGroup',
+				$op: 'update',
+				tags: ['tag-4'],
+				color: 'red',
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot replace with non-existing id "red"');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: ['tmpUTG1', 'tmpUTG2'],
+			$op: 'delete',
+		});
+	});
+
 	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
 		expect(bormClient).toBeDefined();
 

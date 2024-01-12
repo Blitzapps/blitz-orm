@@ -1236,6 +1236,66 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
+	it('rep3[replace, many, multi] Replace multiple fields', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG1',
+			tags: ['tag-1', 'tag-2'], //no color
+		});
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG2',
+			tags: ['tag-1', 'tag-3'],
+			color: 'blue',
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: ['tmpUTG1', 'tmpUTG2'],
+			$relation: 'UserTagGroup',
+			$op: 'update',
+			tags: ['tag-4'],
+			color: 'yellow',
+		});
+
+		const tmpUTGs = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: ['tmpUTG1', 'tmpUTG2'],
+			$fields: ['tags', 'color'],
+		});
+
+		console.log('tmpUTG', tmpUTGs);
+
+		expect(deepSort(tmpUTGs)).toEqual([
+			{
+				$thing: 'UserTagGroup',
+				$thingType: 'relation',
+				$id: 'tmpUTG1',
+				tags: ['tag-4'],
+				color: 'yellow',
+			},
+			{
+				$thing: 'UserTagGroup',
+				$thingType: 'relation',
+				$id: 'tmpUTG2',
+				tags: ['tag-4'],
+				color: 'yellow',
+			},
+		]);
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: ['tmpUTG1', 'tmpUTG2'],
+			$op: 'delete',
+		});
+	});
+
 	it('TODO:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {
 		expect(bormClient).toBeDefined();
 
