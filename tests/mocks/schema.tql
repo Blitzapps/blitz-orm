@@ -31,6 +31,8 @@ Field·name sub attribute, value string;
 # DataField
 DataField·computeType sub attribute, value string;
 DataField·type sub attribute, value string;
+DataValue·type sub attribute, value string;
+
 
 # Session
 Session·expires sub attribute,
@@ -165,6 +167,7 @@ Expression sub relation,
 
 DataValue sub relation,
   relates dataField,
+  owns DataValue·type,
   owns id @key;
 
 
