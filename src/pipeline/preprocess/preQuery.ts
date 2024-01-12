@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 // todo: nested deletions
 export const preQueryPathSeparator = '___';
 
+type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config } = req;
 
@@ -92,8 +93,37 @@ export const preQuery: PipelineOperation = async (req) => {
 	// console.log('preQueryRes: ', JSON.stringify(preQueryRes, null, 2));
 
 	const getObjectPath = (parent: any, key: string) => {
-		const idField = parent.$id || parent.id || parent.$bzId;
-		return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
+		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
+		if (parent.$objectPath) {
+			const { $objectPath } = parent;
+
+			const root = $objectPath.beforePath || 'root';
+			const ids = Array.isArray($objectPath.ids) ? `[${$objectPath.ids}]` : $objectPath.ids;
+			const final = `${root}.${ids}___${$objectPath.key}`;
+
+			const new$objectPath = {
+				beforePath: final,
+				ids: idField,
+				key,
+			};
+			return new$objectPath;
+		} else {
+			return {
+				beforePath: 'root',
+				ids: idField,
+				key,
+			};
+		}
+
+		// return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
+	};
+
+	const objectPathToKey = ($objectPath: ObjectPath, hardId?: string) => {
+		const root = $objectPath.beforePath || 'root';
+		const ids = hardId ? hardId : Array.isArray($objectPath.ids) ? `[${$objectPath.ids}]` : $objectPath.ids;
+
+		const final = `${root}.${ids}___${$objectPath.key}`;
+		return final;
 	};
 
 	// 3. Create cache of paths
@@ -109,7 +139,8 @@ export const preQuery: PipelineOperation = async (req) => {
 				const { key, parent } = context;
 
 				if (parent && key && parent.$id && !key.includes('$')) {
-					const cacheKey = getObjectPath(parent, key);
+					const newObjPath = getObjectPath(parent, key);
+					const cacheKey = objectPathToKey(newObjPath);
 					if (Array.isArray(parent[key])) {
 						// @ts-expect-error todo
 						const cacheArray = [];
@@ -118,7 +149,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							if (isObject(val)) {
 								// @ts-expect-error todo
 								// eslint-disable-next-line no-param-reassign
-								val.$objectPath = cacheKey;
+								val.$objectPath = newObjPath;
 								// @ts-expect-error todo
 								cacheArray.push(val.$id.toString());
 							} else if (val) {
@@ -134,7 +165,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							cache[cacheKey] = val.$id.toString();
 							// @ts-expect-error todo
 							// eslint-disable-next-line no-param-reassign
-							val.$objectPath = cacheKey;
+							val.$objectPath = newObjPath;
 						} else if (val) {
 							cache[cacheKey] = val.toString();
 						}
@@ -189,7 +220,7 @@ export const preQuery: PipelineOperation = async (req) => {
 				) {
 					if (Array.isArray(parent[key])) {
 						parent[key].forEach(
-							(o: string | { $objectPath: string; $parentIsCreate: boolean; $grandChildOfCreate: boolean }) => {
+							(o: string | { $objectPath: ObjectPath; $parentIsCreate: boolean; $grandChildOfCreate: boolean }) => {
 								if (typeof o !== 'string') {
 									// eslint-disable-next-line no-param-reassign
 									o.$objectPath = getObjectPath(parent, key);
@@ -219,7 +250,7 @@ export const preQuery: PipelineOperation = async (req) => {
 					// @ts-expect-error todo
 					const replaces = [];
 					const doNothing: any[] = [];
-					const pathToThing = getObjectPath(parent, key);
+					const pathToThing = objectPathToKey(getObjectPath(parent, key));
 					// const toAddAdjacent: any[] = [];
 
 					values.forEach((thing) => {
@@ -227,7 +258,9 @@ export const preQuery: PipelineOperation = async (req) => {
 						const idField = thing.$id || thing.id;
 						const { found, cardinality, isOccupied } = checkId(pathToThing, idField);
 						if (thing.$op === 'link' && !found && cardinality === 'ONE' && isOccupied) {
-							throw new Error(`[BQLE-Q-M-2] Cannot link on:"${thing.$objectPath}" because it is already occupied.`);
+							throw new Error(
+								`[BQLE-Q-M-2] Cannot link on:"${objectPathToKey(thing.$objectPath)}" because it is already occupied.`,
+							);
 						}
 
 						if (thing.$op) {
@@ -340,10 +373,9 @@ export const preQuery: PipelineOperation = async (req) => {
 
 					values.forEach((thing) => {
 						if (thing.$op === 'delete' && !thing.$id) {
-							if (cache[thing.$objectPath]) {
-								const cachePath = Array.isArray(cache[thing.$objectPath])
-									? cache[thing.$objectPath]
-									: [cache[thing.$objectPath]];
+							const cacheKey = objectPathToKey(thing.$objectPath);
+							if (cache[cacheKey]) {
+								const cachePath = Array.isArray(cache[cacheKey]) ? cache[cacheKey] : [cache[cacheKey]];
 								const keysWithOps = Object.keys(thing).filter((o) => !o.startsWith('$'));
 								// console.log('thing', current(thing));
 								const parentSymbols = {
@@ -369,7 +401,7 @@ export const preQuery: PipelineOperation = async (req) => {
 								cachePath.forEach((id) => {
 									const replaceKeys: any = {};
 									keysWithOps.forEach((key) => {
-										const cacheHas = cache[`${thing.$objectPath}.${id}___${key}`];
+										const cacheHas = cache[`${cacheKey}.${id}___${key}`];
 										if (cacheHas) {
 											const cacheHasArray = Array.isArray(cacheHas) ? cacheHas : [cacheHas];
 											const thingKey = original(thing[key]);
@@ -404,7 +436,7 @@ export const preQuery: PipelineOperation = async (req) => {
 													...symbols,
 												};
 												// if the object with delete already exists earlier in the mutation, it can't be deleted twice
-												if (!`${thing.$objectPath}.${id}___${key}`.includes(_id)) {
+												if (!`${cacheKey}.${id}___${key}`.includes(_id)) {
 													newOps.push(newObj);
 												}
 											});
@@ -439,11 +471,13 @@ export const preQuery: PipelineOperation = async (req) => {
 						// @ts-expect-error todo
 						let filtered = prunedOps.filter((o) => !doNothing.includes(o.$id));
 						filtered = filtered.filter((o: any) => !toRemove.find((x) => x.$bzId === o.$bzId));
-						parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+						parent[key] =
+							filtered.length > 0 ? (isObject(value) && filtered.length === 1 ? filtered[0] : filtered) : undefined;
 					} else {
 						let filtered = values.filter((o) => !doNothing.includes(o.$id));
 						filtered = filtered.filter((o) => !toRemove.find((x) => x.$bzId === o.$bzId));
-						parent[key] = isObject(value) && filtered.length === 1 ? filtered[0] : filtered;
+						parent[key] =
+							filtered.length > 0 ? (isObject(value) && filtered.length === 1 ? filtered[0] : filtered) : undefined;
 					}
 				}
 			}),
@@ -460,6 +494,12 @@ export const preQuery: PipelineOperation = async (req) => {
 				if (isObject(value)) {
 					// @ts-expect-error todo
 					value[Symbol.for('path') as any] = meta.nodePath;
+					// // @ts-expect-error todo
+					// value.$_path = meta.nodePath;
+					// @ts-expect-error todo
+					delete value.$objectPath;
+					// @ts-expect-error todo
+					delete value.$parentIsCreate;
 				}
 
 				if (
@@ -471,12 +511,17 @@ export const preQuery: PipelineOperation = async (req) => {
 				) {
 					const values = Array.isArray(value) ? value : [value];
 					values.forEach((val) => {
-						// eslint-disable-next-line no-param-reassign
-						val[Symbol.for('parent') as any] = {
+						if (isObject(val)) {
 							// @ts-expect-error todo
-							...value[Symbol.for('parent') as any],
-							path: parent[Symbol.for('path') as any],
-						};
+							// eslint-disable-next-line no-param-reassign
+							val[Symbol.for('parent') as any] = {
+								// @ts-expect-error todo
+								...value[Symbol.for('parent') as any],
+								path: parent[Symbol.for('path') as any],
+							};
+							// eslint-disable-next-line no-param-reassign
+							// val.$_parentPath = parent[Symbol.for('path') as any];
+						}
 					});
 				}
 			}),

@@ -2264,6 +2264,399 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
+	it('TODO:d-pq3[delete with pre query, intermediary, nested, nothing to delete] delete mutation from root and delete children but there are no children with intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'delete-test',
+				spaces: [
+					{
+						id: 'd-space-1',
+						dataFields: [
+							{
+								id: 'd-dataField-1',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					dataFields: [
+						{
+							$id: 'd-dataField-1',
+							expression: {
+								$op: 'delete',
+							},
+							values: [
+								{
+									$op: 'delete',
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		const deleted = await bormClient.query({
+			$entity: 'User',
+			$id: 'delete-test',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(deleted, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'd-space-1',
+					id: 'd-space-1',
+					$thing: 'Space',
+					$thingType: 'entity',
+					dataFields: [
+						{
+							$id: 'd-dataField-1',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							id: 'd-dataField-1',
+						},
+					],
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'delete-test',
+			id: 'delete-test',
+		});
+
+		// cleaning
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			$op: 'delete',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					$op: 'delete',
+					dataFields: [{ $op: 'delete', values: [{ $op: 'delete' }] }],
+				},
+			],
+		});
+	});
+
+	it('TODO:ul-pq1[unlink with pre query, intermediary, nested] unlink mutation from root and delete children with intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		// todo: adjust schema to have dataValues, expressions, and dataFields exists without being connected to ul-space-1
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'unlink-test',
+				spaces: [
+					{
+						id: 'ul-space-1',
+						dataFields: [
+							{
+								id: 'ul-dataField-1',
+								values: [
+									{
+										id: 'ul-dataValue-1',
+									},
+								],
+								expression: { id: 'ul-expression-1' },
+							},
+							{
+								id: 'ul-dataField-2',
+								values: [{ id: 'ul-dataValue-2' }],
+							},
+							{
+								id: 'ul-dataField-3',
+								expression: { id: 'ul-expression-2' },
+							},
+							{
+								id: 'ul-dataField-4',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'unlink-test',
+			spaces: [
+				{
+					$id: 'ul-space-1',
+					dataFields: [
+						{
+							$op: 'unlink',
+							values: [
+								{
+									$op: 'unlink',
+								},
+							],
+							expression: {
+								$op: 'unlink',
+							},
+						},
+					],
+				},
+			],
+		});
+
+		const unlinked = await bormClient.query({
+			$entity: 'User',
+			$id: 'unlink-test',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(unlinked, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'ul-space-1',
+					id: 'ul-space-1',
+
+					$thing: 'Space',
+					$thingType: 'entity',
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'unlink-test',
+			id: 'unlink-test',
+		});
+
+		// cleaning
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				$id: 'unlink-test',
+				$op: 'delete',
+				spaces: [
+					{
+						$id: 'ul-space-1',
+						$op: 'delete',
+					},
+				],
+			},
+		]);
+	});
+
+	it('up-pq1[update with pre query, intermediary, nested] update mutation from root and delete children with intermediary', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				id: 'update-test',
+				spaces: [
+					{
+						id: 'up-space-1',
+						dataFields: [
+							{
+								id: 'up-dataField-1',
+								values: [
+									{
+										id: 'up-dataValue-1',
+									},
+								],
+								expression: { id: 'up-expression-1' },
+							},
+							{
+								id: 'up-dataField-2',
+								values: [{ id: 'up-dataValue-2' }],
+							},
+							{
+								id: 'up-dataField-3',
+								expression: { id: 'up-expression-2' },
+							},
+							{
+								id: 'up-dataField-4',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'update-test',
+			spaces: [
+				{
+					$id: 'up-space-1',
+					dataFields: [
+						{
+							$op: 'update',
+							type: 'test-type',
+							values: [
+								{
+									$op: 'update',
+									type: 'test-type',
+								},
+							],
+							expression: {
+								$op: 'update',
+								value: 'test-value',
+							},
+						},
+					],
+				},
+			],
+		});
+
+		const unlinked = await bormClient.query({
+			$entity: 'User',
+			$id: 'update-test',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: [
+								'id',
+								'type',
+								{ $path: 'values', $fields: ['id', 'dataFields', 'type'] },
+								{ $path: 'expression', $fields: ['id', 'value'] },
+							],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(unlinked, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'up-space-1',
+					id: 'up-space-1',
+					$thing: 'Space',
+					$thingType: 'entity',
+					dataFields: [
+						{
+							$id: 'up-dataField-1',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'test-type',
+							expression: {
+								$id: 'up-expression-1',
+								$thing: 'Expression',
+								$thingType: 'relation',
+								id: 'up-expression-1',
+								value: 'test-value',
+							},
+							id: 'up-dataField-1',
+							values: [
+								{
+									$id: 'up-dataValue-1',
+									$thing: 'DataValue',
+									$thingType: 'relation',
+									id: 'up-dataValue-1',
+									type: 'test-type',
+								},
+							],
+						},
+						{
+							$id: 'up-dataField-2',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							id: 'up-dataField-2',
+							type: 'test-type',
+
+							values: [
+								{
+									$id: 'up-dataValue-2',
+									$thing: 'DataValue',
+									$thingType: 'relation',
+									id: 'up-dataValue-2',
+									type: 'test-type',
+								},
+							],
+						},
+						{
+							$id: 'up-dataField-3',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'test-type',
+
+							expression: {
+								$id: 'up-expression-2',
+								$thing: 'Expression',
+								$thingType: 'relation',
+								id: 'up-expression-2',
+								value: 'test-value',
+							},
+							id: 'up-dataField-3',
+						},
+						{
+							$id: 'up-dataField-4',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							id: 'up-dataField-4',
+							type: 'test-type',
+						},
+					],
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'update-test',
+			id: 'update-test',
+		});
+
+		// cleaning
+		await bormClient.mutate([
+			{
+				$entity: 'User',
+				$id: 'update-test',
+				$op: 'delete',
+				spaces: [
+					{
+						$id: 'up-space-1',
+						$op: 'delete',
+						dataFields: [{ $op: 'delete', values: [{ $op: 'delete' }], expression: { $op: 'delete' } }],
+					},
+				],
+			},
+		]);
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity

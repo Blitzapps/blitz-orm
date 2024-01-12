@@ -339,6 +339,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 								};
 
 								operationsArray.forEach((operation) => {
+									if (!operation) {
+										return;
+									}
 									const op = getOp(operation.$op);
 									/// validations
 									if (op === 'replace') {
