@@ -1244,7 +1244,8 @@ describe('Mutations: Edges', () => {
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG1',
-			tags: ['tag-1', 'tag-2'], //no color
+			tags: ['tag-1', 'tag-2'],
+			//no color
 		});
 		await bormClient.mutate({
 			$relation: 'UserTagGroup',
@@ -1288,7 +1289,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		//clean changes by deleting the new tmpUTG
+		//clean changes by deleting the new tmpUTGs
 		await bormClient.mutate({
 			$relation: 'UserTagGroup',
 			$id: ['tmpUTG1', 'tmpUTG2'],
