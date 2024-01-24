@@ -25,8 +25,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		insertion?: string;
 		op: string;
 	} => {
-		// console.log('--------nodeToTypeQL-----------');
-		// console.log('id', node.$id);
 		const op = node.$op as string;
 		const bzId = `$${node.$bzId}`;
 		const currentSchema = getCurrentSchema(schema, node);
@@ -208,16 +206,19 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		// console.log('roles', roles);
 
+		const edgeType = node[Symbol.for('edgeType') as any];
+		if (!edgeType) {
+			throw new Error('[internal error] Symbol edgeType not defined');
+		}
+
 		const relationTql = !roles
 			? ''
 			: `${bzId} ${roles} ${
-					node[Symbol.for('edgeType') as any] === 'linkField' || op === 'delete' || op === 'unlink'
-						? `isa ${relationDbPath}`
-						: ''
+					edgeType === 'linkField' || op === 'delete' || op === 'unlink' ? `isa ${relationDbPath}` : ''
 			  }`;
 
 		const relationTqlWithoutRoles = `${bzId}  ${
-			node[Symbol.for('edgeType') as any] === 'linkField' || op === 'delete' ? `isa ${relationDbPath}` : ''
+			edgeType === 'linkField' || op === 'delete' ? `isa ${relationDbPath}` : ''
 		}`;
 
 		const getInsertionsInEdges = () => {
