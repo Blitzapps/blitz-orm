@@ -269,7 +269,7 @@ export const getCurrentSchema = (
 		}
 		return schema.relations[node.$relation] as EnrichedBormRelation;
 	}
-	throw new Error(`Wrong schema or query for ${JSON.stringify(node)}`);
+	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
 type ReturnTypeWithoutNode = {

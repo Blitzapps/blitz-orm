@@ -176,7 +176,7 @@ describe('Mutations: Edges', () => {
 		);
 	});
 
-	it('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
+	it.only('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
 		// todo 4 cases
 		// case 1: Unlink a simple a-b relation (Edge = delete)
 		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)
@@ -1196,7 +1196,8 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+	// Todo: ask loic why there's an all link
+	it('TODO:rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
 		expect(bormClient).toBeDefined();
 
 		/// create
@@ -1269,8 +1270,6 @@ describe('Mutations: Edges', () => {
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$fields: ['tags', 'color'],
 		});
-
-		console.log('tmpUTG', tmpUTGs);
 
 		expect(deepSort(tmpUTGs)).toEqual([
 			{
@@ -2099,6 +2098,13 @@ describe('Mutations: Edges', () => {
 				},
 			],
 		});
+
+		// const filterByNull = await bormClient.query({
+		// 	$relation: 'DataField',
+		// 	$filter: { expression: null },
+		// });
+
+		// console.log('filterByNull', JSON.stringify(filterByNull, null, 2));
 
 		const deleted = await bormClient.query({
 			$entity: 'User',

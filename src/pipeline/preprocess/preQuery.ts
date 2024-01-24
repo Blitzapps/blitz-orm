@@ -4,6 +4,7 @@ import type { FilledBQLMutationBlock } from '../../types';
 import { queryPipeline, type PipelineOperation } from '../pipeline';
 import { current, original, produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
+import { getCurrentSchema } from '../../helpers';
 
 // todo: nested replaces
 // todo: nested deletions
@@ -11,7 +12,7 @@ export const preQueryPathSeparator = '___';
 
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
 export const preQuery: PipelineOperation = async (req) => {
-	const { filledBqlRequest, config } = req;
+	const { filledBqlRequest, config, schema } = req;
 
 	if (!filledBqlRequest) {
 		throw new Error('[BQLE-M-0] No filledBqlRequest found');
@@ -97,7 +98,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		if (parent.$objectPath) {
 			const { $objectPath } = parent;
 
-			const root = $objectPath.beforePath || 'root';
+			const root = $objectPath?.beforePath || 'root';
 			const ids = Array.isArray($objectPath.ids) ? `[${$objectPath.ids}]` : $objectPath.ids;
 			const final = `${root}.${ids}___${$objectPath.key}`;
 
@@ -119,10 +120,10 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 
 	const objectPathToKey = ($objectPath: ObjectPath, hardId?: string) => {
-		const root = $objectPath.beforePath || 'root';
-		const ids = hardId ? hardId : Array.isArray($objectPath.ids) ? `[${$objectPath.ids}]` : $objectPath.ids;
+		const root = $objectPath?.beforePath || 'root';
+		const ids = hardId ? hardId : Array.isArray($objectPath?.ids) ? `[${$objectPath?.ids}]` : $objectPath?.ids;
 
-		const final = `${root}.${ids}___${$objectPath.key}`;
+		const final = `${root}.${ids}___${$objectPath?.key}`;
 		return final;
 	};
 
@@ -372,7 +373,9 @@ export const preQuery: PipelineOperation = async (req) => {
 					const toRemove: { $bzId: string; key: string }[] = [];
 
 					values.forEach((thing) => {
-						if (thing.$op === 'delete' && !thing.$id) {
+						const currentSchema = getCurrentSchema(schema, thing);
+						const ops = ['delete', 'update', 'unlink'];
+						if (ops.includes(thing.$op) && !thing.$id) {
 							const cacheKey = objectPathToKey(thing.$objectPath);
 							if (cache[cacheKey]) {
 								const cachePath = Array.isArray(cache[cacheKey]) ? cache[cacheKey] : [cache[cacheKey]];
@@ -443,8 +446,20 @@ export const preQuery: PipelineOperation = async (req) => {
 											replaceKeys[key] = Array.isArray(cacheHas) ? newOps : newOps[0];
 										}
 									});
+									const filterThing = (key: string) => {
+										if (key.startsWith('$')) {
+											return true;
+										}
+										if (currentSchema.dataFields?.find((o) => o.path === key)) {
+											return true;
+										}
+										// @ts-expect-error todo
+										if (currentSchema.roles[key]) {
+											return true;
+										}
+									};
 									const thingWithOutKeys = Object.keys(thing)
-										.filter((key) => key.startsWith('$')) // Keep only keys that start with '$'
+										.filter(filterThing) // Keep only keys that start with '$'
 										.reduce((newObj, key) => {
 											// @ts-expect-error todo
 											// eslint-disable-next-line no-param-reassign
@@ -529,7 +544,95 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 	newFilled = fillPaths(newFilled);
 
-	// console.log('pruned: ', JSON.stringify(newFilled, null, 2));
+	console.log('pruned: ', JSON.stringify(newFilled, null, 2));
 
 	req.filledBqlRequest = newFilled;
 };
+
+// const splitBzIds = (blocks: FilledBQLMutationBlock[]) => {
+// 	const processOperationBlock = (operationBlock: FilledBQLMutationBlock) => {
+// 		const newBlock: FilledBQLMutationBlock = { ...operationBlock, $bzId: `T_${uuidv4()}` };
+// 		const currentSchema = getCurrentSchema(schema, operationBlock);
+// 		Object.keys(operationBlock)
+// 			// field must be a roleField or linkField
+// 			.filter((fieldKey) => !fieldKey.includes('$') && !currentSchema.dataFields?.some((o) => o.path === fieldKey))
+// 			.forEach((fieldKey) => {
+// 				const operationBlocks: FilledBQLMutationBlock[] = Array.isArray(operationBlock[fieldKey])
+// 					? operationBlock[fieldKey]
+// 					: [operationBlock[fieldKey]];
+// 				let newOperationBlocks: FilledBQLMutationBlock[] = [];
+// 				const fieldsWithoutMultiples: FilledBQLMutationBlock[] = [];
+// 				const fieldsWithMultiples = operationBlocks.filter((operationBlock) => {
+// 					const ops = ['delete', 'update', 'unlink'];
+// 					// Block must have one of the above operations
+// 					const isCorrectOp = ops.includes(operationBlock.$op || '');
+// 					// Block must either not have $id, have an array of $ids, or have a filter
+// 					const isMultiple = !operationBlock.$id || Array.isArray(operationBlock.$id) || operationBlock.$filter;
+// 					if (isCorrectOp && isMultiple) {
+// 						return true;
+// 					} else {
+// 						fieldsWithoutMultiples.push(operationBlock);
+// 					}
+// 				});
+
+// 				if (fieldsWithMultiples.length > 0) {
+// 					fieldsWithMultiples.forEach((opBlock) => {
+// 						const getAllKeyCombinations = (obj: any) => {
+// 							// Get all keys, but only use non-$ keys for generating combinations
+// 							const allKeys = Object.keys(obj);
+// 							const _currentSchema = getCurrentSchema(schema, opBlock);
+
+// 							const combinableKeys = allKeys.filter(
+// 								(fieldKey) => !fieldKey.includes('$') && !_currentSchema.dataFields?.some((o) => o.path === fieldKey),
+// 							);
+
+// 							const allCombinations: any[] = [];
+
+// 							const generateCombinations = (index: number, currentObj: any) => {
+// 								if (index === combinableKeys.length) {
+// 									// Add back the $ keys to each combination
+// 									const fullObj = allKeys.reduce((acc, key) => {
+// 										if (key.startsWith('$') || key in currentObj) {
+// 											// @ts-expect-error todo
+// 											// eslint-disable-next-line no-param-reassign
+// 											acc[key] = obj[key];
+// 										}
+// 										return acc;
+// 									}, {});
+// 									allCombinations.push(fullObj);
+// 									return;
+// 								}
+
+// 								// Include the current key
+// 								const newObjInclude = {
+// 									...currentObj,
+// 									[combinableKeys[index]]: obj[combinableKeys[index]],
+// 								};
+// 								generateCombinations(index + 1, newObjInclude);
+
+// 								// Exclude the current key and move to the next
+// 								generateCombinations(index + 1, currentObj);
+// 							};
+
+// 							generateCombinations(0, {});
+// 							return allCombinations as BQLMutationBlock[];
+// 						};
+// 						const allCombinations = getAllKeyCombinations(opBlock);
+// 						const returnFields = allCombinations.length > 0 ? allCombinations : fieldsWithMultiples;
+// 						// @ts-expect-error todo
+// 						newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields].map(processOperationBlock);
+// 					});
+// 				} else {
+// 					newOperationBlocks = operationBlocks.map(processOperationBlock);
+// 				}
+// 				newBlock[fieldKey] = newOperationBlocks;
+// 			});
+// 		return newBlock;
+// 	};
+
+// 	// For each root block in a potentially batched mutation
+// 	const splitBlocks = blocks.map((block) => {
+// 		return processOperationBlock(block);
+// 	});
+// 	return splitBlocks;
+// };
