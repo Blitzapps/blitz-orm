@@ -176,7 +176,7 @@ describe('Mutations: Edges', () => {
 		);
 	});
 
-	it.only('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
+	it('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
 		// todo 4 cases
 		// case 1: Unlink a simple a-b relation (Edge = delete)
 		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)

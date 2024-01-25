@@ -326,8 +326,6 @@ describe('Mutations: Init', () => {
 	});
 	it('b3rn[delete, relation, nested] Basic', async () => {
 		expect(bormClient).toBeDefined();
-		console.log('=====| Creating...');
-
 		await bormClient.mutate({
 			$relation: 'User-Accounts',
 			id: 'r1',
@@ -341,7 +339,7 @@ describe('Mutations: Init', () => {
 				],
 			},
 		});
-		const first = await bormClient.mutate({
+		await bormClient.mutate({
 			$relation: 'User-Accounts',
 			$id: 'r1',
 			user: {
@@ -352,7 +350,6 @@ describe('Mutations: Init', () => {
 				],
 			},
 		});
-		console.log('=====| First mutation...', JSON.stringify(first, null, 2));
 
 		const res2 = await bormClient.query(
 			{
@@ -376,7 +373,7 @@ describe('Mutations: Init', () => {
 			},
 		});
 
-		const second = await bormClient.mutate({
+		await bormClient.mutate({
 			$relation: 'User-Accounts',
 			$id: 'r1',
 			user: {
@@ -387,7 +384,6 @@ describe('Mutations: Init', () => {
 				],
 			},
 		});
-		console.log('=====| Second mutation...', JSON.stringify(second, null, 2));
 
 		const res3 = await bormClient.query(
 			{
@@ -411,7 +407,6 @@ describe('Mutations: Init', () => {
 				'user-tags': [{ id: 'ustag1' }],
 			},
 		});
-		console.log('=====| Cleaning...');
 
 		/// clean user
 		await bormClient.mutate([

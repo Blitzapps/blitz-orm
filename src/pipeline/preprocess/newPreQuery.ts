@@ -9,6 +9,50 @@ import { v4 as uuidv4 } from 'uuid';
 export const preQueryPathSeparator = '___';
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
 
+const getSymbols = (oldBlock: FilledBQLMutationBlock) => {
+	// console.log({ oldBlock });
+	const symbols = {
+		...(oldBlock[Symbol.for('relation') as any] && {
+			[Symbol.for('relation') as any]: oldBlock[Symbol.for('relation') as any],
+		}),
+		...(oldBlock[Symbol.for('parent') as any] && {
+			[Symbol.for('parent') as any]: oldBlock[Symbol.for('parent') as any],
+		}),
+		...(oldBlock[Symbol.for('edgeType') as any] && {
+			[Symbol.for('edgeType') as any]: oldBlock[Symbol.for('edgeType') as any],
+		}),
+		...(oldBlock[Symbol.for('role') as any] && {
+			[Symbol.for('role') as any]: oldBlock[Symbol.for('role') as any],
+		}),
+		...(oldBlock[Symbol.for('oppositeRole') as any] && {
+			[Symbol.for('oppositeRole') as any]: oldBlock[Symbol.for('oppositeRole') as any],
+		}),
+		...(oldBlock[Symbol.for('relFieldSchema') as any] && {
+			[Symbol.for('relFieldSchema') as any]: oldBlock[Symbol.for('relFieldSchema') as any],
+		}),
+		...(oldBlock[Symbol.for('path') as any] && {
+			[Symbol.for('path') as any]: oldBlock[Symbol.for('path') as any],
+		}),
+		...(oldBlock[Symbol.for('isRoot') as any] && {
+			[Symbol.for('isRoot') as any]: oldBlock[Symbol.for('isRoot') as any],
+		}),
+		...(oldBlock[Symbol.for('depth') as any] && {
+			[Symbol.for('depth') as any]: oldBlock[Symbol.for('depth') as any],
+		}),
+		...(oldBlock[Symbol.for('schema') as any] && {
+			[Symbol.for('schema') as any]: oldBlock[Symbol.for('schema') as any],
+		}),
+		...(oldBlock[Symbol.for('dbId') as any] && {
+			[Symbol.for('dbId') as any]: oldBlock[Symbol.for('dbId') as any],
+		}),
+		...(oldBlock[Symbol.for('index') as any] && {
+			[Symbol.for('index') as any]: oldBlock[Symbol.for('index') as any],
+		}),
+	};
+
+	return symbols;
+};
+
 export const newPreQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config, schema } = req;
 
@@ -35,7 +79,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 		throw new Error('[BQLE-M-0] No filledBqlRequest found');
 	}
 
-	console.log('filledBql: ', JSON.stringify(filledBqlRequest, null, 2));
+	// console.log('filledBql: ', JSON.stringify(filledBqlRequest, null, 2));
 
 	// 1. Check config for pre-query === true
 	// todo: If false, remove the replace conversion in enrich step
@@ -198,10 +242,13 @@ export const newPreQuery: PipelineOperation = async (req) => {
 	};
 
 	// 3. Create cache of paths
-	type Cache<K extends string, V extends string> = {
-		[key in K]: V;
+	type Cache<K extends string> = {
+		[key in K]: {
+			$objectPath: ObjectPath;
+			$ids: string[];
+		};
 	};
-	const cache: Cache<string, string> = {};
+	const cache: Cache<string> = {};
 	const cachePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -239,7 +286,6 @@ export const newPreQuery: PipelineOperation = async (req) => {
 							// eslint-disable-next-line no-param-reassign
 							val.$objectPath = newObjPath;
 						} else if (val) {
-							// @ts-expect-error todo
 							cache[cacheKey] = { $objectPath: newObjPath, $ids: [val.toString()] };
 						}
 					}
@@ -297,15 +343,15 @@ export const newPreQuery: PipelineOperation = async (req) => {
 		) => {
 			let processIds: FilledBQLMutationBlock[] = [];
 			operationBlocks.forEach((operationBlock) => {
+				// console.log('processBlocks.first for each', operationBlock);
 				const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
-
 				if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
 					const splitBlocksById = operationBlock.$id.map((id) => {
 						return { ...operationBlock, $id: id };
 					});
 					processIds = [...processIds, ...splitBlocksById];
 				} else {
-					processIds.push(operationBlock);
+					processIds.push({ ...operationBlock });
 				}
 			});
 			let newOperationBlocks: FilledBQLMutationBlock[] = [];
@@ -321,10 +367,10 @@ export const newPreQuery: PipelineOperation = async (req) => {
 				if (isMultiple && isCorrectOp) {
 					return true;
 				} else {
-					fieldsWithoutMultiples.push(operationBlock);
+					fieldsWithoutMultiples.push({ ...operationBlock });
 				}
 			});
-
+			// console.log('fields', { fieldsWithMultiples, fieldsWithoutMultiples });
 			if (fieldsWithMultiples.length > 0) {
 				fieldsWithMultiples.forEach((opBlock) => {
 					const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
@@ -348,14 +394,17 @@ export const newPreQuery: PipelineOperation = async (req) => {
 							}
 
 							// Include the current key
-							const newObjInclude = { ...currentObj, [combinableKeys[index]]: obj[combinableKeys[index]] };
+							const newObjInclude = {
+								...currentObj,
+								[combinableKeys[index]]: obj[combinableKeys[index]],
+								...getSymbols(currentObj),
+							};
 							generateCombinations(index + 1, newObjInclude);
 
 							// Exclude the current key and move to the next
 							generateCombinations(index + 1, currentObj);
 						};
-						// @ts-expect-error todo
-						generateCombinations(0, {});
+						generateCombinations(0, { ...getSymbols(obj) });
 
 						return allCombinations;
 					};
@@ -367,7 +416,6 @@ export const newPreQuery: PipelineOperation = async (req) => {
 					let included: string[] = [];
 					const emptyObjCKey = objectPathToKey(opBlock.$objectPath);
 					const cacheR = cache[emptyObjCKey];
-					// @ts-expect-error todo
 					let remaining: string[] = cacheR ? cache[emptyObjCKey].$ids : [];
 					const combinationsFromCache = allCombinations
 						.map((combination: FilledBQLMutationBlock, index: number) => {
@@ -454,23 +502,49 @@ export const newPreQuery: PipelineOperation = async (req) => {
 								const newOp = {
 									...combination,
 									$id: remaining,
+									$bzId: `T_${uuidv4()}`,
+									...getSymbols(combination),
 								};
 								return newOp;
 							} else if (filteredCommonIds.length > 0) {
 								const newOp = {
 									...combination,
 									$id: filteredCommonIds,
+									$bzId: `T_${uuidv4()}`,
+									...getSymbols(combination),
 								};
 								return newOp;
 							}
 						})
 						.filter((combination) => combination !== undefined);
-					// console.log('combinationsFromCache', JSON.stringify(combinationsFromCache, null, 2));
-					const returnFields =
-						combinationsFromCache.length === 0 && !parentOperationBlock?.$id
-							? fieldsWithMultiples
-							: combinationsFromCache;
-					// @ts-expect-error todo
+					// todo: issue is that the child does not have the parent ids in it's object path
+					// console.log(
+					// 	'combinationsFromCache',
+					// 	JSON.stringify({ combinationsFromCache, emptyObjCKey, parentOperationBlock, opBlock }, null, 2),
+					// );
+
+					const getReturnFields = () => {
+						if (combinationsFromCache.length === 0 && !parentOperationBlock?.$id) {
+							return fieldsWithMultiples;
+						} else if (combinationsFromCache.length === 0 && parentOperationBlock?.$id) {
+							const parentIds = Array.isArray(parentOperationBlock.$id)
+								? parentOperationBlock.$id
+								: [parentOperationBlock.$id];
+							const newOps: FilledBQLMutationBlock[] = [];
+							parentIds.forEach((id) => {
+								const cKey = objectPathToKey({ ...opBlock.$objectPath, ids: id });
+								const found = cache[cKey];
+								if (found) {
+									newOps.push({ ...opBlock, $id: found.$ids, ...getSymbols(opBlock), $bzId: `T_${uuidv4()}` });
+								}
+							});
+							return newOps;
+						} else {
+							return combinationsFromCache;
+						}
+					};
+					const returnFields = getReturnFields();
+
 					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields].map(processOperationBlock);
 				});
 			} else {
@@ -479,7 +553,11 @@ export const newPreQuery: PipelineOperation = async (req) => {
 			return newOperationBlocks;
 		};
 		const processOperationBlock = (operationBlock: FilledBQLMutationBlock) => {
-			const newBlock: FilledBQLMutationBlock = { ...operationBlock, $bzId: `T_${uuidv4()}` };
+			const newBlock: FilledBQLMutationBlock = {
+				...operationBlock,
+				$bzId: `T_${uuidv4()}`,
+				...getSymbols(operationBlock),
+			};
 			const currentSchema = getCurrentSchema(schema, operationBlock);
 			Object.keys(operationBlock)
 				// field must be a roleField or linkField
@@ -498,9 +576,9 @@ export const newPreQuery: PipelineOperation = async (req) => {
 		blocks.forEach((block) => {
 			newBlocks = [...newBlocks, ...processBlocks([block])];
 		});
-		// todo: if the original blocks are the same keys, then find a way to keep them the same (without ids), but with their children processed
-
-		const splitBlocks = newBlocks.map(processOperationBlock);
+		const splitBlocks = newBlocks.map((block) => {
+			return processOperationBlock(block);
+		});
 		return splitBlocks;
 	};
 
@@ -517,51 +595,110 @@ export const newPreQuery: PipelineOperation = async (req) => {
 			fields.forEach((field) => {
 				const opBlocks: FilledBQLMutationBlock[] = Array.isArray(block[field]) ? block[field] : [block[field]];
 				const newOpBlocks: FilledBQLMutationBlock[] = [];
-				// todo: create an array of ids being added as links, to filter from the unlinks
+				let replaceIds: string[] = [];
+				// todo: Step 1, get all replaces and their ids as replaceIds, just push blocks that aren't replaces
+				// @ts-expect-error todo
+				let replaceBlock: FilledBQLMutationBlock = {};
 				opBlocks.forEach((opBlock) => {
-					if (opBlock.$op === 'replace') {
-						const cacheKey = objectPathToKey(opBlock.$objectPath);
-						const cacheKeys = convertManyPaths(cacheKey);
-						const foundKeys = cacheKeys.map((cacheKey) => {
-							return cache[cacheKey];
-						});
-						// console.log('foundKeys: ', JSON.stringify(foundKeys, null, 2));
-
-						const cacheFound = foundKeys.length === cacheKeys.length;
-						const linksToNotInclude: string[] = [];
-						// 1. Generate unlinks based on the pre-query
-						if (cacheFound) {
-							foundKeys.forEach((foundKey) => {
-								if (foundKey) {
-									const unlinkIds: string[] = [];
-									// @ts-expect-error todo
-									foundKey.$ids
-										.filter((id: string) => {
-											linksToNotInclude.push(id);
-											return id !== opBlock.$id;
-										})
-										.forEach((id: string) => {
-											unlinkIds.push(id);
-										});
-									newOpBlocks.push({ ...opBlock, $op: 'unlink', $id: unlinkIds, $bzId: `T_${uuidv4()}` });
-								}
-							});
+					if (opBlock.$op === 'replace' && opBlock.$id) {
+						// eslint-disable-next-line prefer-destructuring
+						replaceBlock = opBlock;
+						if (Array.isArray(opBlock.$id)) {
+							replaceIds = [...replaceIds, ...opBlock.$id];
+						} else {
+							replaceIds.push(opBlock.$id);
 						}
-						if (
-							Array.isArray(opBlock.$id)
-								? !opBlock.$id.every((id) => linksToNotInclude.includes(id))
-								: // @ts-expect-error todo
-								  !linksToNotInclude.includes(opBlock.$id)
-						) {
-							// 2. Generate link based on the pre-query
-							newOpBlocks.push({ ...opBlock, $op: 'link', $bzId: `T_${uuidv4()}` });
-						}
-
-						// console.log('cacheFound', JSON.stringify({ cacheFound, cacheKey }, null, 2));
 					} else {
 						newOpBlocks.push(opBlock);
 					}
 				});
+				const cacheKey = objectPathToKey(replaceBlock.$objectPath);
+				const cacheKeys = convertManyPaths(cacheKey);
+				const foundKeys = cacheKeys.map((cacheKey) => {
+					return cache[cacheKey];
+				});
+				// todo: Step 2, get cacheIds for this
+				let cacheIds: string[] = [];
+				foundKeys
+					.filter((k) => k !== null && k !== undefined)
+					.forEach((key) => {
+						cacheIds = [...cacheIds, ...key.$ids];
+					});
+
+				// todo: Step 3, unlinkIds contain all cacheIds that aren't found in replaceIds
+				const unlinkIds = cacheIds.filter((id) => !replaceIds.includes(id));
+				const linkIds = replaceIds.filter((id) => !cacheIds.includes(id));
+				const symbols = getSymbols(replaceBlock);
+				if (unlinkIds.length > 0) {
+					newOpBlocks.push({
+						...replaceBlock,
+						$op: 'unlink',
+						$id: unlinkIds,
+						$bzId: `T_${uuidv4()}`,
+						...symbols,
+					});
+				}
+				if (linkIds.length > 0) {
+					newOpBlocks.push({
+						...replaceBlock,
+						$op: 'link',
+						$id: linkIds,
+						$bzId: `T_${uuidv4()}`,
+						...symbols,
+					});
+				}
+
+				// todo: Step 4, linkIds are all replaceIds that aren't found in the cacheIds
+
+				// opBlocks.forEach((opBlock) => {
+				// 	if (opBlock.$op === 'replace') {
+				// 		const cacheKey = objectPathToKey(opBlock.$objectPath);
+				// 		const cacheKeys = convertManyPaths(cacheKey);
+				// 		const foundKeys = cacheKeys.map((cacheKey) => {
+				// 			return cache[cacheKey];
+				// 		});
+				// 		otherReplaces.push(opBlock.$id);
+				// 		// console.log('foundKeys: ', JSON.stringify(foundKeys, null, 2));
+
+				// 		const cacheFound = foundKeys.length === cacheKeys.length;
+				// 		const linksToNotInclude: string[] = [];
+				// 		// 1. Generate unlinks based on the pre-query
+				// 		if (cacheFound) {
+				// 			foundKeys.forEach((foundKey) => {
+				// 				if (foundKey) {
+				// 					const unlinkIds: string[] = [];
+				// 					// @ts-expect-error todo
+				// 					foundKey.$ids
+				// 						.filter((id: string) => {
+				// 							linksToNotInclude.push(id);
+
+				// 							return id !== opBlock.$id && !opBlocks.find((b) => b.$op === 'replace' && b.$id === id);
+				// 						})
+				// 						.forEach((id: string) => {
+				// 							unlinkIds.push(id);
+				// 						});
+				// 					// todo: find is not working
+				// 					if (!newOpBlocks.find((b) => b.$op === 'unlink' && b.$id === unlinkIds)) {
+				// 						newOpBlocks.push({ ...opBlock, $op: 'unlink', $id: unlinkIds, $bzId: `T_${uuidv4()}` });
+				// 					}
+				// 				}
+				// 			});
+				// 		}
+				// 		if (
+				// 			Array.isArray(opBlock.$id)
+				// 				? !opBlock.$id.every((id) => linksToNotInclude.includes(id))
+				// 				: // @ts-expect-error todo
+				// 				  !linksToNotInclude.includes(opBlock.$id)
+				// 		) {
+				// 			// 2. Generate link based on the pre-query
+				// 			newOpBlocks.push({ ...opBlock, $op: 'link', $bzId: `T_${uuidv4()}` });
+				// 		}
+
+				// 		// console.log('cacheFound', JSON.stringify({ cacheFound, cacheKey }, null, 2));
+				// 	} else {
+				// 		newOpBlocks.push(opBlock);
+				// 	}
+				// });
 
 				newBlock[field] = processReplaces(newOpBlocks);
 			});
@@ -615,16 +752,14 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						const processArrayIdsFound = (arrayOfIds: string[], cacheOfIds: string[]) => {
 							return arrayOfIds.every((id) => cacheOfIds.includes(id));
 						};
+						// console.log('info:', JSON.stringify({ cacheFound, thing }, null, 2));
 
 						const isOccupied = thing.$id
 							? Array.isArray(thing.$id)
-								? // @ts-expect-error todo
-								  processArrayIdsFound(thing.$id, cacheFound.$ids)
-								: // @ts-expect-error todo
-								  cacheFound?.$ids.includes(thing.$id)
+								? processArrayIdsFound(thing.$id, cacheFound ? cacheFound.$ids : [])
+								: cacheFound?.$ids.includes(thing.$id)
 							: cacheFound;
 						const cardinality = findCardinality();
-						// console.log('isOccupied', JSON.stringify({ cacheFound, isOccupied, thing }, null, 2));
 
 						if (thing.$op === 'link' && isOccupied && cardinality === 'ONE') {
 							throw new Error(
@@ -727,6 +862,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 	};
 
 	const final = fillPaths(processedReplaces);
-	console.log('final', JSON.stringify(final, null, 2));
+	// console.log('final', JSON.stringify(final, null, 2));
+
 	req.filledBqlRequest = final;
 };
