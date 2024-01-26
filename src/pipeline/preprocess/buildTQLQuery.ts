@@ -1,112 +1,286 @@
-import { listify } from 'radash';
-
-import { getLocalFilters } from '../../helpers';
 import type { PipelineOperation } from '../pipeline';
 
-export const buildTQLQuery: PipelineOperation = async (req) => {
-	const { schema, bqlRequest } = req;
-	if (!bqlRequest?.query) {
-		throw new Error('BQL query not parsed');
-	}
-	const { query } = bqlRequest;
-	const currentThingSchema = '$entity' in query ? query.$entity : query.$relation;
+const separator = '___';
 
-	const thingPath = currentThingSchema.defaultDBConnector.path || currentThingSchema.name;
-	if (!thingPath) {
-		throw new Error(`No thing path in ${JSON.stringify(currentThingSchema)}`);
+export const newBuildTQLQuery: PipelineOperation = async (req) => {
+	const { enrichedBqlQuery } = req;
+	if (!enrichedBqlQuery) {
+		throw new Error('BQL query not enriched');
 	}
 
-	// todo: composite Ids
-	if (!currentThingSchema.idFields) {
-		throw new Error('No id fields');
-	}
-	const [idField] = currentThingSchema.idFields;
-	const idParam = `$${thingPath}_id`;
-	let idFilter = `, has ${idField} ${idParam};`;
-	if (query.$id) {
-		if (Array.isArray(query.$id)) {
-			idFilter += ` ${idParam} like "${query.$id.join('|')}";`;
-		} else {
-			idFilter += ` ${idParam} "${query.$id}";`;
-		}
-	}
+	let tqlStr = '';
 
-	const localFiltersTql = getLocalFilters(currentThingSchema, query);
+	type ValueBlock = {
+		$thing: string;
+		$thingType: 'entity' | 'relation' | 'thing' | 'attribute';
+		$path?: string;
+		$as?: string;
+		$var?: string;
+		$fields?: ValueBlock[];
+		$filter?: object;
+		$fieldType?: 'data' | 'role' | 'link';
+	};
 
-	const allRoles =
-		'roles' in currentThingSchema
-			? listify(currentThingSchema.roles, (k: string, v) => ({
-					path: k,
-					var: `$${k}`,
-					schema: v,
-			  }))
-			: [];
+	const processFilters = ($filter: object, $var: string) => {
+		let simpleHas = '';
+		let orHas = '';
 
-	// when typeQL stops combination: const queryStr = `match $${thingPath} ${rolesQuery} isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} get; group $${thingPath};`;
-	const queryStr = `match $${thingPath}  isa ${thingPath}, has attribute $attribute ${localFiltersTql} ${idFilter} get; group $${thingPath};`;
-
-	const rolesObj = allRoles.map((role) => {
-		// todo role played by multiple linkfields
-		// if all roles are played by the same thing, thats fine
-		if (!role.schema.playedBy || [...new Set(role.schema.playedBy?.map((x) => x.thing))].length !== 1) {
-			throw new Error('Unsupported: Role played by multiple linkfields or none');
-		}
-		const roleThingName = role.schema.playedBy[0].thing;
-		return {
-			path: role.path,
-			owner: thingPath,
-			request: `match $${thingPath} (${role.path}: ${role.var} ) isa ${thingPath} ${idFilter} ${role.var} isa ${roleThingName}, has id ${role.var}_id; get; group $${thingPath};`,
-		};
-	});
-	const relations = currentThingSchema.linkFields?.flatMap((linkField) => {
-		const relationIdParam = `$${linkField.plays}_id`;
-		let relationIdFilter = `, has ${idField} ${relationIdParam};`;
-		if (query.$id) {
-			if (Array.isArray(query.$id)) {
-				relationIdFilter += ` ${relationIdParam} like "${query.$id.join('|')}";`;
+		for (const key in $filter) {
+			// @ts-expect-error todo
+			const filterKey = $filter[key];
+			if (Array.isArray(filterKey)) {
+				for (let i = 0; i < filterKey.length; i++) {
+					orHas += `{$${$var} has ${key} "${filterKey[i]}";}`;
+					if (i < filterKey.length - 1) {
+						orHas += 'or';
+					} else {
+						orHas += ';';
+					}
+				}
 			} else {
-				relationIdFilter += ` ${relationIdParam} "${query.$id}";`;
+				simpleHas += `, has ${key} "${filterKey}"`;
 			}
 		}
-		const entityMatch = `match $${linkField.plays} isa ${thingPath}${localFiltersTql} ${relationIdFilter}`;
-		// if the target is the relation
-		const dirRel = linkField.target === 'relation'; // direct relation
-		const tarRel = linkField.relation;
-		const relVar = `$${tarRel}`;
+		simpleHas += '; \n';
+		tqlStr += simpleHas;
+		tqlStr += orHas;
+	};
 
-		const relationMatchStart = `${dirRel ? relVar : ''} (${linkField.plays}: $${linkField.plays}`;
-		const relationMatchOpposite = linkField.oppositeLinkFieldsPlayedBy.map((link) =>
-			!dirRel ? `${link.plays}: $${link.plays}` : null,
-		);
+	const processDataFields = (
+		dataFields: {
+			$path: string;
+			$dbPath: string;
+			$thingType: 'attribute';
+			$as: string;
+			$var: string;
+			$fieldType: 'data';
+			$justId: boolean;
+			$isVirtual: boolean;
+		}[],
+		$path: string,
+	) => {
+		const postStrParts = [];
+		const asMetaDataParts = [];
+		const virtualMetaDataParts = [];
 
-		const roles = [relationMatchStart, ...relationMatchOpposite].filter((x) => x).join(',');
+		let $asMetaData = '';
+		let $virtualMetaData = '';
 
-		if (schema.relations[linkField.relation] === undefined) {
-			throw new Error(`Relation ${linkField.relation} not found in schema`);
+		for (let i = 0; i < dataFields.length; i++) {
+			if (!dataFields[i].$isVirtual) {
+				postStrParts.push(` ${dataFields[i].$dbPath}`);
+			} else {
+				virtualMetaDataParts.push(`${dataFields[i].$dbPath}`);
+			}
+			asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
 		}
 
-		const relationPath = schema.relations[linkField.relation].defaultDBConnector.path || linkField.relation;
+		const postStr = `${postStrParts.join(',')};\n`;
+		$asMetaData = asMetaDataParts.join(',');
+		$virtualMetaData = virtualMetaDataParts.join(',');
 
-		const relationMatchEnd = `) isa ${relationPath};`;
+		const $metaData = `$metadata:{as:[${$asMetaData}],virtual:[${$virtualMetaData}]}`;
 
-		const relationIdFilters = linkField.oppositeLinkFieldsPlayedBy
-			.map(
-				// TODO: composite ids.
-				// TODO: Also id is not always called id
-				(link) =>
-					`$${dirRel ? link.thing : link.plays} isa ${link.thing}, has id $${dirRel ? link.thing : link.plays}_id;`,
-			)
-			.join(' ');
-
-		const group = `get; group $${linkField.plays};`;
-		const request = `${entityMatch} ${roles} ${relationMatchEnd} ${relationIdFilters} ${group}`;
-		return { relation: relationPath, entity: thingPath, request };
-	});
-
-	req.tqlRequest = {
-		entity: queryStr,
-		...(rolesObj?.length ? { roles: rolesObj } : {}),
-		...(relations?.length ? { relations } : {}),
+		tqlStr += `$${$path} as "${$path}.${$metaData}.$dataFields": `;
+		tqlStr += postStr;
 	};
-	// console.log('req.tqlRequest', req.tqlRequest);
+
+	const processRoleFields = (
+		roleFields: {
+			$path: string;
+			$dbPath: string;
+			$thingType: 'entity' | 'relation' | 'thing';
+			$as: string;
+			$var: string;
+			$fieldType: 'link';
+			$target: 'role' | 'relation';
+			$fields?: ValueBlock[];
+			$thing: string;
+			$plays: string;
+			$intermediary: string;
+			$justId: boolean;
+			$filter: object;
+			$idNotIncluded: boolean;
+			$filterByUnique: boolean;
+			$playedBy: any;
+		}[],
+		$path: string,
+		dotPath: string,
+	) => {
+		for (const roleField of roleFields) {
+			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique } = roleField;
+
+			const $metaData = `$metadata:{as:${$as},justId:${
+				$justId ? 'T' : 'F'
+			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
+			tqlStr += `"${dotPath}.${$metaData}.${roleField.$var}":{ \n`;
+			tqlStr += '\tmatch \n';
+			if (roleField.$filter) {
+				tqlStr += ` $${$path}${separator}${roleField.$var} isa ${roleField.$thing}`;
+				processFilters(roleField.$filter, roleField.$var);
+			}
+			tqlStr += `\t$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary}; \n`;
+
+			if ($fields) {
+				tqlStr += '\tfetch \n';
+			}
+			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+			if (dataFields && dataFields.length > 0) {
+				// @ts-expect-error todo
+				processDataFields(dataFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+			}
+
+			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+			if (linkFields && linkFields.length > 0) {
+				// @ts-expect-error todo
+				processLinkFields(linkFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+			}
+			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+			if (roleFields && roleFields.length > 0) {
+				// @ts-expect-error todo
+				processRoleFields(roleFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+			}
+			tqlStr += '}; \n';
+		}
+	};
+
+	const processLinkFields = (
+		linkFields: {
+			$path: string;
+			$dbPath: string;
+			$thingType: 'entity' | 'relation' | 'thing';
+			$as: string;
+			$var: string;
+			$fieldType: 'link';
+			$target: 'role' | 'relation';
+			$fields?: ValueBlock[];
+			$intermediary?: string;
+			$thing: string;
+			$plays: string;
+			$justId: boolean;
+			$filter: object;
+			$idNotIncluded: boolean;
+			$filterByUnique: boolean;
+			$playedBy: any;
+		}[],
+		$path: string,
+		dotPath: string,
+	) => {
+		for (const linkField of linkFields) {
+			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $playedBy } = linkField;
+			const $metaData = `$metadata:{as:${$as},justId:${
+				$justId ? 'T' : 'F'
+			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
+			tqlStr += `"${dotPath}.${$metaData}.${linkField.$var}":{ \n`;
+			tqlStr += '\tmatch \n';
+			if (linkField.$filter) {
+				tqlStr += ` $${$path}${separator}${linkField.$var} isa ${linkField.$thing}`;
+				processFilters(linkField.$filter, linkField.$var);
+			}
+			// a. intermediary
+			if (linkField.$target === 'role') {
+				tqlStr += `\t$${$path}_intermediary (${linkField.$plays}: $${$path}, ${$playedBy.plays}: $${$path}${separator}${linkField.$var}) isa ${linkField.$intermediary}; \n`;
+			} else {
+				// b. no intermediary
+				tqlStr += `\t$${$path}${separator}${linkField.$var} (${linkField.$plays}: $${$path}) isa ${linkField.$thing}; \n`;
+			}
+
+			if ($fields) {
+				tqlStr += '\tfetch \n';
+			}
+			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+			if (dataFields && dataFields.length > 0) {
+				// @ts-expect-error todo
+				processDataFields(dataFields, `${$path}${separator}${linkField.$var}`);
+			}
+
+			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+			if (linkFields && linkFields.length > 0) {
+				// @ts-expect-error todo
+				processLinkFields(linkFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
+			}
+
+			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+			if (roleFields && roleFields.length > 0) {
+				// @ts-expect-error todo
+				processRoleFields(roleFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
+			}
+			tqlStr += '}; \n';
+		}
+	};
+	const isBatched = enrichedBqlQuery.length > 1;
+	const tqlStrings: string[] = [];
+
+	const builder = (enrichedBqlQuery: ValueBlock[]) => {
+		// Batched
+		if (isBatched) {
+			for (const query of enrichedBqlQuery) {
+				const { $path, $thing, $filter, $fields } = query;
+				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				if ($filter) {
+					// @ts-expect-error todo
+					processFilters($filter, $path);
+				} else {
+					tqlStr += '; ';
+				}
+				if ($fields) {
+					tqlStr += 'fetch \n';
+				}
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, $path);
+				}
+
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, $path, $path);
+				}
+
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, $path, $path);
+				}
+				tqlStrings.push(tqlStr);
+				tqlStr = '';
+			}
+		} else {
+			for (const query of enrichedBqlQuery) {
+				const { $path, $thing, $filter, $fields } = query;
+				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				if ($filter) {
+					// @ts-expect-error todo
+					processFilters($filter, $path);
+				} else {
+					tqlStr += '; ';
+				}
+				if ($fields) {
+					tqlStr += 'fetch \n';
+				}
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, $path);
+				}
+
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, $path, $path);
+				}
+
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, $path, $path);
+				}
+			}
+		}
+	};
+	builder(enrichedBqlQuery);
+	// todo: type the tqlRequest
+	// @ts-expect-error todo
+	req.tqlRequest = isBatched ? tqlStrings : tqlStr;
 };

@@ -114,7 +114,8 @@ describe('Mutations: Init', () => {
 			id: firstUser.id,
 			name: 'Johns not',
 			email: 'john@test.com',
-			$entity: 'User',
+			$thing: 'User',
+			$thingType: 'entity',
 			$id: firstUser.id,
 		});
 	});
@@ -697,7 +698,7 @@ describe('Mutations: Init', () => {
 
 		expect(sessions).toEqual([
 			{
-				expires: new Date('2023-06-10T14:58:09.066Z'),
+				expires: '2023-06-10T14:58:09.066',
 				id: expect.any(String),
 				sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
 				user: 'user1',
@@ -1047,6 +1048,9 @@ describe('Mutations: Init', () => {
 				name: 'Antoine',
 			},
 			{
+				name: 'Beatrix Kiddo',
+			},
+			{
 				name: 'Ben',
 			},
 			{
@@ -1060,6 +1064,12 @@ describe('Mutations: Init', () => {
 			},
 			{
 				name: 'Loic',
+			},
+			{
+				name: 'Richard David James',
+			},
+			{
+				name: 'Tom Jenkinson',
 			},
 			{
 				name: 'updated',
@@ -1104,6 +1114,9 @@ describe('Mutations: Init', () => {
 				name: 'Antoine',
 			},
 			{
+				name: 'Beatrix Kiddo',
+			},
+			{
 				name: 'Ben',
 			},
 			{
@@ -1117,6 +1130,12 @@ describe('Mutations: Init', () => {
 			},
 			{
 				name: 'Loic',
+			},
+			{
+				name: 'Richard David James',
+			},
+			{
+				name: 'Tom Jenkinson',
 			},
 		]);
 	});

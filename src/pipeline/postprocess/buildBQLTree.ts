@@ -239,10 +239,12 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 				return;
 			}
 
+			// @ts-expect-error todo
 			const thingName = '$entity' in value ? value.$entity : value.$relation;
 			if (thingName) {
 				// INIT
 				const currentIds = Array.isArray(value.$id) ? value.$id : [value.$id];
+				// @ts-expect-error todo
 				const currentSchema = '$relation' in value ? schema.relations[value.$relation] : schema.entities[value.$entity];
 
 				const { dataFields, roleFields, fields } = getCurrentFields(currentSchema);
