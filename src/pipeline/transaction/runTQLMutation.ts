@@ -37,13 +37,17 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 
 	// does not receive a result
 	if (tqlDeletion) {
-		mutateTransaction.query.delete(tqlDeletion);
+		// console.log('DELETING: ', tqlDeletion);
+		await mutateTransaction.query.delete(tqlDeletion);
+		// console.log('X: ', x);
 	}
 
 	const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 
 	try {
 		const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
+		// console.log('INSERTION: ', insertionsRes);
+
 		await mutateTransaction.commit();
 		await mutateTransaction.close();
 		res.rawTqlRes = { insertions: insertionsRes };

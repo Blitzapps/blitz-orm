@@ -22,6 +22,7 @@ const parseMetaData = (str: string) => {
 		filterByUnique: filterByUniqueMatch ? filterByUniqueMatch[1] : null,
 	};
 };
+
 const parseArrayMetadata = (str: string) => {
 	try {
 		const convertToJson = (str: string) => {
@@ -80,263 +81,233 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 	// console.log('rawBqlRequest', JSON.stringify(rawBqlRequest, null, 2));
 
 	const parseDataFields = (dataFields: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
-		const dataFieldsRes: object = {};
 		const { $metaData } = dataFields;
-
 		const { as: $as, virtual } = parseArrayMetadata($metaData);
 
-		for (const key in dataFields) {
-			if (key !== 'type' && !key.includes('$')) {
-				const field = currentSchema.dataFields?.filter((field: any) => field.path === key || field.dbPath === key);
-				// todo: more idFields other than id
+		// Process the main data fields
+		const mainDataFields = Object.entries(dataFields)
+			.filter(([key]) => key !== 'type' && !key.includes('$'))
+			.map(([key, value]) => {
+				const field = currentSchema.dataFields?.find((f) => f.path === key || f.dbPath === key);
 				const isIdField = key === 'id';
-				const $asKey = Array.isArray($as) ? $as.find((o: any) => o[key])?.[key] : key;
-				if (field?.[0]?.cardinality === 'ONE') {
-					if (dataFields[key][0]) {
-						// @ts-expect-error todo
-						dataFieldsRes[$asKey] = dataFields[key][0].value;
-						if (isIdField && !config.query?.noMetadata) {
-							// @ts-expect-error todo
-							dataFieldsRes.$id = dataFields[key][0].value;
-						}
-					} else if (config.query?.returnNulls) {
-						// @ts-expect-error todo
-						dataFieldsRes[$asKey] = null;
-					}
-				} else if (field?.[0]?.cardinality === 'MANY') {
-					const fields = dataFields[key].map((o: { value: string }) => o.value);
+				const $asKey = Array.isArray($as) ? $as.find((o) => o[key])?.[key] : key;
+				let fieldValue;
+				if (field?.cardinality === 'ONE') {
 					// @ts-expect-error todo
-					dataFieldsRes[$asKey] = fields;
+					fieldValue = value[0] ? value[0].value : config.query?.returnNulls ? null : undefined;
+					if (isIdField && !config.query?.noMetadata) {
+						return [
+							[$asKey, fieldValue],
+							['$id', fieldValue],
+						].filter(([_, v]) => v !== undefined);
+					}
+				} else if (field?.cardinality === 'MANY') {
+					// @ts-expect-error todo
+					fieldValue = value.map((o) => o.value);
 				}
-			}
-		}
-		for (const key of virtual) {
-			const $asKey = $as.find((o: any) => o[key])?.[key];
-			const field = currentSchema.dataFields?.find((field: any) => field.isVirtual && field.dbPath === key);
-			// @ts-expect-error todo
-			const computedValue = compute({ currentThing: dataFieldsRes, fieldSchema: field });
+				return [[$asKey, fieldValue]].filter(([_, v]) => v !== undefined);
+			})
+			.flat();
 
-			// @ts-expect-error todo
-			dataFieldsRes[$asKey] = computedValue;
-		}
-		return dataFieldsRes;
+		// Process virtual fields
+		const virtualFields = virtual.map((key: string) => {
+			const $asKey = $as.find((o: any) => o[key])?.[key];
+			const field = currentSchema.dataFields?.find((f) => f.isVirtual && f.dbPath === key);
+			const computedValue = compute({ currentThing: Object.fromEntries(mainDataFields), fieldSchema: field });
+			return [$asKey, computedValue];
+		});
+
+		return Object.fromEntries([...mainDataFields, ...virtualFields]);
 	};
 
 	const parseRoleFields = (
 		roleFields: { $roleFields: object[]; $key: string; $metaData: string; $cardinality: 'MANY' | 'ONE' }[],
 	) => {
-		const roleFieldsRes: object = {};
-		// each linkField
-		for (const roleField of roleFields) {
+		return roleFields.reduce((roleFieldsRes, roleField) => {
 			const { $roleFields, $metaData, $cardinality } = roleField;
-			const items = [];
 			const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
-			// each item of specific linkField
-			for (const item of $roleFields) {
+
+			const items = $roleFields.map((item) => {
 				const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(item);
 				const parsedDataFields = parseDataFields(dataFields, currentSchema);
 
 				if (justId === 'T') {
-					const idObj = { ...parsedDataFields };
-					// @ts-expect-error todo
-					items.push(idObj.id);
+					return parsedDataFields.id;
 				} else {
 					// @ts-expect-error todo
 					const parsedLinkFields = parseLinkFields(linkFields);
+					// @ts-expect-error todo
 					const parsedRoleFields = parseRoleFields(roleFields);
-					const resDataFields = parsedDataFields;
+					const resDataFields = { ...parsedDataFields };
 					if (idNotIncluded === 'true') {
-						// @ts-expect-error todo
-						for (const field of currentSchema.idFields) {
-							// @ts-expect-error todo
-							delete resDataFields[field];
-						}
+						currentSchema?.idFields?.forEach((field) => delete resDataFields[field]);
 					}
-					items.push({
+					return {
 						...resDataFields,
 						...parsedLinkFields,
 						...parsedRoleFields,
 						...(!config.query?.noMetadata && { ...schemaValue }),
-					});
+					};
 				}
-			}
+			});
+
 			if (items.length > 0) {
 				// @ts-expect-error todo
+				// eslint-disable-next-line no-param-reassign
 				roleFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
 			} else if (config.query?.returnNulls) {
 				// @ts-expect-error todo
+				// eslint-disable-next-line no-param-reassign
 				roleFieldsRes[as] = null;
 			}
-		}
-		return roleFieldsRes;
+
+			return roleFieldsRes;
+		}, {});
 	};
 
 	const parseLinkFields = (
 		linkFields: { $linkFields: object[]; $key: string; $metaData: string; $cardinality: 'MANY' | 'ONE' }[],
 	) => {
-		const linkFieldsRes: object = {};
-		// each linkField
-		for (const linkField of linkFields) {
+		return linkFields.reduce((linkFieldsRes, linkField) => {
 			const { $linkFields, $metaData, $cardinality } = linkField;
 			const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
 
-			const items = [];
-			// each item of specific linkField
-			for (const item of $linkFields) {
+			const items = $linkFields.map((item) => {
 				const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(item);
 				const parsedDataFields = parseDataFields(dataFields, currentSchema);
+
 				if (justId === 'T') {
-					const idObj = { ...parsedDataFields };
-					// @ts-expect-error todo
-					items.push(idObj.id);
+					return parsedDataFields.id;
 				} else {
 					// @ts-expect-error todo
 					const parsedLinkFields = parseLinkFields(linkFields);
+					// @ts-expect-error todo
 					const parsedRoleFields = parseRoleFields(roleFields);
-					const resDataFields = parsedDataFields;
+					const resDataFields = { ...parsedDataFields };
+
 					if (idNotIncluded === 'true') {
-						// @ts-expect-error todo
-						for (const field of currentSchema.idFields) {
-							// @ts-expect-error todo
-							delete resDataFields[field];
-						}
+						currentSchema.idFields?.forEach((field) => delete resDataFields[field]);
 					}
-					items.push({
+
+					return {
 						...resDataFields,
 						...parsedLinkFields,
 						...parsedRoleFields,
 						...(!config.query?.noMetadata && { ...schemaValue }),
-					});
+					};
 				}
-			}
-			if (items.length > 0) {
-				// @ts-expect-error todo
-				linkFieldsRes[as] = $cardinality === 'MANY' && filterByUnique === 'false' ? items : items[0];
-			} else if (config.query?.returnNulls) {
-				// @ts-expect-error todo
-				linkFieldsRes[as] = null;
-			}
-		}
-		return linkFieldsRes;
+			});
+
+			// @ts-expect-error todo
+			// eslint-disable-next-line no-param-reassign
+			linkFieldsRes[as] =
+				items.length > 0
+					? $cardinality === 'MANY' && filterByUnique === 'false'
+						? items
+						: items[0]
+					: config.query?.returnNulls
+					? null
+					: undefined;
+
+			return linkFieldsRes;
+		}, {});
 	};
 
 	const parseFields = (obj: any) => {
-		let dataFields;
+		const keys = Object.keys(obj);
 
-		for (const key in obj) {
-			let $metaData;
-			if (key.endsWith('.$dataFields')) {
-				dataFields = obj[key];
-				const _keys = key.split('.');
-				$metaData = _keys[_keys.length - 2];
-			}
-			if ($metaData) {
-				dataFields.$metaData = $metaData;
-			}
+		// Find and process $dataFields
+		const dataFieldsKey = keys.find((key) => key.endsWith('.$dataFields'));
+		if (!dataFieldsKey) {
+			throw new Error('No datafields');
 		}
+
+		const dataFields = obj[dataFieldsKey];
+		const metaDataKey = dataFieldsKey.split('.')[dataFieldsKey.split('.').length - 2];
+		dataFields.$metaData = metaDataKey;
+
 		if (dataFields.length === 0) {
 			throw new Error('No datafields');
 		}
+
 		const dataFieldsThing = dataFields.type;
-		const schemaValue: { $thing: string; $thingType: string } = {
+		const schemaValue = {
 			$thing: dataFieldsThing.label,
 			$thingType: dataFieldsThing.root,
 		};
 		const node = { [`$${schemaValue.$thingType}`]: schemaValue.$thing };
 		const currentSchema = getCurrentSchema(schema, node);
 
-		const linkFields = [];
-		const roleFields = [];
-		for (const key in obj) {
-			if (!key.endsWith('.$dataFields')) {
-				const _keys = key.split('.');
-				const identifier = _keys[_keys.length - 1];
-				const $metaData = _keys[_keys.length - 2];
-				const foundLinkField = currentSchema.linkFields?.find(
-					(o) => o.path === identifier && identifier !== '$dataFields',
-				);
+		// Process linkFields and roleFields
+		const linkFields = keys
+			.filter(
+				(key) =>
+					!key.endsWith('.$dataFields') && currentSchema.linkFields?.some((o) => o.path === key.split('.').pop()),
+			)
+			.map((key) => ({
+				$linkFields: obj[key],
+				$key: key.split('.').pop(),
+				$metaData: key.split('.')[key.split('.').length - 2],
+				$cardinality: currentSchema?.linkFields?.find((o) => o.path === key.split('.').pop())?.cardinality,
+			}));
+
+		const roleFields = keys
+			// @ts-expect-error todo
+			.filter((key) => !key.endsWith('.$dataFields') && currentSchema.roles?.[key.split('.').pop()])
+			.map((key) => ({
+				$roleFields: obj[key],
+				$key: key.split('.').pop(),
+				$metaData: key.split('.')[key.split('.').length - 2],
 				// @ts-expect-error todo
-				const foundRoleField = currentSchema.roles?.[identifier];
-				if (foundLinkField) {
-					linkFields.push({
-						$linkFields: obj[key],
-						$key: identifier,
-						$metaData,
-						$cardinality: foundLinkField.cardinality,
-					});
-				}
-				if (foundRoleField) {
-					roleFields.push({
-						$roleFields: obj[key],
-						$key: identifier,
-						$metaData,
-						$cardinality: foundRoleField.cardinality,
-					});
-				}
-			}
-		}
+				$cardinality: currentSchema.roles[key.split('.').pop()].cardinality,
+			}));
 
 		return { dataFields, schemaValue, currentSchema, linkFields, roleFields };
 	};
 
-	const realParse = (tqlRes: object[]) => {
-		const res: any = [];
-		tqlRes.forEach((resItem) => {
+	const realParse = (tqlRes: any) => {
+		return tqlRes.map((resItem: any) => {
 			const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(resItem);
 			const parsedDataFields = parseDataFields(dataFields, currentSchema);
 			// @ts-expect-error todo
 			const parsedLinkFields = parseLinkFields(linkFields);
+			// @ts-expect-error todo
 			const parsedRoleFields = parseRoleFields(roleFields);
-			const resDataFields = parsedDataFields;
 
-			let finalObj = {
+			const idNotIncluded = rawBqlRequest?.$fields?.every(
+				// @ts-expect-error todo
+				(field) => !currentSchema?.idFields?.includes(field) && !currentSchema?.idFields?.includes(field.$path),
+			);
+
+			const finalObj = {
 				...parsedLinkFields,
 				...parsedRoleFields,
-				...(!config.query?.noMetadata && { ...schemaValue }),
-				...(!config.query?.noMetadata &&
-					rawBqlRequest.$id && {
-						// todo: use dynamic idField, not "id"
-						// @ts-expect-error todo
-						...{ $id: Array.isArray(rawBqlRequest.$id) ? resDataFields['id'] : rawBqlRequest.$id },
-					}),
+				...(!config.query?.noMetadata ? { ...schemaValue } : {}),
+				...(!config.query?.noMetadata && rawBqlRequest.$id
+					? { $id: Array.isArray(rawBqlRequest.$id) ? parsedDataFields['id'] : rawBqlRequest.$id }
+					: {}),
+				...(idNotIncluded
+					? Object.fromEntries(
+							Object.entries(parsedDataFields).filter(([key]) => !currentSchema?.idFields?.includes(key)),
+					  )
+					: parsedDataFields),
 			};
-			const idNotIncluded =
-				rawBqlRequest?.$fields?.filter(
-					(field: any) => currentSchema?.idFields?.includes(field) || currentSchema?.idFields?.includes(field.$path),
-				).length === 0;
-			if (idNotIncluded) {
-				// @ts-expect-error todo
-				for (const field of currentSchema.idFields) {
-					// @ts-expect-error todo
-					delete resDataFields[field];
-				}
-			}
-			finalObj = { ...finalObj, ...resDataFields };
-			res.push(finalObj);
+
+			return finalObj;
 		});
-		return res;
 	};
 
 	const parser = (tqlRes: any) => {
-		if (isBatched) {
-			const finalRes: any[] = [];
-			tqlRes.forEach((resItems: object[]) => {
-				const parsedItems = realParse(resItems);
-				const response =
-					(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
-						? parsedItems?.[0]
-						: parsedItems;
-				finalRes.push(Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null);
-			});
-			return finalRes;
-		} else {
-			const parsedItems = realParse(tqlRes);
-			const response =
-				(rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
-					? parsedItems?.[0]
-					: parsedItems;
-			return Array.isArray(response) ? (response.length === 0 ? null : response) : response ? response : null;
-		}
+		const processResponse = (resItems: any) => {
+			const parsedItems = realParse(resItems);
+			return (rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
+				? parsedItems[0] ?? null
+				: parsedItems.length === 0
+				? null
+				: parsedItems;
+		};
+
+		return isBatched ? tqlRes.map(processResponse) : processResponse(tqlRes);
 	};
 
 	const parsedTqlRes = parser(rawTqlRes);

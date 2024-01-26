@@ -58,21 +58,21 @@ export const testSchema: BormSchema = {
 					cardinality: 'MANY',
 					relation: 'ThingRelation',
 					plays: 'things',
-					target: 'role',
+					target: 'relation',
 				},
 				{
 					path: 'root',
 					cardinality: 'ONE',
 					relation: 'ThingRelation',
 					plays: 'root',
-					target: 'role',
+					target: 'relation',
 				},
 				{
 					path: 'extra',
 					cardinality: 'ONE',
 					relation: 'ThingRelation',
 					plays: 'extra',
-					target: 'role',
+					target: 'relation',
 				},
 			],
 		},
@@ -472,7 +472,44 @@ export const testSchema: BormSchema = {
 				{ ...string, path: 'type' },
 				{ ...string, path: 'computeType' },
 			],
+			linkFields: [
+				{
+					path: 'values',
+					relation: 'DataValue',
+					cardinality: 'MANY',
+					plays: 'dataField',
+					target: 'relation',
+				},
+				{
+					path: 'expression',
+					relation: 'Expression',
+					cardinality: 'ONE',
+					plays: 'dataField',
+					target: 'relation',
+				},
+			],
+
 			defaultDBConnector: { id: 'default', as: 'Field', path: 'DataField' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+		},
+		'Expression': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', as: 'Expression', path: 'Expression' },
+			dataFields: [id, { ...string, path: 'value', rights: ['CREATE', 'UPDATE'] }],
+			roles: {
+				dataField: {
+					cardinality: 'ONE',
+				},
+			},
+		},
+		'DataValue': {
+			idFields: ['id'],
+			dataFields: [id, { ...string, path: 'type' }],
+			roles: {
+				dataField: {
+					cardinality: 'ONE',
+				},
+			},
+			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 		},
 		'Self': {
 			idFields: ['id'],

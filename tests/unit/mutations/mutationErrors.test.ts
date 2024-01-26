@@ -319,7 +319,7 @@ describe('Mutations: Errors', () => {
 
 	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
-
+		// needs more than regular pre query
 		try {
 			await bormClient.mutate({
 				$relation: 'UserTag',
@@ -339,7 +339,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:m1up[update, missing] Update a non existing $id', async () => {
+	it('m1up[update, missing] Update a non existing $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -423,7 +423,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO: m2up[update, missing] Update a non related $id', async () => {
+	it('m2up[update, missing] Update a non related $id', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -496,7 +496,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO: e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
+	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
 		expect(bormClient).toBeDefined();
@@ -516,12 +516,160 @@ describe('Mutations: Errors', () => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'[BQLE-Q-M-2] Cannot link on:"root-account3-1.user" because it is already occupied.',
+					'[BQLE-Q-M-2] Cannot link on:"root.account3-1___user" because it is already occupied.',
 				);
 			} else {
 				expect(true).toBe(false);
 			}
 
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('e-c1d[create, nested delete] With pre-query, cannot delete under a create', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					$op: 'create',
+					user: {
+						$op: 'delete',
+						email: 'theNewEmailOfAnn@gmail.com',
+					},
+				},
+				{ noMetadata: true, preQuery: true },
+			);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot delete under a create');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('e-c1ul[create, nested unlink] With pre-query, cannot unlink under a create', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					$op: 'create',
+					user: {
+						$op: 'unlink',
+						email: 'theNewEmailOfAnn@gmail.com',
+					},
+				},
+				{ noMetadata: true, preQuery: true },
+			);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot unlink under a create');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('TODO:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG1',
+			tags: ['tag-1', 'tag-2'], //no color
+		});
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG2',
+			tags: ['tag-1', 'tag-3'],
+			color: 'blue',
+		});
+
+		try {
+			await bormClient.mutate({
+				$id: ['tmpUTG1', 'tmpUTG2'],
+				$relation: 'UserTagGroup',
+				$op: 'update',
+				tags: ['tag-4'],
+				color: 'red',
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot replace with non-existing id "red"');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: ['tmpUTG1', 'tmpUTG2'],
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Field',
+				id: 'ul-many',
+				kinds: [
+					{
+						$relation: 'Kind',
+						$id: 'k1',
+					},
+					{
+						$relation: 'Kind',
+						$id: 'k2',
+					},
+					{
+						$relation: 'Kind',
+						$id: 'k3',
+					},
+				],
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Linking to things that do not exist');
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('TODO:e-r1[create relation] Creating a relation without anything that links', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Field',
+				id: 'ul-many',
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('You are creating a relation that is not linked to anything');
+			} else {
+				expect(true).toBe(false);
+			}
 			return;
 		}
 		throw new Error('Expected mutation to throw an error');
