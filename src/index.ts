@@ -109,7 +109,7 @@ class BormClient {
 	};
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
-	query = async (query: RawBQLQuery, queryConfig?: QueryConfig) => {
+	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
 		const qConfig = {
 			...this.config,
