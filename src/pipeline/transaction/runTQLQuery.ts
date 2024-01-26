@@ -13,8 +13,10 @@ export const newRunTQLQuery: PipelineOperation = async (req, res) => {
 		throw new Error('TQL request not built');
 	}
 	// console.log('tqlRequest', tqlRequest);
+
 	const isBatched = Array.isArray(tqlRequest);
 	if (isBatched) {
+		//todo: add try-catch here
 		const resArray = await parallel(tqlRequest.length, tqlRequest, async (queryString) => {
 			const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 

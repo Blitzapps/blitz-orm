@@ -5,6 +5,7 @@ import { getCurrentSchema } from '../../helpers';
 import { isObject } from 'radash';
 import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 
+//todo: use getCurrentFields instead
 const getAllFields = (currentSchema: any) => {
 	const dataFields = currentSchema.dataFields?.map((field: any) => field.path) || [];
 	const linkFields = currentSchema.linkFields?.map((field: any) => field.path) || [];

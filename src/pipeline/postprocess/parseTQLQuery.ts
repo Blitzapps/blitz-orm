@@ -3,6 +3,7 @@ import { getCurrentSchema } from '../../helpers';
 import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 
+//todo: add this metadata as a typedb "?" var instead
 const parseMetaData = (str: string) => {
 	const asRegex = /as:([a-zA-Z0-9_\-·]+)/;
 	const justIdRegex = /justId:([a-zA-Z0-9_\-·]+)/;
