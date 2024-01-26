@@ -1955,8 +1955,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-ni4[link and unlink many] linking and unlinking many things at once without intermediary, batched, pre-created', async () => {
-		expect(bormClient).toBeDefined();
+		// This test fails if upper tests fail
 
+		expect(bormClient).toBeDefined();
 		await bormClient.mutate([
 			{
 				$relation: 'Kind',
