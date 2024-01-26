@@ -31,11 +31,18 @@ Field·name sub attribute, value string;
 # DataField
 DataField·computeType sub attribute, value string;
 DataField·type sub attribute, value string;
+DataValue·type sub attribute, value string;
+
 
 # Session
 Session·expires sub attribute,
     value datetime;
 Session·sessionToken sub attribute,
+    value string;
+
+    
+
+Expression·value sub attribute,
     value string;
 
 
@@ -51,7 +58,6 @@ Space sub entity,
 Thing sub entity,
     owns id@key,
     owns stuff,
-    
     plays ThingRelation:root,
     plays ThingRelation:extra,
     plays ThingRelation:things;
@@ -147,8 +153,22 @@ Field sub SpaceDef,
     relates kinds;
 
 DataField sub Field,
+    plays Expression:dataField,
+    plays DataValue:dataField,
     owns DataField·computeType,
     owns DataField·type;
+
+Expression sub relation,
+    owns Expression·value,
+    owns id @key,
+    relates dataField;
+    
+
+DataValue sub relation,
+  relates dataField,
+  owns DataValue·type,
+  owns id @key;
+
 
 Power sub entity,
     owns id,

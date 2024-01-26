@@ -253,6 +253,27 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 	return enrichedSchema;
 };
 
+export const getCardinality = (
+	schema: BormSchema | EnrichedBormSchema,
+	node: Partial<BQLMutationBlock>,
+	field: string,
+): 'ONE' | 'MANY' | 'INTERVAL' | undefined => {
+	const currentSchema = getCurrentSchema(schema, node);
+	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
+	if (foundLinkField) {
+		return foundLinkField.cardinality;
+	}
+	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
+	if (foundDataField) {
+		return foundDataField.cardinality;
+	}
+	// @ts-expect-error todo
+	const foundRoleField = currentSchema.roles[field];
+	if (foundRoleField) {
+		return foundRoleField.cardinality;
+	}
+};
+
 export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
@@ -269,7 +290,7 @@ export const getCurrentSchema = (
 		}
 		return schema.relations[node.$relation] as EnrichedBormRelation;
 	}
-	throw new Error(`Wrong schema or query for ${JSON.stringify(node)}`);
+	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
 type ReturnTypeWithoutNode = {

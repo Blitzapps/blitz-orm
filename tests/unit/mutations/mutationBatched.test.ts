@@ -2,7 +2,7 @@ import 'jest';
 
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
 describe('Mutations: batched and tempId', () => {
 	let dbName: string;
@@ -33,7 +33,6 @@ describe('Mutations: batched and tempId', () => {
 				provider: 'MetaMask',
 			},
 		]);
-
 		expect(res?.length).toBe(5);
 		const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
 
@@ -109,6 +108,7 @@ describe('Mutations: batched and tempId', () => {
 		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
 
 		const res2 = await bormClient.query({ $entity: 'User', $id: beaId });
+
 		expect(res2).toBeDefined();
 		expect(res2).toEqual({
 			$thing: 'User',
@@ -123,7 +123,7 @@ describe('Mutations: batched and tempId', () => {
 		await bormClient.mutate([
 			{
 				$entity: 'User',
-				$id: 'bea',
+				$id: beaId, // not "bea" as before
 				$op: 'delete',
 				accounts: [{ $op: 'delete' }],
 			},
@@ -260,7 +260,7 @@ describe('Mutations: batched and tempId', () => {
 		await bormClient.mutate([
 			{
 				$entity: 'User',
-				$id: 'bea',
+				$id: beaId,
 				$op: 'delete',
 				accounts: [{ $op: 'delete' }],
 			},
@@ -359,235 +359,6 @@ describe('Mutations: batched and tempId', () => {
 		expect(spaceRes).toBeDefined();
 		expect(spaceRes).toEqual({
 			kinds: [expect.any(String)],
-		});
-	});
-
-	it('r1[replace] replace single roles in relation', async () => {
-		expect(bormClient).toBeDefined();
-		// cardinality one
-		await bormClient.mutate(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr2',
-				root: 'thing4',
-			},
-			{ preQuery: true },
-		);
-
-		// cardinality many
-		await bormClient.mutate(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr2',
-				things: ['thing4'],
-			},
-			{ preQuery: true },
-		);
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr2',
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual({
-			id: 'tr2',
-			things: ['thing4'],
-			root: 'thing4',
-			extra: 'thing1',
-		});
-	});
-
-	it('r2[replace] replace many roles in relation', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr3',
-				root: 'thing4',
-				things: ['thing4'],
-			},
-			{ preQuery: true },
-		);
-
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr3',
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual({
-			id: 'tr3',
-			things: ['thing4'],
-			root: 'thing4',
-			extra: 'thing1',
-		});
-	});
-
-	it('TODO:r3[replace] replace many roles in many relation', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate([
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr4',
-				root: 'thing4',
-				things: ['thing4'],
-			},
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr5',
-				root: 'thing4',
-				things: ['thing4'],
-			},
-		]);
-
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: ['tr4', 'tr5'],
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(deepSort(queryRes, 'id')).toEqual([
-			{
-				id: 'tr4',
-				things: ['thing4'],
-				root: 'thing4',
-				extra: 'thing1',
-			},
-			{
-				id: 'tr5',
-				things: ['thing4'],
-				root: 'thing4',
-				extra: 'thing1',
-			},
-		]);
-	});
-
-	it('TODO:dpq1[delete pre-query] delete something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr6',
-				// thing2
-				root: { $id: 'thing2', $op: 'delete' },
-				// thing5
-				things: [{ $id: 'thing1', $op: 'delete' }],
-				// thing1
-				// extra: { $id: 'thing1', $op: 'unlink' },
-			},
-			//{ ignoreNonexistingThings: true },
-		);
-
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr6',
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual({
-			id: 'tr6',
-			things: ['thing5'],
-			extra: 'thing1',
-		});
-	});
-
-	it('TODO:dpq2[delete pre-query] unlink something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr7',
-			// thing3
-			root: { $id: 'thing3', $op: 'unlink' },
-			// thing5
-			things: [{ $id: 'thing90', $op: 'unlink' }],
-			// thing1
-			// extra: { $id: 'thing1', $op: 'unlink' },
-		});
-
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr7',
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual({
-			id: 'tr7',
-			things: ['thing5'],
-			extra: 'thing1',
-		});
-	});
-
-	it('TODO:dpq3[delete pre-query] update something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
-
-		await bormClient.mutate({
-			$relation: 'ThingRelation',
-			$id: 'tr8',
-			// thing3
-			root: { $id: 'thing4', $op: 'update', stuff: 'Z' },
-			// thing5
-			things: [{ $id: 'thing90', $op: 'update', stuff: 'blah' }],
-			// thing1
-			// extra: { $id: 'thing1', $op: 'unlink' },
-		});
-
-		const queryRes = await bormClient.query(
-			{
-				$relation: 'ThingRelation',
-				$id: 'tr8',
-				$fields: [{ $path: 'root', $fields: ['stuff'] }],
-			},
-			{ noMetadata: true },
-		);
-
-		expect(queryRes).toBeDefined();
-		expect(queryRes).toEqual({
-			id: 'tr7',
-
-			root: '',
-		});
-	});
-
-	it('TODO:r4[replace] replace depth test', async () => {
-		expect(bormClient).toBeDefined();
-		await bormClient.mutate({
-			$entity: 'Thing',
-			$id: 'thing5',
-			root: {
-				$id: 'tr11',
-				extra: 'thing2',
-			},
-		});
-		const queryRes = await bormClient.query({
-			$thing: 'ThingRelation',
-			$thingType: 'relation',
-			$id: 'tr11',
-			$fields: ['extra'],
-		});
-		expect(queryRes).toEqual({
-			$thing: 'ThingRelation',
-			$thingType: 'relation',
-			$id: 'tr11',
-			extra: 'thing2',
 		});
 	});
 

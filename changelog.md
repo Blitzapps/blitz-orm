@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.7.0(2023-01-26)
+
+- Feat: pre-queries, fetch queries and lots of refactos
+- Warning: BQL queries now use $thing and $thingType, but mutations not yet
+
 ## 0.6.5(2023-11-17)
 
 - Feat: optional pre-queries

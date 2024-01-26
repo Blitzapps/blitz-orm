@@ -117,7 +117,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += '\tmatch \n';
 			if (roleField.$filter) {
 				tqlStr += ` $${$path}${separator}${roleField.$var} isa ${roleField.$thing}`;
-				processFilters(roleField.$filter, roleField.$var);
+				processFilters(roleField.$filter, `${$path}${separator}${roleField.$var}`);
 			}
 			tqlStr += `\t$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary}; \n`;
 
@@ -175,7 +175,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += '\tmatch \n';
 			if (linkField.$filter) {
 				tqlStr += ` $${$path}${separator}${linkField.$var} isa ${linkField.$thing}`;
-				processFilters(linkField.$filter, linkField.$var);
+				processFilters(linkField.$filter, `${$path}${separator}${linkField.$var}`);
 			}
 			// a. intermediary
 			if (linkField.$target === 'role') {

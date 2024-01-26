@@ -5,7 +5,6 @@ import { buildBQLTree, parseTQLMutation } from './postprocess';
 import { buildTQLMutation } from './preprocess/buildTQLMutation';
 import { fillBQLMutation } from './preprocess/fill';
 import { parseBQLMutation } from './preprocess/parseBQLMutation';
-import { preQuery } from './preprocess/preQuery';
 import { runTQLMutation } from './transaction/runTQLMutation';
 import type {
 	BormConfig,
@@ -23,6 +22,7 @@ import { newBuildTQLQuery } from './preprocess/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/enrichBQLQuery';
 import { newRunTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/parseTQLQuery';
+import { newPreQuery } from './preprocess/newPreQuery';
 
 export type RelationName = string;
 export type EntityName = string;
@@ -84,7 +84,7 @@ const Pipelines: Record<string, Pipeline> = {
 	query: [enrichBQLQuery, newBuildTQLQuery, newRunTQLQuery, parseTQLQuery],
 	mutation: [
 		fillBQLMutation,
-		preQuery,
+		newPreQuery,
 		parseBQLMutation,
 		buildTQLMutation,
 		runTQLMutation,
