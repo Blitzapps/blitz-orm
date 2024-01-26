@@ -342,25 +342,27 @@ export const newPreQuery: PipelineOperation = async (req) => {
 			parentOperationBlock?: FilledBQLMutationBlock,
 		) => {
 			let processIds: FilledBQLMutationBlock[] = [];
-			operationBlocks.forEach((operationBlock) => {
-				// console.log('processBlocks.first for each', operationBlock);
-				const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
-				if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
-					const splitBlocksById = operationBlock.$id.map((id) => {
-						return { ...operationBlock, $id: id };
-					});
-					processIds = [...processIds, ...splitBlocksById];
-				} else {
-					processIds.push({ ...operationBlock });
-				}
-			});
+			operationBlocks
+				.filter((operationBlock) => operationBlock)
+				.forEach((operationBlock) => {
+					// console.log('processBlocks.first for each', operationBlock);
+					const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
+					if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
+						const splitBlocksById = operationBlock.$id.map((id) => {
+							return { ...operationBlock, $id: id };
+						});
+						processIds = [...processIds, ...splitBlocksById];
+					} else {
+						processIds.push({ ...operationBlock });
+					}
+				});
 			let newOperationBlocks: FilledBQLMutationBlock[] = [];
 			const fieldsWithoutMultiples: FilledBQLMutationBlock[] = [];
 			const fieldsWithMultiples = processIds.filter((operationBlock) => {
 				const ops = ['delete', 'update', 'unlink'];
 				// Block must have one of the above operations
 				const isCorrectOp = ops.includes(operationBlock.$op || '');
-				const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
+				const fieldCount = getFieldKeys(operationBlock, true).length;
 				// Block must either not have $id, have an array of $ids, or have a filter
 				const isMultiple =
 					!operationBlock.$id || (Array.isArray(operationBlock.$id) && fieldCount > 0) || operationBlock.$filter;
@@ -530,7 +532,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						})
 						.filter((combination) => combination !== undefined);
 					// console.log(
-					// 	'combinationsFromCache',
+					// 	'info: ',
 					// 	JSON.stringify({ combinationsFromCache, emptyObjCKey, parentOperationBlock, opBlock }, null, 2),
 					// );
 
@@ -578,7 +580,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						? operationBlock[fieldKey]
 						: [operationBlock[fieldKey]];
 					const newOperationBlocks = processBlocks(operationBlocks, operationBlock);
-					newBlock[fieldKey] = newOperationBlocks;
+					newBlock[fieldKey] = newOperationBlocks.length > 0 ? newOperationBlocks : undefined;
 				});
 			return newBlock;
 		};
@@ -615,27 +617,29 @@ export const newPreQuery: PipelineOperation = async (req) => {
 				let replaceBlock: FilledBQLMutationBlock = {};
 				const cardinality = getCardinality(schema, block, field);
 
-				opBlocks.forEach((opBlock) => {
-					// todo: if it is create and this field is cardinality one
-					if (opBlock.$op === 'replace' && opBlock.$id) {
-						// eslint-disable-next-line prefer-destructuring
-						replaceBlock = opBlock;
-						if (Array.isArray(opBlock.$id)) {
-							replaceIds = [...replaceIds, ...opBlock.$id];
+				opBlocks
+					.filter((opBlock) => opBlock)
+					.forEach((opBlock) => {
+						// todo: if it is create and this field is cardinality one
+						if (opBlock.$op === 'replace' && opBlock.$id) {
+							// eslint-disable-next-line prefer-destructuring
+							replaceBlock = opBlock;
+							if (Array.isArray(opBlock.$id)) {
+								replaceIds = [...replaceIds, ...opBlock.$id];
+							} else {
+								replaceIds.push(opBlock.$id);
+							}
+						} else if (opBlock.$op === 'create' && cardinality === 'ONE' && opBlock.id) {
+							replaceBlock = opBlock;
+							if (Array.isArray(opBlock.id)) {
+								createIds = [...replaceIds, ...opBlock.id];
+							} else {
+								createIds.push(opBlock.id);
+							}
 						} else {
-							replaceIds.push(opBlock.$id);
+							newOpBlocks.push(opBlock);
 						}
-					} else if (opBlock.$op === 'create' && cardinality === 'ONE' && opBlock.id) {
-						replaceBlock = opBlock;
-						if (Array.isArray(opBlock.id)) {
-							createIds = [...replaceIds, ...opBlock.id];
-						} else {
-							createIds.push(opBlock.id);
-						}
-					} else {
-						newOpBlocks.push(opBlock);
-					}
-				});
+					});
 
 				const cacheKey = objectPathToKey(replaceBlock.$objectPath);
 				const cacheKeys = convertManyPaths(cacheKey);
