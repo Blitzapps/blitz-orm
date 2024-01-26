@@ -503,7 +503,7 @@ export const testSchema: BormSchema = {
 		},
 		'DataValue': {
 			idFields: ['id'],
-			dataFields: [id],
+			dataFields: [id, { ...string, path: 'type' }],
 			roles: {
 				dataField: {
 					cardinality: 'ONE',

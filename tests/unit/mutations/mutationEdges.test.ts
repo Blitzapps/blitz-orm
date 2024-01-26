@@ -1957,6 +1957,24 @@ describe('Mutations: Edges', () => {
 	it('lm-ni4[link and unlink many] linking and unlinking many things at once without intermediary, batched, pre-created', async () => {
 		expect(bormClient).toBeDefined();
 
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				id: 'k1',
+				space: 'space-1',
+			},
+			{
+				$relation: 'Kind',
+				id: 'k2',
+				space: 'space-1',
+			},
+			{
+				$relation: 'Kind',
+				id: 'k3',
+				space: 'space-1',
+			},
+		]);
+
 		await bormClient.mutate({
 			$relation: 'Field',
 			id: 'link-many-4',
@@ -2372,8 +2390,6 @@ describe('Mutations: Edges', () => {
 	it('TODO:ul-pq1[unlink with pre query, intermediary, nested] unlink mutation from root and delete children with intermediary', async () => {
 		expect(bormClient).toBeDefined();
 
-		// todo: adjust schema to have dataValues, expressions, and dataFields exists without being connected to ul-space-1
-
 		await bormClient.mutate([
 			{
 				$entity: 'User',
@@ -2483,6 +2499,8 @@ describe('Mutations: Edges', () => {
 
 	it('up-pq1[update with pre query, intermediary, nested] update mutation from root and delete children with intermediary', async () => {
 		expect(bormClient).toBeDefined();
+
+		// creating
 
 		await bormClient.mutate([
 			{

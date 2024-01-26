@@ -3,7 +3,7 @@ import { queryPipeline, type PipelineOperation } from '../pipeline';
 import type { FilledBQLMutationBlock } from '../../types';
 import { isObject } from 'radash';
 import { produce } from 'immer';
-import { getCurrentSchema } from '../../helpers';
+import { getCardinality, getCurrentSchema } from '../../helpers';
 import { v4 as uuidv4 } from 'uuid';
 
 export const preQueryPathSeparator = '___';
@@ -374,6 +374,17 @@ export const newPreQuery: PipelineOperation = async (req) => {
 			if (fieldsWithMultiples.length > 0) {
 				fieldsWithMultiples.forEach((opBlock) => {
 					const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
+						const getDataFields = () => {
+							const dataFieldObj: any = {};
+							for (const key in obj) {
+								const currentSchema = getCurrentSchema(schema, obj);
+								if (!key.startsWith('$') && currentSchema.dataFields?.find((df) => df.path === key)) {
+									dataFieldObj[key] = obj[key];
+								}
+							}
+							return dataFieldObj;
+						};
+						const dataFieldObj = getDataFields();
 						// Get all keys, but only use non-$ keys for generating combinations
 						const allKeys = Object.keys(obj);
 						const combinableKeys = allKeys.filter((key) => !key.startsWith('$'));
@@ -398,6 +409,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 								...currentObj,
 								[combinableKeys[index]]: obj[combinableKeys[index]],
 								...getSymbols(currentObj),
+								...dataFieldObj,
 							};
 							generateCombinations(index + 1, newObjInclude);
 
@@ -517,7 +529,6 @@ export const newPreQuery: PipelineOperation = async (req) => {
 							}
 						})
 						.filter((combination) => combination !== undefined);
-					// todo: issue is that the child does not have the parent ids in it's object path
 					// console.log(
 					// 	'combinationsFromCache',
 					// 	JSON.stringify({ combinationsFromCache, emptyObjCKey, parentOperationBlock, opBlock }, null, 2),
@@ -592,14 +603,20 @@ export const newPreQuery: PipelineOperation = async (req) => {
 			const fields = getFieldKeys(block, true);
 			const newBlock = { ...block };
 			// console.log('block', JSON.stringify({ block, fields }, null, 2));
+
 			fields.forEach((field) => {
 				const opBlocks: FilledBQLMutationBlock[] = Array.isArray(block[field]) ? block[field] : [block[field]];
 				const newOpBlocks: FilledBQLMutationBlock[] = [];
 				let replaceIds: string[] = [];
+				let createIds: string[] = [];
+
 				// todo: Step 1, get all replaces and their ids as replaceIds, just push blocks that aren't replaces
 				// @ts-expect-error todo
 				let replaceBlock: FilledBQLMutationBlock = {};
+				const cardinality = getCardinality(schema, block, field);
+
 				opBlocks.forEach((opBlock) => {
+					// todo: if it is create and this field is cardinality one
 					if (opBlock.$op === 'replace' && opBlock.$id) {
 						// eslint-disable-next-line prefer-destructuring
 						replaceBlock = opBlock;
@@ -608,15 +625,24 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						} else {
 							replaceIds.push(opBlock.$id);
 						}
+					} else if (opBlock.$op === 'create' && cardinality === 'ONE' && opBlock.id) {
+						replaceBlock = opBlock;
+						if (Array.isArray(opBlock.id)) {
+							createIds = [...replaceIds, ...opBlock.id];
+						} else {
+							createIds.push(opBlock.id);
+						}
 					} else {
 						newOpBlocks.push(opBlock);
 					}
 				});
+
 				const cacheKey = objectPathToKey(replaceBlock.$objectPath);
 				const cacheKeys = convertManyPaths(cacheKey);
 				const foundKeys = cacheKeys.map((cacheKey) => {
 					return cache[cacheKey];
 				});
+
 				// todo: Step 2, get cacheIds for this
 				let cacheIds: string[] = [];
 				foundKeys
@@ -626,6 +652,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 					});
 
 				// todo: Step 3, unlinkIds contain all cacheIds that aren't found in replaceIds
+				// todo: Step 4, linkIds are all replaceIds that aren't found in the cacheIds
 				const unlinkIds = cacheIds.filter((id) => !replaceIds.includes(id));
 				const linkIds = replaceIds.filter((id) => !cacheIds.includes(id));
 				const symbols = getSymbols(replaceBlock);
@@ -635,6 +662,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						$op: 'unlink',
 						$id: unlinkIds,
 						$bzId: `T_${uuidv4()}`,
+						id: undefined,
 						...symbols,
 					});
 				}
@@ -647,58 +675,17 @@ export const newPreQuery: PipelineOperation = async (req) => {
 						...symbols,
 					});
 				}
-
-				// todo: Step 4, linkIds are all replaceIds that aren't found in the cacheIds
-
-				// opBlocks.forEach((opBlock) => {
-				// 	if (opBlock.$op === 'replace') {
-				// 		const cacheKey = objectPathToKey(opBlock.$objectPath);
-				// 		const cacheKeys = convertManyPaths(cacheKey);
-				// 		const foundKeys = cacheKeys.map((cacheKey) => {
-				// 			return cache[cacheKey];
-				// 		});
-				// 		otherReplaces.push(opBlock.$id);
-				// 		// console.log('foundKeys: ', JSON.stringify(foundKeys, null, 2));
-
-				// 		const cacheFound = foundKeys.length === cacheKeys.length;
-				// 		const linksToNotInclude: string[] = [];
-				// 		// 1. Generate unlinks based on the pre-query
-				// 		if (cacheFound) {
-				// 			foundKeys.forEach((foundKey) => {
-				// 				if (foundKey) {
-				// 					const unlinkIds: string[] = [];
-				// 					// @ts-expect-error todo
-				// 					foundKey.$ids
-				// 						.filter((id: string) => {
-				// 							linksToNotInclude.push(id);
-
-				// 							return id !== opBlock.$id && !opBlocks.find((b) => b.$op === 'replace' && b.$id === id);
-				// 						})
-				// 						.forEach((id: string) => {
-				// 							unlinkIds.push(id);
-				// 						});
-				// 					// todo: find is not working
-				// 					if (!newOpBlocks.find((b) => b.$op === 'unlink' && b.$id === unlinkIds)) {
-				// 						newOpBlocks.push({ ...opBlock, $op: 'unlink', $id: unlinkIds, $bzId: `T_${uuidv4()}` });
-				// 					}
-				// 				}
-				// 			});
-				// 		}
-				// 		if (
-				// 			Array.isArray(opBlock.$id)
-				// 				? !opBlock.$id.every((id) => linksToNotInclude.includes(id))
-				// 				: // @ts-expect-error todo
-				// 				  !linksToNotInclude.includes(opBlock.$id)
-				// 		) {
-				// 			// 2. Generate link based on the pre-query
-				// 			newOpBlocks.push({ ...opBlock, $op: 'link', $bzId: `T_${uuidv4()}` });
-				// 		}
-
-				// 		// console.log('cacheFound', JSON.stringify({ cacheFound, cacheKey }, null, 2));
-				// 	} else {
-				// 		newOpBlocks.push(opBlock);
-				// 	}
-				// });
+				if (createIds.length > 0) {
+					createIds.forEach((id) => {
+						newOpBlocks.push({
+							...replaceBlock,
+							$op: 'create',
+							id,
+							$bzId: `T_${uuidv4()}`,
+							...symbols,
+						});
+					});
+				}
 
 				newBlock[field] = processReplaces(newOpBlocks);
 			});
@@ -730,22 +717,6 @@ export const newPreQuery: PipelineOperation = async (req) => {
 
 					values.forEach((thing) => {
 						// todo: If user op is trying to link something that already has it's role filled by something else
-						const parentSchema = getCurrentSchema(schema, parent);
-						const findCardinality = () => {
-							const dataFieldFound = parentSchema.dataFields?.find((field) => field.path === thing.$objectPath.key);
-							if (dataFieldFound) {
-								return dataFieldFound.cardinality;
-							}
-							const linkFieldFound = parentSchema.linkFields?.find((field) => field.path === thing.$objectPath.key);
-							if (linkFieldFound) {
-								return linkFieldFound.cardinality;
-							}
-							// @ts-expect-error todo
-							const roleFieldFound = parentSchema.roles?.[thing.$objectPath.key];
-							if (linkFieldFound) {
-								return roleFieldFound.cardinality;
-							}
-						};
 
 						const cacheFound = cache[objectPathToKey(thing.$objectPath)];
 
@@ -759,7 +730,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 								? processArrayIdsFound(thing.$id, cacheFound ? cacheFound.$ids : [])
 								: cacheFound?.$ids.includes(thing.$id)
 							: cacheFound;
-						const cardinality = findCardinality();
+						const cardinality = getCardinality(schema, parent, thing.$objectPath.key);
 
 						if (thing.$op === 'link' && isOccupied && cardinality === 'ONE') {
 							throw new Error(
