@@ -1,7 +1,7 @@
-import { produce, current } from 'immer';
+import { produce, current, isDraft } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse, getNodeByPath } from 'object-traversal';
-import { isObject, listify, shake } from 'radash';
+import { isArray, isObject, listify, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
@@ -45,7 +45,7 @@ const sanitizeTempId = (id: string): string => {
 export const fillBQLMutation: PipelineOperation = async (req) => {
 	const { rawBqlRequest, schema } = req;
 
-	// STEP 1, remove undefined stuff and sanitize tempIds
+	/// STEP 1, remove undefined stuff, sanitize tempIds and split arrays of $ids
 	const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, ({ value: val, key, parent }: TraversalCallbackContext) => {
@@ -58,13 +58,38 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					// eslint-disable-next-line no-param-reassign
 					parent[key] = sanitizeTempId(val);
 				}
+				///split array $id to
+				if (parent && isArray(val)) {
+					if (!val.some((x) => typeof x === 'object' && '$id' in x)) {
+						///if none of the items of the array is a thing, then we don't need to do nothing
+						return;
+					}
+
+					const newVal = val.flatMap((x: string | object) => {
+						if (typeof x === 'string') {
+							return x;
+						}
+						if (typeof x === 'object' && '$id' in x) {
+							if (isArray(x.$id)) {
+								return x.$id.map((y: string) => ({ ...x, $id: y }));
+							}
+							return x;
+						}
+						return x;
+					});
+					console.log('parent', isDraft(parent) ? current(parent) : parent);
+
+					// @ts-expect-error - TODO description
+					// eslint-disable-next-line no-param-reassign
+					parent[key] = newVal;
+				}
 			}),
 		);
 	};
 
 	const shakedBqlRequest = shakeBqlRequest(rawBqlRequest);
 
-	// console.log('shakedBqlRequest', JSON.stringify(shakedBqlRequest, null, 3));
+	//console.log('shakedBqlRequest', JSON.stringify(shakedBqlRequest, null, 3));
 
 	const stringToObjects = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
 		return produce(blocks, (draft) =>

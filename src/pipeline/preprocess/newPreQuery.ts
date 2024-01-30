@@ -671,12 +671,15 @@ export const newPreQuery: PipelineOperation = async (req) => {
 					});
 				}
 				if (linkIds.length > 0) {
-					newOpBlocks.push({
-						...replaceBlock,
-						$op: 'link',
-						$id: linkIds,
-						$bzId: `T_${uuidv4()}`,
-						...symbols,
+					linkIds.forEach((id) => {
+						console.log('here5');
+						newOpBlocks.push({
+							...replaceBlock,
+							$op: 'link',
+							$id: id,
+							$bzId: `T_${uuidv4()}`,
+							...symbols,
+						});
 					});
 				}
 				if (createIds.length > 0) {

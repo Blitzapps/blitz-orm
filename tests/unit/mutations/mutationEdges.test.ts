@@ -1477,7 +1477,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:lm-i2[link and unlink many] linking and unlinking many things at once with intermediary, batched, on-create', async () => {
+	it('lm-i2[link and unlink many] linking and unlinking many things at once with intermediary, batched, on-create', async () => {
 		expect(bormClient).toBeDefined();
 
 		// todo: User with same id
@@ -1616,7 +1616,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:lm-i4[link and unlink many, intermediary] linking and unlinking many things at once batched with intermediary, batched, pre-created', async () => {
+	it('lm-i4[link and unlink many, intermediary] linking and unlinking many things at once batched with intermediary, batched, pre-created', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate({
@@ -1684,7 +1684,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:lm-ni1[link and unlink many] linking and unlinking many things at once without intermediary, not batched, on-create', async () => {
+	it('lm-ni1[link and unlink many] linking and unlinking many things at once without intermediary, not batched, on-create', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate([
@@ -1780,7 +1780,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
+	it('lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
 		expect(bormClient).toBeDefined();
 
 		// console.log('CREATING AND LINKING...');
@@ -1847,7 +1847,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:lm-ni3[link and unlink many] linking and unlinking many things at once without intermediary, not batched, pre-created', async () => {
+	it('lm-ni3[link and unlink many] linking and unlinking many things at once without intermediary, not batched, pre-created', async () => {
 		expect(bormClient).toBeDefined();
 
 		// await bormClient.mutate([
@@ -1952,6 +1952,24 @@ describe('Mutations: Edges', () => {
 			$id: 'link-many-3',
 			$op: 'delete',
 		});
+
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				$id: 'k1',
+				$op: 'delete',
+			},
+			{
+				$relation: 'Kind',
+				$id: 'k2',
+				$op: 'delete',
+			},
+			{
+				$relation: 'Kind',
+				$id: 'k3',
+				$op: 'delete',
+			},
+		]);
 	});
 
 	it('lm-ni4[link and unlink many] linking and unlinking many things at once without intermediary, batched, pre-created', async () => {
@@ -2388,7 +2406,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:ul-pq1[unlink with pre query, intermediary, nested] unlink mutation from root and delete children with intermediary', async () => {
+	it('ul-pq1[unlink with pre query, intermediary, nested] unlink mutation from root and delete children with intermediary', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate([

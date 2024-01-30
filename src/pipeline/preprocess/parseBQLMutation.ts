@@ -10,6 +10,8 @@ import type { PipelineOperation } from '../pipeline';
 export const parseBQLMutation: PipelineOperation = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
+	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
+
 	const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
 		// todo: make immutable
 
@@ -396,8 +398,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	}
 
 	const [parsedThings, parsedEdges] = listNodes(filledBqlRequest);
-	// console.log('parsedThings', parsedThings);
-	// console.log('parsedEdges', parsedEdges);
+	//console.log('parsedThings', parsedThings);
+	//console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
@@ -451,21 +453,30 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 				const existingVal = existingEdge[key];
 				const currVal = curr[key];
 
+				//both values are arrays
 				if (Array.isArray(existingVal) && Array.isArray(currVal)) {
 					newRelation[key] = Array.from(new Set([...existingVal, ...currVal]));
-				} else if (!Array.isArray(existingVal) && Array.isArray(currVal)) {
+				}
+				///the curent one is not but hte new one it is
+				else if (!Array.isArray(existingVal) && Array.isArray(currVal)) {
 					if (existingVal !== undefined) {
 						// Avoid merging with undefined values.
 						newRelation[key] = Array.from(new Set([existingVal, ...currVal]));
 					} else {
 						newRelation[key] = currVal;
 					}
-				} else if (Array.isArray(existingVal) && !Array.isArray(currVal)) {
+				}
+				///the curent one is but hte new one it is not
+				else if (Array.isArray(existingVal) && !Array.isArray(currVal)) {
 					if (currVal !== undefined) {
 						// Avoid merging with undefined values.
 						newRelation[key] = Array.from(new Set([...existingVal, currVal]));
 					}
-				} else if (!existingVal) {
+				}
+				//both exist and are not arrays
+				else if (existingVal !== null && currVal !== null && existingVal !== undefined && currVal !== undefined) {
+					newRelation[key] = Array.from(new Set([existingVal, currVal]));
+				} else if (existingVal === undefined || existingVal === null) {
 					newRelation[key] = currVal;
 				}
 			});
@@ -485,8 +496,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
 
-	// console.log('mergedThings', mergedThings);
-	// console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
 
 	/// VALIDATIONS
 	/// in the same mutation, we can't link cardinality ONE stuff in multiple places
