@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.7.1(2023-01-26)
+
+- Feat: Fixed some extra tests for multi-links. Mainly by splitting $id
+
 ## 0.7.0(2023-01-26)
 
 - Feat: pre-queries, fetch queries and lots of refactos
