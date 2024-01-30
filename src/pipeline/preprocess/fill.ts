@@ -1,4 +1,4 @@
-import { produce, current, isDraft } from 'immer';
+import { produce, current } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse, getNodeByPath } from 'object-traversal';
 import { isArray, isObject, listify, shake } from 'radash';
@@ -77,8 +77,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 						}
 						return x;
 					});
-					console.log('parent', isDraft(parent) ? current(parent) : parent);
-
 					// @ts-expect-error - TODO description
 					// eslint-disable-next-line no-param-reassign
 					parent[key] = newVal;

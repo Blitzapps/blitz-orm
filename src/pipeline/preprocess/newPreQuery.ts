@@ -672,7 +672,6 @@ export const newPreQuery: PipelineOperation = async (req) => {
 				}
 				if (linkIds.length > 0) {
 					linkIds.forEach((id) => {
-						console.log('here5');
 						newOpBlocks.push({
 							...replaceBlock,
 							$op: 'link',
