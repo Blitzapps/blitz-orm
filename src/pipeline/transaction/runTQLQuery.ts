@@ -12,7 +12,7 @@ export const newRunTQLQuery: PipelineOperation = async (req, res) => {
 	if (!tqlRequest) {
 		throw new Error('TQL request not built');
 	}
-	// console.log('tqlRequest', tqlRequest);
+	//console.log('tqlRequest!', tqlRequest);
 
 	const isBatched = Array.isArray(tqlRequest);
 	if (isBatched) {
