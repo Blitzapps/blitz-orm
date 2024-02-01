@@ -2,7 +2,7 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.7.2(2023-02-01)
+## 0.7.4(2023-02-01)
 
 - Feat: Added thing validations V0 (📝Only working with local and existing values in the same mutation, for instance an update can't check a new value comparing with the existing one)
 
