@@ -452,6 +452,34 @@ export const testSchema: BormSchema = {
 				},
 			],
 			defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Kind' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+							onUpdate: () => true,
+						},
+						//condition: () => true,
+						actions: [
+							{
+								type: 'validate',
+								fn: ({ name }) => !name || Boolean(name.length < 15), //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
+								severity: 'error',
+								message: 'Name must not exist, or be less than 15 characters',
+							},
+							{
+								type: 'transform',
+								fn: ({ name }) =>
+									name === 'secretKind'
+										? {
+												name: 'Not a secret',
+										  }
+										: {},
+							},
+						],
+					},
+				],
+			},
 		},
 		'Field': {
 			extends: 'SpaceDef',

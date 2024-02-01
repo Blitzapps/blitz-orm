@@ -4,14 +4,16 @@ import { traverse, getNodeByPath } from 'object-traversal';
 import { isArray, isObject, listify, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
+import { capitalizeFirstLetter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
 import type {
 	BQLMutationBlock,
+	BormTrigger,
 	EnrichedBormRelation,
 	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
+	Hooks,
 } from '../../types';
 import type { PipelineOperation } from '../pipeline';
 import { compute } from '../../engine/compute';
@@ -593,6 +595,61 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 	};
 
 	const filledBQLMutation = fill(withObjects);
+
+	const preHookValidations = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+				if (isObject(val) && ('$entity' in val || '$relation' in val)) {
+					const value = val as FilledBQLMutationBlock;
+					// @ts-expect-error - TODO
+					const hooks = val[Symbol.for('schema')].hooks as Hooks;
+					if (hooks) {
+						const { pre } = hooks;
+						if (pre) {
+							const currentEvent = `on${capitalizeFirstLetter(value.$op)}` as BormTrigger;
+
+							const currentHooks = pre.filter((hook) => hook.triggers[currentEvent]);
+
+							currentHooks.forEach((hook) => {
+								/// check if triggers are ... well... triggered!
+								const triggerFunction = currentEvent in hook.triggers ? hook.triggers[currentEvent] : undefined;
+
+								if (triggerFunction === undefined) {
+									return;
+								}
+								/// todo: we will need to safely run all these fns in a sandbox
+								if (triggerFunction()) {
+									/// triggered, time to check its actions (maybe also a condition before but lets skip that for now)
+
+									hook.actions.forEach((action) => {
+										if (action.type === 'validate') {
+											if (action.severity !== 'error') {
+												return; // in borm we only use the errors
+											}
+											const validationResult = action.fn(value);
+
+											if (validationResult === false) {
+												throw new Error(`[PreHook] ${action.message}.`);
+											}
+											if (validationResult !== true) {
+												throw new Error(`[Schema] Non boolean validation result in node ${JSON.stringify(val)}.`);
+											}
+										}
+									});
+								}
+							});
+						}
+					}
+				}
+			}),
+		);
+	};
+
+	//todo: We can do also transformations here later, so instead of just running it, we will need to chain it as the rest
+	//todo: Split this file in more steps for the pipeline
+	preHookValidations(filledBQLMutation);
 
 	// console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 3));
 

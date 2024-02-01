@@ -425,3 +425,10 @@ export const extractChildEntities = (entities: EnrichedBormSchema['entities'], p
 		return acc;
 	}, []);
 };
+
+export const capitalizeFirstLetter = (string: string) => {
+	if (typeof string !== 'string') {
+		throw new Error('capitalizeFirstLetter: string is not a string');
+	}
+	return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+};
