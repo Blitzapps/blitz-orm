@@ -2,7 +2,7 @@ import type { DBConnector, Filter, ThingType, RawBQLQuery, BQLMutationBlock } fr
 
 export type BormField = {
 	path: string;
-	cardinality: CardinalityType;
+	cardinality?: CardinalityType;
 	ordered?: boolean;
 	embedded?: boolean;
 	rights?: readonly RightType[];
@@ -20,6 +20,7 @@ export type RoleField = {
 
 export type LinkField = BormField & {
 	relation: string;
+	cardinality: CardinalityType;
 	plays: string;
 } & (
 		| {

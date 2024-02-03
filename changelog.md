@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.1(2023-02-03)
+
+- Feat: optional cardinality definition on attributes (default: ONE)
+- Chore: updated dependencies
+
 ## 0.8.0(2023-02-02)
 
 - Feat: Default values, not only for id fields

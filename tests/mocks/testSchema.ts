@@ -6,7 +6,7 @@ import type { BormSchema, DataField } from '../../src/index';
 const name: DataField = {
 	shared: true,
 	path: 'name',
-	cardinality: 'ONE',
+
 	contentType: 'TEXT',
 };
 
@@ -14,19 +14,17 @@ const description: DataField = {
 	shared: true,
 	path: 'description',
 	contentType: 'TEXT',
-	cardinality: 'ONE',
 };
 
 const timestamp: DataField = {
 	path: 'timestamp',
-	cardinality: 'ONE',
+
 	contentType: 'DATE',
 };
 
 const id: DataField = {
 	shared: true,
 	path: 'id',
-	cardinality: 'ONE',
 	default: { type: 'fn', fn: () => uuidv4() },
 	validations: { required: true, unique: true },
 	contentType: 'ID',
@@ -45,7 +43,6 @@ export const testSchema: BormSchema = {
 				{ ...id },
 				{
 					contentType: 'TEXT',
-					cardinality: 'ONE',
 					path: 'requiredOption',
 					default: { type: 'value', value: 'a' },
 					validations: { required: true, enum: ['a', 'b', 'c'] as string[] },
@@ -58,14 +55,13 @@ export const testSchema: BormSchema = {
 				},
 				{
 					path: 'fnValidatedField',
-					cardinality: 'ONE',
+
 					contentType: 'TEXT',
 					validations: {
 						fn: (val) => (isEmail(val) && isGmail(val)) ?? false,
 					},
 				},
 				{
-					cardinality: 'ONE',
 					contentType: 'DATE',
 					path: 'timestamp',
 					default: {
@@ -83,7 +79,7 @@ export const testSchema: BormSchema = {
 				{
 					path: 'stuff',
 					contentType: 'TEXT',
-					cardinality: 'ONE',
+
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 				},
 			],
@@ -127,7 +123,7 @@ export const testSchema: BormSchema = {
 				{
 					path: 'provider',
 					contentType: 'TEXT',
-					cardinality: 'ONE',
+
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 				},
 			],
@@ -150,7 +146,7 @@ export const testSchema: BormSchema = {
 				{ ...name, rights: ['CREATE', 'UPDATE'] },
 				{
 					path: 'email',
-					cardinality: 'ONE',
+
 					contentType: 'EMAIL',
 					validations: { unique: true },
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
@@ -194,7 +190,6 @@ export const testSchema: BormSchema = {
 				{
 					path: 'power',
 					contentType: 'TEXT',
-					cardinality: 'ONE',
 				},
 			],
 		},
@@ -205,7 +200,6 @@ export const testSchema: BormSchema = {
 				{
 					path: 'isEvil',
 					contentType: 'BOOLEAN',
-					cardinality: 'ONE',
 				},
 			],
 		},
@@ -279,14 +273,14 @@ export const testSchema: BormSchema = {
 				{ ...id },
 				/* todo: test ids different than 'id' {
           path: 'name',
-          cardinality: 'ONE',
+          
           validations: { required: true, unique: true },
           contentType: 'TEXT',
           rights: ['CREATE'],
         }, */
 				{
 					path: 'isBlue',
-					cardinality: 'ONE',
+
 					contentType: 'BOOLEAN', //no boolean yet
 					isVirtual: true,
 					default: {
@@ -332,7 +326,7 @@ export const testSchema: BormSchema = {
 			dataFields: [
 				{ ...id },
 				{ ...timestamp, path: 'expires' },
-				{ cardinality: 'ONE', contentType: 'TEXT', path: 'sessionToken', validations: { unique: true } },
+				{ contentType: 'TEXT', path: 'sessionToken', validations: { unique: true } },
 			],
 			linkFields: [
 				{
@@ -349,8 +343,8 @@ export const testSchema: BormSchema = {
 			defaultDBConnector: { id: 'default' },
 			dataFields: [
 				{ ...id },
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'identifier' },
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'token', validations: { unique: true } },
+				{ contentType: 'TEXT', path: 'identifier' },
+				{ contentType: 'TEXT', path: 'token', validations: { unique: true } },
 				{ ...timestamp, path: 'expires' },
 			],
 		},
@@ -365,12 +359,8 @@ export const testSchema: BormSchema = {
 				things: {
 					cardinality: 'MANY',
 				},
-				root: {
-					cardinality: 'ONE',
-				},
-				extra: {
-					cardinality: 'ONE',
-				},
+				root: { cardinality: 'ONE' },
+				extra: { cardinality: 'ONE' },
 			},
 		},
 		'User-Accounts': {
@@ -382,9 +372,7 @@ export const testSchema: BormSchema = {
 				accounts: {
 					cardinality: 'MANY',
 				},
-				user: {
-					cardinality: 'ONE',
-				},
+				user: { cardinality: 'ONE' },
 			},
 		},
 		'User-Sessions': {
@@ -392,9 +380,7 @@ export const testSchema: BormSchema = {
 			idFields: ['id'],
 			dataFields: [{ ...id }],
 			roles: {
-				user: {
-					cardinality: 'ONE',
-				},
+				user: { cardinality: 'ONE' },
 				sessions: {
 					cardinality: 'MANY',
 				},
@@ -444,12 +430,8 @@ export const testSchema: BormSchema = {
 				tags: {
 					cardinality: 'MANY',
 				},
-				color: {
-					cardinality: 'ONE',
-				},
-				space: {
-					cardinality: 'ONE',
-				},
+				color: { cardinality: 'ONE' },
+				space: { cardinality: 'ONE' },
 			},
 		},
 		'SpaceObj': {
@@ -457,9 +439,7 @@ export const testSchema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'SpaceObj' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 			dataFields: [id],
 			roles: {
-				space: {
-					cardinality: 'ONE',
-				},
+				space: { cardinality: 'ONE' },
 			},
 		},
 		'SpaceDef': {
@@ -469,7 +449,7 @@ export const testSchema: BormSchema = {
 		},
 		'Kind': {
 			extends: 'SpaceDef',
-			dataFields: [{ contentType: 'TEXT', cardinality: 'ONE', path: 'name', rights: ['CREATE', 'UPDATE'] }],
+			dataFields: [{ contentType: 'TEXT', path: 'name', rights: ['CREATE', 'UPDATE'] }],
 			linkFields: [
 				{
 					path: 'fields',
@@ -508,7 +488,7 @@ export const testSchema: BormSchema = {
 									name === 'secretKind'
 										? {
 												name: 'Not a secret',
-										  }
+											}
 										: {},
 							},
 						],
@@ -519,8 +499,8 @@ export const testSchema: BormSchema = {
 		'Field': {
 			extends: 'SpaceDef',
 			dataFields: [
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'name' },
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'cardinality' },
+				{ contentType: 'TEXT', path: 'name' },
+				{ contentType: 'TEXT', path: 'cardinality' },
 			],
 			roles: {
 				kinds: {
@@ -532,8 +512,8 @@ export const testSchema: BormSchema = {
 		'DataField': {
 			extends: 'Field',
 			dataFields: [
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'type' },
-				{ contentType: 'TEXT', cardinality: 'ONE', path: 'computeType' },
+				{ contentType: 'TEXT', path: 'type' },
+				{ contentType: 'TEXT', path: 'computeType' },
 			],
 			linkFields: [
 				{
@@ -557,20 +537,16 @@ export const testSchema: BormSchema = {
 		'Expression': {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', as: 'Expression', path: 'Expression' },
-			dataFields: [id, { contentType: 'TEXT', cardinality: 'ONE', path: 'value', rights: ['CREATE', 'UPDATE'] }],
+			dataFields: [id, { contentType: 'TEXT', path: 'value', rights: ['CREATE', 'UPDATE'] }],
 			roles: {
-				dataField: {
-					cardinality: 'ONE',
-				},
+				dataField: { cardinality: 'ONE' },
 			},
 		},
 		'DataValue': {
 			idFields: ['id'],
-			dataFields: [id, { contentType: 'TEXT', cardinality: 'ONE', path: 'type' }],
+			dataFields: [id, { contentType: 'TEXT', path: 'type' }],
 			roles: {
-				dataField: {
-					cardinality: 'ONE',
-				},
+				dataField: { cardinality: 'ONE' },
 			},
 			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 		},
@@ -579,9 +555,7 @@ export const testSchema: BormSchema = {
 			extends: 'SpaceObj',
 			defaultDBConnector: { id: 'default', as: 'SpaceObj', path: 'Self' },
 			roles: {
-				owner: {
-					cardinality: 'ONE',
-				},
+				owner: { cardinality: 'ONE' },
 			},
 			linkFields: [
 				{
