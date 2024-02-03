@@ -2,9 +2,9 @@
 import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
 import { buildBQLTree, parseTQLMutation } from './postprocess';
-import { buildTQLMutation } from './preprocess/buildTQLMutation';
-import { fillBQLMutation } from './preprocess/fill';
-import { parseBQLMutation } from './preprocess/parseBQLMutation';
+import { buildTQLMutation } from './preprocess/mutation/buildTQLMutation';
+import { enrichBQLMutation } from './preprocess/mutation/enrichBQLMutation';
+import { parseBQLMutation } from './preprocess/mutation/parseBQLMutation';
 import { runTQLMutation } from './transaction/runTQLMutation';
 import type {
 	BormConfig,
@@ -18,11 +18,14 @@ import type {
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
 } from '../types';
-import { newBuildTQLQuery } from './preprocess/buildTQLQuery';
-import { enrichBQLQuery } from './preprocess/enrichBQLQuery';
+import { newBuildTQLQuery } from './preprocess/query/buildTQLQuery';
+import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
 import { newRunTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/parseTQLQuery';
-import { newPreQuery } from './preprocess/newPreQuery';
+import { preQuery } from './preprocess/mutation/preQuery';
+import { attributePreHooks } from './preprocess/mutation/attributePreeHooks';
+import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';
+import { validationHooks } from './preprocess/mutation/validationHooks';
 
 export type RelationName = string;
 export type EntityName = string;
@@ -83,8 +86,11 @@ type Pipeline = PipelineOperation[];
 const Pipelines: Record<string, Pipeline> = {
 	query: [enrichBQLQuery, newBuildTQLQuery, newRunTQLQuery, parseTQLQuery],
 	mutation: [
-		fillBQLMutation,
-		newPreQuery,
+		enrichBQLMutation,
+		preQuery,
+		attributePreHooks,
+		nodePreHooks,
+		validationHooks,
 		parseBQLMutation,
 		buildTQLMutation,
 		runTQLMutation,

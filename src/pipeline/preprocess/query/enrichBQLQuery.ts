@@ -1,9 +1,9 @@
 import { produce } from 'immer';
-import type { PipelineOperation } from '../pipeline';
+import type { PipelineOperation } from '../../pipeline';
 import { traverse } from 'object-traversal';
-import { getCurrentSchema } from '../../helpers';
+import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
-import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation } from '../../types';
+import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation } from '../../../types';
 
 //todo: use getCurrentFields instead
 const getAllFields = (currentSchema: any) => {

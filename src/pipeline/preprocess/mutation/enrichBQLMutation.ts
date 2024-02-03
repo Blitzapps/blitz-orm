@@ -1,22 +1,20 @@
 import { produce, current } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse, getNodeByPath } from 'object-traversal';
-import { isArray, isObject, listify, shake } from 'radash';
+import { isArray, isObject, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { capitalizeFirstLetter, getCurrentFields, getCurrentSchema, oFind } from '../../helpers';
+import { getCurrentFields, getCurrentSchema, oFind } from '../../../helpers';
 import type {
 	BQLMutationBlock,
-	BormTrigger,
 	EnrichedBormRelation,
 	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
-	Hooks,
-} from '../../types';
-import type { PipelineOperation } from '../pipeline';
-import { compute } from '../../engine/compute';
+} from '../../../types';
+import type { PipelineOperation } from '../../pipeline';
+import { computeField } from '../../../engine/compute';
 
 // parseBQLQueryObjectives:
 // 1) Validate the query (getRawBQLQuery)
@@ -44,7 +42,7 @@ const sanitizeTempId = (id: string): string => {
 	return sanitizedId;
 };
 
-export const fillBQLMutation: PipelineOperation = async (req) => {
+export const enrichBQLMutation: PipelineOperation = async (req) => {
 	const { rawBqlRequest, schema } = req;
 
 	/// STEP 1, remove undefined stuff, sanitize tempIds and split arrays of $ids
@@ -427,7 +425,7 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 
 					const currentSchema = getCurrentSchema(schema, value);
 					// todo:
-					const { unidentifiedFields, dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
+					const { dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
 
 					/// get parent node
 					const parentMeta = current(value)[Symbol.for('parent') as any];
@@ -494,11 +492,6 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 						value.$parentKey = '';
 					} // root
 
-					// console.log('value', current(value));
-					// errors
-					/* if (!(value.$id || value.$tempId || value.$filter) && ['delete', 'link', 'update'].includes(value.$op)) {
-            throw new Error('Targeted operations (update, delete, link) require an $id or a $filter');
-          } */
 					if (typeof parent === 'object') {
 						// spot rights conflicts
 
@@ -515,8 +508,26 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					if (!value.$entity && !value.$relation) {
 						throw new Error(`Node ${JSON.stringify(value)} without $entity/$relation`);
 					}
+				}
+			}),
+		);
+	};
 
-					const { idFields, computedFields, virtualFields } = currentSchema;
+	const filledBQLMutation = fill(withObjects);
+
+	const fillIds = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+				if (isObject(val)) {
+					const value = val as FilledBQLMutationBlock;
+
+					const currentSchema = getCurrentSchema(schema, value);
+					// todo:
+					const { unidentifiedFields } = getCurrentFields(currentSchema, value);
+
+					const { idFields } = currentSchema;
 					// todo: composite ids
 					if (!idFields) {
 						throw new Error('No idFields found');
@@ -524,67 +535,24 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 					const [idField] = idFields;
 					// console.log('computedFields', computedFields);
 
-					const filledFields = listify(value, (attKey, v) => (v !== undefined ? attKey : undefined)) as string[];
-					/// if at least one of the filled fields is virtual, then throw error
-					const virtualFilledFields = filledFields.filter((x) => virtualFields?.includes(x));
-					if (virtualFilledFields.length > 0) {
-						throw new Error(`Virtual fields can't be sent to DB: "${virtualFilledFields.join(',')}"`);
+					//compute the idField if it has a default and it is not defined
+					if (value.$op === 'create' && !value[idField]) {
+						const idFieldDef = currentSchema.dataFields?.find((x) => x.path === idField);
+
+						const defaultIdField = computeField({
+							currentThing: value,
+							fieldSchema: idFieldDef as EnrichedDataField, //id is always a datafield.
+							mandatoryDependencies: true, //can't send to db without every dependency being there
+						});
+						if (typeof defaultIdField !== 'string') {
+							throw new Error(`Default id field ${idField} is not a string`);
+						}
+
+						value[idField] = defaultIdField; // we already checked that this value has not been defined
+						// value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
+
+						value.$id = defaultIdField;
 					}
-					const missingComputedFields = computedFields.filter((x) => !filledFields.includes(x));
-
-					// fill computed values
-					missingComputedFields.forEach((fieldPath) => {
-						// console.log('fieldPath', fieldPath);
-
-						const currentFieldDef = currentSchema.dataFields?.find((x) => x.path === fieldPath);
-						const currentLinkDef = currentSchema.linkFields?.find((x) => x.path === fieldPath);
-						// todo: multiple playedBy
-						const currentLinkedDef = currentLinkDef?.oppositeLinkFieldsPlayedBy[0];
-
-						const currentRoleDef =
-							'roles' in currentSchema ? oFind(currentSchema.roles, (k, _v) => k === fieldPath) : undefined;
-						const currentDef = currentFieldDef || currentLinkedDef || currentRoleDef;
-						if (!currentDef) {
-							throw new Error(`no field Def for ${fieldPath}`);
-						}
-
-						// We generate id fields when needed
-						if (fieldPath === idField && value.$op === 'create' && !value[fieldPath]) {
-							const defaultValue = compute({
-								currentThing: value,
-								fieldSchema: currentDef as EnrichedDataField, //id is always a datafield.
-								mandatoryDependencies: true, //can't send to db without every dependency being there
-							});
-
-							value[fieldPath] = defaultValue; // we already checked that this value has not been defined
-							// value.$id = defaultValue; // op=create don't need $id anymore, they have $bzId
-							value.$id = defaultValue;
-						}
-					});
-
-					/*
-
-          // if a valid id is setup, move it to $id
-          if (!value.$id) {
-            if (value[idField]) {
-              /// this is in creation when adding an id
-              // value.$id = value[idField];
-            } else {
-              if (value.$op === 'create') {
-                // throw new Error(`No id found for ${JSON.stringify(value)}`);
-              }
-              /// link, update, unlink or delete, without id, it gets a generic
-              if (!value.$tempId) {
-                // const localId = `all-${uuidv4()}`;
-                // value.$tempId = tempId; No longer using this workaround, isLocalid is better
-                // todo: probably $localId or Symbol.for("localId") would be better to reuse $id 🤔
-                // value.$id = localId; /// we also need to setup it as the $id for chained stuff
-                /// we need to tag it as a nonDbid
-                value[Symbol.for('isLocalId') as any] = true;
-              }
-              /// if value.$idTemp id nothing to change, it keeps the current tempId
-            }
-          } */
 
 					if (unidentifiedFields.length > 0) {
 						throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
@@ -594,69 +562,14 @@ export const fillBQLMutation: PipelineOperation = async (req) => {
 		);
 	};
 
-	const filledBQLMutation = fill(withObjects);
-
-	const preHookValidations = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) =>
-			traverse(draft, ({ value: val }: TraversalCallbackContext) => {
-				if (isObject(val) && ('$entity' in val || '$relation' in val)) {
-					const value = val as FilledBQLMutationBlock;
-					// @ts-expect-error - TODO
-					const hooks = val[Symbol.for('schema')].hooks as Hooks;
-					if (hooks) {
-						const { pre } = hooks;
-						if (pre) {
-							const currentEvent = `on${capitalizeFirstLetter(value.$op)}` as BormTrigger;
-
-							const currentHooks = pre.filter((hook) => hook.triggers[currentEvent]);
-
-							currentHooks.forEach((hook) => {
-								/// check if triggers are ... well... triggered!
-								const triggerFunction = currentEvent in hook.triggers ? hook.triggers[currentEvent] : undefined;
-
-								if (triggerFunction === undefined) {
-									return;
-								}
-								/// todo: we will need to safely run all these fns in a sandbox
-								if (triggerFunction()) {
-									/// triggered, time to check its actions (maybe also a condition before but lets skip that for now)
-
-									hook.actions.forEach((action) => {
-										if (action.type === 'validate') {
-											if (action.severity !== 'error') {
-												return; // in borm we only use the errors
-											}
-											const validationResult = action.fn(value);
-
-											if (validationResult === false) {
-												throw new Error(`[PreHook] ${action.message}.`);
-											}
-											if (validationResult !== true) {
-												throw new Error(`[Schema] Non boolean validation result in node ${JSON.stringify(val)}.`);
-											}
-										}
-									});
-								}
-							});
-						}
-					}
-				}
-			}),
-		);
-	};
-
-	//todo: We can do also transformations here later, so instead of just running it, we will need to chain it as the rest
-	//todo: Split this file in more steps for the pipeline
-	preHookValidations(filledBQLMutation);
+	const filledBQLMutationWithIds = fillIds(filledBQLMutation);
 
 	// console.log('filledBQLMutation', JSON.stringify(filledBQLMutation, null, 3));
 
 	if (Array.isArray(filledBQLMutation)) {
-		req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock[];
+		req.filledBqlRequest = filledBQLMutationWithIds as FilledBQLMutationBlock[];
 	} else {
 		// eslint-disable-next-line no-param-reassign
-		req.filledBqlRequest = filledBQLMutation as FilledBQLMutationBlock;
+		req.filledBqlRequest = filledBQLMutationWithIds as FilledBQLMutationBlock;
 	}
 };

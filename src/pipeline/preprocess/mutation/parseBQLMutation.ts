@@ -3,9 +3,10 @@ import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema } from '../../helpers';
-import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../types';
-import type { PipelineOperation } from '../pipeline';
+import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
+import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../../types';
+import type { PipelineOperation } from '../../pipeline';
+import { computeField } from '../../../engine/compute';
 
 export const parseBQLMutation: PipelineOperation = async (req) => {
 	const { filledBqlRequest, schema } = req;
@@ -40,9 +41,16 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 			if (!idField) {
 				throw new Error(`no idField: ${JSON.stringify(node)}`);
 			}
+			/// This is adding idfields for intermediary relations. In the future maybe it would be better to add the intermediary relations in the enrich step?
 			const idDataField = currentSchema.dataFields?.find((x) => x.path === idField);
-			const idDefaultValue = node.$op === 'create' ? idDataField?.default?.value() : null;
-			const idValue = node[idField] || node.$id || idDefaultValue;
+
+			const defaultIdField = computeField({
+				currentThing: node,
+				fieldSchema: idDataField, //id is always a datafield.
+				mandatoryDependencies: true, //can't send to db without every dependency being there
+			});
+
+			const idValue = node[idField] || node.$id || defaultIdField;
 
 			if (!idValue) {
 				throw new Error(`no idValue: ${JSON.stringify(node)}`);

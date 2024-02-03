@@ -1,2 +1,2 @@
-export * from './buildTQLQuery';
+export * from './query/buildTQLQuery';
 //export * from './parseBQLQuery.ts.old';

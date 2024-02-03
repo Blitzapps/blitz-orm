@@ -2,6 +2,16 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.0(2023-02-02)
+
+- Feat: Default values, not only for id fields
+- Feat: Required values are check now on create //cardinality ONE only
+- Feat: Enums are check on create and update
+- Feat: Validations can be functions
+- Breaking Change: Default values structure has changed (from value to fn)
+- Mini breaking change: Fixed some issues with the dates with come now with the Z at the end
+- Refactoring: Refactoring some code, preparing for other pre-hooks
+
 ## 0.7.4(2023-02-01)
 
 - Feat: Added thing validations V0 (📝Only working with local and existing values in the same mutation, for instance an update can't check a new value comparing with the existing one)

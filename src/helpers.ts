@@ -153,9 +153,13 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					throw new Error('Unsupported node attributes');
 				};
 				value.thingType = thingType();
-				// init the array of computed values
+
+				// init the arrays
 				value.computedFields = [];
 				value.virtualFields = [];
+				value.requiredFields = [];
+				value.enumFields = [];
+
 				// adding all the linkfields to roles
 				if ('roles' in value) {
 					const val = value as EnrichedBormRelation;
@@ -234,18 +238,32 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 				}
 			}
 
-			// if default or computed, add to computed fields list
-			if (meta.depth === 4 && (value.default || value.computedValue)) {
+			//if default or computed, add to computed fields list
+			if (meta.depth === 4) {
 				const [type, thingId] = meta.nodePath?.split('.') || [];
-				// todo:
-				if (value.isVirtual) {
-					// @ts-expect-error - TODO description
-					draft[type][thingId].virtualFields.push(value.path);
-				} else {
-					// @ts-expect-error - TODO description
-					draft[type][thingId].computedFields.push(value.path);
+				//todo change "type" to "thingType"
+				// @ts-expect-error - TODO
+				const draftSchema = draft[type][thingId] as EnrichedBormEntity;
+
+				if (value.validations) {
+					if (value.validations.required) {
+						draftSchema.requiredFields.push(value.path);
+					}
+					if (value.validations.enum) {
+						draftSchema.enumFields.push(value.path);
+					}
+				}
+
+				if (value.default || value.computedValue) {
+					if (value.isVirtual) {
+						draftSchema.virtualFields.push(value.path);
+					} else {
+						draftSchema.computedFields.push(value.path);
+					}
 				}
 			}
+
+			//if it requires validations, add to the fields that required validations
 		}),
 	) as EnrichedBormSchema;
 

@@ -7,7 +7,7 @@ import { isObject, listify } from 'radash';
 import { getCurrentFields, notNull, oFilter } from '../../helpers';
 import type { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
 import type { Entity, PipelineOperation } from '../pipeline';
-import { compute } from '../../engine/compute';
+import { computeField } from '../../engine/compute';
 
 const isOne = (children: any[], $id: string) => {
 	if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
@@ -280,7 +280,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 								(value[virtualField] === undefined || value[virtualField] === null)
 							) {
 								const fieldSchema = currentSchema.dataFields?.find((x) => x.path === virtualField);
-								const computedValue = compute({ currentThing: entity, fieldSchema: fieldSchema });
+								const computedValue = computeField({ currentThing: entity, fieldSchema: fieldSchema });
 
 								// @ts-expect-error - TODO description
 								value[virtualField] = computedValue;

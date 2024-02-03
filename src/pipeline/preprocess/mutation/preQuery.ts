@@ -1,13 +1,15 @@
 import { traverse } from 'object-traversal';
-import { queryPipeline, type PipelineOperation } from '../pipeline';
-import type { FilledBQLMutationBlock } from '../../types';
 import { isObject } from 'radash';
 import { produce } from 'immer';
-import { getCardinality, getCurrentSchema } from '../../helpers';
 import { v4 as uuidv4 } from 'uuid';
+import type { FilledBQLMutationBlock } from '../../../types';
+import { getCurrentSchema, getCardinality } from '../../../helpers';
+import { queryPipeline, type PipelineOperation } from '../../pipeline';
 
 export const preQueryPathSeparator = '___';
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
+
+const grandChildOfCreateSymbol = Symbol.for('grandChildOfCreate');
 
 const getSymbols = (oldBlock: FilledBQLMutationBlock) => {
 	// console.log({ oldBlock });
@@ -53,7 +55,7 @@ const getSymbols = (oldBlock: FilledBQLMutationBlock) => {
 	return symbols;
 };
 
-export const newPreQuery: PipelineOperation = async (req) => {
+export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config, schema } = req;
 
 	const getFieldKeys = (block: FilledBQLMutationBlock, noDataFields?: boolean) => {
@@ -76,7 +78,7 @@ export const newPreQuery: PipelineOperation = async (req) => {
 	};
 
 	if (!filledBqlRequest) {
-		throw new Error('[BQLE-M-0] No filledBqlRequest found');
+		throw new Error('[BQLE-M-PQ-1] No filledBqlRequest found');
 	}
 
 	// console.log('filledBql: ', JSON.stringify(filledBqlRequest, null, 2));
@@ -313,20 +315,24 @@ export const newPreQuery: PipelineOperation = async (req) => {
 				) {
 					if (Array.isArray(parent[key])) {
 						parent[key].forEach(
-							(o: string | { $objectPath: ObjectPath; $parentIsCreate: boolean; $grandChildOfCreate: boolean }) => {
+							(
+								o: string | { $objectPath: ObjectPath; $parentIsCreate: boolean; [grandChildOfCreateSymbol]: boolean },
+							) => {
 								if (typeof o !== 'string') {
 									// eslint-disable-next-line no-param-reassign
 									o.$objectPath = getObjectPath(parent, key);
 									// eslint-disable-next-line no-param-reassign
 									o.$parentIsCreate = parent.$op === 'create';
 									// eslint-disable-next-line no-param-reassign
-									o.$grandChildOfCreate = parent.$parentIsCreate || parent.$grandChildOfCreate;
+									o[grandChildOfCreateSymbol] =
+										parent.$parentIsCreate || parent[Symbol.for('grandChildOfCreate') as any];
 								}
 							},
 						);
 					} else if (isObject(parent[key])) {
 						parent[key].$parentIsCreate = parent.$op === 'create';
-						parent[key].$grandChildOfCreate = parent.$parentIsCreate || parent.$grandChildOfCreate;
+						parent[key][Symbol.for('grandChildOfCreate')] =
+							parent.$parentIsCreate || parent[Symbol.for('grandChildOfCreate') as any];
 						parent[key].$objectPath = getObjectPath(parent, key);
 					}
 				}

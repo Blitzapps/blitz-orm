@@ -698,7 +698,7 @@ describe('Mutations: Init', () => {
 
 		expect(sessions).toEqual([
 			{
-				expires: '2023-06-10T14:58:09.066',
+				expires: '2023-06-10T14:58:09.066Z',
 				id: expect.any(String),
 				sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
 				user: 'user1',
@@ -1057,7 +1057,7 @@ describe('Mutations: Init', () => {
 				name: 'Charlize',
 			},
 			{
-				name: 'Jane', /// coming from previous test (b4)
+				name: 'Jane', /// sing from previous test (b4)
 			},
 			{
 				name: 'Jill', /// coming from previous test

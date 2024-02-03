@@ -1,4 +1,5 @@
-import { compute } from '../../engine/compute';
+import { isArray } from 'radash';
+import { computeField } from '../../engine/compute';
 import { getCurrentSchema } from '../../helpers';
 import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
@@ -91,10 +92,15 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 				const field = currentSchema.dataFields?.find((f) => f.path === key || f.dbPath === key);
 				const isIdField = key === 'id';
 				const $asKey = Array.isArray($as) ? $as.find((o) => o[key])?.[key] : key;
+
 				let fieldValue;
 				if (field?.cardinality === 'ONE') {
 					// @ts-expect-error todo
 					fieldValue = value[0] ? value[0].value : config.query?.returnNulls ? null : undefined;
+					/// date fields need to be converted to ISO format including the timezone
+					if (field.contentType === 'DATE') {
+						fieldValue = `${fieldValue}Z`;
+					}
 					if (isIdField && !config.query?.noMetadata) {
 						return [
 							[$asKey, fieldValue],
@@ -102,8 +108,18 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						].filter(([_, v]) => v !== undefined);
 					}
 				} else if (field?.cardinality === 'MANY') {
-					// @ts-expect-error todo
-					fieldValue = value.map((o) => o.value);
+					if (!isArray(value)) {
+						throw new Error('Typedb fetch has changed its format');
+					}
+					if (field.contentType === 'DATE') {
+						fieldValue = value.map((o) => {
+							return `${o.value}Z`;
+						});
+					} else {
+						fieldValue = value.map((o) => {
+							return o.value;
+						});
+					}
 				}
 				return [[$asKey, fieldValue]].filter(([_, v]) => v !== undefined);
 			})
@@ -113,7 +129,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		const virtualFields = virtual.map((key: string) => {
 			const $asKey = $as.find((o: any) => o[key])?.[key];
 			const field = currentSchema.dataFields?.find((f) => f.isVirtual && f.dbPath === key);
-			const computedValue = compute({ currentThing: Object.fromEntries(mainDataFields), fieldSchema: field });
+			const computedValue = computeField({ currentThing: Object.fromEntries(mainDataFields), fieldSchema: field });
 			return [$asKey, computedValue];
 		});
 

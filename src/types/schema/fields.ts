@@ -1,4 +1,4 @@
-import type { DBConnector, Filter, ThingType, RawBQLQuery } from '..';
+import type { DBConnector, Filter, ThingType, RawBQLQuery, BQLMutationBlock } from '..';
 
 export type BormField = {
 	path: string;
@@ -35,44 +35,72 @@ export type LinkedFieldWithThing = LinkField & {
 	thing: string;
 	thingType: ThingType;
 };
+type StringField = BormField & {
+	contentType:
+		| 'ID'
+		| 'COLOR'
+		| 'DATE'
+		| 'FILE'
+		| 'EMAIL'
+		| 'PHONE'
+		| 'URL'
+		| 'PASSWORD'
+		| 'LANGUAGE_TEXT'
+		| 'RICH_TEXT'
+		| 'TEXT';
+	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => string } | { type: 'value'; value: string };
+	validations?: {
+		enum?: string[];
+		unique?: boolean;
+		fn?: (value: string) => boolean;
+	};
+};
+
+type NumberField = BormField & {
+	contentType: 'DURATION' | 'HOUR' | 'RATING' | 'CURRENCY' | 'PERCENTAGE' | 'NUMBER_DECIMAL' | 'NUMBER';
+	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => number } | { type: 'value'; value: number };
+	validations?: {
+		enum?: number[];
+		unique?: boolean;
+		fn?: (value: number) => boolean;
+	};
+};
+
+type DateField = BormField & {
+	contentType: 'TIME';
+	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => Date } | { type: 'value'; value: Date };
+	validations?: {
+		enum: Date[];
+		fn?: (value: Date) => boolean;
+	};
+};
+
+type BooleanField = BormField & {
+	contentType: 'BOOLEAN';
+	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => boolean } | { type: 'value'; value: boolean };
+	validations?: {
+		enum?: boolean[];
+		fn?: (value: boolean) => boolean;
+	};
+};
+
+type AllDataField = StringField | NumberField | DateField | BooleanField;
 
 export type DataField = BormField & {
 	shared?: boolean;
-	default?: any; // todo: is either a value or a fn that return a value of the type datatype
-	contentType: ContentType;
-	validations?: any; // todo
+	validations?: {
+		required?: boolean;
+		unique?: boolean;
+	};
 	isVirtual?: boolean;
 	dbConnectors?: [DBConnector, ...DBConnector[]];
-};
+} & AllDataField;
 
-export type ContentType =
-	| 'ID'
-	| 'JSON'
-	| 'COLOR'
-	| 'BOOLEAN'
-	| 'POINT'
-	| 'FILE'
-	| 'EMAIL'
-	| 'PHONE'
-	| 'WEEK_DAY'
-	| 'DURATION'
-	| 'HOUR'
-	| 'TIME'
-	| 'DATE'
-	| 'RATING'
-	| 'CURRENCY'
-	| 'PERCENTAGE'
-	| 'NUMBER_DECIMAL'
-	| 'NUMBER'
-	| 'URL'
-	| 'PASSWORD'
-	| 'LANGUAGE_TEXT'
-	| 'RICH_TEXT'
-	| 'TEXT';
+export type ContentType = keyof ContentTypeMapping;
 
 export type ContentTypeMapping = {
 	ID: string;
-	JSON: any;
+	JSON: unknown;
 	COLOR: string;
 	BOOLEAN: boolean;
 	POINT: { x: number; y: number };
@@ -83,7 +111,7 @@ export type ContentTypeMapping = {
 	DURATION: number;
 	HOUR: number;
 	TIME: Date;
-	DATE: Date;
+	DATE: string;
 	RATING: number;
 	CURRENCY: number;
 	PERCENTAGE: number;
