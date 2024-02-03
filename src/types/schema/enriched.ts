@@ -14,6 +14,8 @@ export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'd
 	name: string;
 	computedFields: string[];
 	virtualFields: string[];
+	requiredFields: string[];
+	enumFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
 };
@@ -23,6 +25,8 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 	name: string;
 	computedFields: string[];
 	virtualFields: string[];
+	requiredFields: string[];
+	enumFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
 	roles: { [key: string]: EnrichedRoleField };

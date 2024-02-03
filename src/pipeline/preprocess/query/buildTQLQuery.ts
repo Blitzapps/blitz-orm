@@ -1,4 +1,4 @@
-import type { PipelineOperation } from '../pipeline';
+import type { PipelineOperation } from '../../pipeline';
 
 const separator = '___';
 

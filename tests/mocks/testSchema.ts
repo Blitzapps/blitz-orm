@@ -23,23 +23,58 @@ const timestamp: DataField = {
 	contentType: 'DATE',
 };
 
-const string: Omit<DataField, 'path'> = {
-	cardinality: 'ONE',
-	contentType: 'TEXT',
-};
-
 const id: DataField = {
 	shared: true,
 	path: 'id',
 	cardinality: 'ONE',
-	default: { type: 'function', value: () => uuidv4() },
+	default: { type: 'fn', fn: () => uuidv4() },
 	validations: { required: true, unique: true },
 	contentType: 'ID',
 	rights: ['CREATE'],
 };
 
+const isEmail = (val: string) => val.includes('@'); //basic on purpose
+const isGmail = (val: string) => val.includes('gmail.com'); //basic on purpose
+
 export const testSchema: BormSchema = {
 	entities: {
+		Hook: {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Hook' },
+			dataFields: [
+				{ ...id },
+				{
+					contentType: 'TEXT',
+					cardinality: 'ONE',
+					path: 'requiredOption',
+					default: { type: 'value', value: 'a' },
+					validations: { required: true, enum: ['a', 'b', 'c'] as string[] },
+				},
+				{
+					path: 'manyOptions',
+					cardinality: 'MANY',
+					contentType: 'TEXT',
+					validations: { enum: ['a', 'b', 'c'] as string[] },
+				},
+				{
+					path: 'fnValidatedField',
+					cardinality: 'ONE',
+					contentType: 'TEXT',
+					validations: {
+						fn: (val) => (isEmail(val) && isGmail(val)) ?? false,
+					},
+				},
+				{
+					cardinality: 'ONE',
+					contentType: 'DATE',
+					path: 'timestamp',
+					default: {
+						type: 'fn',
+						fn: () => new Date().toISOString().replace('Z', ''),
+					},
+				},
+			],
+		},
 		Thing: {
 			idFields: ['id'], // could be a composite key
 			defaultDBConnector: { id: 'default', path: 'Thing' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
@@ -255,8 +290,8 @@ export const testSchema: BormSchema = {
 					contentType: 'BOOLEAN', //no boolean yet
 					isVirtual: true,
 					default: {
-						type: 'function',
-						value: ({ id }: any) => (id === 'blue' ? true : false),
+						type: 'fn',
+						fn: ({ id }) => (id === 'blue' ? true : false),
 					},
 				},
 			],
@@ -297,7 +332,7 @@ export const testSchema: BormSchema = {
 			dataFields: [
 				{ ...id },
 				{ ...timestamp, path: 'expires' },
-				{ ...string, path: 'sessionToken', validations: { unique: true } },
+				{ cardinality: 'ONE', contentType: 'TEXT', path: 'sessionToken', validations: { unique: true } },
 			],
 			linkFields: [
 				{
@@ -314,8 +349,8 @@ export const testSchema: BormSchema = {
 			defaultDBConnector: { id: 'default' },
 			dataFields: [
 				{ ...id },
-				{ ...string, path: 'identifier' },
-				{ ...string, path: 'token', validations: { unique: true } },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'identifier' },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'token', validations: { unique: true } },
 				{ ...timestamp, path: 'expires' },
 			],
 		},
@@ -434,7 +469,7 @@ export const testSchema: BormSchema = {
 		},
 		'Kind': {
 			extends: 'SpaceDef',
-			dataFields: [{ ...string, path: 'name', rights: ['CREATE', 'UPDATE'] }],
+			dataFields: [{ contentType: 'TEXT', cardinality: 'ONE', path: 'name', rights: ['CREATE', 'UPDATE'] }],
 			linkFields: [
 				{
 					path: 'fields',
@@ -484,8 +519,8 @@ export const testSchema: BormSchema = {
 		'Field': {
 			extends: 'SpaceDef',
 			dataFields: [
-				{ ...string, path: 'name' },
-				{ ...string, path: 'cardinality' },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'name' },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'cardinality' },
 			],
 			roles: {
 				kinds: {
@@ -497,8 +532,8 @@ export const testSchema: BormSchema = {
 		'DataField': {
 			extends: 'Field',
 			dataFields: [
-				{ ...string, path: 'type' },
-				{ ...string, path: 'computeType' },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'type' },
+				{ contentType: 'TEXT', cardinality: 'ONE', path: 'computeType' },
 			],
 			linkFields: [
 				{
@@ -522,7 +557,7 @@ export const testSchema: BormSchema = {
 		'Expression': {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', as: 'Expression', path: 'Expression' },
-			dataFields: [id, { ...string, path: 'value', rights: ['CREATE', 'UPDATE'] }],
+			dataFields: [id, { contentType: 'TEXT', cardinality: 'ONE', path: 'value', rights: ['CREATE', 'UPDATE'] }],
 			roles: {
 				dataField: {
 					cardinality: 'ONE',
@@ -531,7 +566,7 @@ export const testSchema: BormSchema = {
 		},
 		'DataValue': {
 			idFields: ['id'],
-			dataFields: [id, { ...string, path: 'type' }],
+			dataFields: [id, { contentType: 'TEXT', cardinality: 'ONE', path: 'type' }],
 			roles: {
 				dataField: {
 					cardinality: 'ONE',

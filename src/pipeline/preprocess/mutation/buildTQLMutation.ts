@@ -1,8 +1,8 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
 
-import { getCurrentSchema } from '../../helpers';
-import type { BQLMutationBlock } from '../../types';
-import type { PipelineOperation } from '../pipeline';
+import { getCurrentSchema } from '../../../helpers';
+import type { BQLMutationBlock } from '../../../types';
+import type { PipelineOperation } from '../../pipeline';
 
 export const buildTQLMutation: PipelineOperation = async (req) => {
 	const { bqlRequest, schema } = req;

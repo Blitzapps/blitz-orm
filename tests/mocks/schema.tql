@@ -40,11 +40,20 @@ Session·expires sub attribute,
 Session·sessionToken sub attribute,
     value string;
 
-    
 
 Expression·value sub attribute,
     value string;
 
+Hook·timestamp sub attribute,
+		value datetime;
+
+Hook·requiredOption sub attribute,
+		value string,
+		regex "^(a|b|c)$";
+
+Hook·manyOptions sub attribute,
+		value string,
+		regex "^(a|b|c)$";
 
 Space sub entity,
     owns id @key,
@@ -184,4 +193,11 @@ Session sub entity,
     owns id @key,
     owns Session·expires,
     plays User-Sessions:sessions;
+
+Hook sub entity,
+	owns id @key,
+	owns Hook·timestamp,
+	owns Hook·requiredOption,
+	owns Hook·manyOptions;
+
     
