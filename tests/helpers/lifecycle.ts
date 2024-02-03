@@ -23,7 +23,7 @@ const createClient = async (connector: any) => {
 		return TypeDB.coreDriver(connector.url);
 	}
 	if (provider === 'typeDBCluster') {
-		return TypeDB.enterpriseDriver(connector.addresses, connector.credentials);
+		return TypeDB.cloudDriver(connector.addresses, connector.credentials);
 	}
 	throw new Error('Invalid provider');
 };
@@ -67,7 +67,9 @@ export const init = async () => {
 export const cleanup = async (dbName: string) => {
 	const [connector] = providerConfig[provider].dbConnectors;
 	const client = await createClient(connector);
-
 	await (await client.databases.get(dbName)).delete();
 	await client.close();
+
+	//await 4.5 seconds for laggy logs
+	return new Promise((resolve) => setTimeout(resolve, 4500));
 };

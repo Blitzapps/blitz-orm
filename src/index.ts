@@ -62,7 +62,7 @@ class BormClient {
 					}
 				}
 				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
-					const [clientErr, client] = await tryit(TypeDB.enterpriseDriver)(dbc.addresses, dbc.credentials);
+					const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, dbc.credentials);
 
 					if (clientErr) {
 						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${

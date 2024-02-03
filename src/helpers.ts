@@ -53,6 +53,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					// * Adding dbPath of local dataFields
 					value.dataFields = value.dataFields?.map((df: DataField) => ({
 						...df,
+						cardinality: df.cardinality || 'ONE',
 						dbPath: getDbPath(key, df.path, df.shared),
 					}));
 				}
@@ -81,7 +82,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
 									};
 								}),
-						  )
+							)
 						: value.dataFields;
 					value.linkFields = extendedSchema.linkFields
 						? (value.linkFields || []).concat(extendedSchema.linkFields)
@@ -127,7 +128,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 							...value,
 							...thingTypes,
 						},
-				  ]
+					]
 				: value.map((x) => ({ ...x, ...thingTypes }));
 
 			allLinkedFields.push(...withThing);
@@ -372,19 +373,19 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 					return x.$path;
 				}
 				throw new Error(' Wrongly structured query');
-		  }) as string[])
+			}) as string[])
 		: listify<any, string, string>(node, (k: string) => k);
 
 	const localFilterFields = !node.$filter
 		? []
 		: listify(node.$filter, (k: string) => (k.toString().startsWith('$') ? undefined : k.toString())).filter(
 				(x) => x && availableDataFields?.includes(x),
-		  );
+			);
 	const nestedFilterFields = !node.$filter
 		? []
 		: listify(node.$filter, (k: string) => (k.toString().startsWith('$') ? undefined : k.toString())).filter(
 				(x) => x && [...(availableRoleFields || []), ...(availableLinkFields || [])]?.includes(x),
-		  );
+			);
 
 	const unidentifiedFields = [...usedFields, ...localFilterFields]
 		// @ts-expect-error - TODO description
