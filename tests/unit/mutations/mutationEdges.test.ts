@@ -1213,7 +1213,47 @@ describe('Mutations: Edges', () => {
 		await bormClient.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
-			tags: [{ $op: 'unlink', $id: ['tag-1', 'tag-2'] }, { $op: 'link' }],
+			tags: [{ $op: 'unlink' }, { $op: 'link' }], //should unlink everything, then link everything
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		expect(deepSort(tmpUTG)).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('TODO:rep2bc[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+			color: 'blue',
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [{ $op: 'link' }], //should link  to every tag but not repeat tag-1 and tag-2
 		});
 
 		const tmpUTG = await bormClient.query({
