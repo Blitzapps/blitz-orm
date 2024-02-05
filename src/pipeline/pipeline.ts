@@ -62,6 +62,7 @@ type Response = {
 		}[];
 		// mutations
 		insertions?: ConceptMap[];
+		creations?: ConceptMap[];
 	};
 	cache?: {
 		entities: Map<EntityName, Map<EntityID, Entity>>;

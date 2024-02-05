@@ -21,6 +21,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
 		insertionMatch?: string;
+		creation?: string;
 		deletion?: string;
 		insertion?: string;
 		op: string;
@@ -125,6 +126,9 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			if (op === 'update' || op === 'link' || op === 'match') {
 				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
 			}
+			if (op === 'create') {
+				return `${bzId} isa ${[thingDbPath, ...idAttributes].filter((x) => x).join(',')};`;
+			}
 			return '';
 		};
 
@@ -133,12 +137,8 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				op,
 				deletionMatch: getDeletionMatchInNodes(),
 				insertionMatch: getInsertionMatchInNodes(),
-				insertion:
-					op === 'create'
-						? `${bzId} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};`
-						: op === 'update' && attributes.length
-						? `${bzId} ${attributes.join(',')};`
-						: '',
+				creation: op === 'create' ? `${bzId} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};` : '',
+				insertion: op === 'update' && attributes.length ? `${bzId} ${attributes.join(',')};` : '',
 				deletion:
 					op === 'delete'
 						? `${bzId} isa ${thingDbPath};`
@@ -157,6 +157,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
 		insertionMatch?: string;
+		creation?: string;
 		deletion?: string;
 		insertion?: string;
 		op: string;
@@ -239,7 +240,6 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				return '';
 			}
 			// if (op === 'link') return `${relationTql};`;
-			// if (op === 'create') return `${relationTqlWithoutRoles};`;
 			if (op === 'match') {
 				return `${relationTql};`;
 			}
@@ -305,6 +305,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			// preDeletionBatch: getPreDeletionBatch(),
 			deletionMatch: getDeletionMatchInEdges(),
 			insertionMatch: getInsertionMatchInEdges(),
+			creation: op === 'match' ? `${relationTql}, has id '${idValue}';` : '',
 			deletion: getDeletionsInEdges(),
 			insertion: getInsertionsInEdges(),
 			op: '',
@@ -319,6 +320,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				preDeletionBatch?: any[];
 				insertionMatch?: string;
 				deletionMatch?: string;
+				creation?: string;
 				insertion?: string;
 				deletion?: string;
 		  }[]
@@ -326,6 +328,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				preDeletionBatch?: any[];
 				insertionMatch?: string;
 				deletionMatch?: string;
+				creation?: string;
 				insertion?: string;
 				deletion?: string;
 		  } => {
@@ -334,14 +337,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		if (Array.isArray(nodes)) {
 			return nodes
 				.map((x) => {
-					const { preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion } = typeQL(x);
-					return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
+					const { preDeletionBatch, insertionMatch, deletionMatch, creation, insertion, deletion } = typeQL(x);
+					return shake({ preDeletionBatch, insertionMatch, deletionMatch, creation, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
 				})
 				.filter((y) => y);
 		}
-		const { preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion } = typeQL(nodes);
+		const { preDeletionBatch, insertionMatch, deletionMatch, creation, insertion, deletion } = typeQL(nodes);
 
-		return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
+		return shake({ preDeletionBatch, insertionMatch, deletionMatch, creation, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
 	};
 
 	// const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
@@ -354,11 +357,8 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(mutation.edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	// console.log('nodeOperations', nodeOperations);
-	// console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
-	// console.log('allOperations', allOperations);
 
 	// todo: split BQL mutation in N DBstreams per DB
 	// todo: then pack them per DB,
@@ -375,6 +375,10 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				.trim(),
 			deletionMatches: allOperations
 				.map((x) => x.deletionMatch)
+				.join(' ')
+				.trim(),
+			creations: allOperations
+				.map((x) => x.creation)
 				.join(' ')
 				.trim(),
 			insertions: allOperations

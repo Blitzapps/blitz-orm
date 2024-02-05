@@ -6,6 +6,7 @@ export type TQLRequest = {
 	// mutations
 	insertionMatches?: string;
 	deletionMatches?: string;
+	creations?: string;
 	insertions?: string;
 	deletions?: string;
 };

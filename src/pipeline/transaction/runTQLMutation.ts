@@ -8,7 +8,7 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 	if (!tqlRequest) {
 		throw new Error('TQL request not built');
 	}
-	if (!((tqlRequest.deletions && tqlRequest.deletionMatches) || tqlRequest.insertions)) {
+	if (!((tqlRequest.deletions && tqlRequest.deletionMatches) || tqlRequest.insertions || tqlRequest.creations)) {
 		throw new Error('TQL request error, no things');
 	}
 	if (!bqlRequest?.mutation) {
@@ -22,7 +22,13 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 	if (!mutateTransaction) {
 		throw new Error("Can't create transaction");
 	}
+<<<<<<< Updated upstream
 	//console.log('tqlRequest!', JSON.stringify(tqlRequest, null, 2));
+=======
+	console.log('tqlRequest', JSON.stringify(tqlRequest, null, 2));
+
+	const tqlCreation = tqlRequest.creations && `insert ${tqlRequest.creations}`;
+>>>>>>> Stashed changes
 
 	// deletes and pre-update deletes
 	const tqlDeletion =
@@ -42,15 +48,21 @@ export const runTQLMutation: PipelineOperation = async (req, res) => {
 		// console.log('X: ', x);
 	}
 
+	const creationsStream = tqlCreation && mutateTransaction.query.insert(tqlCreation);
+
+	// receives a result
+
 	const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 
 	try {
+		const creationsRes = creationsStream ? await creationsStream.collect() : undefined;
+		console.log('CREATION: ', creationsRes);
 		const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
-		// console.log('INSERTION: ', insertionsRes);
+		console.log('INSERTION: ', insertionsRes);
 
 		await mutateTransaction.commit();
 		await mutateTransaction.close();
-		res.rawTqlRes = { insertions: insertionsRes };
+		res.rawTqlRes = { insertions: insertionsRes, creations: creationsRes };
 	} catch (e: any) {
 		await mutateTransaction.close();
 		throw new Error(`Transaction failed: ${e.message}`);

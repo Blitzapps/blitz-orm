@@ -406,8 +406,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	}
 
 	const [parsedThings, parsedEdges] = listNodes(filledBqlRequest);
-	//console.log('parsedThings', parsedThings);
-	//console.log('parsedEdges', parsedEdges);
+	console.log('parsedThings', parsedThings);
+	console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
