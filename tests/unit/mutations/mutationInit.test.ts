@@ -551,7 +551,7 @@ describe('Mutations: Init', () => {
 		]);
 	});
 
-	it('TODO:b4.3[create, link] Link ALL (without ids)', async () => {
+	it('TODO:b4.3[update, link] Link ALL (without ids)', async () => {
 		expect(bormClient).toBeDefined();
 
 		const res = await bormClient.mutate(
@@ -580,6 +580,44 @@ describe('Mutations: Init', () => {
 				users: secondUser.id,
 			},
 		]);
+	});
+
+	it('TODO:b4.4[create, link] Create and link ALL (without ids)', async () => {
+		expect(bormClient).toBeDefined();
+
+		const res = await bormClient.mutate(
+			{
+				$entity: 'Space',
+				id: 'space-5', //no $op and no $id means create
+				users: [{ $op: 'link' }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(JSON.parse(JSON.stringify(res))).toEqual([
+			{
+				email: 'jane@test.com',
+				id: secondUser.id,
+				name: 'Jane',
+			},
+			spaceOne,
+			spaceTwo,
+			{
+				spaces: spaceOne.id,
+				users: secondUser.id,
+			},
+			{
+				spaces: spaceTwo.id,
+				users: secondUser.id,
+			},
+		]);
+
+		//clean
+		await bormClient.mutate({
+			$entity: 'Space',
+			$op: 'delete',
+			$id: 'space-5',
+		});
 	});
 
 	it('b5[update, children] Update children', async () => {
