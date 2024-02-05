@@ -1237,7 +1237,7 @@ describe('Mutations: Edges', () => {
 		});
 	});
 
-	it('TODO:rep2bc[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+	it('TODO:rep2c[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
 		expect(bormClient).toBeDefined();
 
 		/// create
