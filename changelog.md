@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.3(2023-02-08)
+
+- Fix: Published issue
+
 ## 0.8.2(2023-02-08)
 
 - Feat: Queries' virtual fields are no working also with rolefields and linkfields (but not remote fields, and they require to explicitly query the dependencies)
