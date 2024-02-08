@@ -4,7 +4,10 @@
 
 ## 0.8.2(2023-02-08)
 
+- Feat: Queries' virtual fields are no working also with rolefields and linkfields (but not remote fields, and they require to explicitly query the dependencies)
 - Feat: Attribute validation fns //will probably required a more flexible schema later tho
+- Fix: Dependencies are now correctly checked when having formats like ({"my-thing": "myThing"}) => ...
+- Fix: Virtual fields are not computed if dependencies are missing (they need to be queried manually meanwhile)
 - Refacto: Started refacto of metadatas in fetch queries
 - Tests: New test for excluded fields
 

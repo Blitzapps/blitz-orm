@@ -13,8 +13,8 @@ export type WithBormMetadata<T> = T extends any[] // if it's an array
 		? Array<WithBormMetadataObject<T[number]>> // recursively apply metadata only to object items in the array
 		: T // if array items are not objects, return the array type as is
 	: T extends object // if it's just an object
-	? WithBormMetadataObject<T> // apply metadata and recursively process properties
-	: T; // else leave it as is
+		? WithBormMetadataObject<T> // apply metadata and recursively process properties
+		: T; // else leave it as is
 
 type WithBormMetadataObject<T> = {
 	[K in keyof T]: WithBormMetadata<T[K]>;

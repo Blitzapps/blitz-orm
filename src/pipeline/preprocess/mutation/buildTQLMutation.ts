@@ -98,7 +98,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		const idAttributes =
 			!isLocalId && idValue // it must have id values, and they must be realDBIds
 				? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
-				  [`has ${idField} ${idValueTQL}`]
+					[`has ${idField} ${idValueTQL}`]
 				: [];
 
 		const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
@@ -137,14 +137,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 					op === 'create'
 						? `${bzId} isa ${[thingDbPath, allAttributes].filter((x) => x).join(',')};`
 						: op === 'update' && attributes.length
-						? `${bzId} ${attributes.join(',')};`
-						: '',
+							? `${bzId} ${attributes.join(',')};`
+							: '',
 				deletion:
 					op === 'delete'
 						? `${bzId} isa ${thingDbPath};`
 						: op === 'update' && matchAttributes.length
-						? `${bzId} has ${attributesVar};`
-						: '',
+							? `${bzId} has ${attributesVar};`
+							: '',
 			};
 		}
 
@@ -215,7 +215,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			? ''
 			: `${bzId} ${roles} ${
 					edgeType === 'linkField' || op === 'delete' || op === 'unlink' ? `isa ${relationDbPath}` : ''
-			  }`;
+				}`;
 
 		const relationTqlWithoutRoles = `${bzId}  ${
 			edgeType === 'linkField' || op === 'delete' ? `isa ${relationDbPath}` : ''

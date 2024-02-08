@@ -88,7 +88,7 @@ const filterChildrenEntities = (things: [string, Entity][], ids: string | string
 					? {
 							...onlyMetadataEntity,
 							$fields: currentFieldConf.$fields,
-					  }
+						}
 					: onlyMetadataEntity;
 				// console.log('withFieldsEntity', withFieldsEntity);
 
@@ -228,7 +228,7 @@ export const buildBQLTree: PipelineOperation = async (req, res) => {
 		? [...rootThings].map(([id, _entity]) => ({
 				...req.rawBqlRequest,
 				$id: id,
-		  }))
+			}))
 		: req.rawBqlRequest;
 
 	const bqlTree = produce(structuredAnswer, (draft) =>

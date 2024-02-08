@@ -40,7 +40,7 @@ const filterBQLRes = (row: BQLResponseSingle, config: BormConfig, fields: BQLFie
 				}
 				// * Keep property as is
 				return { ...acc, [k]: v };
-		  }, {});
+			}, {});
 
 export const processFieldsOperator: PipelineOperation = async (req, res) => {
 	const { bqlRequest, config } = req;

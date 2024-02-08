@@ -36,22 +36,22 @@ type ExtractLinkFields<S> = S extends { linkFields?: readonly ForLinkField[] }
 					string,
 					Extract<S['linkFields'][number], { path: K }>['cardinality']
 				>;
-		  }
+			}
 		: ///for some reason is the only thing working, probably required in the linkFields too
-		  // eslint-disable-next-line @typescript-eslint/ban-types
-		  {}
+			// eslint-disable-next-line @typescript-eslint/ban-types
+			{}
 	: ///for some reason is the only thing working, probably required in the linkFields too
-	  // eslint-disable-next-line @typescript-eslint/ban-types
-	  {};
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		{};
 
 type ExtractRoles<S> = 'roles' extends keyof S
 	? {
 			[K in keyof S['roles']]?: S['roles'][K] extends { cardinality: 'ONE' | 'MANY' }
 				? HandleCardinality<string, S['roles'][K]['cardinality']>
 				: never;
-	  }
+		}
 	: ///for some reason is the only thing working, probably required in the linkFields too
-	  // eslint-disable-next-line @typescript-eslint/ban-types
-	  {};
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		{};
 
 export type TypeGen<S extends BaseSchema> = ExtractDataFields<S> & ExtractLinkFields<S> & ExtractRoles<S>;
