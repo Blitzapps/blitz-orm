@@ -1465,7 +1465,10 @@ describe('Query', () => {
 				{
 					$path: 'users',
 					$id: 'user2',
-					$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['id'] }, 'id'] }],
+					$fields: [
+						'id',
+						{ $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['id', 'totalUserTags'] }, 'id'] },
+					],
 				},
 			],
 		};
@@ -1521,7 +1524,10 @@ describe('Query', () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user2',
-			$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['isBlue'] }, 'id'] }],
+			$fields: [
+				'id',
+				{ $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['isBlue', 'totalUserTags'] }, 'id'] },
+			],
 		};
 
 		const expectedRes = {
@@ -1577,18 +1583,41 @@ describe('Query', () => {
 		expect(client).toBeDefined();
 
 		const res = await client.query(
-			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
+			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'user-tags', 'totalUserTags'] },
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				'id': 'blue',
+				'user-tags': ['tag-3'],
+				'totalUserTags': 1,
+			},
+			{
+				'id': 'yellow',
+				'user-tags': ['tag-1', 'tag-2'],
+				'totalUserTags': 2,
+			},
+		]);
+	});
+
+	it('TODO:v3[virtual] Virtual field depending on edge id, missing dependencies', async () => {
+		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+		expect(client).toBeDefined();
+
+		const res = await client.query(
+			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
 		);
 
 		expect(deepSort(res, 'id')).toEqual([
 			{
 				id: 'blue',
-				isBlue: true,
+				totalUserTags: 1,
 			},
 			{
 				id: 'yellow',
-				isBlue: false,
+				totalUserTags: 2,
 			},
 		]);
 	});

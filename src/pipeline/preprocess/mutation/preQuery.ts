@@ -452,7 +452,7 @@ export const preQuery: PipelineOperation = async (req) => {
 											? combination[key].filter(
 													(opBlock: FilledBQLMutationBlock) =>
 														!opBlock.$id || Array.isArray(opBlock.$id) || opBlock.$filter,
-											  )
+												)
 											: combination[key]
 										: [combination[key]];
 									const processedMultiples = multiples.map((multiple: FilledBQLMutationBlock) => {

@@ -286,6 +286,15 @@ export const testSchema: BormSchema = {
 						fn: ({ id }) => (id === 'blue' ? true : false),
 					},
 				},
+				{
+					path: 'totalUserTags',
+					contentType: 'NUMBER',
+					isVirtual: true,
+					default: {
+						type: 'fn',
+						fn: ({ ['user-tags']: userTags }) => (userTags ? userTags.length : 0),
+					},
+				},
 			],
 			linkFields: [
 				{
