@@ -1,46 +1,47 @@
 import 'jest';
 import { v4 as uuidv4 } from 'uuid';
 
-import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { TypeGen } from '../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../src/index';
 import type { UserType } from '../../types/testTypes';
+import type BormClient from '../../../src/index';
 
 describe('Query', () => {
 	let dbName: string;
-	let client: BormClient;
+	let bormClient: BormClient;
 
 	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configClient } = await init();
-		if (!configClient) {
+		const { dbName: configDbName, bormClient: configBormCLient } = await init();
+		if (!configBormCLient) {
 			throw new Error('Failed to initialize BormClient');
 		}
+
 		dbName = configDbName;
-		client = configClient;
+		bormClient = configBormCLient;
 	}, 15000);
 
 	it('v1[validation] - $entity missing', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		// @ts-expect-error - $entity is missing
-		await expect(client.query({})).rejects.toThrow();
+		await expect(bormClient.query({})).rejects.toThrow();
 	});
 
 	it('v2[validation] - $entity not in schema', async () => {
-		expect(client).toBeDefined();
-		await expect(client.query({ $entity: 'fakeEntity' })).rejects.toThrow();
+		expect(bormClient).toBeDefined();
+		await expect(bormClient.query({ $entity: 'fakeEntity' })).rejects.toThrow();
 	});
 
 	it('v3[validation] - $id not existing', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'User', $id: 'nonExisting' });
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({ $entity: 'User', $id: 'nonExisting' });
 		await expect(res).toBeNull();
 	});
 
 	it('e1[entity] - basic and direct link to relation', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User' };
 		const expectedRes = [
 			{
@@ -114,14 +115,14 @@ describe('Query', () => {
 				spaces: ['space-1'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('e1.b[entity] - basic and direct link to relation sub entity', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'God' };
 		const expectedRes = [
 			{
@@ -135,14 +136,14 @@ describe('Query', () => {
 				power: 'mind control',
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('e2[entity] - filter by single $id', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			// '$entity': 'User',
@@ -157,7 +158,7 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = (await client.query(query)) as UserType;
+		const res = (await bormClient.query(query)) as UserType;
 
 		expect(res).toBeDefined();
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
@@ -171,7 +172,7 @@ describe('Query', () => {
 	});
 
 	it('e3[entity, nested] - direct link to relation, query nested ', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User', $fields: ['id', { $path: 'user-tags' }] };
 		const expectedRes = [
 			{
@@ -266,18 +267,18 @@ describe('Query', () => {
 				id: 'user5',
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
 	it('opt1[options, noMetadata', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'name': 'Antoine',
@@ -289,7 +290,7 @@ describe('Query', () => {
 		};
 
 		type UserType = WithBormMetadata<TypeGen<typeof typesSchema.entities.User>>;
-		const res = (await client.query(query, {
+		const res = (await bormClient.query(query, {
 			noMetadata: true,
 		})) as UserType;
 		expect(res).toBeDefined();
@@ -302,7 +303,7 @@ describe('Query', () => {
 	});
 
 	it('TODO:opt2[options, debugger', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'$id': 'user1',
@@ -348,7 +349,7 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = (await client.query(query, {
+		const res = (await bormClient.query(query, {
 			debugger: true,
 		})) as UserType;
 		expect(res).toBeDefined();
@@ -361,7 +362,7 @@ describe('Query', () => {
 	});
 
 	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user4',
@@ -375,14 +376,14 @@ describe('Query', () => {
 			'spaces': null, //example linkfield from intermediary relation
 			'user-tags': null, //example linkfield from direct relation
 		};
-		const res = await client.query(query, { returnNulls: true });
+		const res = await bormClient.query(query, { returnNulls: true });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('r1[relation] - basic', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $relation: 'User-Accounts' };
 		const expectedRes = [
 			{
@@ -431,12 +432,12 @@ describe('Query', () => {
 				accounts: ['account3-1'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -446,7 +447,7 @@ describe('Query', () => {
 	});
 
 	it('r2[relation] - filtered fields', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = { $relation: 'User-Accounts', $fields: ['user'] };
 		const expectedRes = [
 			{
@@ -480,11 +481,11 @@ describe('Query', () => {
 				user: 'user3',
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'user')).toEqual(
@@ -493,7 +494,7 @@ describe('Query', () => {
 	});
 
 	it('r3[relation, nested] - nested entity', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$relation: 'User-Accounts',
 			$fields: ['id', { $path: 'user', $fields: ['name'] }],
@@ -560,11 +561,11 @@ describe('Query', () => {
 				},
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, '$id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -572,7 +573,7 @@ describe('Query', () => {
 	});
 
 	it('r4[relation, nested, direct] - nested relation direct on relation', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -621,18 +622,18 @@ describe('Query', () => {
 				users: [{ $id: 'user2', $thing: 'User', $thingType: 'entity', id: 'user2' }],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
 	it('r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'Color',
 			$fields: ['id', 'user-tags', 'group'],
@@ -655,12 +656,12 @@ describe('Query', () => {
 				'user-tags': ['tag-1', 'tag-2'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -668,7 +669,7 @@ describe('Query', () => {
 	});
 
 	it('r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 		};
@@ -708,12 +709,12 @@ describe('Query', () => {
 				users: ['user2'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -721,7 +722,7 @@ describe('Query', () => {
 	});
 
 	it('r7[relation, nested, direct] - nested on nested', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -843,12 +844,12 @@ describe('Query', () => {
 				],
 			},
 		];
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -856,7 +857,7 @@ describe('Query', () => {
 	});
 
 	it('r8[relation, nested, deep] - deep nested', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -906,12 +907,12 @@ describe('Query', () => {
 				],
 			},
 		};
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -919,13 +920,13 @@ describe('Query', () => {
 	});
 
 	it('r9[relation, nested, ids]', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$relation: 'UserTagGroup',
 			$id: 'utg-1',
 			$fields: ['tags', 'color'],
 		};
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -939,10 +940,10 @@ describe('Query', () => {
 	});
 
 	it('ef1[entity] - $id single', async () => {
-		expect(client).toBeDefined();
-		const wrongRes = await client.query({ $entity: 'User', $id: uuidv4() });
+		expect(bormClient).toBeDefined();
+		const wrongRes = await bormClient.query({ $entity: 'User', $id: uuidv4() });
 		expect(wrongRes).toEqual(null);
-		const validRes = await client.query({
+		const validRes = await bormClient.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['id'],
@@ -951,8 +952,8 @@ describe('Query', () => {
 	});
 
 	it('ef2[entity] - $id multiple', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: ['user1', 'user2'],
 			$fields: ['id'],
@@ -967,8 +968,8 @@ describe('Query', () => {
 	});
 
 	it('ef3[entity] - $fields single', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'User', $fields: ['id'] });
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({ $entity: 'User', $fields: ['id'] });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -994,8 +995,8 @@ describe('Query', () => {
 	});
 
 	it('ef4[entity] - $fields multiple', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', 'email'],
@@ -1010,8 +1011,8 @@ describe('Query', () => {
 	});
 
 	it('ef5[entity,filter] - $filter single', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$filter: { name: 'Antoine' },
 			$fields: ['name'],
@@ -1022,8 +1023,8 @@ describe('Query', () => {
 
 	// can also be the id field!
 	it('ef6[entity,filter] - $filter by unique field', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$filter: { id: 'user1' },
 			$fields: ['name'],
@@ -1032,8 +1033,8 @@ describe('Query', () => {
 	});
 
 	it('ef7[entity,unique] - $filter unique field', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$filter: { id: 'user1' }, // not $id, just being used as a regular field
 			$fields: ['name', 'email'],
@@ -1049,8 +1050,8 @@ describe('Query', () => {
 	});
 
 	it('n1[nested] Only ids', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', 'accounts'],
@@ -1068,13 +1069,13 @@ describe('Query', () => {
 	});
 
 	it('n2[nested] First level all fields', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts' }],
 		};
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -1110,7 +1111,7 @@ describe('Query', () => {
 				},
 			],
 		});
-		const resWithoutMetadata = await client.query(query, { noMetadata: true });
+		const resWithoutMetadata = await bormClient.query(query, { noMetadata: true });
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual({
 			name: 'Antoine',
@@ -1135,8 +1136,8 @@ describe('Query', () => {
 	});
 
 	it('n3[nested, $fields] First level filtered fields', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts', $fields: ['provider'] }],
@@ -1156,8 +1157,8 @@ describe('Query', () => {
 	});
 
 	it('n4a[nested, $id] Local filter on nested, by id', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
 			$fields: [
@@ -1202,8 +1203,8 @@ describe('Query', () => {
 	});
 
 	it('n4b[nested, $id] Local filter on nested depth two, by id', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: [
@@ -1235,13 +1236,13 @@ describe('Query', () => {
 	});
 
 	it('nf1[nested, $filters] Local filter on nested, single id', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts', $filter: { provider: 'github' } }],
 		};
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -1264,8 +1265,8 @@ describe('Query', () => {
 	});
 
 	it('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
 			$fields: [
@@ -1312,8 +1313,8 @@ describe('Query', () => {
 	});
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
 		expect(res).toEqual({
 			id: 'god1',
 			name: 'Richard David James',
@@ -1324,8 +1325,8 @@ describe('Query', () => {
 	});
 
 	it('s1[self] Relation playing a a role defined by itself', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({ $relation: 'Self' }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual([
 			{ id: 'self1', owned: ['self2'], space: 'space-2' },
 			{ id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
@@ -1336,9 +1337,9 @@ describe('Query', () => {
 
 	it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
+		const res = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
@@ -1353,18 +1354,21 @@ describe('Query', () => {
 
 	it('ex2[extends] Query of the parent', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query({ $entity: 'Space', $id: 'space-2', $fields: ['objects'] }, { noMetadata: true });
+		const res = await bormClient.query(
+			{ $entity: 'Space', $id: 'space-2', $fields: ['objects'] },
+			{ noMetadata: true },
+		);
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 		});
 	});
 
 	it('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query(
+		const res = await bormClient.query(
 			{
 				$entity: 'Space',
 				$id: 'space-2',
@@ -1392,9 +1396,9 @@ describe('Query', () => {
 	});
 
 	it('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query(
+		const res = await bormClient.query(
 			{
 				$entity: 'Space',
 				$id: 'space-2',
@@ -1417,7 +1421,7 @@ describe('Query', () => {
 	});
 
 	it('xf1[excludedFields] Testing excluded fields', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		let godUser = {
 			$entity: 'God',
 			id: 'squarepusher',
@@ -1427,7 +1431,7 @@ describe('Query', () => {
 			isEvil: false,
 		};
 		// Create a new godUser
-		const mutationRes = await client.mutate(godUser, { noMetadata: true });
+		const mutationRes = await bormClient.mutate(godUser, { noMetadata: true });
 		const [user] = mutationRes;
 
 		expect(user).toEqual({
@@ -1439,7 +1443,7 @@ describe('Query', () => {
 		});
 		godUser = { ...godUser, id: user.id };
 
-		const queryRes = await client.query(
+		const queryRes = await bormClient.query(
 			{
 				$entity: 'God',
 				$id: godUser.id,
@@ -1456,7 +1460,7 @@ describe('Query', () => {
 	});
 
 	it('xf2[excludedFields, deep] - deep nested', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -1506,12 +1510,12 @@ describe('Query', () => {
 				],
 			},
 		};
-		const res = await client.query(query);
+		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -1519,7 +1523,7 @@ describe('Query', () => {
 	});
 
 	it('xf3[excludedFields, deep] - Exclude virtual field', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
 		const query = {
 			$entity: 'User',
@@ -1546,12 +1550,12 @@ describe('Query', () => {
 				},
 			],
 		};
-		const res = await client.query(query, { noMetadata: true });
+		const res = await bormClient.query(query, { noMetadata: true });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
 
@@ -1559,9 +1563,9 @@ describe('Query', () => {
 	});
 	it('v1[virtual] Virtual field', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query(
+		const res = await bormClient.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
 			{ noMetadata: true },
 		);
@@ -1580,9 +1584,9 @@ describe('Query', () => {
 
 	it('v2[virtual] Virtual field depending on edge id', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query(
+		const res = await bormClient.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'user-tags', 'totalUserTags'] },
 			{ noMetadata: true },
 		);
@@ -1603,9 +1607,9 @@ describe('Query', () => {
 
 	it('TODO:v3[virtual] Virtual field depending on edge id, missing dependencies', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
-		const res = await client.query(
+		const res = await bormClient.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
 		);
@@ -1624,8 +1628,8 @@ describe('Query', () => {
 
 	/*
   it('[entity,nested, filter] - $filter on children property', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       // this adds: $filterByAccounts isa account, has Account·provider 'github'; $filterRel (account: $filterByAccounts , user: $users) isa User-Accounts;
       $filter: { account: { provider: { $eq: 'github' } } }, // $ is always commands, by default is $eq
@@ -1638,8 +1642,8 @@ describe('Query', () => {
     });
   });
   it('[entity,nested,filter] - Simplified filter', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       $filter: { account: { provider: 'github' } }, // by default is $eq
       $fields: ['name'],
@@ -1653,8 +1657,8 @@ describe('Query', () => {
     ]);
   });
   it('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'post',
       $filter: { mentions: { $includes: '@antoine' } },
       $fields: ['id'],
@@ -1669,8 +1673,8 @@ describe('Query', () => {
     ]);
   });
   it('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'post',
       $filter: { mentions: { $includesAll: ['@Antoine', '@Loic'] } },
       $fields: ['id'],
@@ -1684,8 +1688,8 @@ describe('Query', () => {
     ]);
   });
   it('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'post',
       $filter: { mentions: { $includesAny: ['@Antoine', '@Loic'] } },
       $fields: ['id'],
@@ -1700,16 +1704,16 @@ describe('Query', () => {
     ]);
   });
   it('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       $filter: { name: { $includesAny: ['x', 'y'] } },
     });
     expect(res).toThrow(TypeError);
   });
   it('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       $filter: { name: { $includesAll: ['x', 'y'] } },
     });
@@ -1717,8 +1721,8 @@ describe('Query', () => {
   });
   // OPERATORS: NOT
   it('[entity,filter,not] - filter by field', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       $filter: { $not: { id: 'user1' } },
       $fields: ['id'],
@@ -1732,8 +1736,8 @@ describe('Query', () => {
     ]);
   });
   it('[entity,filter,not,array,includes] filter item cardinality many', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'post',
       $filter: { mentions: { $not: { $includes: '@Antoine' } } },
       $fields: ['id'],
@@ -1743,8 +1747,8 @@ describe('Query', () => {
   // OPERATORS: OR
   // typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
   it('[entity,OR] or filter two different fields', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({
       $entity: 'User',
       $filter: [{ name: 'Loic' }, { email: 'antoine@test.com' }], // this is equivalent to $filter: {$or: [..]}
       $fields: ['name'],
@@ -1762,7 +1766,7 @@ describe('Query', () => {
 	// NESTED
 
 	it('a1[$as] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const expectedRes = {
 			'email_as': 'antoine@test.com',
 			'id': 'user1',
@@ -1792,7 +1796,7 @@ describe('Query', () => {
 			],
 		};
 
-		const res = (await client.query(
+		const res = (await bormClient.query(
 			{
 				$entity: 'User',
 				$id: 'user1',
@@ -1814,7 +1818,7 @@ describe('Query', () => {
 	});
 
 	it('bq1[batched query] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 		const expectedRes = [
 			{
 				id: 'user1',
@@ -1824,7 +1828,7 @@ describe('Query', () => {
 			},
 		];
 
-		const res = (await client.query(
+		const res = (await bormClient.query(
 			[
 				{
 					$entity: 'User',
@@ -1845,7 +1849,7 @@ describe('Query', () => {
 	});
 
 	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
+		expect(bormClient).toBeDefined();
 
 		const expectedRes = {
 			users: {
@@ -1856,7 +1860,7 @@ describe('Query', () => {
 			},
 		};
 
-		const res = (await client.query(
+		const res = (await bormClient.query(
 			{
 				// @ts-expect-error change RawBQLQuery type
 				$queryType: 'batched',
@@ -1879,6 +1883,6 @@ describe('Query', () => {
 	});
 
 	afterAll(async () => {
-		await cleanup(dbName);
+		await cleanup(bormClient, dbName);
 	});
 });

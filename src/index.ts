@@ -33,6 +33,7 @@ class BormClient {
 		this.schema = schema;
 		this.config = config;
 	}
+	getDbHandles = () => this.dbHandles;
 
 	init = async () => {
 		const dbHandles = { typeDB: new Map() };
@@ -138,9 +139,9 @@ class BormClient {
 			return;
 		}
 		this.dbHandles.typeDB.forEach(async ({ client, session }) => {
-			console.log('Closing session');
-			await session.close();
-			console.log('Closing client');
+			if (session.isOpen()) {
+				await session.close();
+			}
 			await client.close();
 		});
 	};

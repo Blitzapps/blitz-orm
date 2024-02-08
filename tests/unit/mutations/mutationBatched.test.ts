@@ -363,6 +363,6 @@ describe('Mutations: batched and tempId', () => {
 	});
 
 	afterAll(async () => {
-		await cleanup(dbName);
+		await cleanup(bormClient, dbName);
 	});
 });

@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.5(2023-02-08)
+
+- Fix: Compatible now with typedb 2.26.6
+- Fix: Fix new closed session error introduced in typedb 2.26.0
+
 ## 0.8.4(2023-02-08)
 
 - Feat: Validations can now throw dynamic errors using (by catching errors)

@@ -2762,6 +2762,6 @@ describe('Mutations: Edges', () => {
 */
 
 	afterAll(async () => {
-		await cleanup(dbName);
+		await cleanup(bormClient, dbName);
 	});
 });
