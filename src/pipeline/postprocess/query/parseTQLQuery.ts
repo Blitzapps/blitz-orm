@@ -1,8 +1,8 @@
 import { isArray } from 'radash';
-import { getCurrentSchema } from '../../helpers';
-import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
-import type { PipelineOperation } from '../pipeline';
-import { QueryPath } from '../../types/symbols';
+import { getCurrentSchema } from '../../../helpers';
+import type { EnrichedBormEntity, EnrichedBormRelation } from '../../../types';
+import type { PipelineOperation } from '../../pipeline';
+import { QueryPath } from '../../../types/symbols';
 
 //todo: add this metadata as a typedb "?" var instead
 const parseMetaData = (str: string) => {

@@ -33,7 +33,6 @@ export const init = async () => {
 	const tqlSchema = readFileSync('./tests/mocks/schema.tql', 'utf8');
 	const tqlData = readFileSync('./tests/mocks/data.tql', 'utf8');
 	const dbName = `${connector.dbName}_${uuidv4()}`;
-
 	const client = await createClient(connector);
 	await client.databases.create(dbName);
 
@@ -51,22 +50,30 @@ export const init = async () => {
 		await dataTransaction.commit();
 		await dataTransaction.close();
 		await dataSession.close();
-		await client.close();
+		//await client.close();
 		const bormClient = new BormClient({
 			schema: testSchema,
 			config: { ...testConfig, dbConnectors: [{ ...connector, dbName }] },
 		});
 		await bormClient.init();
-		return { bormClient, dbName };
+		return { bormClient, dbName }; //todo make this cleaner, probably as private function of bormCLient.databases for instance
 	} catch (e: any) {
 		throw new Error(e.message);
 		// return { bormClient: undefined, dbName };
 	}
 };
 
-export const cleanup = async (dbName: string) => {
-	const [connector] = providerConfig[provider].dbConnectors;
-	const client = await createClient(connector);
-	await (await client.databases.get(dbName)).delete();
+export const cleanup = async (client: BormClient, dbName: string) => {
+	if (!client) {
+		throw new Error('Client is undefined');
+	}
+
+	const dbHandles = client.getDbHandles();
+	const typeDB = dbHandles?.typeDB;
+	typeDB?.forEach(async (typeDB) => {
+		const database = await typeDB.client.databases.get(dbName);
+		await database.delete();
+	});
+
 	await client.close();
 };

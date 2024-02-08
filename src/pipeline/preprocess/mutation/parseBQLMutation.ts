@@ -185,7 +185,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
 					const ownRelation = value[Symbol.for('relation') as any] === value.$relation;
 
-					const linkTempId = ownRelation ? value.$bzId : uuidv4();
+					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
 					const parentMeta = value[Symbol.for('parent') as any];
 					const parentPath = parentMeta.path;

@@ -57,7 +57,15 @@ export const testSchema: BormSchema = {
 					path: 'fnValidatedField',
 					contentType: 'TEXT',
 					validations: {
-						fn: (val) => (isEmail(val) && isGmail(val) ? true : false),
+						fn: (val) => {
+							if (isEmail(val) && isGmail(val)) {
+								return true;
+							}
+							if (val.startsWith('secretTest')) {
+								throw new Error(`"${val}" starts with "secretTest" and that's not allowed.`);
+							}
+							return false;
+						},
 					},
 				},
 				{
@@ -69,6 +77,41 @@ export const testSchema: BormSchema = {
 					},
 				},
 			],
+			linkFields: [
+				{
+					path: 'hookParent',
+					cardinality: 'ONE',
+					relation: 'HookParent',
+					plays: 'hooks',
+					target: 'relation',
+				},
+				{ path: 'asMainHookOf', cardinality: 'ONE', relation: 'HookParent', plays: 'mainHook', target: 'relation' },
+			],
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+							onUpdate: () => true,
+						},
+						actions: [
+							{
+								type: 'validate',
+								fn: ({ id: idC }, { id: idP }) => {
+									if (idP) {
+										if (!idP.includes('hey')) {
+											throw new Error(`The parent of "${idC}" does not have 'hey' in its id ("${idP}").`);
+										}
+									}
+									return true;
+								}, //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
+								severity: 'error',
+								message: 'Default message',
+							},
+						],
+					},
+				],
+			},
 		},
 		Thing: {
 			idFields: ['id'], // could be a composite key
@@ -573,6 +616,15 @@ export const testSchema: BormSchema = {
 					target: 'relation',
 				},
 			],
+		},
+		'HookParent': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'HookParent' },
+			dataFields: [{ ...id }],
+			roles: {
+				hooks: { cardinality: 'MANY' },
+				mainHook: { cardinality: 'ONE' },
+			},
 		},
 	},
 } as const;

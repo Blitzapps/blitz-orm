@@ -128,7 +128,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += `\t$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary}; \n`;
 
 			if ($fields) {
-				const randomId = uuidv4();
+				const randomId = `M_${uuidv4()}`;
 				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`; ///rawPaths => to inject metadata in the response, in this case only the path
 				tqlStr += '\tfetch \n';
 				tqlStr += `?queryPath${randomId} as "queryPath" \n;`; ///rawPaths => to recover metadata in the response
@@ -198,7 +198,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			}
 
 			if ($fields) {
-				const randomId = uuidv4();
+				const randomId = `M_${uuidv4()}`;
 				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`; ///queryPath => to inject metadata in the response, in this case only the path
 				tqlStr += '\tfetch \n';
 				tqlStr += `?queryPath${randomId} as "queryPath" \n;`; ///queryPath => to recover metadata in the response
@@ -241,7 +241,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 					tqlStr += '; ';
 				}
 
-				const randomId = uuidv4();
+				const randomId = `M_${uuidv4()}`;
 
 				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`;
 				tqlStr += 'fetch \n';

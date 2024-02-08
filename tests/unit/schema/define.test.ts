@@ -26,6 +26,6 @@ describe('Mutation init', () => {
 	});
 
 	afterAll(async () => {
-		await cleanup(dbName);
+		await cleanup(bormClient, dbName);
 	});
 });

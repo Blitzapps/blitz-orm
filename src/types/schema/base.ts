@@ -47,11 +47,11 @@ export type PreHook = {
 export type Action =
 	| {
 			type: 'validate';
-			fn: (entity: FilledBQLMutationBlock) => boolean;
+			fn: (currentNode: FilledBQLMutationBlock, parentNode: FilledBQLMutationBlock) => boolean; //parentNode might be {} but thats fine
 			severity: 'error' | 'warning' | 'info';
 			message: string;
 	  }
 	| {
 			type: 'transform';
-			fn: (entity: FilledBQLMutationBlock) => Partial<FilledBQLMutationBlock>;
+			fn: (currentNode: FilledBQLMutationBlock, parentNode?: FilledBQLMutationBlock) => Partial<FilledBQLMutationBlock>;
 	  };

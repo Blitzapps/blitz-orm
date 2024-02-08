@@ -676,6 +676,6 @@ describe('Mutations: Errors', () => {
 	});
 
 	afterAll(async () => {
-		await cleanup(dbName);
+		await cleanup(bormClient, dbName);
 	});
 });
