@@ -137,6 +137,27 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('vfla2[validation, functions, local, attribute] Function', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$entity: 'Hook',
+				fnValidatedField: 'something@test.es',
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe('[Validations] Field "fnValidatedField" failed validation function.');
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(dbName);
 	});

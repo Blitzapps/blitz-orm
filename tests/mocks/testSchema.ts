@@ -55,10 +55,9 @@ export const testSchema: BormSchema = {
 				},
 				{
 					path: 'fnValidatedField',
-
 					contentType: 'TEXT',
 					validations: {
-						fn: (val) => (isEmail(val) && isGmail(val)) ?? false,
+						fn: (val) => (isEmail(val) && isGmail(val) ? true : false),
 					},
 				},
 				{
