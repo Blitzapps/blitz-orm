@@ -221,7 +221,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 		return;
 	}
 
-	session.close();
+	await session.close();
 	const [{ dbName }] = config.dbConnectors;
 	const db = await client.databases.get(dbName);
 	await db.delete();

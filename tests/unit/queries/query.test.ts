@@ -1489,7 +1489,6 @@ describe('Query', () => {
 							'$thing': 'Color',
 							'$thingType': 'entity',
 							'$id': 'blue',
-							'id': 'blue',
 							'group': 'utg-2',
 							'user-tags': ['tag-3'],
 							'isBlue': true,
@@ -1516,6 +1515,42 @@ describe('Query', () => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
+	it('xf3[excludedFields, deep] - Exclude virtual field', async () => {
+		expect(client).toBeDefined();
+
+		const query = {
+			$entity: 'User',
+			$id: 'user2',
+			$fields: ['id', { $path: 'user-tags', $fields: [{ $path: 'color', $excludedFields: ['isBlue'] }, 'id'] }],
+		};
+
+		const expectedRes = {
+			'id': 'user2',
+			'user-tags': [
+				{
+					id: 'tag-3',
+					color: {
+						'id': 'blue',
+						'group': 'utg-2',
+						'user-tags': ['tag-3'],
+					},
+				},
+				{
+					id: 'tag-4',
+				},
+			],
+		};
+		const res = await client.query(query, { noMetadata: true });
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		const resWithoutMetadata = await client.query(query, {
+			noMetadata: true,
+		});
+
+		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+	});
 	it('v1[virtual] Virtual field', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
 		expect(client).toBeDefined();

@@ -4,6 +4,7 @@ import { traverse } from 'object-traversal';
 import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
 import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation } from '../../../types';
+import { QueryPath } from '../../../types/symbols';
 
 //todo: use getCurrentFields instead
 const getAllFields = (currentSchema: any) => {
@@ -70,6 +71,9 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 		}
 	}
 
+	const isId = (currentSchema: EnrichedBormEntity | EnrichedBormRelation, field: any) =>
+		typeof field === 'string' ? currentSchema.idFields?.includes(field) : currentSchema.idFields?.includes(field.$path);
+
 	const createDataField = (field: any, fieldStr: string, $justId: boolean, dbPath: string, isVirtual?: boolean) => {
 		// todo: get all dependencies of the virtual field in the query and then remove from the output
 		return {
@@ -79,6 +83,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			$as: field.$as || fieldStr,
 			$var: fieldStr,
 			$fieldType: 'data',
+			$excludedFields: field.$excludedFields,
 			$justId,
 			$id: field.$id,
 			$filter: field.$filter,
@@ -95,10 +100,8 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			const $thing = target === 'role' ? playedBy.thing : linkField.relation;
 			const node = { [`$${$thingType}`]: $thing };
 			const currentSchema = getCurrentSchema(schema, node);
-			const idNotIncluded =
-				field?.$fields?.filter(
-					(field: any) => currentSchema?.idFields?.includes(field) || currentSchema?.idFields?.includes(field.$path),
-				).length === 0;
+
+			const idNotIncluded = field?.$fields?.filter((f: any) => isId(currentSchema, f)).length === 0;
 
 			let fields = [];
 			if (typeof field !== 'string') {
@@ -115,9 +118,16 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			} else {
 				fields = ['id'];
 			}
+
 			if (field.$excludedFields) {
-				fields = fields.filter((f: { $path: string }) => !field.$excludedFields.includes(f.$path));
+				fields = fields.filter((f: { $path: string }) => {
+					if (isId(currentSchema, f)) {
+						return true;
+					}
+					return !field.$excludedFields.includes(f.$path);
+				});
 			}
+
 			return {
 				$thingType,
 				$plays: linkField.plays,
@@ -128,6 +138,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$var: fieldStr,
 				$thing,
 				$fields: fields,
+				$excludedFields: field.$excludedFields,
 				$fieldType: 'link',
 				$target: target,
 				$intermediary: playedBy.relation,
@@ -167,8 +178,14 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			}
 
 			if (field.$excludedFields) {
-				fields = fields.filter((f: { $path: string }) => !field.$excludedFields.includes(f.$path));
+				fields = fields.filter((f: { $path: string }) => {
+					if (isId(currentSchema, f)) {
+						return true;
+					}
+					return !field.$excludedFields.includes(f.$path);
+				});
 			}
+
 			return {
 				$thingType: thingType,
 				$path: fieldStr,
@@ -177,6 +194,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$var: fieldStr,
 				$thing: thing,
 				$fields: fields,
+				$excludedFields: field.$excludedFields,
 				$fieldType: 'role',
 				$intermediary: relation,
 				$justId,
@@ -208,7 +226,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 	const parser = (blocks: any) => {
 		return produce(blocks, (draft: any) =>
 			traverse(draft, (context) => {
-				const { value: val } = context;
+				const { value: val, meta } = context;
 				const value: BQLMutationBlock = val;
 				if (isObject(value)) {
 					// 1. Moving $id into filter based on schema's idFields
@@ -246,6 +264,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 
 					if (isObject(value) && '$thing' in value) {
 						const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
+						value[QueryPath as any] = meta.nodePath;
 						const currentSchema = getCurrentSchema(schema, node);
 						if (value.$filter) {
 							value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
@@ -289,8 +308,14 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 								.filter(Boolean);
 							value.$fields = newFields;
 						}
+
 						if (value.$excludedFields) {
-							value.$fields = value.$fields.filter((f: { $path: string }) => !value.$excludedFields.includes(f.$path));
+							value.$fields = value.$fields.filter((f: { $path: string }) => {
+								if (isId(currentSchema, f)) {
+									return true;
+								}
+								return !value.$excludedFields.includes(f.$path);
+							});
 						}
 					}
 				}
@@ -299,7 +324,7 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 	};
 
 	const enrichedBqlQuery = parser(Array.isArray(rawBqlQuery) ? rawBqlQuery : [rawBqlQuery]);
-	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
+	//console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 
 	req.enrichedBqlQuery = enrichedBqlQuery;
 };
