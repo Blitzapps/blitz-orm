@@ -23,7 +23,7 @@ export const validationHooks: PipelineOperation = async (req) => {
 				if (isObject(val) && ('$entity' in val || '$relation' in val)) {
 					const value = val as FilledBQLMutationBlock;
 
-					const { requiredFields, enumFields } = value[Schema];
+					const { requiredFields, enumFields, fnValidatedFields } = value[Schema];
 
 					/// Required fields
 					if ('$op' in value && value.$op === 'create') {
@@ -33,7 +33,7 @@ export const validationHooks: PipelineOperation = async (req) => {
 							}
 						});
 					}
-					// Enums
+					/// Enums
 					if (('$op' in value && value.$op === 'update') || value.$op === 'create') {
 						enumFields.forEach((field) => {
 							if (field in value) {
@@ -51,6 +51,21 @@ export const validationHooks: PipelineOperation = async (req) => {
 									//@ts-expect-error - TODO
 								} else if (enumOptions && !enumOptions.includes(value[field])) {
 									throw new Error(`[Validations] Option "${value[field]}" is not a valid option for field "${field}".`);
+								}
+							}
+						});
+					}
+					/// fn
+					if (('$op' in value && value.$op === 'update') || value.$op === 'create') {
+						fnValidatedFields.forEach((field: string) => {
+							if (field in value) {
+								const fn = value[Schema]?.dataFields?.find((df) => df.path === field)?.validations?.fn;
+								if (!fn) {
+									throw new Error(`[Validations] Field "${field}" is missing validation function.`);
+								}
+								// @ts-expect-error - TODO
+								if (!fn(value[field])) {
+									throw new Error(`[Validations] Field "${field}" failed validation function.`);
 								}
 							}
 						});

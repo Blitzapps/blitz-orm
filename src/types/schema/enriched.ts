@@ -6,31 +6,28 @@ export type EnrichedBormSchema = {
 	relations: { [s: string]: EnrichedBormRelation };
 };
 
-export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
-	extends?: string;
-	allExtends?: string[];
-	idFields: string[];
-	thingType: 'entity';
+type SharedEnrichedProps = {
 	name: string;
 	computedFields: string[];
 	virtualFields: string[];
 	requiredFields: string[];
 	enumFields: string[];
+	fnValidatedFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
 };
 
+export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
+	extends?: string;
+	thingType: 'entity';
+	allExtends?: string[];
+	idFields: string[];
+} & SharedEnrichedProps;
+
 export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields'> & {
 	thingType: 'relation';
-	name: string;
-	computedFields: string[];
-	virtualFields: string[];
-	requiredFields: string[];
-	enumFields: string[];
-	linkFields?: EnrichedLinkField[];
-	dataFields?: EnrichedDataField[];
 	roles: { [key: string]: EnrichedRoleField };
-};
+} & SharedEnrichedProps;
 
 export type EnrichedRoleField = RoleField & {
 	playedBy?: LinkedFieldWithThing[]; // computed variable.

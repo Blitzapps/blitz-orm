@@ -160,6 +160,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 				value.virtualFields = [];
 				value.requiredFields = [];
 				value.enumFields = [];
+				value.fnValidatedFields = [];
 
 				// adding all the linkfields to roles
 				if ('roles' in value) {
@@ -252,6 +253,9 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					}
 					if (value.validations.enum) {
 						draftSchema.enumFields.push(value.path);
+					}
+					if (value.validations.fn) {
+						draftSchema.fnValidatedFields.push(value.path);
 					}
 				}
 

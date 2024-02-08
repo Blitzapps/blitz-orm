@@ -4,7 +4,8 @@
 
 ## 0.8.2(2023-02-08)
 
-- Refacto: Begining refacto of metadatas in fetch queries
+- Feat: Attribute validation fns //will probably required a more flexible schema later tho
+- Refacto: Started refacto of metadatas in fetch queries
 - Tests: New test for excluded fields
 
 ## 0.8.1(2023-02-03)

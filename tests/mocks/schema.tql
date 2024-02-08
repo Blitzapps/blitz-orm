@@ -55,6 +55,9 @@ Hook·manyOptions sub attribute,
 		value string,
 		regex "^(a|b|c)$";
 
+Hook·fnValidatedField sub attribute,
+		value string;
+
 Space sub entity,
     owns id @key,
     owns name,
@@ -198,6 +201,7 @@ Hook sub entity,
 	owns id @key,
 	owns Hook·timestamp,
 	owns Hook·requiredOption,
-	owns Hook·manyOptions;
+	owns Hook·manyOptions,
+	owns Hook·fnValidatedField;
 
     

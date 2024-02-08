@@ -1572,6 +1572,27 @@ describe('Query', () => {
 		]);
 	});
 
+	it('v2[virtual] Virtual field depending on edge id', async () => {
+		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+		expect(client).toBeDefined();
+
+		const res = await client.query(
+			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				isBlue: true,
+			},
+			{
+				id: 'yellow',
+				isBlue: false,
+			},
+		]);
+	});
+
 	/*
   it('[entity,nested, filter] - $filter on children property', async () => {
     expect(client).toBeDefined();
