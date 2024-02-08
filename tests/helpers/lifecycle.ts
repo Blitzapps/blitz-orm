@@ -69,7 +69,4 @@ export const cleanup = async (dbName: string) => {
 	const client = await createClient(connector);
 	await (await client.databases.get(dbName)).delete();
 	await client.close();
-
-	//await 4.5 seconds for laggy logs
-	return new Promise((resolve) => setTimeout(resolve, 4500));
 };

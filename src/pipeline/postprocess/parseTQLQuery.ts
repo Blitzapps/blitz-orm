@@ -1,8 +1,8 @@
 import { isArray } from 'radash';
-import { computeField } from '../../engine/compute';
 import { getCurrentSchema } from '../../helpers';
 import type { EnrichedBormEntity, EnrichedBormRelation } from '../../types';
 import type { PipelineOperation } from '../pipeline';
+import { QueryPath } from '../../types/symbols';
 
 //todo: add this metadata as a typedb "?" var instead
 const parseMetaData = (str: string) => {
@@ -73,6 +73,9 @@ const parseArrayMetadata = (str: string) => {
 export const parseTQLQuery: PipelineOperation = async (req, res) => {
 	const { enrichedBqlQuery, rawBqlRequest, schema, config } = req;
 	const { rawTqlRes, isBatched } = res;
+
+	//console.log('rawTqlRes', JSON.stringify(rawTqlRes, null, 2));
+
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL request not enriched');
 	} else if (!rawTqlRes) {
@@ -83,7 +86,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 
 	const parseDataFields = (dataFields: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 		const { $metaData } = dataFields;
-		const { as: $as, virtual } = parseArrayMetadata($metaData);
+		const { as: $as } = parseArrayMetadata($metaData);
 
 		// Process the main data fields
 		const mainDataFields = Object.entries(dataFields)
@@ -101,7 +104,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 					if (field.contentType === 'DATE') {
 						fieldValue = `${fieldValue}Z`;
 					}
-					if (isIdField && !config.query?.noMetadata) {
+					if (isIdField) {
 						return [
 							[$asKey, fieldValue],
 							['$id', fieldValue],
@@ -125,15 +128,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 			})
 			.flat();
 
-		// Process virtual fields
-		const virtualFields = virtual.map((key: string) => {
-			const $asKey = $as.find((o: any) => o[key])?.[key];
-			const field = currentSchema.dataFields?.find((f) => f.isVirtual && f.dbPath === key);
-			const computedValue = computeField({ currentThing: Object.fromEntries(mainDataFields), fieldSchema: field });
-			return [$asKey, computedValue];
-		});
-
-		return Object.fromEntries([...mainDataFields, ...virtualFields]);
+		return Object.fromEntries([...mainDataFields]);
 	};
 
 	const parseRoleFields = (
@@ -162,7 +157,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						...resDataFields,
 						...parsedLinkFields,
 						...parsedRoleFields,
-						...(!config.query?.noMetadata && { ...schemaValue }),
+						...schemaValue,
 					};
 				}
 			});
@@ -209,7 +204,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						...resDataFields,
 						...parsedLinkFields,
 						...parsedRoleFields,
-						...(!config.query?.noMetadata && { ...schemaValue }),
+						...schemaValue,
 					};
 				}
 			});
@@ -222,8 +217,8 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						? items
 						: items[0]
 					: config.query?.returnNulls
-					? null
-					: undefined;
+						? null
+						: undefined;
 
 			return linkFieldsRes;
 		}, {});
@@ -239,6 +234,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		}
 
 		const dataFields = obj[dataFieldsKey];
+
 		const metaDataKey = dataFieldsKey.split('.')[dataFieldsKey.split('.').length - 2];
 		dataFields.$metaData = metaDataKey;
 
@@ -250,6 +246,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 		const schemaValue = {
 			$thing: dataFieldsThing.label,
 			$thingType: dataFieldsThing.root,
+			[QueryPath]: obj['queryPath'].value,
 		};
 		const node = { [`$${schemaValue.$thingType}`]: schemaValue.$thing };
 		const currentSchema = getCurrentSchema(schema, node);
@@ -284,7 +281,9 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 	const realParse = (tqlRes: any) => {
 		return tqlRes.map((resItem: any) => {
 			const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(resItem);
+
 			const parsedDataFields = parseDataFields(dataFields, currentSchema);
+
 			// @ts-expect-error todo
 			const parsedLinkFields = parseLinkFields(linkFields);
 			// @ts-expect-error todo
@@ -298,14 +297,14 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 			const finalObj = {
 				...parsedLinkFields,
 				...parsedRoleFields,
-				...(!config.query?.noMetadata ? { ...schemaValue } : {}),
+				...schemaValue,
 				...(!config.query?.noMetadata && rawBqlRequest.$id
 					? { $id: Array.isArray(rawBqlRequest.$id) ? parsedDataFields['id'] : rawBqlRequest.$id }
 					: {}),
 				...(idNotIncluded
 					? Object.fromEntries(
 							Object.entries(parsedDataFields).filter(([key]) => !currentSchema?.idFields?.includes(key)),
-					  )
+						)
 					: parsedDataFields),
 			};
 
@@ -319,15 +318,15 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 			return (rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
 				? parsedItems[0] ?? null
 				: parsedItems.length === 0
-				? null
-				: parsedItems;
+					? null
+					: parsedItems;
 		};
 
 		return isBatched ? tqlRes.map(processResponse) : processResponse(tqlRes);
 	};
 
 	const parsedTqlRes = parser(rawTqlRes);
-	// console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
+	//console.log('parsedTqlRes', JSON.stringify(parsedTqlRes, null, 2));
 	res.bqlRes = parsedTqlRes;
 	// console.log('enrichedBqlQuery', JSON.stringify(enrichedBqlQuery, null, 2));
 };

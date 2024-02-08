@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.2(2023-02-08)
+
+- Refacto: Begining refacto of metadatas in fetch queries
+- Tests: New test for excluded fields
+
 ## 0.8.1(2023-02-03)
 
 - Feat: optional cardinality definition on attributes (default: ONE)

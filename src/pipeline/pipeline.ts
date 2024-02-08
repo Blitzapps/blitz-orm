@@ -18,14 +18,16 @@ import type {
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
 } from '../types';
-import { newBuildTQLQuery } from './preprocess/query/buildTQLQuery';
+import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
-import { newRunTQLQuery } from './transaction/runTQLQuery';
+import { runTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/parseTQLQuery';
 import { preQuery } from './preprocess/mutation/preQuery';
 import { attributePreHooks } from './preprocess/mutation/attributePreeHooks';
 import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';
 import { validationHooks } from './preprocess/mutation/validationHooks';
+import { postHooks } from './postprocess/query/postHooks';
+import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
 
 export type RelationName = string;
 export type EntityName = string;
@@ -84,7 +86,7 @@ export type PipelineOperation = (req: Request, res: Response) => Promise<void | 
 type Pipeline = PipelineOperation[];
 
 const Pipelines: Record<string, Pipeline> = {
-	query: [enrichBQLQuery, newBuildTQLQuery, newRunTQLQuery, parseTQLQuery],
+	query: [enrichBQLQuery, buildTQLQuery, runTQLQuery, parseTQLQuery, postHooks, cleanQueryRes],
 	mutation: [
 		enrichBQLMutation,
 		preQuery,

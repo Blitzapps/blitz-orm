@@ -297,6 +297,27 @@ export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 ): EnrichedBormEntity | EnrichedBormRelation => {
+	/// New $thing notation
+	if (node.$thing) {
+		if (!node.$thingType) {
+			throw new Error('Missing $thingType in node$: {JSON.stringify(node, null, 2)');
+		}
+		if (node.$thingType === 'entity') {
+			if (!(node.$thing in schema.entities)) {
+				throw new Error(`Missing entity '${node.$thing}' in the schema`);
+			}
+			return schema.entities[node.$thing] as EnrichedBormEntity;
+		}
+		if (node.$thingType === 'relation') {
+			if (!(node.$thing in schema.relations)) {
+				throw new Error(`Missing relation '${node.$thing}' in the schema`);
+			}
+			return schema.relations[node.$thing] as EnrichedBormRelation;
+		}
+		throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
+	}
+
+	//! Todo: delete when this works with the new $thing and $thingType fields
 	if (node.$entity) {
 		if (!(node.$entity in schema.entities)) {
 			throw new Error(`Missing entity '${node.$entity}' in the schema`);

@@ -4,7 +4,7 @@ import type { PipelineOperation } from '../pipeline';
 import { getSessionOrOpenNewOne } from './helpers';
 import { parallel } from 'radash';
 
-export const newRunTQLQuery: PipelineOperation = async (req, res) => {
+export const runTQLQuery: PipelineOperation = async (req, res) => {
 	const { dbHandles, enrichedBqlQuery, tqlRequest, config } = req;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL request not parsed');

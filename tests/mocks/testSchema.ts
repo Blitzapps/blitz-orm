@@ -280,7 +280,6 @@ export const testSchema: BormSchema = {
         }, */
 				{
 					path: 'isBlue',
-
 					contentType: 'BOOLEAN', //no boolean yet
 					isVirtual: true,
 					default: {

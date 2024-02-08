@@ -156,7 +156,7 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 										path: roleFieldPath,
 										schema: oFind(currentSchema.roles, (k) => k === roleFieldPath) as EnrichedRoleField,
 									}),
-							  )
+								)
 							: [];
 
 					/// validations
@@ -420,8 +420,8 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 					const currentPath = !notRoot
 						? meta.nodePath || '' /// keep the number in the root or set to root ''
 						: Array.isArray(parent)
-						? nodePathArray?.slice(0, -1).join('.')
-						: meta.nodePath;
+							? nodePathArray?.slice(0, -1).join('.')
+							: meta.nodePath;
 
 					const currentSchema = getCurrentSchema(schema, value);
 					// todo:

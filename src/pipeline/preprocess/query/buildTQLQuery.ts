@@ -1,8 +1,10 @@
+import { QueryPath } from '../../../types/symbols';
 import type { PipelineOperation } from '../../pipeline';
+import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
 
-export const newBuildTQLQuery: PipelineOperation = async (req) => {
+export const buildTQLQuery: PipelineOperation = async (req) => {
 	const { enrichedBqlQuery } = req;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL query not enriched');
@@ -19,6 +21,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 		$fields?: ValueBlock[];
 		$filter?: object;
 		$fieldType?: 'data' | 'role' | 'link';
+		[QueryPath]?: string;
 	};
 
 	const processFilters = ($filter: object, $var: string) => {
@@ -82,6 +85,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 		const $metaData = `$metadata:{as:[${$asMetaData}],virtual:[${$virtualMetaData}]}`;
 
 		tqlStr += `$${$path} as "${$path}.${$metaData}.$dataFields": `;
+
 		tqlStr += postStr;
 	};
 
@@ -103,12 +107,14 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			$idNotIncluded: boolean;
 			$filterByUnique: boolean;
 			$playedBy: any;
+			[QueryPath]: string;
 		}[],
 		$path: string,
 		dotPath: string,
 	) => {
 		for (const roleField of roleFields) {
 			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique } = roleField;
+			const queryPath = roleField[QueryPath];
 
 			const $metaData = `$metadata:{as:${$as},justId:${
 				$justId ? 'T' : 'F'
@@ -122,23 +128,27 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += `\t$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary}; \n`;
 
 			if ($fields) {
+				const randomId = uuidv4();
+				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`; ///rawPaths => to inject metadata in the response, in this case only the path
 				tqlStr += '\tfetch \n';
-			}
-			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-			if (dataFields && dataFields.length > 0) {
-				// @ts-expect-error todo
-				processDataFields(dataFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
-			}
+				tqlStr += `?queryPath${randomId} as "queryPath" \n;`; ///rawPaths => to recover metadata in the response
 
-			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-			if (linkFields && linkFields.length > 0) {
-				// @ts-expect-error todo
-				processLinkFields(linkFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
-			}
-			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-			if (roleFields && roleFields.length > 0) {
-				// @ts-expect-error todo
-				processRoleFields(roleFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+				}
+
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+				}
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, `${$path}${separator}${roleField.$var}`, `${$path}.${roleField.$var}`);
+				}
 			}
 			tqlStr += '}; \n';
 		}
@@ -162,12 +172,14 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			$idNotIncluded: boolean;
 			$filterByUnique: boolean;
 			$playedBy: any;
+			[QueryPath]: string;
 		}[],
 		$path: string,
 		dotPath: string,
 	) => {
 		for (const linkField of linkFields) {
 			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $playedBy } = linkField;
+			const queryPath = linkField[QueryPath];
 			const $metaData = `$metadata:{as:${$as},justId:${
 				$justId ? 'T' : 'F'
 			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
@@ -186,24 +198,28 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 			}
 
 			if ($fields) {
+				const randomId = uuidv4();
+				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`; ///queryPath => to inject metadata in the response, in this case only the path
 				tqlStr += '\tfetch \n';
-			}
-			const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-			if (dataFields && dataFields.length > 0) {
-				// @ts-expect-error todo
-				processDataFields(dataFields, `${$path}${separator}${linkField.$var}`);
-			}
+				tqlStr += `?queryPath${randomId} as "queryPath" \n;`; ///queryPath => to recover metadata in the response
 
-			const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-			if (linkFields && linkFields.length > 0) {
-				// @ts-expect-error todo
-				processLinkFields(linkFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
-			}
+				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
+				if (dataFields && dataFields.length > 0) {
+					// @ts-expect-error todo
+					processDataFields(dataFields, `${$path}${separator}${linkField.$var}`);
+				}
 
-			const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-			if (roleFields && roleFields.length > 0) {
-				// @ts-expect-error todo
-				processRoleFields(roleFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
+				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
+				if (linkFields && linkFields.length > 0) {
+					// @ts-expect-error todo
+					processLinkFields(linkFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
+				}
+
+				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
+				if (roleFields && roleFields.length > 0) {
+					// @ts-expect-error todo
+					processRoleFields(roleFields, `${$path}${separator}${linkField.$var}`, `${$path}.${linkField.$var}`);
+				}
 			}
 			tqlStr += '}; \n';
 		}
@@ -216,6 +232,7 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 		if (isBatched) {
 			for (const query of enrichedBqlQuery) {
 				const { $path, $thing, $filter, $fields } = query;
+				const queryPath = query[QueryPath];
 				tqlStr += `match \n \t $${$path} isa ${$thing} `;
 				if ($filter) {
 					// @ts-expect-error todo
@@ -223,25 +240,31 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 				} else {
 					tqlStr += '; ';
 				}
+
+				const randomId = uuidv4();
+
+				tqlStr += `?queryPath${randomId} = "${queryPath}";\n`;
+				tqlStr += 'fetch \n';
+				tqlStr += `?queryPath${randomId} as "queryPath" \n;`;
+
 				if ($fields) {
-					tqlStr += 'fetch \n';
-				}
-				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-				if (dataFields && dataFields.length > 0) {
-					// @ts-expect-error todo
-					processDataFields(dataFields, $path);
-				}
+					const dataFields = $fields.filter((f) => f.$fieldType === 'data');
+					if (dataFields && dataFields.length > 0) {
+						// @ts-expect-error todo
+						processDataFields(dataFields, $path);
+					}
 
-				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-				if (linkFields && linkFields.length > 0) {
-					// @ts-expect-error todo
-					processLinkFields(linkFields, $path, $path);
-				}
+					const linkFields = $fields.filter((f) => f.$fieldType === 'link');
+					if (linkFields && linkFields.length > 0) {
+						// @ts-expect-error todo
+						processLinkFields(linkFields, $path, $path);
+					}
 
-				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-				if (roleFields && roleFields.length > 0) {
-					// @ts-expect-error todo
-					processRoleFields(roleFields, $path, $path);
+					const roleFields = $fields.filter((f) => f.$fieldType === 'role');
+					if (roleFields && roleFields.length > 0) {
+						// @ts-expect-error todo
+						processRoleFields(roleFields, $path, $path);
+					}
 				}
 				tqlStrings.push(tqlStr);
 				tqlStr = '';
@@ -249,6 +272,8 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 		} else {
 			for (const query of enrichedBqlQuery) {
 				const { $path, $thing, $filter, $fields } = query;
+				const queryPath = query[QueryPath];
+
 				tqlStr += `match \n \t $${$path} isa ${$thing} `;
 				if ($filter) {
 					// @ts-expect-error todo
@@ -256,30 +281,37 @@ export const newBuildTQLQuery: PipelineOperation = async (req) => {
 				} else {
 					tqlStr += '; ';
 				}
+
+				tqlStr += `?queryPath = "${queryPath}";\n`;
+				tqlStr += 'fetch \n';
+				tqlStr += '?queryPath as "queryPath" \n;';
+
 				if ($fields) {
-					tqlStr += 'fetch \n';
-				}
-				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-				if (dataFields && dataFields.length > 0) {
-					// @ts-expect-error todo
-					processDataFields(dataFields, $path);
-				}
+					const dataFields = $fields.filter((f) => f.$fieldType === 'data');
+					if (dataFields && dataFields.length > 0) {
+						// @ts-expect-error todo
+						processDataFields(dataFields, $path);
+					}
 
-				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-				if (linkFields && linkFields.length > 0) {
-					// @ts-expect-error todo
-					processLinkFields(linkFields, $path, $path);
-				}
+					const linkFields = $fields.filter((f) => f.$fieldType === 'link');
+					if (linkFields && linkFields.length > 0) {
+						// @ts-expect-error todo
+						processLinkFields(linkFields, $path, $path);
+					}
 
-				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-				if (roleFields && roleFields.length > 0) {
-					// @ts-expect-error todo
-					processRoleFields(roleFields, $path, $path);
+					const roleFields = $fields.filter((f) => f.$fieldType === 'role');
+					if (roleFields && roleFields.length > 0) {
+						// @ts-expect-error todo
+						processRoleFields(roleFields, $path, $path);
+					}
 				}
 			}
 		}
 	};
+
 	builder(enrichedBqlQuery);
+	//console.log('tqlStr', tqlStr);
+	//console.log('tqlStrings', tqlStrings);
 	// todo: type the tqlRequest
 	// @ts-expect-error todo
 	req.tqlRequest = isBatched ? tqlStrings : tqlStr;
