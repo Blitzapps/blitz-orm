@@ -1,8 +1,8 @@
 /* eslint-disable no-param-reassign */
 import { produce } from 'immer';
-import type { TraversalCallbackContext } from 'object-traversal';
-import { traverse } from 'object-traversal';
-import { listify } from 'radash';
+import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
+import { getNodeByPath, traverse } from 'object-traversal';
+import { isArray, listify } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -475,4 +475,13 @@ export const capitalizeFirstLetter = (string: string) => {
 		throw new Error('capitalizeFirstLetter: string is not a string');
 	}
 	return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+};
+
+export const getParentNode = (blocks: Record<any, any>, parent: any, meta: TraversalMeta) => {
+	const currentPath = meta.nodePath || '';
+	const pathParts = currentPath.split('.');
+	const parentPath = isArray(parent)
+		? pathParts.slice(0, -2).join('.') // Remove last two parts for an array parent
+		: pathParts.slice(0, -1).join('.'); // Remove only the last part for a non-array parent
+	return parent ? getNodeByPath(blocks, parentPath) : {}; //undefined parent for root
 };

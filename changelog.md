@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.6(2023-02-08)
+
+- Feat: Node validations can also use the parent object of the mutation
+
 ## 0.8.5(2023-02-08)
 
 - Fix: Compatible now with typedb 2.26.6

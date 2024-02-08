@@ -181,6 +181,50 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('vfla4[validation, functions, remote, parent] Validate considering the parent', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$entity: 'Hook',
+				id: 'hook-c0',
+				asMainHookOf: {
+					id: 'doesHaveheyYes',
+					hooks: [
+						{
+							id: 'hook-c1',
+						},
+						{ id: 'hook-c2' },
+					],
+					mainHook: {
+						id: 'hook-c3',
+						asMainHookOf: {
+							id: 'p-7',
+							hooks: [
+								{
+									id: 'hook-c4', //this one is the first one that should fail as its parent does not have 'hey'
+								},
+								{ id: 'hook-c5' },
+							],
+						},
+					},
+				},
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe(
+					'[Validations:thing:Hook] The parent of "hook-c4" does not have \'hey\' in its id ("p-7").',
+				);
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

@@ -202,6 +202,12 @@ Hook sub entity,
 	owns Hook·timestamp,
 	owns Hook·requiredOption,
 	owns Hook·manyOptions,
-	owns Hook·fnValidatedField;
+	owns Hook·fnValidatedField,
+	plays HookParent:mainHook,
+	plays HookParent:hooks;
 
-    
+HookParent sub relation,
+	owns id @key,
+	relates hooks,
+	relates mainHook;
+	

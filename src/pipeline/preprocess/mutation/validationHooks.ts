@@ -5,7 +5,7 @@ import { isArray, isObject } from 'radash';
 
 import type { BormTrigger, FilledBQLMutationBlock, Hooks } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
-import { capitalizeFirstLetter } from '../../../helpers';
+import { capitalizeFirstLetter, getParentNode } from '../../../helpers';
 import { Schema } from '../../../types/symbols';
 
 export const validationHooks: PipelineOperation = async (req) => {
@@ -83,10 +83,11 @@ export const validationHooks: PipelineOperation = async (req) => {
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
-			traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+			traverse(draft, ({ value: val, parent, meta }: TraversalCallbackContext) => {
 				if (isObject(val) && ('$entity' in val || '$relation' in val)) {
 					const currentThing = '$entity' in val ? val.$entity : val.$relation;
 					const value = val as FilledBQLMutationBlock;
+
 					// @ts-expect-error - TODO
 					const hooks = val[Symbol.for('schema')].hooks as Hooks;
 					if (hooks) {
@@ -107,6 +108,9 @@ export const validationHooks: PipelineOperation = async (req) => {
 								if (triggerFunction()) {
 									/// triggered, time to check its actions (maybe also a condition before but lets skip that for now)
 
+									/// Same parentNode for all
+									const parentNode = getParentNode(blocks, parent, meta);
+
 									hook.actions.forEach((action) => {
 										if (action.type === 'validate') {
 											if (action.severity !== 'error') {
@@ -114,7 +118,8 @@ export const validationHooks: PipelineOperation = async (req) => {
 											}
 
 											try {
-												const validationResult = action.fn(value);
+												//!todo: use computeNode() in the future instead
+												const validationResult = action.fn(value, parentNode);
 
 												if (validationResult === false) {
 													throw new Error(`${action.message}.`);
