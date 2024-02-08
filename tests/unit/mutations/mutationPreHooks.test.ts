@@ -129,7 +129,7 @@ describe('Mutations: PreHooks', () => {
 		} catch (error) {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('[PreHook] Name must not exist, or be less than 15 characters.');
+				expect(error.message).toBe('[Validations:thing:Kind] Name must not exist, or be less than 15 characters.');
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);
@@ -150,7 +150,30 @@ describe('Mutations: PreHooks', () => {
 		} catch (error) {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('[Validations] Field "fnValidatedField" failed validation function.');
+				expect(error.message).toBe('[Validations:attribute:fnValidatedField] Failed validation function.');
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
+	it('vfla3[validation, functions, local, attribute] FUnction with custom error', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$entity: 'Hook',
+				fnValidatedField: 'secretTesthe@test.es',
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe(
+					'[Validations:attribute:fnValidatedField] "secretTesthe@test.es" starts with "secretTest" and that\'s not allowed.',
+				);
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);

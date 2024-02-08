@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.4(2023-02-08)
+
+- Feat: Validations can now throw dynamic errors using (by catching errors)
+
 ## 0.8.3(2023-02-08)
 
 - Fix: Published issue

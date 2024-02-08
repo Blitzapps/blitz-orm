@@ -21,7 +21,7 @@ import type {
 import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
 import { runTQLQuery } from './transaction/runTQLQuery';
-import { parseTQLQuery } from './postprocess/parseTQLQuery';
+import { parseTQLQuery } from './postprocess/query/parseTQLQuery';
 import { preQuery } from './preprocess/mutation/preQuery';
 import { attributePreHooks } from './preprocess/mutation/attributePreeHooks';
 import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';

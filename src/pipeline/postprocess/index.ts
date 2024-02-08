@@ -1,4 +1,4 @@
-export * from './parseTQLMutation';
+export * from './mutation/parseTQLMutation';
 export * from './fieldsOperator';
 export * from './idOperator';
-export * from './buildBQLTree';
+export * from './mutation/buildBQLTree';

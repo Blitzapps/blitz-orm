@@ -57,7 +57,15 @@ export const testSchema: BormSchema = {
 					path: 'fnValidatedField',
 					contentType: 'TEXT',
 					validations: {
-						fn: (val) => (isEmail(val) && isGmail(val) ? true : false),
+						fn: (val) => {
+							if (isEmail(val) && isGmail(val)) {
+								return true;
+							}
+							if (val.startsWith('secretTest')) {
+								throw new Error(`"${val}" starts with "secretTest" and that's not allowed.`);
+							}
+							return false;
+						},
 					},
 				},
 				{

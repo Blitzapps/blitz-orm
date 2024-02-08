@@ -4,10 +4,10 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
-import { getCurrentFields, notNull, oFilter } from '../../helpers';
-import type { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../types';
-import type { Entity, PipelineOperation } from '../pipeline';
-import { computeField } from '../../engine/compute';
+import { getCurrentFields, notNull, oFilter } from '../../../helpers';
+import type { BormConfig, BQLFieldObj, BQLMutationBlock, RawBQLQuery } from '../../../types';
+import type { Entity, PipelineOperation } from '../../pipeline';
+import { computeField } from '../../../engine/compute';
 
 const isOne = (children: any[], $id: string) => {
 	if (children.length === 1 && typeof children[0] !== 'string' ? children[0].$id === $id : false) {
