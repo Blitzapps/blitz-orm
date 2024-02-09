@@ -259,11 +259,18 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					}
 				}
 
-				if (value.default || value.computedValue) {
+				if (value.default) {
 					if (value.isVirtual) {
+						// default and virtual means computed
 						draftSchema.virtualFields.push(value.path);
 					} else {
+						//default but not virtual means pre-computed (default value), borm side
 						draftSchema.computedFields.push(value.path);
+					}
+				} else {
+					if (value.isVirtual) {
+						//not default but isVirtual means, computed in the DB side, not borm side
+						draftSchema.virtualFields.push(value.path);
 					}
 				}
 			}

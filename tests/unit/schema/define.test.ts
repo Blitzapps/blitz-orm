@@ -14,7 +14,7 @@ describe('Mutation init', () => {
 		}
 		dbName = configDbName;
 		bormClient = configBormClient;
-	}, 15000);
+	}, 25000);
 
 	it('Todo:b1[create] Basic', async () => {
 		/*

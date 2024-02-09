@@ -47,13 +47,20 @@ export const postHooks: PipelineOperation = async (req, res) => {
 							}
 							const field = currentSchema.dataFields?.find((f) => f.path === virtualFieldPath);
 
-							const computedValue = computeField({
-								//@ts-expect-error - todo: make computeField compatible with BQLQueryBlock
-								currentThing: value,
-								fieldSchema: field,
-								mandatoryDependencies: true,
-							});
-							value[virtualFieldPath] = computedValue;
+							if (!field?.default) {
+								///then is a virtual field and should be computed from the DB already
+								if (value[virtualFieldPath] === undefined) {
+									throw new Error(`[Internal] Virtual field: No db value found for virtual field: ${virtualFieldPath}`);
+								}
+							} else {
+								const computedValue = computeField({
+									//@ts-expect-error - todo: make computeField compatible with BQLQueryBlock
+									currentThing: value,
+									fieldSchema: field,
+									mandatoryDependencies: true,
+								});
+								value[virtualFieldPath] = computedValue;
+							}
 						});
 
 						//EXCLUDE FIELDS

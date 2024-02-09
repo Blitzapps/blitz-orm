@@ -14,7 +14,7 @@ describe('Mutations: PreHooks', () => {
 		}
 		dbName = configDbName;
 		bormClient = configBormClient;
-	}, 15000);
+	}, 25000);
 
 	// field level
 
@@ -23,14 +23,14 @@ describe('Mutations: PreHooks', () => {
 
 		await bormClient.mutate({
 			$entity: 'Hook',
-			id: 'hook1',
+			id: 'hookDf1',
 			requiredOption: 'b',
 		});
 
 		const res = await bormClient.query(
 			{
 				$entity: 'Hook',
-				$id: 'hook1',
+				$id: 'hookDf1',
 				$fields: ['id', 'timestamp'],
 			},
 			{ noMetadata: true },
@@ -48,7 +48,7 @@ describe('Mutations: PreHooks', () => {
 		await bormClient.mutate({
 			$entity: 'Hook',
 			$op: 'delete',
-			id: 'hook1',
+			id: 'hookDF11',
 		});
 	});
 

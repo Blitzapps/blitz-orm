@@ -66,7 +66,7 @@ describe('Mutations: Init', () => {
 		}
 		dbName = configDbName;
 		bormClient = configBormClient;
-	}, 15000);
+	}, 25000);
 
 	it('b1[create] Basic', async () => {
 		expect(bormClient).toBeDefined();

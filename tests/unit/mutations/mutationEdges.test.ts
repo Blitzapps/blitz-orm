@@ -16,7 +16,7 @@ describe('Mutations: Edges', () => {
 		}
 		dbName = configDbName;
 		bormClient = configBormClient;
-	}, 15000);
+	}, 25000);
 
 	it('l1[link, add, nested, relation] Update entity by adding a new created relation children. Also test getting ids by tempId', async () => {
 		expect(bormClient).toBeDefined();

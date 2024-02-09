@@ -112,6 +112,17 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 
 					const currentSchema = getCurrentSchema(schema, value);
 
+					//#region  VALIDATE: No filled virtual values
+					const currentFields = Object.keys(value);
+					const currentVirtualFields = currentFields.filter((x) => currentSchema.virtualFields?.includes(x));
+					if (currentVirtualFields.length > 0) {
+						const filledVirtualFields = currentVirtualFields.filter((x) => value[x]);
+						if (filledVirtualFields.length > 0) {
+							throw new Error(`Can't set virtual fields: ["${filledVirtualFields.join('","')}"]`);
+						}
+					}
+					//#endregion
+
 					const nodePathArray = meta.nodePath?.split('.');
 
 					const notRoot = nodePathArray?.filter((x) => Number.isNaN(parseInt(x, 10))).join('.');
