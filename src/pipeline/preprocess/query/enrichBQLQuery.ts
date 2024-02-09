@@ -215,7 +215,8 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 		const isRoleField = schema.roles?.[fieldStr];
 
 		if (isDataField) {
-			return createDataField(field, fieldStr, justId, isDataField.dbPath, isDataField.isVirtual);
+			const isComputed = isDataField.isVirtual && isDataField.default; //if there is no default value, then is fully virtual, the computing is managed in the DB
+			return createDataField(field, fieldStr, justId, isDataField.dbPath, isComputed); //ignore computed ones
 		} else if (isLinkField) {
 			return createLinkField(field, fieldStr, isLinkField, justId, isLinkField.dbPath);
 		} else if (isRoleField) {

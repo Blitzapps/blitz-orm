@@ -1,4 +1,4 @@
-import { TransactionType } from 'typedb-driver';
+import { TransactionType, TypeDBOptions } from 'typedb-driver';
 
 import type { PipelineOperation } from '../pipeline';
 import { getSessionOrOpenNewOne } from './helpers';
@@ -13,6 +13,9 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 		throw new Error('TQL request not built');
 	}
 	//console.log('tqlRequest!', tqlRequest);
+	//TODO condition this only to have infer if there are virtual fields (without default fn)
+	const options = new TypeDBOptions();
+	options.infer = true;
 
 	const isBatched = Array.isArray(tqlRequest);
 	if (isBatched) {
@@ -20,11 +23,12 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 		const resArray = await parallel(tqlRequest.length, tqlRequest, async (queryString) => {
 			const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 
-			const transaction = await session.transaction(TransactionType.READ);
+			const transaction = await session.transaction(TransactionType.READ, options);
 			if (!transaction) {
 				throw new Error("Can't create transaction");
 			}
 			const tqlStream = transaction.query.fetch(queryString as string);
+
 			const tqlRes = await tqlStream.collect();
 			await transaction.close();
 			return tqlRes;
@@ -36,7 +40,7 @@ export const runTQLQuery: PipelineOperation = async (req, res) => {
 	} else {
 		const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 
-		const transaction = await session.transaction(TransactionType.READ);
+		const transaction = await session.transaction(TransactionType.READ, options);
 		if (!transaction) {
 			throw new Error("Can't create transaction");
 		}

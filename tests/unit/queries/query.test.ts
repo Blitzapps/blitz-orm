@@ -21,7 +21,7 @@ describe('Query', () => {
 
 		dbName = configDbName;
 		bormClient = configBormCLient;
-	}, 15000);
+	}, 25000);
 
 	it('v1[validation] - $entity missing', async () => {
 		expect(bormClient).toBeDefined();
@@ -1091,6 +1091,7 @@ describe('Query', () => {
 					$id: 'account1-1',
 					id: 'account1-1',
 					provider: 'google',
+					isSecureProvider: true,
 					user: 'user1',
 				},
 				{
@@ -1099,6 +1100,7 @@ describe('Query', () => {
 					$id: 'account1-2',
 					id: 'account1-2',
 					provider: 'facebook',
+					isSecureProvider: false,
 					user: 'user1',
 				},
 				{
@@ -1107,6 +1109,7 @@ describe('Query', () => {
 					$id: 'account1-3',
 					id: 'account1-3',
 					provider: 'github',
+					isSecureProvider: false,
 					user: 'user1',
 				},
 			],
@@ -1119,16 +1122,21 @@ describe('Query', () => {
 				{
 					id: 'account1-1',
 					provider: 'google',
+					isSecureProvider: true,
+
 					user: 'user1',
 				},
 				{
 					id: 'account1-2',
 					provider: 'facebook',
+					isSecureProvider: false,
+
 					user: 'user1',
 				},
 				{
 					id: 'account1-3',
 					provider: 'github',
+					isSecureProvider: false,
 					user: 'user1',
 				},
 			],
@@ -1258,6 +1266,7 @@ describe('Query', () => {
 					$id: 'account1-3',
 					id: 'account1-3',
 					provider: 'github',
+					isSecureProvider: false,
 					user: 'user1',
 				},
 			],
@@ -1561,8 +1570,76 @@ describe('Query', () => {
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
-	it('v1[virtual] Virtual field', async () => {
-		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+
+	it('vi1[virtual, attribute] Virtual DB field', async () => {
+		//This works with TypeDB rules
+		expect(bormClient).toBeDefined();
+
+		const res = await bormClient.query(
+			{ $entity: 'Account', $fields: ['id', 'isSecureProvider'] },
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'account1-1',
+				isSecureProvider: true,
+			},
+			{
+				id: 'account1-2',
+				isSecureProvider: false,
+			},
+			{
+				id: 'account1-3',
+				isSecureProvider: false,
+			},
+			{
+				id: 'account2-1',
+				isSecureProvider: true,
+			},
+			{
+				id: 'account3-1',
+				isSecureProvider: false,
+			},
+		]);
+	});
+
+	it('vi2[virtual, edge] Virtual DB edge field', async () => {
+		//This works with TypeDB rules
+		expect(bormClient).toBeDefined();
+
+		const res = await bormClient.query({ $entity: 'Hook' }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'hook1',
+				otherTags: ['hook2', 'hook3', 'hook5'],
+				requiredOption: 'a',
+			},
+			{
+				id: 'hook2',
+				requiredOption: 'b',
+				tagA: ['hook1', 'hook4'],
+			},
+			{
+				id: 'hook3',
+				requiredOption: 'c',
+				tagA: ['hook1', 'hook4'],
+			},
+			{
+				id: 'hook4',
+				requiredOption: 'a',
+				otherTags: ['hook2', 'hook3', 'hook5'],
+			},
+			{
+				id: 'hook5',
+				requiredOption: 'b',
+				tagA: ['hook1', 'hook4'],
+			},
+		]);
+	});
+
+	it('co1[computed] Virtual computed field', async () => {
 		expect(bormClient).toBeDefined();
 
 		const res = await bormClient.query(
@@ -1582,8 +1659,7 @@ describe('Query', () => {
 		]);
 	});
 
-	it('v2[virtual] Virtual field depending on edge id', async () => {
-		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+	it('co2[computed] Computed virtual field depending on edge id', async () => {
 		expect(bormClient).toBeDefined();
 
 		const res = await bormClient.query(
@@ -1605,8 +1681,7 @@ describe('Query', () => {
 		]);
 	});
 
-	it('TODO:v3[virtual] Virtual field depending on edge id, missing dependencies', async () => {
-		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
+	it('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
 		expect(bormClient).toBeDefined();
 
 		const res = await bormClient.query(

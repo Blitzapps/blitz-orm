@@ -18,7 +18,6 @@ const description: DataField = {
 
 const timestamp: DataField = {
 	path: 'timestamp',
-
 	contentType: 'DATE',
 };
 
@@ -86,6 +85,20 @@ export const testSchema: BormSchema = {
 					target: 'relation',
 				},
 				{ path: 'asMainHookOf', cardinality: 'ONE', relation: 'HookParent', plays: 'mainHook', target: 'relation' },
+				{
+					path: 'otherTags',
+					cardinality: 'MANY',
+					relation: 'HookATag',
+					plays: 'hookTypeA',
+					target: 'role',
+				},
+				{
+					path: 'tagA',
+					cardinality: 'MANY',
+					relation: 'HookATag',
+					plays: 'otherHooks',
+					target: 'role',
+				},
 			],
 			hooks: {
 				pre: [
@@ -165,8 +178,12 @@ export const testSchema: BormSchema = {
 				{
 					path: 'provider',
 					contentType: 'TEXT',
-
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
+				},
+				{
+					path: 'isSecureProvider',
+					contentType: 'BOOLEAN',
+					isVirtual: true,
 				},
 			],
 			linkFields: [
@@ -188,7 +205,6 @@ export const testSchema: BormSchema = {
 				{ ...name, rights: ['CREATE', 'UPDATE'] },
 				{
 					path: 'email',
-
 					contentType: 'EMAIL',
 					validations: { unique: true },
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
@@ -624,6 +640,14 @@ export const testSchema: BormSchema = {
 			roles: {
 				hooks: { cardinality: 'MANY' },
 				mainHook: { cardinality: 'ONE' },
+			},
+		},
+		'HookATag': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'HookATag' },
+			dataFields: [{ ...id }],
+			roles: {
+				hookTypeA: { cardinality: 'ONE' },
 			},
 		},
 	},

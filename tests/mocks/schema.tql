@@ -102,9 +102,12 @@ God sub SuperUser,
 
 # Account
 Account·provider sub attribute, value string;
+Account·isSecureProvider sub attribute, value boolean;
+
 Account sub entity,
     owns id @key,
     owns Account·provider,
+		owns Account·isSecureProvider,
     plays User-Accounts:accounts;
 
 # Post
@@ -204,10 +207,45 @@ Hook sub entity,
 	owns Hook·manyOptions,
 	owns Hook·fnValidatedField,
 	plays HookParent:mainHook,
-	plays HookParent:hooks;
+	plays HookParent:hooks,
+	plays HookATag:hookTypeA,
+	plays HookATag:otherHooks;
 
 HookParent sub relation,
 	owns id @key,
 	relates hooks,
 	relates mainHook;
+
+HookATag sub relation,
+	owns id @key,
+	relates hookTypeA,
+	relates otherHooks;
+
+#1 Secure provider rule
+rule add-secure-provider: when {
+	  $account isa Account, has Account·provider "google";
+} then {
+	  $account has Account·isSecureProvider true;
+};
+
+rule add-non-secure-provider: when {
+	  $account isa Account;
+		not { $account has Account·isSecureProvider true; };
+} then {
+	  $account has Account·isSecureProvider false;
+};
+
+
+#2 With parent tag rule	
+rule add-hook-type-a-tag: when {
+	  $hook isa Hook, has Hook·requiredOption "a";
+		$otherHooks isa Hook;
+		not { $hook is $otherHooks; };
+		not { $otherHooks has Hook·requiredOption "a"; };
 	
+} then {
+	  (hookTypeA: $hook, otherHooks: $otherHooks) isa HookATag;
+};
+	
+	
+    

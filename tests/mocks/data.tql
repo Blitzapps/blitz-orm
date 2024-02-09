@@ -139,3 +139,9 @@ $self6 (space:$space-2, owner: $self5) isa Self, has id 'self6';
 $self7 (space:$space-2, owner: $self6) isa Self, has id 'self7';
 $self8 (space:$space-2, owner: $self6) isa Self, has id 'self8';
 
+$hook1 isa Hook, has id 'hook1', has Hook·requiredOption 'a';
+$hook2 isa Hook, has id 'hook2', has Hook·requiredOption 'b';
+$hook3 isa Hook, has id 'hook3', has Hook·requiredOption 'c';
+$hook4 isa Hook, has id 'hook4', has Hook·requiredOption 'a';
+$hook5 isa Hook, has id 'hook5', has Hook·requiredOption 'b';
+

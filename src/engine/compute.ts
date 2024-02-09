@@ -11,7 +11,9 @@ export const computeField = ({
 	mandatoryDependencies?: boolean;
 }) => {
 	if (!fieldSchema || !fieldSchema.default || !('fn' in fieldSchema.default || 'value' in fieldSchema.default)) {
-		throw new Error(`[Internal] Virtual field: No field schema found, or wrongly configured. Field: ${fieldSchema}`);
+		throw new Error(
+			`[Internal] Virtual field: No field schema found, or wrongly configured. Field: ${JSON.stringify(fieldSchema, null, 3)}`,
+		);
 	}
 
 	//check if all the args are in the entity, if not, throw a missing error with all the not present ones

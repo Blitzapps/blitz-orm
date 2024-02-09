@@ -66,7 +66,7 @@ const parseArrayMetadata = (str: string) => {
 		return parsed;
 	} catch (e) {
 		console.error(e);
-		return { as: [], virtual: [] };
+		return { as: [] };
 	}
 };
 
@@ -102,7 +102,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 					fieldValue = value[0] ? value[0].value : config.query?.returnNulls ? null : undefined;
 					/// date fields need to be converted to ISO format including the timezone
 					if (field.contentType === 'DATE') {
-						fieldValue = `${fieldValue}Z`;
+						fieldValue = fieldValue ? `${fieldValue}Z` : fieldValue;
 					}
 					if (isIdField) {
 						return [
@@ -113,6 +113,9 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 				} else if (field?.cardinality === 'MANY') {
 					if (!isArray(value)) {
 						throw new Error('Typedb fetch has changed its format');
+					}
+					if (value.length === 0) {
+						return config.query?.returnNulls ? [[$asKey, null]] : []; //return nothing unles the returnNulls flag is set
 					}
 					if (field.contentType === 'DATE') {
 						fieldValue = value.map((o) => {

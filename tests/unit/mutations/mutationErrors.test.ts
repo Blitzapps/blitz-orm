@@ -675,6 +675,33 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it("vi1[create, virtual, error] Can't set virtual fields", async () => {
+		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					id: 'newAccount',
+					provider: 'gmail',
+					isSecureProvider: true,
+				},
+				{ noMetadata: true },
+			);
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe('Can\'t set virtual fields: ["isSecureProvider"]');
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

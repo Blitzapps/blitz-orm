@@ -64,25 +64,20 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 	) => {
 		const postStrParts = [];
 		const asMetaDataParts = [];
-		const virtualMetaDataParts = [];
 
 		let $asMetaData = '';
-		let $virtualMetaData = '';
 
 		for (let i = 0; i < dataFields.length; i++) {
 			if (!dataFields[i].$isVirtual) {
 				postStrParts.push(` ${dataFields[i].$dbPath}`);
-			} else {
-				virtualMetaDataParts.push(`${dataFields[i].$dbPath}`);
 			}
 			asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
 		}
 
 		const postStr = `${postStrParts.join(',')};\n`;
 		$asMetaData = asMetaDataParts.join(',');
-		$virtualMetaData = virtualMetaDataParts.join(',');
 
-		const $metaData = `$metadata:{as:[${$asMetaData}],virtual:[${$virtualMetaData}]}`;
+		const $metaData = `$metadata:{as:[${$asMetaData}]}`;
 
 		tqlStr += `$${$path} as "${$path}.${$metaData}.$dataFields": `;
 
