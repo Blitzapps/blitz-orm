@@ -2134,7 +2134,7 @@ describe('Mutations: Edges', () => {
 										id: 'd-dataValue-1',
 									},
 								],
-								expression: { id: 'd-expression-1' },
+								expression: { $op: 'create', id: 'd-expression-1' },
 							},
 							{
 								id: 'd-dataField-2',
@@ -2142,7 +2142,7 @@ describe('Mutations: Edges', () => {
 							},
 							{
 								id: 'd-dataField-3',
-								expression: { id: 'd-expression-2' },
+								expression: { $op: 'create', id: 'd-expression-2' },
 							},
 							{
 								id: 'd-dataField-4',
@@ -2464,7 +2464,7 @@ describe('Mutations: Edges', () => {
 										id: 'ul-dataValue-1',
 									},
 								],
-								expression: { id: 'ul-expression-1' },
+								expression: { $op: 'create', id: 'ul-expression-1' },
 							},
 							{
 								id: 'ul-dataField-2',
@@ -2472,7 +2472,7 @@ describe('Mutations: Edges', () => {
 							},
 							{
 								id: 'ul-dataField-3',
-								expression: { id: 'ul-expression-2' },
+								expression: { $op: 'create', id: 'ul-expression-2' },
 							},
 							{
 								id: 'ul-dataField-4',
@@ -2576,7 +2576,7 @@ describe('Mutations: Edges', () => {
 										id: 'up-dataValue-1',
 									},
 								],
-								expression: { id: 'up-expression-1' },
+								expression: { $op: 'create', id: 'up-expression-1' },
 							},
 							{
 								id: 'up-dataField-2',
@@ -2584,7 +2584,7 @@ describe('Mutations: Edges', () => {
 							},
 							{
 								id: 'up-dataField-3',
-								expression: { id: 'up-expression-2' },
+								expression: { $op: 'create', id: 'up-expression-2' },
 							},
 							{
 								id: 'up-dataField-4',

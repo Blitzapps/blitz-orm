@@ -1,10 +1,17 @@
-import { produce, current } from 'immer';
+import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
-import { traverse, getNodeByPath } from 'object-traversal';
+import { traverse } from 'object-traversal';
 import { isArray, isObject, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { getCurrentFields, getCurrentSchema, oFind } from '../../../helpers';
+import {
+	getCurrentFields,
+	getCurrentSchema,
+	getParentNode,
+	isBQLBlock,
+	normalPropsCount,
+	oFind,
+} from '../../../helpers';
 import type {
 	BQLMutationBlock,
 	EnrichedBormRelation,
@@ -133,6 +140,15 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 					}
 
 					value.$bzId = value.$tempId ?? `T_${uuidv4()}`;
+
+					///V0 of this, just add to the root. At some point the $op should be managed asap tho
+					if (!notRoot && !value.$op) {
+						if (value.$id || value.$filter) {
+							value.$op = 'update';
+						} else {
+							value.$op = 'create';
+						}
+					}
 
 					//@ts-expect-error - Not sure why do this happen
 					value[Schema] = currentSchema;
@@ -294,31 +310,21 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 							);
 						}
 						// ignore those properly configured. Todo: migrate to $thing
-						if (currentValue?.$entity || currentValue?.$relation) {
+						if (isBQLBlock(currentValue)) {
 							return;
 						}
 
 						const [childrenLinkField] = oppositeFields;
 
 						/// now we have the parent, so we can add the dependencies
-						// const parentMeta = value[Symbol.for('parent') as any];
-						// const parentPath = parentMeta.path;
-						// const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
-
-						/// this is the child object, so these Symbol.for... don't belong to the current node
+						/// this is the child object, so these Symbol.for... doesn't belong to the current node
 
 						const currentFieldType = 'plays' in currentFieldSchema ? 'linkField' : 'roleField';
 						const childrenThingObj = {
 							[`$${childrenLinkField.thingType}`]: childrenLinkField.thing,
 							[Symbol.for('relation') as any]: relation,
 							[Symbol.for('edgeType') as any]: currentFieldType,
-							[Symbol.for('parent') as any]: {
-								path: currentPath,
-								...(value.$id ? { $id: value.$id } : {}),
-								...(value.$tempId ? { $tempId: value.$tempId } : {}),
-								...(value.filter ? { filter: value.filter } : {}),
-								links: oppositeFields,
-							},
+
 							[Symbol.for('role') as any]: childrenLinkField.plays, // this is the currentChildren
 							// this is the parent
 							[Symbol.for('oppositeRole') as any]: 'plays' in currentFieldSchema ? currentFieldSchema.plays : undefined, // todo
@@ -327,14 +333,32 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 
 						// console.log('childrenThingObj', childrenThingObj);
 
+						/// Cardinality ONE, and is already an object
 						if (isObject(currentValue)) {
+							const currVal = currentValue as BQLMutationBlock;
+							//console.log('currVal', currVal);
 							/// probably here we are missing some link + update data for instance (the update data)
 							// todo: for that reason it could be a good idea to send the other object as a thing outside?
 							// todo: Another alternative could be to send the full object and treat this later
 
+							if (!currVal.$op && !currVal.$id && !currVal.$filter && !currVal.$tempId && value.$op !== 'create') {
+								throw new Error(
+									`Please specify if it is a create or an update. Path: ${meta.nodePath ? `${meta.nodePath}.` : ''}${currentField.path}`,
+								);
+							}
+
 							value[currentField.path] = {
 								...childrenThingObj,
-								...currentValue,
+								...currVal,
+								...{
+									$op: currVal.$op
+										? currVal.$op
+										: currVal.$id || currVal.$filter
+											? 'link'
+											: value.$op === 'create'
+												? 'create'
+												: 'update',
+								},
 							};
 
 							// console.log('[obj]value', value[field as string]);
@@ -350,6 +374,9 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 									return {
 										...childrenThingObj,
 										...y,
+										...{
+											$op: y.$op ? y.$op : y.$id || y.$filter ? (normalPropsCount(y) ? 'update' : 'link') : 'create', //todo: clean this mess when more definitive
+										},
 									};
 								});
 								// console.log('[obj-arr]value', value[field as string]);
@@ -398,7 +425,7 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 	};
 
 	const withObjects = stringToObjects(shakedBqlRequest);
-	// console.log('withObjects', withObjects);
+	//console.log('withObjects', withObjects);
 
 	const fill = (blocks: BQLMutationBlock | BQLMutationBlock[]): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		// @ts-expect-error - TODO description
@@ -436,21 +463,14 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 							? nodePathArray?.slice(0, -1).join('.')
 							: meta.nodePath;
 
-					const currentSchema = getCurrentSchema(schema, value);
-					// todo:
-					const { dataFields, roleFields, linkFields } = getCurrentFields(currentSchema, value);
-
 					/// get parent node
-					const parentMeta = current(value)[Symbol.for('parent') as any];
-					const parentPath = notRoot && parentMeta.path;
-					const parentNode = !parentPath ? draft : getNodeByPath(draft, parentPath); /// draft instead of blocks as the $op is computed
+					const parentNode = getParentNode(blocks, parent, meta);
+
 					const parentOp = parentNode?.$op;
 
 					if (notRoot && !parentOp) {
 						throw new Error('Error: Parent $op not detected');
 					}
-
-					const currentFieldSchema = value[Symbol.for('relFieldSchema') as any];
 
 					// todo: move the getOp logic to the first traverse of the fill so that the $op is available
 					// We are doing something twice from the former traverse
@@ -460,47 +480,6 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 						}
 					}
 
-					// console.log('currentValue', isDraft(value) ? current(value) : value);
-
-					const hasUpdatedDataFields = Object.keys(value).some((x) => dataFields?.includes(x));
-
-					const hasUpdatedChildren = Object.keys(value).some((x) => [...roleFields, ...linkFields]?.includes(x));
-					const getOp = () => {
-						if (value.$op) {
-							return value.$op;
-						} // if there is an op, then thats the one
-						/// nested objects are create by default, unless is too ambiguous
-						if (
-							notRoot &&
-							!value.$id &&
-							!value.$tempId &&
-							parentOp !== 'create' &&
-							currentFieldSchema.cardinality === 'ONE'
-						) {
-							throw new Error(`Please specify if it is a create or an update. Path: ${meta.nodePath}`);
-						}
-						if (value.$tempId) {
-							return 'create';
-						}
-						// todo: can move these to the first level traversal
-						if ((value.$id || value.$filter) && hasUpdatedDataFields) {
-							return 'update';
-						} // if there is an id or a filter, is an update. If it was a delete,it has been specified
-						if ((value.$id || value.$filter) && notRoot && !hasUpdatedDataFields && !hasUpdatedChildren) {
-							return 'link';
-						}
-						if (!value.$filter && !value.$id && !value.$tempId) {
-							return 'create';
-						} // if it is not a delete, or an update, is a create (for this V0, missing link, unlink)
-						if ((value.$id || value.$filter) && !hasUpdatedDataFields && hasUpdatedChildren) {
-							return 'match';
-						}
-						throw new Error('Wrong op');
-					};
-					// if (!value.$tempId && !value.$id) value.$tempId = currentTempId;
-					if (!value.$op) {
-						value.$op = getOp();
-					}
 					if (!parent) {
 						value.$parentKey = '';
 					} // root

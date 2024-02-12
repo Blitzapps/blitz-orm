@@ -766,7 +766,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
-				const { parent, key, value, meta } = context;
+				const { value, meta } = context;
 				if (isObject(value)) {
 					// @ts-expect-error todo
 					value[Symbol.for('path') as any] = meta.nodePath;
@@ -777,35 +777,12 @@ export const preQuery: PipelineOperation = async (req) => {
 					// @ts-expect-error todo
 					delete value.$parentIsCreate;
 				}
-
-				if (
-					key &&
-					parent &&
-					!key?.includes('$') &&
-					(Array.isArray(value) || isObject(value)) &&
-					!Array.isArray(parent)
-				) {
-					const values = Array.isArray(value) ? value : [value];
-					values.forEach((val) => {
-						if (isObject(val)) {
-							// @ts-expect-error todo
-							// eslint-disable-next-line no-param-reassign
-							val[Symbol.for('parent') as any] = {
-								// @ts-expect-error todo
-								...value[Symbol.for('parent') as any],
-								path: parent[Symbol.for('path') as any],
-							};
-							// eslint-disable-next-line no-param-reassign
-							// val.$_parentPath = parent[Symbol.for('path') as any];
-						}
-					});
-				}
 			}),
 		);
 	};
 
 	const final = fillPaths(processedReplaces);
-	// console.log('final', JSON.stringify(final, null, 2));
+	//console.log('final', JSON.stringify(final, null, 2));
 
 	req.filledBqlRequest = final;
 };

@@ -2,7 +2,13 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.8.8(2023-02-12)
+## 0.8.9(2023-02-12)
+
+- Feat: Transform pre-hooks
+- Temp breaking change: b3rn use case no longer working until it gets fixed in next version
+
+## 0.8.8(2023-02-11)
+
 - Feat: More $tempId working cases
 - Chore: Added getSymbols helper
 - Chore: Added some missing types
