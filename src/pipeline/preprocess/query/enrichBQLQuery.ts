@@ -234,6 +234,9 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 					if (value.$id) {
 						const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
 						const currentSchema = getCurrentSchema(schema, node);
+						if (!currentSchema?.name) {
+							throw new Error(`Schema not found for ${value.$thing}`);
+						}
 						value.$path = currentSchema.name;
 						if (!Array.isArray(value.$id)) {
 							value.$filterByUnique = true;
@@ -247,10 +250,12 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						} else {
 							throw new Error('Multiple ids not yet enabled / composite ids');
 						}
-					} else if ('$entity' in value || '$relation' in value) {
+					} else if ('$entity' in value || '$relation' in value || '$thing' in value) {
 						const currentSchema = getCurrentSchema(schema, value);
+						if (!currentSchema?.name) {
+							throw new Error(`Schema not found for ${value.$thing}`);
+						}
 						value.$path = currentSchema.name;
-						value.$as = currentSchema.name;
 					}
 					// 2. Converting $entity or $relation into $thingType and $thing
 					if (value.$entity) {
@@ -281,7 +286,10 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 										currentSchema?.idFields?.includes(field) || currentSchema?.idFields?.includes(field.$path),
 								).length > 0;
 							if (!idFieldIncluded) {
-								value.$fields = [...value.$fields, ...currentSchema.idFields];
+								value.$fields = [
+									...value.$fields,
+									...(Array.isArray(currentSchema.idFields) ? currentSchema.idFields : []),
+								];
 								value.$idNotIncluded = true;
 							}
 							const newFields = value.$fields

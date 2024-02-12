@@ -702,6 +702,101 @@ describe('Mutations: Errors', () => {
 		}
 	});
 
+	it('tid1[tempId, format]', async () => {
+		/// throw an error when a tempId does not have the _: format
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$entity: 'Account',
+					$tempId: 'wronglyFormattedTempId',
+					provider: 'gmail',
+				},
+				{ noMetadata: true },
+			);
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe('TempIds must start with "_:"');
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
+	it("or1[orphan, relation] Can't create an orphan relation, but can create if its linked elsewhere", async () => {
+		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				[
+					{
+						$relation: 'Kind',
+						id: 'or1-k-1',
+						name: 'randomName',
+					},
+					//adding another relation so the mergedEdges is not empty
+					{
+						$relation: 'User-Accounts',
+						id: 'or1-ua-1',
+						user: { id: 'or1-u-1' },
+					},
+				],
+
+				{ noMetadata: true },
+			);
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe(
+					'[Borm] Can\'t create a relation without any player. Node: {"name":"randomName","id":"or1-k-1"}',
+				);
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				$tempId: '_:or1-k-2',
+				id: 'or1-k-2',
+			},
+			{
+				$entity: 'Space',
+				$id: 'space-3',
+				kinds: [{ $op: 'link', $tempId: '_:or1-k-2' }],
+			},
+		]);
+
+		const res = await bormClient.query(
+			{
+				$relation: 'Kind',
+				$id: 'or1-k-2',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toStrictEqual({ id: 'or1-k-2', space: 'space-3' });
+
+		//CLEAN
+		await bormClient.mutate([
+			{
+				$relation: 'Kind',
+				$id: 'or1-k-2',
+				$op: 'delete',
+			},
+		]);
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

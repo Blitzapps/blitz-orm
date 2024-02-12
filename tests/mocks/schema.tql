@@ -152,7 +152,7 @@ Color sub entity,
   plays UserTagGroup:color;
 
 SpaceObj sub relation,
-    owns id,
+    owns id @key,
     relates space;
 
 SpaceDef sub SpaceObj,

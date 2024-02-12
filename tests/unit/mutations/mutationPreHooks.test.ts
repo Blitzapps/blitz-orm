@@ -2,6 +2,7 @@ import 'jest';
 
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
+import { deepSort } from '../../helpers/matchers';
 
 describe('Mutations: PreHooks', () => {
 	let dbName: string;
@@ -115,7 +116,7 @@ describe('Mutations: PreHooks', () => {
 
 	// node level
 
-	it('vfla1[validation, functions, local, attribute] Basic', async () => {
+	it('vfla1[validation, functions, local, thing] Basic', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -223,6 +224,52 @@ describe('Mutations: PreHooks', () => {
 				expect(true).toBe(false);
 			}
 		}
+	});
+
+	it('TODO:tn1[transform, node] Transform node depending on attribute', async () => {
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate(
+			[
+				{
+					$relation: 'Kind',
+					id: 'tn1-k1',
+					name: 'randomName',
+					space: 'space-3',
+				},
+				{
+					$relation: 'Kind',
+					id: 'tn1-k2',
+					name: 'secretName',
+					space: 'space-3',
+				},
+			],
+
+			{ noMetadata: true },
+		);
+
+		const res = await bormClient.query(
+			{
+				$relation: 'Kind',
+				$fields: ['id', 'name'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'kind-book',
+				name: 'book',
+			},
+			{
+				id: 'tn1-k1',
+				name: 'randomName',
+			},
+			{
+				id: 'tn1-k2',
+				name: 'not a secret',
+			},
+		]);
 	});
 
 	afterAll(async () => {

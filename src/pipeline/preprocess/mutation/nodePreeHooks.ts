@@ -44,6 +44,7 @@ export const nodePreHooks: PipelineOperation = async (req) => {
 	};
 
 	const withTransformedNodes = transformNodes(withDefaultNodeAttributes);
+	//console.log('withTransformedNodes', withTransformedNodes);
 
 	if (Array.isArray(withTransformedNodes)) {
 		req.filledBqlRequest = withTransformedNodes as FilledBQLMutationBlock[];

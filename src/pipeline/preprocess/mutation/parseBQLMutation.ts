@@ -7,6 +7,7 @@ import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
 import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
 import { computeField } from '../../../engine/compute';
+import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 
 export const parseBQLMutation: PipelineOperation = async (req) => {
 	const { filledBqlRequest, schema } = req;
@@ -149,7 +150,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 					...(value.$filter && { $filter: value.$filter }),
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp(),
-					$bzId: value.$bzId,
+					$bzId: value.$tempId ? value.$tempId : value.$bzId,
 					[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
 					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
 					[Symbol.for('path')]: value[Symbol.for('path') as any],
@@ -644,6 +645,28 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	/// case b: We have repeated the same relation id in two places and we are asigning it one of the roles more than one item
 
 	/// case c: Before merge, a role with cardinality ONE has an array => This one is already managed before, so n
+
+	/// Check that everyEdge has at least one player
+	//console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThings', mergedThings);
+
+	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
+	mergedThings.forEach((thing) => {
+		if ('$relation' in thing) {
+			//if it is a relation, we need at lease one edge defined for it
+			if (
+				mergedEdges.filter((edge) => edge.$bzId === thing.$bzId || (edge.$tempId && edge.$tempId === thing.$tempId))
+					.length === 0
+			) {
+				if (thing.$op === 'delete' || thing.$op === 'match' || thing.$op === 'update') {
+					return;
+				}
+				throw new Error(
+					`[Borm] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
+				);
+			}
+		}
+	});
 
 	req.bqlRequest = {
 		mutation: {

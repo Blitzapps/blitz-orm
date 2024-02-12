@@ -89,7 +89,7 @@ export const validationHooks: PipelineOperation = async (req) => {
 					const value = val as FilledBQLMutationBlock;
 
 					// @ts-expect-error - TODO
-					const hooks = val[Symbol.for('schema')].hooks as Hooks;
+					const hooks = val[Schema].hooks as Hooks;
 					if (hooks) {
 						const { pre } = hooks;
 						if (pre) {

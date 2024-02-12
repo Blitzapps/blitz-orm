@@ -227,10 +227,12 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 		if (isBatched) {
 			for (const query of enrichedBqlQuery) {
 				const { $path, $thing, $filter, $fields } = query;
+				if (!$path) {
+					throw new Error('Path is not defined');
+				}
 				const queryPath = query[QueryPath];
 				tqlStr += `match \n \t $${$path} isa ${$thing} `;
 				if ($filter) {
-					// @ts-expect-error todo
 					processFilters($filter, $path);
 				} else {
 					tqlStr += '; ';
@@ -267,11 +269,13 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 		} else {
 			for (const query of enrichedBqlQuery) {
 				const { $path, $thing, $filter, $fields } = query;
+				if (!$path || $path === 'undefined') {
+					throw new Error('Path is not defined');
+				}
 				const queryPath = query[QueryPath];
 
 				tqlStr += `match \n \t $${$path} isa ${$thing} `;
 				if ($filter) {
-					// @ts-expect-error todo
 					processFilters($filter, $path);
 				} else {
 					tqlStr += '; ';

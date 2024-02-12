@@ -17,6 +17,7 @@ import type {
 	RawBQLQuery,
 	DataField,
 	BormEntity,
+	FilledBQLMutationBlock,
 } from './types';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
@@ -74,7 +75,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 									let deepExtendedThing = value.extends;
 									let deepSchema = schema.entities[deepExtendedThing] || schema.relations[deepExtendedThing];
 									while (!deepSchema.dataFields?.find((deepDf: DataField) => deepDf.path === df.path)) {
-										deepExtendedThing = deepSchema.extends;
+										deepExtendedThing = 'extends' in deepSchema ? deepSchema.extends : undefined;
 										deepSchema = schema.entities[deepExtendedThing] || schema.relations[deepExtendedThing];
 									}
 									return {
@@ -491,4 +492,18 @@ export const getParentNode = (blocks: Record<any, any>, parent: any, meta: Trave
 		? pathParts.slice(0, -2).join('.') // Remove last two parts for an array parent
 		: pathParts.slice(0, -1).join('.'); // Remove only the last part for a non-array parent
 	return parent ? getNodeByPath(blocks, parentPath) : {}; //undefined parent for root
+};
+
+export const getSymbols = (oldBlock: Partial<FilledBQLMutationBlock>): Record<symbol, any> => {
+	return Reflect.ownKeys(oldBlock)
+		.filter((key): key is symbol => typeof key === 'symbol')
+		.reduce(
+			(symbols, symbolKey) => {
+				//@ts-expect-error - TODO
+				// eslint-disable-next-line no-param-reassign
+				symbols[symbolKey] = oldBlock[symbolKey];
+				return symbols;
+			},
+			{} as Record<symbol, any>,
+		);
 };

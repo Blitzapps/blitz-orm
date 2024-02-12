@@ -15,6 +15,7 @@ import type {
 } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
 import { computeField } from '../../../engine/compute';
+import { Schema } from '../../../types/symbols';
 
 // parseBQLQueryObjectives:
 // 1) Validate the query (getRawBQLQuery)
@@ -23,7 +24,7 @@ import { computeField } from '../../../engine/compute';
 const sanitizeTempId = (id: string): string => {
 	// Ensure the string starts with "_:"
 	if (!id.startsWith('_:')) {
-		throw new Error("ID must start with '_:'.");
+		throw new Error('TempIds must start with "_:"');
 	}
 
 	// Remove the prefix "_:" for further validation
@@ -133,7 +134,8 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 
 					value.$bzId = value.$tempId ?? `T_${uuidv4()}`;
 
-					value[Symbol.for('schema') as any] = currentSchema;
+					//@ts-expect-error - Not sure why do this happen
+					value[Schema] = currentSchema;
 					value[Symbol.for('dbId') as any] = currentSchema.defaultDBConnector.id;
 
 					const { usedLinkFields, usedRoleFields } = getCurrentFields(currentSchema, value);
