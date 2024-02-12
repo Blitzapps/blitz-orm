@@ -326,30 +326,53 @@ describe('Mutations: Init', () => {
 	});
 	it('b3rn[delete, relation, nested] Basic', async () => {
 		expect(bormClient).toBeDefined();
-		await bormClient.mutate({
-			$relation: 'User-Accounts',
-			id: 'r1',
-			user: {
-				'id': 'u2',
-				'email': 'hey',
-				'user-tags': [
-					{ id: 'ustag1', color: { id: 'pink' } },
-					{ id: 'ustag2', color: { id: 'gold' } },
-					{ id: 'ustag3', color: { id: 'silver' } },
-				],
+		//create nested object
+		await bormClient.mutate(
+			{
+				$relation: 'User-Accounts',
+				id: 'r1',
+				user: {
+					'id': 'u2',
+					'email': 'hey',
+					'user-tags': [
+						{ id: 'ustag1', color: { id: 'pink' } },
+						{ id: 'ustag2', color: { id: 'gold' } },
+						{ id: 'ustag3', color: { id: 'silver' } },
+					],
+				},
 			},
-		});
-		await bormClient.mutate({
-			$relation: 'User-Accounts',
-			$id: 'r1',
-			user: {
-				'$id': 'u2',
-				'user-tags': [
-					{ $id: 'ustag1', color: { $op: 'delete' } },
-					{ $id: 'ustag2', color: { $op: 'delete' } },
-				],
+			{ preQuery: false },
+		);
+		const res1 = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'u2',
+				$fields: [{ $path: 'user-tags', $fields: ['id', 'color'] }],
 			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res1, 'id')).toEqual({
+			'user-tags': [
+				{ id: 'ustag1', color: 'pink' },
+				{ id: 'ustag2', color: 'gold' },
+				{ id: 'ustag3', color: 'silver' },
+			],
 		});
+
+		await bormClient.mutate(
+			{
+				$relation: 'User-Accounts',
+				$id: 'r1',
+				user: {
+					'$op': 'update',
+					'user-tags': [
+						{ $id: 'ustag1', color: { $op: 'delete' } },
+						{ $id: 'ustag2', color: { $op: 'delete' } },
+					],
+				},
+			},
+			{ preQuery: false },
+		);
 
 		const res2 = await bormClient.query(
 			{
@@ -373,17 +396,20 @@ describe('Mutations: Init', () => {
 			},
 		});
 
-		await bormClient.mutate({
-			$relation: 'User-Accounts',
-			$id: 'r1',
-			user: {
-				'$id': 'u2',
-				'user-tags': [
-					{ $id: 'ustag3', $op: 'delete', color: { $op: 'delete' } },
-					{ $id: 'ustag2', $op: 'delete' },
-				],
+		await bormClient.mutate(
+			{
+				$relation: 'User-Accounts',
+				$id: 'r1',
+				user: {
+					'$op': 'update',
+					'user-tags': [
+						{ $id: 'ustag3', $op: 'delete', color: { $op: 'delete' } },
+						{ $id: 'ustag2', $op: 'delete' },
+					],
+				},
 			},
-		});
+			{ preQuery: false },
+		);
 
 		const res3 = await bormClient.query(
 			{

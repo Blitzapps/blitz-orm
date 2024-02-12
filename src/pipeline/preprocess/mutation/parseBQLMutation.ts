@@ -1,9 +1,9 @@
 import type { TraversalCallbackContext } from 'object-traversal';
-import { getNodeByPath, traverse } from 'object-traversal';
+import { traverse } from 'object-traversal';
 import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
+import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
 import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
 import { computeField } from '../../../engine/compute';
@@ -96,7 +96,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 			edges.push(edge);
 		};
 
-		const listOp = ({ value: val }: TraversalCallbackContext) => {
+		const listOp = ({ value: val, meta, parent }: TraversalCallbackContext) => {
 			if (!isObject(val)) {
 				return;
 			}
@@ -155,7 +155,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
 					[Symbol.for('path')]: value[Symbol.for('path') as any],
 
-					[Symbol.for('parent')]: value[Symbol.for('parent') as any],
 					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
 					[Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
 				};
@@ -188,9 +187,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
-					const parentMeta = value[Symbol.for('parent') as any];
-					const parentPath = parentMeta.path;
-					const parentNode = !parentPath ? blocks : getNodeByPath(blocks, parentPath);
+					const parentNode = getParentNode(blocks, parent, meta);
+
 					const parentId = parentNode.$bzId;
 					if (!parentId) {
 						throw new Error('No parent id found');
@@ -241,7 +239,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 						[Symbol.for('edgeType')]: 'linkField',
 						[Symbol.for('info')]: 'normal linkField',
 						[Symbol.for('path')]: value[Symbol.for('path') as any],
-						[Symbol.for('parent')]: value[Symbol.for('parent') as any],
 					};
 
 					// const testVal = {};
@@ -262,7 +259,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 							[Symbol.for('edgeType')]: 'linkField',
 							[Symbol.for('info')]: 'additional ownrelation unlink linkField',
 							[Symbol.for('path')]: value[Symbol.for('path') as any],
-							[Symbol.for('parent')]: value[Symbol.for('parent') as any],
 						});
 					}
 				}
@@ -372,7 +368,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
 										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-										[Symbol.for('parent')]: value[Symbol.for('parent') as any],
 										[Symbol.for('path')]: value[Symbol.for('path') as any],
 										[Symbol.for('info')]: 'updating roleFields',
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',

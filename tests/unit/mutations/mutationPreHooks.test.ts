@@ -226,7 +226,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('TODO:tn1[transform, node] Transform node depending on attribute', async () => {
+	it('tn1[transform, node] Transform node depending on attribute', async () => {
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
@@ -267,7 +267,7 @@ describe('Mutations: PreHooks', () => {
 			},
 			{
 				id: 'tn1-k2',
-				name: 'not a secret',
+				name: 'Not a secret',
 			},
 		]);
 	});

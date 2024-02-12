@@ -2,7 +2,7 @@
 import { produce } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
-import { isArray, listify } from 'radash';
+import { isArray, isObject, listify } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -506,4 +506,12 @@ export const getSymbols = (oldBlock: Partial<FilledBQLMutationBlock>): Record<sy
 			},
 			{} as Record<symbol, any>,
 		);
+};
+
+export const normalPropsCount = (obj: Record<string, any>) => {
+	return Object.keys(obj).filter((key) => !key.startsWith('$')).length;
+};
+
+export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
+	return isObject(block) && ('$entity' in block || '$relation' in block || '$thing' in block);
 };
