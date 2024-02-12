@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.8(2023-02-12)
+- Feat: More $tempId working cases
+- Chore: Added getSymbols helper
+- Chore: Added some missing types
+- Tests: New tests
+
 ## 0.8.7(2023-02-09)
 
 - Feat: virtual fields can't be written

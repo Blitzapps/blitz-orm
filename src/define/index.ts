@@ -44,7 +44,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 			const commonIdFields: string[] = [];
 
 			// If extended by parent, get rid of parent's declared attributes
-			if (entity.extends) {
+			if ('extends' in entity) {
 				const parentEntity = schema.entities[entity.extends];
 				if (parentEntity.dataFields) {
 					parentEntity.dataFields.forEach((dataField: any) => {
@@ -64,7 +64,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 				}
 			}
 
-			output += `${name} sub ${entity.extends ? entity.extends : 'entity'},\n`;
+			output += `${name} sub ${'extends' in entity ? entity.extends : 'entity'},\n`;
 			// Removes ids from data fields, so their attributes aren't repeated
 			const idsAsData: string[] = [];
 			// Adding id fields
@@ -114,7 +114,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 			const commonIdFields: string[] = [];
 
 			// If extended by parent, get rid of parent's declared attributes
-			if (relation.extends) {
+			if ('extends' in relation) {
 				const parentRelation = schema.relations[relation.extends];
 				if (parentRelation.dataFields) {
 					parentRelation.dataFields.forEach((dataField: any) => {
@@ -139,7 +139,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 				}
 			}
 
-			output += `${name} sub ${relation.extends ? relation.extends : 'relation'},\n`;
+			output += `${name} sub ${'extends' in relation ? relation.extends : 'relation'},\n`;
 			// Removes ids from data fields, so their attributes aren't repeated
 			const idsAsData: string[] = [];
 			// Adding id fields

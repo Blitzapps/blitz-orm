@@ -665,7 +665,7 @@ describe('Mutations: Init', () => {
 		]);
 	});
 
-	it('b6[create, withId] Create with id (override default)', async () => {
+	it('b6.1[create, withId] Create with id (override default)', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.mutate(
 			[
@@ -700,6 +700,35 @@ describe('Mutations: Init', () => {
 				$id: 'green',
 			},
 		]);
+	});
+
+	it('TODO:b6.2[create, default id] Create without id', async () => {
+		await bormClient.mutate([
+			{
+				$entity: 'Space',
+				$id: 'space-3',
+				kinds: [{ name: 'b6-k' }],
+			},
+		]);
+
+		const res = await bormClient.query(
+			{
+				$relation: 'Kind',
+				$id: 'b6-k',
+				$fields: ['id', 'name'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			name: 'b6-k',
+		});
+
+		/// CLEAN
+		await bormClient.mutate({
+			$relation: 'Kind',
+			$op: 'delete',
+		});
 	});
 
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {

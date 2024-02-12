@@ -3,7 +3,7 @@ import { isObject } from 'radash';
 import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 import type { FilledBQLMutationBlock } from '../../../types';
-import { getCurrentSchema, getCardinality } from '../../../helpers';
+import { getCurrentSchema, getCardinality, getSymbols } from '../../../helpers';
 import { queryPipeline, type PipelineOperation } from '../../pipeline';
 
 export const preQueryPathSeparator = '___';
@@ -11,52 +11,10 @@ type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
 
 const grandChildOfCreateSymbol = Symbol.for('grandChildOfCreate');
 
-const getSymbols = (oldBlock: FilledBQLMutationBlock) => {
-	// console.log({ oldBlock });
-	const symbols = {
-		...(oldBlock[Symbol.for('relation') as any] && {
-			[Symbol.for('relation') as any]: oldBlock[Symbol.for('relation') as any],
-		}),
-		...(oldBlock[Symbol.for('parent') as any] && {
-			[Symbol.for('parent') as any]: oldBlock[Symbol.for('parent') as any],
-		}),
-		...(oldBlock[Symbol.for('edgeType') as any] && {
-			[Symbol.for('edgeType') as any]: oldBlock[Symbol.for('edgeType') as any],
-		}),
-		...(oldBlock[Symbol.for('role') as any] && {
-			[Symbol.for('role') as any]: oldBlock[Symbol.for('role') as any],
-		}),
-		...(oldBlock[Symbol.for('oppositeRole') as any] && {
-			[Symbol.for('oppositeRole') as any]: oldBlock[Symbol.for('oppositeRole') as any],
-		}),
-		...(oldBlock[Symbol.for('relFieldSchema') as any] && {
-			[Symbol.for('relFieldSchema') as any]: oldBlock[Symbol.for('relFieldSchema') as any],
-		}),
-		...(oldBlock[Symbol.for('path') as any] && {
-			[Symbol.for('path') as any]: oldBlock[Symbol.for('path') as any],
-		}),
-		...(oldBlock[Symbol.for('isRoot') as any] && {
-			[Symbol.for('isRoot') as any]: oldBlock[Symbol.for('isRoot') as any],
-		}),
-		...(oldBlock[Symbol.for('depth') as any] && {
-			[Symbol.for('depth') as any]: oldBlock[Symbol.for('depth') as any],
-		}),
-		...(oldBlock[Symbol.for('schema') as any] && {
-			[Symbol.for('schema') as any]: oldBlock[Symbol.for('schema') as any],
-		}),
-		...(oldBlock[Symbol.for('dbId') as any] && {
-			[Symbol.for('dbId') as any]: oldBlock[Symbol.for('dbId') as any],
-		}),
-		...(oldBlock[Symbol.for('index') as any] && {
-			[Symbol.for('index') as any]: oldBlock[Symbol.for('index') as any],
-		}),
-	};
-
-	return symbols;
-};
-
 export const preQuery: PipelineOperation = async (req) => {
 	const { filledBqlRequest, config, schema } = req;
+
+	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
 
 	const getFieldKeys = (block: FilledBQLMutationBlock, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
@@ -397,9 +355,9 @@ export const preQuery: PipelineOperation = async (req) => {
 						const allKeys = Object.keys(obj);
 						const combinableKeys = allKeys.filter((key) => !key.startsWith('$'));
 
-						const allCombinations: FilledBQLMutationBlock[] = [];
+						const allCombinations: Partial<FilledBQLMutationBlock>[] = [];
 
-						const generateCombinations = (index: number, currentObj: FilledBQLMutationBlock) => {
+						const generateCombinations = (index: number, currentObj: Partial<FilledBQLMutationBlock>) => {
 							if (index === combinableKeys.length) {
 								// Construct the full object with the current id
 								const fullObj = { ...currentObj };
@@ -428,7 +386,7 @@ export const preQuery: PipelineOperation = async (req) => {
 
 						return allCombinations;
 					};
-					const allCombinations: FilledBQLMutationBlock[] = getAllKeyCombinations(opBlock).filter(
+					const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(opBlock).filter(
 						(opBlock) =>
 							!(opBlock.$op === 'update' && Object.keys(opBlock).filter((key) => !key.startsWith('$')).length === 0),
 					);
@@ -438,7 +396,7 @@ export const preQuery: PipelineOperation = async (req) => {
 					const cacheR = cache[emptyObjCKey];
 					let remaining: string[] = cacheR ? cache[emptyObjCKey].$ids : [];
 					const combinationsFromCache = allCombinations
-						.map((combination: FilledBQLMutationBlock, index: number) => {
+						.map((combination: Partial<FilledBQLMutationBlock>, index: number) => {
 							const _currentSchema = getCurrentSchema(schema, combination);
 							const combinableKeys = Object.keys(combination).filter(
 								(fieldKey) => !fieldKey.includes('$') && !_currentSchema.dataFields?.some((o) => o.path === fieldKey),
@@ -522,7 +480,7 @@ export const preQuery: PipelineOperation = async (req) => {
 								const newOp = {
 									...combination,
 									$id: remaining,
-									$bzId: `T_${uuidv4()}`,
+									$bzId: `T1_${uuidv4()}`,
 									...getSymbols(combination),
 								};
 								return newOp;
@@ -530,7 +488,7 @@ export const preQuery: PipelineOperation = async (req) => {
 								const newOp = {
 									...combination,
 									$id: filteredCommonIds,
-									$bzId: `T_${uuidv4()}`,
+									$bzId: `T2_${uuidv4()}`,
 									...getSymbols(combination),
 								};
 								return newOp;
@@ -559,11 +517,12 @@ export const preQuery: PipelineOperation = async (req) => {
 							});
 							return newOps;
 						} else {
-							return combinationsFromCache;
+							return combinationsFromCache.filter((combination) => combination !== undefined);
 						}
 					};
 					const returnFields = getReturnFields();
 
+					//@ts-expect-error - todo
 					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields].map(processOperationBlock);
 				});
 			} else {
@@ -572,9 +531,10 @@ export const preQuery: PipelineOperation = async (req) => {
 			return newOperationBlocks;
 		};
 		const processOperationBlock = (operationBlock: FilledBQLMutationBlock) => {
+			// console.log('operationBlock', operationBlock);
 			const newBlock: FilledBQLMutationBlock = {
 				...operationBlock,
-				$bzId: `T_${uuidv4()}`,
+				$bzId: operationBlock.$tempId ?? `T3_${uuidv4()}`,
 				...getSymbols(operationBlock),
 			};
 			const currentSchema = getCurrentSchema(schema, operationBlock);
@@ -671,7 +631,7 @@ export const preQuery: PipelineOperation = async (req) => {
 						...replaceBlock,
 						$op: 'unlink',
 						$id: unlinkIds,
-						$bzId: `T_${uuidv4()}`,
+						$bzId: `T4_${uuidv4()}`,
 						id: undefined,
 						...symbols,
 					});
@@ -682,7 +642,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							...replaceBlock,
 							$op: 'link',
 							$id: id,
-							$bzId: `T_${uuidv4()}`,
+							$bzId: `T5_${uuidv4()}`,
 							...symbols,
 						});
 					});
@@ -693,7 +653,7 @@ export const preQuery: PipelineOperation = async (req) => {
 							...replaceBlock,
 							$op: 'create',
 							id,
-							$bzId: `T_${uuidv4()}`,
+							$bzId: `T6_${uuidv4()}`,
 							...symbols,
 						});
 					});

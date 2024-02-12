@@ -15,11 +15,11 @@ export type BormEntity =
 			hooks?: Hooks;
 	  }
 	| {
-			extends?: string;
 			idFields: readonly string[];
 			defaultDBConnector: DBConnector; // at least one default connector
 			dataFields?: readonly DataField[];
 			linkFields?: readonly LinkField[];
+			hooks?: Hooks;
 	  };
 
 export type BormRelation = BormEntity & {

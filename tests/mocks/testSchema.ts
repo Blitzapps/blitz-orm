@@ -551,7 +551,7 @@ export const testSchema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ name }) =>
-									name === 'secretKind'
+									name === 'secretName'
 										? {
 												name: 'Not a secret',
 											}
