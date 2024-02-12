@@ -3,13 +3,14 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 
-import type { BormTrigger, FilledBQLMutationBlock, Hooks } from '../../../types';
+import type { FilledBQLMutationBlock } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
-import { capitalizeFirstLetter, getParentNode } from '../../../helpers';
 import { Schema } from '../../../types/symbols';
+import { getTriggeredActions } from './hooks/utils';
+import { getCurrentSchema, getParentNode } from '../../../helpers';
 
 export const validationHooks: PipelineOperation = async (req) => {
-	const { filledBqlRequest } = req;
+	const { filledBqlRequest, schema } = req;
 
 	if (!filledBqlRequest) {
 		throw new Error('Filled BQL request is missing');
@@ -23,7 +24,7 @@ export const validationHooks: PipelineOperation = async (req) => {
 				if (isObject(val) && ('$entity' in val || '$relation' in val)) {
 					const value = val as FilledBQLMutationBlock;
 
-					const { requiredFields, enumFields, fnValidatedFields } = value[Schema];
+					const { requiredFields, enumFields, fnValidatedFields } = getCurrentSchema(schema, value);
 
 					/// Required fields
 					if ('$op' in value && value.$op === 'create') {
@@ -88,54 +89,30 @@ export const validationHooks: PipelineOperation = async (req) => {
 					const currentThing = '$entity' in val ? val.$entity : val.$relation;
 					const value = val as FilledBQLMutationBlock;
 
-					// @ts-expect-error - TODO
-					const hooks = val[Schema].hooks as Hooks;
-					if (hooks) {
-						const { pre } = hooks;
-						if (pre) {
-							const currentEvent = `on${capitalizeFirstLetter(value.$op)}` as BormTrigger;
+					const parentNode = getParentNode(blocks, parent, meta);
 
-							const currentHooks = pre.filter((hook) => hook.triggers[currentEvent]);
+					const triggeredActions = getTriggeredActions(value, schema);
+					triggeredActions.forEach((action) => {
+						if (action.type === 'validate') {
+							if (action.severity !== 'error') {
+								return; // in borm we only use the errors
+							}
 
-							currentHooks.forEach((hook) => {
-								/// check if triggers are ... well... triggered!
-								const triggerFunction = currentEvent in hook.triggers ? hook.triggers[currentEvent] : undefined;
+							try {
+								//! Todo: Sandbox the function in computeFunction()
+								const validationResult = action.fn(value, parentNode);
 
-								if (triggerFunction === undefined) {
-									return;
+								if (validationResult === false) {
+									throw new Error(`${action.message}.`);
 								}
-								/// todo: we will need to safely run all these fns in a sandbox
-								if (triggerFunction()) {
-									/// triggered, time to check its actions (maybe also a condition before but lets skip that for now)
-
-									/// Same parentNode for all
-									const parentNode = getParentNode(blocks, parent, meta);
-
-									hook.actions.forEach((action) => {
-										if (action.type === 'validate') {
-											if (action.severity !== 'error') {
-												return; // in borm we only use the errors
-											}
-
-											try {
-												//!todo: use computeNode() in the future instead
-												const validationResult = action.fn(value, parentNode);
-
-												if (validationResult === false) {
-													throw new Error(`${action.message}.`);
-												}
-												if (validationResult !== true) {
-													throw new Error("Validation function's output is not a boolean value.");
-												}
-											} catch (error: any) {
-												throw new Error(`[Validations:thing:${currentThing}] ${error.message}`);
-											}
-										}
-									});
+								if (validationResult !== true) {
+									throw new Error("Validation function's output is not a boolean value.");
 								}
-							});
+							} catch (error: any) {
+								throw new Error(`[Validations:thing:${currentThing}] ${error.message}`);
+							}
 						}
-					}
+					});
 				}
 			}),
 		);

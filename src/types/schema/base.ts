@@ -44,14 +44,16 @@ export type PreHook = {
 
 //export type PostHook = any;
 
-export type Action =
-	| {
-			type: 'validate';
-			fn: (currentNode: FilledBQLMutationBlock, parentNode: FilledBQLMutationBlock) => boolean; //parentNode might be {} but thats fine
-			severity: 'error' | 'warning' | 'info';
-			message: string;
-	  }
-	| {
-			type: 'transform';
-			fn: (currentNode: FilledBQLMutationBlock, parentNode?: FilledBQLMutationBlock) => Partial<FilledBQLMutationBlock>;
-	  };
+export type Action = TransFormAction | ValidateAction;
+
+export type TransFormAction = {
+	type: 'transform';
+	fn: (currentNode: FilledBQLMutationBlock, parentNode?: FilledBQLMutationBlock) => Partial<FilledBQLMutationBlock>;
+};
+
+export type ValidateAction = {
+	type: 'validate';
+	fn: (currentNode: FilledBQLMutationBlock, parentNode: FilledBQLMutationBlock) => boolean;
+	severity: 'error' | 'warning' | 'info';
+	message: string;
+};

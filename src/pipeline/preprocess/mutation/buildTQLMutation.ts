@@ -1,6 +1,6 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
 
-import { getCurrentSchema } from '../../../helpers';
+import { getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { BQLMutationBlock } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
 
@@ -128,7 +128,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			return '';
 		};
 
-		if (node.$entity || node.$relation) {
+		if (isBQLBlock(node)) {
 			return {
 				op,
 				deletionMatch: getDeletionMatchInNodes(),
