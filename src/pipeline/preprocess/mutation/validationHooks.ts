@@ -5,7 +5,6 @@ import { isArray, isObject } from 'radash';
 
 import type { FilledBQLMutationBlock } from '../../../types';
 import type { PipelineOperation } from '../../pipeline';
-import { Schema } from '../../../types/symbols';
 import { getTriggeredActions } from './hooks/utils';
 import { getCurrentSchema, getParentNode } from '../../../helpers';
 
@@ -38,7 +37,8 @@ export const validationHooks: PipelineOperation = async (req) => {
 					if (('$op' in value && value.$op === 'update') || value.$op === 'create') {
 						enumFields.forEach((field) => {
 							if (field in value) {
-								const enumOptions = value[Schema]?.dataFields?.find((df) => df.path === field)?.validations?.enum;
+								const enumOptions = getCurrentSchema(schema, value)?.dataFields?.find((df) => df.path === field)
+									?.validations?.enum;
 								if (!enumOptions) {
 									throw new Error(`[Validations] Enum field "${field}" is missing enum options.`);
 								}
@@ -61,7 +61,8 @@ export const validationHooks: PipelineOperation = async (req) => {
 						fnValidatedFields.forEach((field: string) => {
 							if (field in value) {
 								try {
-									const fn = value[Schema]?.dataFields?.find((df) => df.path === field)?.validations?.fn;
+									const fn = getCurrentSchema(schema, value)?.dataFields?.find((df) => df.path === field)?.validations
+										?.fn;
 									if (!fn) {
 										throw new Error('Missing validation function.');
 									}

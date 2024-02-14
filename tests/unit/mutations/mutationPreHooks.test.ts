@@ -159,7 +159,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('vfla3[validation, functions, local, attribute] FUnction with custom error', async () => {
+	it('vfla3[validation, functions, local, attribute] Function with custom error', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {

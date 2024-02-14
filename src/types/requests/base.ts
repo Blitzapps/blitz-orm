@@ -1,3 +1,6 @@
+import type { RawBQLMutation } from './mutations';
+import type { RawBQLQuery } from './queries';
+
 export type ThingType = 'entity' | 'relation' | 'attribute';
 
 export type BormMetadata = {
@@ -23,5 +26,7 @@ type WithBormMetadataObject<T> = {
 export type BQLResponseSingle = Record<string, any>;
 
 export type BQLResponseMulti = BQLResponseSingle[];
+
+export type BQLRequest = RawBQLQuery | RawBQLMutation;
 
 export type BQLResponse = BQLResponseSingle | BQLResponseMulti;

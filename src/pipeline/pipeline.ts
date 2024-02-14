@@ -3,7 +3,7 @@ import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
 import { buildBQLTree, parseTQLMutation } from './postprocess';
 import { buildTQLMutation } from './preprocess/mutation/buildTQLMutation';
-import { enrichBQLMutation } from './preprocess/mutation/enrichBQLMutation';
+import { enrichBQLMutation } from './preprocess/mutation/bql/2.enrichment/enrichBQLMutation';
 import { parseBQLMutation } from './preprocess/mutation/parseBQLMutation';
 import { runTQLMutation } from './transaction/runTQLMutation';
 import type {
@@ -13,10 +13,12 @@ import type {
 	EnrichedBormSchema,
 	ParsedBQLMutation as BQLMutation,
 	ParsedBQLQuery as BQLQuery,
-	RawBQLQuery as RawBQLRequest,
 	TQLRequest,
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
+	BQLRequest,
+	RawBQLQuery,
+	RawBQLMutation,
 } from '../types';
 import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
@@ -28,16 +30,15 @@ import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';
 import { validationHooks } from './preprocess/mutation/validationHooks';
 import { postHooks } from './postprocess/query/postHooks';
 import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
-
+import { validateBQLMutationStep } from './preprocess/mutation/bql/1.validation/validateBQLMutation';
 export type RelationName = string;
 export type EntityName = string;
-
 export type ID = string;
 type EntityID = ID;
 export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;
 
 type Request = {
-	rawBqlRequest: RawBQLRequest;
+	rawBqlRequest: BQLRequest;
 	filledBqlRequest?: FilledBQLMutationBlock[] | FilledBQLMutationBlock; // todo: transform into filledBQLRequest with queries as well
 	bqlRequest?: { query?: BQLQuery; mutation?: BQLMutation };
 	schema: EnrichedBormSchema;
@@ -88,10 +89,12 @@ type Pipeline = PipelineOperation[];
 const Pipelines: Record<string, Pipeline> = {
 	query: [enrichBQLQuery, buildTQLQuery, runTQLQuery, parseTQLQuery, postHooks, cleanQueryRes],
 	mutation: [
+		validateBQLMutationStep,
 		enrichBQLMutation,
 		preQuery,
 		attributePreHooks,
 		nodePreHooks,
+		//enrichBQLMutation, //need to enrich transformation in the prehooks
 		validationHooks,
 		parseBQLMutation,
 		buildTQLMutation,
@@ -142,7 +145,7 @@ const runPipeline = async (
 };
 
 export const queryPipeline = (
-	bqlRequest: RawBQLRequest,
+	bqlRequest: RawBQLQuery,
 	bormConfig: BormConfig,
 	bormSchema: EnrichedBormSchema,
 	dbHandles: DBHandles,
@@ -159,7 +162,7 @@ export const queryPipeline = (
 	);
 
 export const mutationPipeline = (
-	bqlRequest: RawBQLRequest,
+	bqlRequest: BQLMutation,
 	bormConfig: BormConfig,
 	bormSchema: EnrichedBormSchema,
 	dbHandles: DBHandles,
@@ -174,3 +177,68 @@ export const mutationPipeline = (
 		},
 		{},
 	) as Promise<BQLResponseMulti>;
+
+/// From here, new version
+
+type BQLMutationResponse = {
+	dbRes: any;
+	bqlRes?: BQLResponse;
+};
+
+type NextMutationPipeline = {
+	req: RawBQLMutation | RawBQLMutation[];
+	res: BQLMutationResponse;
+	pipeline: MutationPipelineOperation[];
+};
+
+export type MutationPipelineOperation = (
+	req: RawBQLMutation | RawBQLMutation[],
+	res: BQLMutationResponse,
+) => Promise<void | NextMutationPipeline[]>;
+
+type MutationRequest = {
+	rawBqlRequest: RawBQLMutation | RawBQLMutation[];
+
+	filledBqlRequest?: FilledBQLMutationBlock[] | FilledBQLMutationBlock; // todo: transform into filledBQLRequest with queries as well
+
+	schema: EnrichedBormSchema;
+	config: BormConfig;
+	dbHandles: DBHandles;
+};
+
+export const runMutationPipeline = async (
+	req: RawBQLMutation | RawBQLMutation[],
+	res: BQLMutationResponse = {} as BQLMutationResponse,
+	// todo: ts antoine
+	// eslint-disable-next-line consistent-return
+): Promise<BQLResponse> => {
+	const pipeline = [
+		enrichBQLMutation,
+		attributePreHooks,
+		nodePreHooks,
+		validateBQLMutationStep,
+		enrichBQLMutation,
+		preQuery,
+		validationHooks,
+		parseBQLMutation,
+		buildTQLMutation,
+		runTQLMutation,
+		parseTQLMutation,
+		buildBQLTree,
+	];
+
+	// eslint-disable-next-line no-restricted-syntax
+	for (const operation of pipeline) {
+		// console.log('operation', operation.name);
+
+		const next = await operation(req, res);
+		if (next && Array.isArray(next)) {
+			// eslint-disable-next-line no-restricted-syntax
+			for (const nextPipeline of next) {
+				await runMutationPipeline(nextPipeline.pipeline, nextPipeline.req, nextPipeline.res, false);
+			}
+		}
+	}
+
+	return res.bqlRes as BQLResponse;
+};

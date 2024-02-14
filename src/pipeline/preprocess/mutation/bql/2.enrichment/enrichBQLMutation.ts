@@ -11,7 +11,7 @@ import {
 	isBQLBlock,
 	normalPropsCount,
 	oFind,
-} from '../../../helpers';
+} from '../../../../../helpers';
 import type {
 	BQLMutationBlock,
 	EnrichedBormRelation,
@@ -19,38 +19,17 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
-} from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
-import { computeField } from '../../../engine/compute';
-import { Schema } from '../../../types/symbols';
+} from '../../../../../types';
+import type { MutationPipelineOperation } from '../../../../pipeline';
+import { computeField } from '../../../../../engine/compute';
+import { Schema } from '../../../../../types/symbols';
+import { sanitizeTempId } from '../1.validation/utils';
 
 // parseBQLQueryObjectives:
 // 1) Validate the query (getRawBQLQuery)
 // 2) Prepare it in a universally way for any DB (output an enrichedBQLQuery)
 
-const sanitizeTempId = (id: string): string => {
-	// Ensure the string starts with "_:"
-	if (!id.startsWith('_:')) {
-		throw new Error('TempIds must start with "_:"');
-	}
-
-	// Remove the prefix "_:" for further validation
-	const sanitizedId = id.substring(2);
-
-	// Ensure there are no symbols (only alphanumeric characters, hyphens, and underscores)
-	if (!/^[a-zA-Z0-9-_]+$/.test(sanitizedId)) {
-		throw new Error('$tempId must contain only alphanumeric characters, hyphens, and underscores.');
-	}
-
-	// Ensure the ID is no longer than 36 characters (including the "_:" prefix)
-	if (id.length > 36) {
-		throw new Error('$tempId must not be longer than 36 characters.');
-	}
-
-	return sanitizedId;
-};
-
-export const enrichBQLMutation: PipelineOperation = async (req) => {
+export const enrichBQLMutation: MutationPipelineOperation = async (req) => {
 	const { rawBqlRequest, schema } = req;
 
 	/// STEP 1, remove undefined stuff, sanitize tempIds and split arrays of $ids
@@ -102,10 +81,7 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 			traverse(draft, ({ value: val, meta, key }: TraversalCallbackContext) => {
 				if (isObject(val)) {
 					// <---------------mutating all objects---------------->
-					// @ts-expect-error - TODO description
-					if (val.$arrayOp) {
-						throw new Error('Array op not supported yet');
-					}
+
 					/// ignore filters. In the future maybe transform the shortcuts of filters here (like $eq being a default)
 					if (key === '$filter' || meta.nodePath?.includes('.$filter.')) {
 						return;

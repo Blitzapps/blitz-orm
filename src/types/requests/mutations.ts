@@ -1,5 +1,3 @@
-import type { EnrichedBormEntity, EnrichedBormRelation } from '../schema/enriched';
-import type { Schema } from '../symbols';
 import type { Filter } from './filters';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
@@ -15,7 +13,6 @@ export type BQLMutationBlock = {
 } & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' }); // | { $attribute: string });
 export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'> & {
 	$entity?: string;
-	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
 };
 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (

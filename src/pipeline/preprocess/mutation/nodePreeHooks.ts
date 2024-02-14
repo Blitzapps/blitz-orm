@@ -55,6 +55,7 @@ export const nodePreHooks: PipelineOperation = async (req) => {
 					const sanitizedCurrentNode = structuredClone(currentNode);
 
 					triggeredActions.forEach((action) => {
+						//console.log('newValue', newValue);
 						//! Todo: Sandbox the function in computeFunction()
 						const newProps = action.fn(sanitizedCurrentNode, parentNode);
 						if (Object.keys(newProps).length === 0) {
