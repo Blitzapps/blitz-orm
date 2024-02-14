@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.10(2023-02-14)
+
+- Fix: Sanitized params in fn validations and transforms
+
 ## 0.8.9(2023-02-12)
 
 - Feat: Transform pre-hooks
