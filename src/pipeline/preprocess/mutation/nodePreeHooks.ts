@@ -49,14 +49,19 @@ export const nodePreHooks: PipelineOperation = async (req) => {
 					const triggeredActions = getTriggeredActions(val, schema).filter(
 						(action) => action.type === 'transform',
 					) as TransFormAction[];
-					const parentNode = getParentNode(draft, parent, meta);
+
+					const parentNode = structuredClone(getParentNode(blocks, parent, meta));
+					const currentNode = isDraft(val) ? current(val) : val;
+					const sanitizedCurrentNode = structuredClone(currentNode);
 
 					triggeredActions.forEach((action) => {
-						const currentNode = isDraft(val) ? current(val) : val;
-
 						//! Todo: Sandbox the function in computeFunction()
+						const newProps = action.fn(sanitizedCurrentNode, parentNode);
+						if (Object.keys(newProps).length === 0) {
+							return;
+						}
 						// eslint-disable-next-line no-param-reassign
-						parent[key] = { ...currentNode, ...action.fn(currentNode, parentNode) };
+						parent[key] = { ...currentNode, ...newProps };
 					});
 				}
 			}),
