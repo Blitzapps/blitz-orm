@@ -549,6 +549,18 @@ export const testSchema: BormSchema = {
 								message: 'Name must not exist, or be less than 15 characters',
 							},
 							{
+								type: 'validate',
+								fn: ({ fields }) => {
+									if (!fields) {
+										return true;
+									}
+									fields.some((f: any) => f.name === 'forbiddenName');
+									throw new Error("You can't have a field named 'forbiddenName'");
+								}, //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
+								severity: 'error',
+								message: 'Name must not exist, or be less than 15 characters',
+							},
+							{
 								type: 'transform',
 								fn: ({ name }) =>
 									name === 'secretName'
