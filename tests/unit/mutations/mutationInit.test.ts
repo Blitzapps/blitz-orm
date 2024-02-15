@@ -341,7 +341,7 @@ describe('Mutations: Init', () => {
 					],
 				},
 			},
-			{ preQuery: false },
+			// { preQuery: false },
 		);
 		const res1 = await bormClient.query(
 			{
@@ -371,7 +371,7 @@ describe('Mutations: Init', () => {
 					],
 				},
 			},
-			{ preQuery: false },
+			// { preQuery: false },
 		);
 
 		const res2 = await bormClient.query(
@@ -408,7 +408,7 @@ describe('Mutations: Init', () => {
 					],
 				},
 			},
-			{ preQuery: false },
+			// { preQuery: false },
 		);
 
 		const res3 = await bormClient.query(

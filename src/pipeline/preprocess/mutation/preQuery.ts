@@ -16,7 +16,7 @@ export const preQuery: PipelineOperation = async (req) => {
 
 	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
 
-	const getFieldKeys = (block: FilledBQLMutationBlock, noDataFields?: boolean) => {
+	const getFieldKeys = (block: Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$')) {
 				if (noDataFields) {
@@ -85,13 +85,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		}
 	});
 
-	if (
-		!ops.includes('delete') &&
-		!ops.includes('unlink') &&
-		!ops.includes('replace') &&
-		!ops.includes('update') &&
-		!ops.includes('link')
-	) {
+	if (ops.filter((op) => ['delete', 'unlink', 'replace', 'update', 'link'].includes(op)).length === 0) {
 		return;
 	}
 
@@ -112,22 +106,15 @@ export const preQuery: PipelineOperation = async (req) => {
 					const v = block[k];
 					if (Array.isArray(v) && v.length > 0) {
 						v.forEach((opBlock) => {
-							// const includedKeys = Object.keys(opBlock)
-							// 	.filter((o) => !o.startsWith('$'))
-							// 	.join('__');
-
 							$fields.push({
 								$path: k,
 								...processBlock(opBlock),
-								// $as: opBlock.$bzId,
-								// $as: `${k}_${includedKeys}`,
 							});
 						});
 					} else {
 						$fields.push({
 							$path: k,
 							...processBlock(v),
-							// $as: v.$bzId,
 						});
 					}
 				} else {
@@ -138,7 +125,6 @@ export const preQuery: PipelineOperation = async (req) => {
 			return {
 				...filteredBlock,
 				$fields,
-				// $as: block.$bzId,
 			};
 		};
 		return blocks.map((block) => processBlock(block, true));
@@ -305,12 +291,15 @@ export const preQuery: PipelineOperation = async (req) => {
 			operationBlocks: FilledBQLMutationBlock[],
 			parentOperationBlock?: FilledBQLMutationBlock,
 		) => {
+			// console.log('operationBlocks', JSON.stringify(operationBlocks, null, 2));
+			// splitting by ids, for operations with many ids, make individual operation block
 			let processIds: FilledBQLMutationBlock[] = [];
 			operationBlocks
-				.filter((operationBlock) => operationBlock)
+				.filter((operationBlock) => operationBlock !== undefined && operationBlock !== null)
 				.forEach((operationBlock) => {
 					// console.log('processBlocks.first for each', operationBlock);
-					const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
+					const fieldCount = getFieldKeys(operationBlock).length;
+
 					if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
 						const splitBlocksById = operationBlock.$id.map((id) => {
 							return { ...operationBlock, $id: id };
@@ -320,23 +309,29 @@ export const preQuery: PipelineOperation = async (req) => {
 						processIds.push({ ...operationBlock });
 					}
 				});
+
 			let newOperationBlocks: FilledBQLMutationBlock[] = [];
 			const fieldsWithoutMultiples: FilledBQLMutationBlock[] = [];
+			// console.log('processIds', JSON.stringify(processIds, null, 2));
 			const fieldsWithMultiples = processIds.filter((operationBlock) => {
 				const ops = ['delete', 'update', 'unlink'];
 				// Block must have one of the above operations
 				const isCorrectOp = ops.includes(operationBlock.$op || '');
-				const fieldCount = getFieldKeys(operationBlock, true).length;
+				const fieldCount = getFieldKeys(operationBlock).length;
+
+				if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
+					throw new Error('Array of ids not processed');
+				}
 				// Block must either not have $id, have an array of $ids, or have a filter
-				const isMultiple =
-					!operationBlock.$id || (Array.isArray(operationBlock.$id) && fieldCount > 0) || operationBlock.$filter;
+				const isMultiple = !operationBlock.$id || operationBlock.$filter;
 				if (isMultiple && isCorrectOp) {
 					return true;
 				} else {
 					fieldsWithoutMultiples.push({ ...operationBlock });
 				}
 			});
-			// console.log('fields', { fieldsWithMultiples, fieldsWithoutMultiples });
+
+			// console.log('fields', JSON.stringify({ fieldsWithMultiples, fieldsWithoutMultiples }, null, 2));
 			if (fieldsWithMultiples.length > 0) {
 				fieldsWithMultiples.forEach((opBlock) => {
 					const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
@@ -353,7 +348,7 @@ export const preQuery: PipelineOperation = async (req) => {
 						const dataFieldObj = getDataFields();
 						// Get all keys, but only use non-$ keys for generating combinations
 						const allKeys = Object.keys(obj);
-						const combinableKeys = allKeys.filter((key) => !key.startsWith('$'));
+						const combinableKeys = getFieldKeys(obj);
 
 						const allCombinations: Partial<FilledBQLMutationBlock>[] = [];
 
@@ -387,32 +382,42 @@ export const preQuery: PipelineOperation = async (req) => {
 						return allCombinations;
 					};
 					const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(opBlock).filter(
-						(opBlock) =>
-							!(opBlock.$op === 'update' && Object.keys(opBlock).filter((key) => !key.startsWith('$')).length === 0),
+						(opBlock) => !(opBlock.$op === 'update' && getFieldKeys(opBlock).length === 0),
 					);
-
+					// console.log('allCombinations', JSON.stringify(allCombinations,null,2))
 					let included: string[] = [];
 					const emptyObjCKey = objectPathToKey(opBlock.$objectPath);
 					const cacheR = cache[emptyObjCKey];
 					let remaining: string[] = cacheR ? cache[emptyObjCKey].$ids : [];
+
 					const combinationsFromCache = allCombinations
 						.map((combination: Partial<FilledBQLMutationBlock>, index: number) => {
-							const _currentSchema = getCurrentSchema(schema, combination);
-							const combinableKeys = Object.keys(combination).filter(
-								(fieldKey) => !fieldKey.includes('$') && !_currentSchema.dataFields?.some((o) => o.path === fieldKey),
-							);
+							// console.log('combination', JSON.stringify(combination,null,2))
+
+							const combinableKeys = getFieldKeys(combination, true);
+							// console.log('combinableKeys', JSON.stringify({ combination, combinableKeys }, null, 2));
 
 							const cachesFound = combinableKeys
 								.map((key: string) => {
+									// todo: figure out why things don't get added
+									const getMultiples = (things: FilledBQLMutationBlock[] | FilledBQLMutationBlock) => {
+										// console.log('things', JSON.stringify(things, null, 2));
+
+										if (Array.isArray(things)) {
+											if (things.length > 1) {
+												return things.filter(
+													(opBlock) => !opBlock.$id || Array.isArray(opBlock.$id) || opBlock.$filter,
+												);
+											} else {
+												return things;
+											}
+										} else {
+											return [things];
+										}
+									};
 									// todo: test with adjacent operations that aren't multiples and also many multiples
-									const multiples = Array.isArray(combination[key])
-										? combination[key].length > 1
-											? combination[key].filter(
-													(opBlock: FilledBQLMutationBlock) =>
-														!opBlock.$id || Array.isArray(opBlock.$id) || opBlock.$filter,
-												)
-											: combination[key]
-										: [combination[key]];
+									const multiples = getMultiples(combination[key]);
+									// console.log('multiples', JSON.stringify(multiples,null,2))
 									const processedMultiples = multiples.map((multiple: FilledBQLMutationBlock) => {
 										const cKey = objectPathToKey(multiple.$objectPath);
 										const getIdsToKey = (searchKey: string) => {
@@ -456,14 +461,17 @@ export const preQuery: PipelineOperation = async (req) => {
 										// Flatten the array to two dimensions
 
 										const flatArray = arr.reduce((acc, val) => acc.concat(val), []);
-
 										// Find common elements
-										return flatArray.reduce((acc, subArr) => {
-											if (!acc) {
-												return subArr;
-											}
-											return subArr.filter((item) => acc.includes(item));
-										});
+										if (flatArray.length > 0) {
+											return flatArray.reduce((acc, subArr) => {
+												if (!acc) {
+													return subArr;
+												}
+												return subArr.filter((item) => acc.includes(item));
+											});
+										} else {
+											return [];
+										}
 									} else {
 										return [];
 									}
@@ -521,14 +529,14 @@ export const preQuery: PipelineOperation = async (req) => {
 						}
 					};
 					const returnFields = getReturnFields();
-
+					// console.log("returnFields", JSON.stringify(returnFields,null,2))
 					//@ts-expect-error - todo
-					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields].map(processOperationBlock);
+					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields];
 				});
 			} else {
-				newOperationBlocks = processIds.map(processOperationBlock);
+				newOperationBlocks = processIds;
 			}
-			return newOperationBlocks;
+			return newOperationBlocks.map((block) => processOperationBlock(block));
 		};
 		const processOperationBlock = (operationBlock: FilledBQLMutationBlock) => {
 			// console.log('operationBlock', operationBlock);
@@ -537,17 +545,18 @@ export const preQuery: PipelineOperation = async (req) => {
 				$bzId: operationBlock.$tempId ?? `T3_${uuidv4()}`,
 				...getSymbols(operationBlock),
 			};
-			const currentSchema = getCurrentSchema(schema, operationBlock);
-			Object.keys(operationBlock)
-				// field must be a roleField or linkField
-				.filter((fieldKey) => !fieldKey.includes('$') && !currentSchema.dataFields?.some((o) => o.path === fieldKey))
-				.forEach((fieldKey) => {
-					const operationBlocks: FilledBQLMutationBlock[] = Array.isArray(operationBlock[fieldKey])
-						? operationBlock[fieldKey]
-						: [operationBlock[fieldKey]];
-					const newOperationBlocks = processBlocks(operationBlocks, operationBlock);
-					newBlock[fieldKey] = newOperationBlocks.length > 0 ? newOperationBlocks : undefined;
-				});
+			getFieldKeys(operationBlock, true).forEach((fieldKey) => {
+				const operationBlocks: FilledBQLMutationBlock[] = Array.isArray(operationBlock[fieldKey])
+					? operationBlock[fieldKey]
+					: [operationBlock[fieldKey]];
+				// if (operationBlock[fieldKey] !== null && !operationBlock[fieldKey]) {
+				// 	console.log('operationBlock', JSON.stringify({ operationBlock, fieldKey, operationBlocks }, null, 2));
+				// 	throw new Error(`No ${fieldKey} in this operation block`);
+				// }
+				const newOperationBlocks = processBlocks(operationBlocks, operationBlock);
+				// todo: check for cardinality one, if it is and there is one object, then return and object not an array
+				newBlock[fieldKey] = newOperationBlocks.length > 0 ? newOperationBlocks : undefined;
+			});
 			return newBlock;
 		};
 		let newBlocks: FilledBQLMutationBlock[] = [];
@@ -555,6 +564,7 @@ export const preQuery: PipelineOperation = async (req) => {
 		blocks.forEach((block) => {
 			newBlocks = [...newBlocks, ...processBlocks([block])];
 		});
+		// console.log("newBlocks", JSON.stringify(newBlocks,null,2))
 		const splitBlocks = newBlocks.map((block) => {
 			return processOperationBlock(block);
 		});
@@ -782,7 +792,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	};
 
 	const final = fillPaths(processedReplaces);
-	//console.log('final', JSON.stringify(final, null, 2));
+	// console.log('final', JSON.stringify(final, null, 2));
 
 	req.filledBqlRequest = final;
 };
