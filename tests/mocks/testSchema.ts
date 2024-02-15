@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
+import { isArray } from 'radash';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -660,6 +661,26 @@ export const testSchema: BormSchema = {
 			dataFields: [{ ...id }],
 			roles: {
 				hookTypeA: { cardinality: 'ONE' },
+			},
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+							onUpdate: () => true,
+						},
+						actions: [
+							{
+								type: 'validate',
+								fn: ({ hookTypeA }) => {
+									return !isArray(hookTypeA);
+								},
+								severity: 'error',
+								message: "Can't be an array",
+							},
+						],
+					},
+				],
 			},
 		},
 	},
