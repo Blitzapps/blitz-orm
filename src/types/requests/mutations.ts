@@ -18,6 +18,11 @@ export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | 
 	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
 };
 
+export type EnrichedBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'> & {
+	$thing: string;
+	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
+};
+
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (
 	| {
 			$id?: string;

@@ -18,7 +18,11 @@ import type {
 	DataField,
 	BormEntity,
 	FilledBQLMutationBlock,
+	DBHandles,
+	DBHandleKey,
 } from './types';
+import type { AdapterContext } from './adapters';
+import { adapterContext } from './adapters';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
 	shared ? attribute : `${thing}·${attribute}`;
@@ -39,7 +43,7 @@ export const oFilter = <K extends string | number | symbol, T extends Record<K, 
 	fn: (k: K, v: any) => boolean,
 ): Partial<T> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k as K, v))) as Partial<T>;
 
-export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
+export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): EnrichedBormSchema => {
 	const allLinkedFields: LinkedFieldWithThing[] = [];
 	// #region 1)
 
@@ -155,6 +159,14 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					throw new Error('Unsupported node attributes');
 				};
 				value.thingType = thingType();
+				/// We identify the database assigned to this thing
+				//@ts-expect-error - TODO
+				const thingDB: DBHandleKey = Object.keys(dbHandles).find((key) =>
+					// @ts-expect-error - TODO
+					dbHandles[key].get(value.defaultDBConnector.id),
+				);
+				value.db = thingDB as DBHandleKey; //todo
+				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
 
 				// init the arrays
 				value.computedFields = [];
@@ -169,6 +181,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 
 					Object.entries(val.roles).forEach(([roleKey, role]) => {
 						// eslint-disable-next-line no-param-reassign
+						role.fieldType = 'roleField';
 						role.playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
 						role.name = roleKey;
 					});
@@ -177,6 +190,8 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					const val = value as EnrichedBormRelation;
 
 					val.linkFields?.forEach((linkField) => {
+						linkField.fieldType = 'linkField';
+
 						if (linkField.target === 'relation') {
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
@@ -284,36 +299,11 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 	return enrichedSchema;
 };
 
-export const getCardinality = (
-	schema: BormSchema | EnrichedBormSchema,
-	node: Partial<BQLMutationBlock>,
-	field: string,
-): 'ONE' | 'MANY' | 'INTERVAL' | undefined => {
-	const currentSchema = getCurrentSchema(schema, node);
-	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
-	if (foundLinkField) {
-		return foundLinkField.cardinality;
-	}
-	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
-	if (foundDataField) {
-		return foundDataField.cardinality;
-	}
-	// @ts-expect-error todo
-	const foundRoleField = currentSchema.roles[field];
-	if (foundRoleField) {
-		return foundRoleField.cardinality;
-	}
-};
-
 export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 ): EnrichedBormEntity | EnrichedBormRelation => {
-	/// New $thing notation
 	if (node.$thing) {
-		if (!node.$thingType) {
-			throw new Error('Missing $thingType in node$: {JSON.stringify(node, null, 2)');
-		}
 		if (node.$thingType === 'entity') {
 			if (!(node.$thing in schema.entities)) {
 				throw new Error(`Missing entity '${node.$thing}' in the schema`);
@@ -324,6 +314,15 @@ export const getCurrentSchema = (
 			if (!(node.$thing in schema.relations)) {
 				throw new Error(`Missing relation '${node.$thing}' in the schema`);
 			}
+			return schema.relations[node.$thing] as EnrichedBormRelation;
+		}
+		if (node.$thing in schema.entities && node.$thing in schema.relations) {
+			throw new Error(`Ambiguous $thing ${node.$thing}`);
+		}
+		if (node.$thing in schema.entities) {
+			return schema.entities[node.$thing] as EnrichedBormEntity;
+		}
+		if (node.$thing in schema.relations) {
 			return schema.relations[node.$thing] as EnrichedBormRelation;
 		}
 		throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
@@ -343,6 +342,32 @@ export const getCurrentSchema = (
 		return schema.relations[node.$relation] as EnrichedBormRelation;
 	}
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
+};
+
+export const getFieldSchema = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>, field: string) => {
+	const currentSchema = getCurrentSchema(schema, node);
+	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
+	if (foundLinkField) {
+		return foundLinkField;
+	}
+	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
+	if (foundDataField) {
+		return foundDataField;
+	}
+	const foundRoleField = 'roles' in currentSchema ? currentSchema.roles?.[field] : undefined;
+	if (foundRoleField) {
+		return foundRoleField;
+	}
+	return undefined;
+};
+
+export const getCardinality = (
+	schema: EnrichedBormSchema,
+	node: Partial<BQLMutationBlock>,
+	field: string,
+): 'ONE' | 'MANY' | 'INTERVAL' | undefined => {
+	const currentFieldSchema = getFieldSchema(schema, node, field);
+	return currentFieldSchema?.cardinality;
 };
 
 type ReturnTypeWithoutNode = {

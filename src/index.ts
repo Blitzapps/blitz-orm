@@ -14,6 +14,9 @@ import type {
 	RawBQLMutation,
 	RawBQLQuery,
 } from './types';
+import { mutationActor } from './stateMachine/mutation/machine';
+import { createActor, waitFor } from 'xstate';
+import { enableMapSet } from 'immer';
 
 export * from './types';
 
@@ -21,6 +24,10 @@ type BormProps = {
 	schema: BormSchema;
 	config: BormConfig;
 };
+
+/// Global config
+// immer
+enableMapSet();
 
 class BormClient {
 	private schema: BormSchema;
@@ -36,8 +43,7 @@ class BormClient {
 	getDbHandles = () => this.dbHandles;
 
 	init = async () => {
-		const dbHandles = { typeDB: new Map() };
-		const enrichedSchema = enrichSchema(this.schema);
+		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
@@ -85,6 +91,8 @@ class BormClient {
 				}
 			}),
 		);
+		const enrichedSchema = enrichSchema(this.schema, dbHandles);
+
 		// @ts-expect-error - it becomes enrichedSchema here
 		this.schema = enrichedSchema;
 		this.dbHandles = dbHandles;
@@ -130,6 +138,23 @@ class BormClient {
 				...mutationConfig,
 			},
 		};
+
+		const runMutation = createActor(mutationActor, {
+			input: {
+				raw: mutation,
+				config: mConfig,
+				schema: this.schema,
+				handles: this.dbHandles,
+				deepLevel: 0, //this is the root
+			},
+		});
+
+		runMutation.start();
+
+		const [error, success] = await tryit(waitFor)(runMutation, (state) => state.status === 'done');
+		console.log('success', success);
+		console.log('error', error);
+
 		// @ts-expect-error - enforceConnection ensures dbHandles is defined
 		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
 	};
@@ -138,7 +163,8 @@ class BormClient {
 		if (!this.dbHandles) {
 			return;
 		}
-		this.dbHandles.typeDB.forEach(async ({ client, session }) => {
+		//todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for intance
+		this.dbHandles.typeDB?.forEach(async ({ client, session }) => {
 			if (session.isOpen()) {
 				await session.close();
 			}

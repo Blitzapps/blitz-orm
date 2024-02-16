@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.8.12(2023-02-16)
+
+- Feat: Non linear pipeline
+- Refacto: Preparing for multiple DBs
+
 ## 0.8.10(2023-02-14)
 
 - Fix: Sanitized params in fn validations and transforms
