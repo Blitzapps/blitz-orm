@@ -1,0 +1,108 @@
+insert
+
+$user-1 isa User, has id "user1", has name "Antoine", has User·email "antoine@test.com";
+$user-2 isa User, has id "user2", has name "Loic", has User·email "loic@test.com";
+$user-3 isa User, has id "user3", has name "Ann", has User·email "ann@test.com";
+$user-4 isa User, has id "user4", has name "Ben";
+$user-5 isa User, has id "user5", has name "Charlize", has User·email "charlize@test.com";
+
+$thing1 isa Thing, has id "thing1", has stuff "A";
+$thing2 isa Thing, has id "thing2", has stuff "B";
+$thing3 isa Thing, has id "thing3", has stuff "C";
+$thing4 isa Thing, has id "thing4", has stuff "D";
+$thing5 isa Thing, has id "thing5", has stuff "E";
+$subthing-one-1 isa SubthingOne, has id "subthingone1", has stuff "F";
+$subthing-one-2 isa SubthingOne, has id "subthingone2", has stuff "G";
+$subthing-one-3 isa SubthingOne, has id "subthingone3", has stuff "H";
+$subthing-two-1 isa SubthingTwo, has id "subthingtwo1", has stuff "I";
+$subthing-two-2 isa SubthingTwo, has id "subthingtwo2", has stuff "J";
+$subthing-two-3 isa SubthingTwo, has id "subthingtwo3", has stuff "K";
+
+
+
+
+# $thingrelation-1 (things: $thing1, things: $subthing-one-1, things: $subthing-two-1, things: $subthing-two-2) isa ThingRelation, has id 'tr1';
+
+$thingrelation-2 (things: $thing5, root: $thing2, extra: $thing1) isa ThingRelation, has id 'tr2';
+$thingrelation-3 (things: $thing5, things: $thing4, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr3';
+$thingrelation-4 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr4';
+$thingrelation-5 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr5';
+$thingrelation-6 (things: $thing5, root: $thing2, extra: $thing1) isa ThingRelation, has id 'tr6';
+$thingrelation-7 (things: $thing5, root: $thing3, extra: $thing1) isa ThingRelation, has id 'tr7';
+$thingrelation-8 (things: $thing5, root: $thing4, extra: $thing1) isa ThingRelation, has id 'tr8';
+$thingrelation-9 (things: $thing5, root: $thing4, extra: $thing1) isa ThingRelation, has id 'tr9';
+$thingrelation-10 (extra: $thing1) isa ThingRelation, has id 'tr10';
+$thingrelation-11 (root: $thing4, extra: $thing5) isa ThingRelation, has id 'tr11';
+
+
+
+
+
+
+
+
+$superuser-1 isa SuperUser, has id "superuser1", has name "Beatrix Kiddo", has User·email "black.mamba@deadly-viper.com", has SuperUser·power "katana";
+
+$god-1 isa God, has id "god1", has name "Richard David James", has User·email "afx@rephlex.com", has SuperUser·power "mind control", has God·isEvil true;
+
+$post-1 isa Post, has id "post1", has Post·mentions "@Antoine";
+$post-2 isa Post, has id "post2", has Post·mentions "@Antoine", has Post·mentions "@Loic";
+$post-3 isa Post, has id "post3", has Post·mentions "@Loic";
+$post-4 isa Post, has id "post4", has Post·mentions "@Ann";
+
+
+$account-1-1 isa Account, has id "account1-1", has Account·provider "google";
+$account-1-2 isa Account, has id "account1-2", has Account·provider "facebook";
+$account-1-3 isa Account, has id "account1-3", has Account·provider "github";
+$account-2-1 isa Account, has id "account2-1", has Account·provider "google";
+$account-3-1 isa Account, has id "account3-1", has Account·provider "facebook";
+
+
+$user-account-1-1 (user: $user-1, accounts: $account-1-1) isa User-Accounts, has id 'ua1-1';
+$user-account-1-2 (user: $user-1, accounts: $account-1-2) isa User-Accounts, has id 'ua1-2';
+$user-account-1-3 (user: $user-1, accounts: $account-1-3) isa User-Accounts, has id 'ua1-3';
+$user-account-2-1 (user: $user-2, accounts: $account-2-1) isa User-Accounts, has id 'ua2-1';
+$user-account-3-1 (user: $user-3, accounts: $account-3-1) isa User-Accounts, has id 'ua3-1';
+
+
+$space-1 isa Space, has id "space-1", has name "Production";
+$space-2 isa Space, has id "space-2", has name "Dev";
+$space-3 isa Space, has id "space-3", has name "Not-owned";
+
+
+(users: $user-1, spaces: $space-1) isa Space-User, has id 'u1-s1';
+(users: $user-1, spaces: $space-2) isa Space-User, has id 'u1-s2';
+(users: $user-5, spaces: $space-1) isa Space-User, has id 'u5-s1';
+(users: $user-2, spaces: $space-2) isa Space-User, has id 'u2-s2';
+(users: $user-3, spaces: $space-2, power: $power1) isa Space-User, has id 'u3-s2';
+
+
+$power1 isa Power, has id 'power1', has description "useless power";
+
+$tag-1 (users: $user-1) isa UserTag, has id 'tag-1';
+$tag-2 (users: $user-1, users: $user-3) isa UserTag, has id 'tag-2';
+$tag-3 (users: $user-2) isa UserTag, has id 'tag-3';
+$tag-4 (users: $user-2) isa UserTag, has id 'tag-4';
+
+
+$group-1 (tags: $tag-1, tags: $tag-2, color: $yellow) isa UserTagGroup, has id 'utg-1';
+$group-2 (tags: $tag-3, color:$blue, space: $space-3) isa UserTagGroup, has id 'utg-2';
+
+#$red isa Color, has Color·name 'red';
+#$blue isa Color, has Color·name 'blue';
+$yellow isa Color, has id 'yellow';
+$blue isa Color, has id 'blue';
+
+$kind-book (space: $space-2) isa Kind, has id 'kind-book', has Kind·name 'book';
+
+$self1 (space:$space-2) isa Self, has id 'self1';
+$self2 (space:$space-2, owner: $self1) isa Self, has id 'self2';
+$self3 (space:$space-2, owner: $self2) isa Self, has id 'self3';
+$self4 (space:$space-2, owner: $self2) isa Self, has id 'self4';
+
+$hook1 isa Hook, has id 'hook1', has Hook·requiredOption 'a';
+$hook2 isa Hook, has id 'hook2', has Hook·requiredOption 'b';
+$hook3 isa Hook, has id 'hook3', has Hook·requiredOption 'c';
+$hook4 isa Hook, has id 'hook4', has Hook·requiredOption 'a';
+$hook5 isa Hook, has id 'hook5', has Hook·requiredOption 'b';
+

@@ -1,5 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-driver';
+import { Surreal } from 'surrealdb.node'
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -46,6 +47,19 @@ class BormClient {
 		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
+        if(dbc.provider === "surrealDB") {
+          const db = new Surreal()
+          const [clientErr, client] = await tryit(db.connect)(dbc.url);
+          if (clientErr) {
+						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
+							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
+							clientErr.message ?? "Can't create SurrealDB Client"
+						}`;
+						throw new Error(message);
+					}
+
+          dbHandles.surrealDB.set(dbc.id, { client });
+        }
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
