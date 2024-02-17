@@ -8,8 +8,9 @@ export const testConfig: BormConfig = {
 		{
 			id: 'default',
 			provider: 'surrealDB',
+      namespace: 'test',
 			dbName: 'test',
-			url: 'localhost:8000',
+			url: 'ws://127.0.0.1:8000',
       username: 'root',
       password: 'root'
 		},

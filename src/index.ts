@@ -49,16 +49,17 @@ class BormClient {
 			this.config.dbConnectors.map(async (dbc) => {
         if(dbc.provider === "surrealDB") {
           const db = new Surreal()
-          const [clientErr, client] = await tryit(db.connect)(dbc.url);
-          if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
-							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
-							clientErr.message ?? "Can't create SurrealDB Client"
-						}`;
-						throw new Error(message);
-					}
+          
+          await db.connect(dbc.url)
 
-          dbHandles.surrealDB.set(dbc.id, { client });
+          await db.signin({
+            namespace: dbc.namespace,
+            database: dbc.dbName,
+            username: dbc.username,
+            password: dbc.password,
+          })
+
+          dbHandles.surrealDB.set(dbc.id, { client: db });
         }
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);

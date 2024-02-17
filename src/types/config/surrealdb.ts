@@ -1,10 +1,12 @@
 import { TypeDBHandles } from "./typedb";
+import { Surreal } from 'surrealdb.node'
 
 export interface SurrealDBProviderObject {
 	provider: 'surrealDB';
 	url: string;
+  namespace: string;
   username: string;
   password: string;
 }
 
-export type SurrealDBHandles = TypeDBHandles
+export type SurrealDBHandles = Map<string, { client: Surreal }>;

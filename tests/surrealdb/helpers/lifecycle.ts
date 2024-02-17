@@ -39,41 +39,26 @@ export const init = async () => {
     throw new Error("incorrect provder")
   }
 
-  await db.connect('ws://127.0.0.1:8000')
+  await db.connect(connector.url)
   await db.signin({
-    namespace: 'test',
-    database: 'test',
+    namespace: connector.namespace,
+    database: connector.dbName,
     username: connector.username,
     password: connector.password,
   })
 
 	try {
-		// const schemaSession = await client.session(dbName, SessionType.SCHEMA);
-		// const dataSession = await client.session(dbName, SessionType.DATA);
-		// const schemaTransaction = await schemaSession.transaction(TransactionType.WRITE);
+    await db.query(surqlSchema)
 
-		// await schemaTransaction.query.define(tqlSchema);
-		// await schemaTransaction.commit();
-		// await schemaTransaction.close();
-		// await schemaSession.close();
-		// const dataTransaction = await dataSession.transaction(TransactionType.WRITE);
-		// await dataTransaction.query.insert(tqlData);
-		// await dataTransaction.commit();
-		// await dataTransaction.close();
-		// await dataSession.close();
-		//await client.close();
-
-		// const bormClient = new BormClient({
-		// 	schema: testSchema,
-		// 	config: { ...testConfig, dbConnectors: [{ ...connector, dbName }] },
-		// });
-		// await bormClient.init();
-		// return { bormClient, dbName }; //todo make this cleaner, probably as private function of bormCLient.databases for instance
-
-    return { bormClient: true, dbName }
+		const bormClient = new BormClient({
+			schema: testSchema,
+			config: { ...testConfig, dbConnectors: [{ ...connector, dbName }] },
+		});
+		await bormClient.init();
+		return { bormClient, dbName }; //todo make this cleaner, probably as private function of bormCLient.databases for instance
 	} catch (e: any) {
+    console.error('failed to init', e)
 		throw new Error(e.message);
-		// return { bormClient: undefined, dbName };
 	}
 };
 
@@ -84,10 +69,13 @@ export const cleanup = async (client: BormClient, dbName: string) => {
 
 	const dbHandles = client.getDbHandles();
 	const surrealDB = dbHandles?.surrealDB;
-	// surrealDB?.forEach(async (db) => {
-	// 	const database = await typeDB.client.databases.get(dbName);
-	// 	await database.delete();
-	// });
+	surrealDB?.forEach(async (db) => {
+    // @ts-expect-error the type is still in PR, https://github.com/surrealdb/surrealdb.node/pull/34
+    await db.close();
+    await db.client.query(`REMOVE DATABASE $db;`, {
+      db: dbName
+    })
+	});
 
 	await client.close();
 };

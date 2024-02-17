@@ -14,7 +14,7 @@ describe('Mutation init', () => {
 			throw new Error('Failed to initialize BormClient');
 		}
 		dbName = configDbName;
-    // @ts-expect-error fix later
+
 		bormClient = configBormClient;
 	}, 25000);
 
@@ -23,11 +23,10 @@ describe('Mutation init', () => {
     todo: Now we can't use the name of the relation if the relation has been extended. 
     */
 		expect(bormClient).toBeDefined();
-
 		// await bormClient.define();
 	});
 
 	afterAll(async () => {
-		// await cleanup(bormClient, dbName);
+		await cleanup(bormClient, dbName);
 	});
 });
