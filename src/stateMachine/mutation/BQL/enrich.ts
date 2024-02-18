@@ -5,7 +5,7 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { doAction } from './utils';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
-import { ParentFieldSchema } from '../../../types/symbols';
+import { ParentBzId, ParentFieldSchema } from '../../../types/symbols';
 import type { BQLMutationBlock, BormOperation, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -77,11 +77,13 @@ export const enrichBQLMutation = async (
 
 				const node = value as BQLMutationBlock;
 
+				const parentBzId = node.$tempId ? node.$tempId : `R_${uuidv4()}`;
+
 				const withMetadata = {
 					...(node.$thing ? {} : { $thing: node.$entity || node.$relation }),
 					...(node.$thingType ? {} : { $thingType: node.$entity ? 'entity' : 'relation' }),
 					...(node.$op ? {} : { $op: get$Op({} as BQLMutationBlock, node, schema) }),
-					...(node.$bzId ? {} : { $bzId: node.$tempId ? node.$tempId : `R_${uuidv4()}` }),
+					...(node.$bzId ? {} : { $bzId: parentBzId }),
 				};
 				//@ts-expect-error - TODO
 				parent[key] = { ...withMetadata, ...node };
@@ -125,22 +127,6 @@ export const enrichBQLMutation = async (
 							///symbols
 							subNode[ParentFieldSchema] = fieldSchema;
 
-							/*//#region $root
-							if (field === '$root') {
-								console.log('HEHE', isDraft(subNode) ? current(subNode) : subNode);
-								const withMetadata = {
-									...(subNode.$thing ? {} : { $thing: subNode.$entity || subNode.$relation }),
-									...(subNode.$thingType ? {} : { $thingType: subNode.$entity ? 'entity' : 'relation' }),
-									...(subNode.$op ? {} : { $op: get$Op(node, subNode, schema) }),
-								};
-								if (isArrayField) {
-									node[field][i] = { ...withMetadata, ...subNode };
-								} else {
-									node[field] = { ...withMetadata, ...subNode };
-								}
-							}
-							//#endregion $root*/
-
 							//#region nested nodes
 							const getOppositePlayers = () => {
 								if (fieldSchema.fieldType === 'linkField') {
@@ -161,6 +147,7 @@ export const enrichBQLMutation = async (
 								subNode.$thingType = player.thingType;
 								subNode.$op = get$Op(node, subNode, schema);
 								subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
+								subNode[ParentBzId] = parentBzId ? parentBzId : node.$bzId;
 							}
 							//#endregion nested nodes
 						});

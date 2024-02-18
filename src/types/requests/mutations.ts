@@ -6,7 +6,7 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 } from '../schema/enriched';
-import type { EdgeType, ParentFieldSchema, Schema } from '../symbols';
+import type { EdgeType, ParentBzId, ParentFieldSchema, Schema } from '../symbols';
 import type { Filter } from './filters';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
@@ -36,8 +36,8 @@ export type EnrichedBQLMutationBlock = {
 	$op: BormOperation;
 	$thing: string;
 	$thingType: 'entity' | 'relation';
-	[ParentFieldSchema]: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
-	[EdgeType]: 'linkField' | 'roleField' | 'root'; //todo: remove, can be get from parentFieldSchema
+	[ParentFieldSchema]?: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
+	[ParentBzId]?: string;
 };
 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (

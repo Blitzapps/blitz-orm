@@ -3,10 +3,11 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
+import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
+import { ParentBzId } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -97,7 +98,7 @@ export const parseBQLMutation = async (
 			edges.push(edge);
 		};
 
-		const listOp = ({ value: val, meta, parent }: TraversalCallbackContext) => {
+		const listOp = ({ value: val }: TraversalCallbackContext) => {
 			if (!isObject(val)) {
 				return;
 			}
@@ -149,14 +150,11 @@ export const parseBQLMutation = async (
 					...(value.$id && { $id: value.$id }),
 					...(value.$tempId && { $tempId: value.$tempId }),
 					...(value.$filter && { $filter: value.$filter }),
+					...(value.$thing && { $thing: value.$thing }),
+					...(value.$thingType && { $thingType: value.$thingType }),
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp(),
 					$bzId: value.$tempId ? value.$tempId : value.$bzId,
-					[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
-					[Symbol.for('path')]: value[Symbol.for('path') as any],
-
-					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -187,9 +185,7 @@ export const parseBQLMutation = async (
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
-					const parentNode = getParentNode(blocks, parent, meta);
-
-					const parentId = parentNode.$bzId;
+					const parentId = value[ParentBzId];
 					if (!parentId) {
 						throw new Error('No parent id found');
 					}
@@ -234,11 +230,7 @@ export const parseBQLMutation = async (
 						// roles
 						...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
 						[value[Symbol.for('oppositeRole') as any]]: parentId,
-
-						[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 						[Symbol.for('edgeType')]: 'linkField',
-						[Symbol.for('info')]: 'normal linkField',
-						[Symbol.for('path')]: value[Symbol.for('path') as any],
 					};
 
 					// const testVal = {};
@@ -257,10 +249,7 @@ export const parseBQLMutation = async (
 							//@ts-expect-error - TODO
 							$op: 'match',
 							[value[Symbol.for('oppositeRole') as any]]: parentId,
-							[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 							[Symbol.for('edgeType')]: 'linkField',
-							[Symbol.for('info')]: 'additional ownrelation unlink linkField',
-							[Symbol.for('path')]: value[Symbol.for('path') as any],
 						});
 					}
 				}
@@ -323,9 +312,6 @@ export const parseBQLMutation = async (
 								$op: getEdgeOp(),
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
-								[Symbol.for('path')]: value[Symbol.for('path') as any],
-								[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-								[Symbol.for('info')]: 'coming from created or deleted relation',
 								[Symbol.for('edgeType')]: 'roleField on C/D',
 							};
 
@@ -373,9 +359,6 @@ export const parseBQLMutation = async (
 										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
-										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-										[Symbol.for('path')]: value[Symbol.for('path') as any],
-										[Symbol.for('info')]: 'updating roleFields',
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',
 									};
 
@@ -526,6 +509,8 @@ export const parseBQLMutation = async (
 		}
 	});
 
+	console.log('mergedThings', mergedThings);
+	console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

@@ -1,11 +1,20 @@
 import { setup, fromPromise, assign } from 'xstate';
-import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../types';
+import type {
+	BormConfig,
+	BQLMutationBlock,
+	DBHandles,
+	EnrichedBormSchema,
+	EnrichedBQLMutationBlock,
+} from '../../types';
 import { splitIdsBQLMutation } from './BQL/split';
 import { enrichBQLMutation } from './BQL/enrich';
 import { getCurrentSchema } from '../../helpers';
 import { isArray } from 'radash';
 import { parseBQLMutation } from './BQL/parse';
 import { addIntermediaryRelationsBQLMutation } from './BQL/intermediary';
+import { buildTQLMutation } from './TQL/build';
+import type { TqlMutation } from './TQL/run';
+import { runTQLMutation } from './TQL/run';
 
 type rawMutationContext = {
 	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
@@ -13,8 +22,14 @@ type rawMutationContext = {
 	schema: EnrichedBormSchema;
 };
 
-type mutationContext = {
+type MutationContext = {
 	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
+	schema: EnrichedBormSchema;
+};
+
+type BuildContext = {
+	things: EnrichedBQLMutationBlock[];
+	edges: EnrichedBQLMutationBlock[];
 	schema: EnrichedBormSchema;
 };
 
@@ -39,44 +54,31 @@ export const mutationActor = setup({
 		requiresParseBQL: ({ context }) => {
 			//this would be more complicated than this, like count the entities requiring this, not just the root
 			const root = context.bql.current;
-			console.log('root', root.spaces);
+			console.log('root', root);
 			const rootBase = isArray(root) ? root[0] : root;
-			return getCurrentSchema(context.schema, rootBase).dbContext.mutation.requiresParseBQL;
+			const { requiresParseBQL } = getCurrentSchema(context.schema, rootBase).dbContext.mutation;
+			console.log('requiresParseBql', requiresParseBQL);
+			return requiresParseBQL;
 		},
 	},
 	actors: {
-		enrich: fromPromise(async ({ input }: { input: rawMutationContext }) => {
+		enrich: fromPromise(({ input }: { input: rawMutationContext }) => {
 			const result = Object.keys(input.current).length
 				? enrichBQLMutation(input.current, input.schema)
 				: enrichBQLMutation(input.raw, input.schema);
 			return Promise.resolve(result);
 		}),
-		split_ids: fromPromise(async ({ input }: { input: mutationContext }) => {
+		split_ids: fromPromise(({ input }: { input: MutationContext }) => {
 			const result = splitIdsBQLMutation(input.current, input.schema);
 			return Promise.resolve(result);
 		}),
-		addIntermediaries: fromPromise(
-			({
-				input,
-			}: {
-				input: { current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]; schema: EnrichedBormSchema };
-			}) => {
-				console.log('before intermediaries', input.current);
-				const result = addIntermediaryRelationsBQLMutation(input.current, input.schema);
-				console.log('after intermediaries', result);
-				console.log('After intermediaries', JSON.stringify(result, null, 2));
-				return Promise.resolve(result);
-			},
-		),
-		parseBQL: fromPromise(
-			({
-				input,
-			}: {
-				input: { current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]; schema: EnrichedBormSchema };
-			}) => {
-				return Promise.resolve(parseBQLMutation(input.current, input.schema));
-			},
-		),
+		addIntermediaries: fromPromise(({ input }: { input: MutationContext }) => {
+			const result = addIntermediaryRelationsBQLMutation(input.current, input.schema);
+			return Promise.resolve(result);
+		}),
+		parseBQL: fromPromise(({ input }: { input: MutationContext }) => {
+			return Promise.resolve(parseBQLMutation(input.current, input.schema));
+		}),
 		preQuery: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			return input as EnrichedBQLMutationBlock;
@@ -85,10 +87,21 @@ export const mutationActor = setup({
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			return input as EnrichedBQLMutationBlock;
 		}),
-		runTypeDBMutation: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as EnrichedBQLMutationBlock;
+		/// TYPE_DB
+		openTQLTransaction: fromPromise(() => {
+			return new Promise((resolve) => setTimeout(resolve, 10));
 		}),
+		buildTQLMutation: fromPromise(({ input }: { input: BuildContext }) => {
+			const result = buildTQLMutation(input.things, input.edges, input.schema);
+			return result;
+		}),
+		runTQLMutation: fromPromise(
+			({ input }: { input: { tqlMutation: TqlMutation; dbHandles: DBHandles; config: BormConfig } }) => {
+				const result = runTQLMutation(input.tqlMutation, input.dbHandles, input.config);
+				return result;
+			},
+		),
+		/// SURREAL DB
 		runSurrealDBMutation: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			return input as EnrichedBQLMutationBlock;
@@ -101,6 +114,9 @@ export const mutationActor = setup({
 			current: {} as EnrichedBQLMutationBlock,
 			things: [],
 			edges: [],
+		},
+		typeDb: {
+			tqlMutation: {} as TqlMutation,
 		},
 		schema: input.schema,
 		config: input.config,
@@ -145,6 +161,9 @@ export const mutationActor = setup({
 					},
 				],
 				onError: {
+					actions: ({ event }: { event: any }) => {
+						throw new Error(event.error);
+					},
 					target: 'ERROR',
 				},
 			},
@@ -165,6 +184,9 @@ export const mutationActor = setup({
 					},
 				],
 				onError: {
+					actions: ({ event }: { event: any }) => {
+						throw new Error(event.error);
+					},
 					target: 'ERROR',
 				},
 			},
@@ -180,6 +202,9 @@ export const mutationActor = setup({
 				],
 				onError: [
 					{
+						actions: ({ event }: { event: any }) => {
+							throw new Error(event.error);
+						},
 						target: 'ERROR',
 					},
 				],
@@ -191,7 +216,7 @@ export const mutationActor = setup({
 				src: 'parseBQL',
 				onDone: [
 					{
-						target: 'SUCCESS',
+						target: 'MUTATIONS',
 						actions: assign({
 							bql: ({ context, event }: any) => {
 								return { ...context.bql, things: event.output.mergedThings, edges: event.output.mergedEdges };
@@ -201,6 +226,9 @@ export const mutationActor = setup({
 				],
 				onError: [
 					{
+						actions: ({ event }: { event: any }) => {
+							throw new Error(event.error);
+						},
 						target: 'ERROR',
 					},
 				],
@@ -217,34 +245,96 @@ export const mutationActor = setup({
 				],
 				onError: [
 					{
+						actions: ({ event }: { event: any }) => {
+							throw new Error(event.error);
+						},
 						target: 'ERROR',
 					},
 				],
 			},
 		},
 		MUTATIONS: {
+			type: 'parallel',
 			states: {
-				runTypeDBMutation: {
-					invoke: {
-						input: {},
-						src: 'runTypeDBMutation',
-						//cond: (context, event) => true,
+				TYPE_DB: {
+					initial: 'BUILD_QUERY',
+					states: {
+						BUILD_QUERY: {
+							invoke: {
+								input: ({ context }) => ({
+									things: context.bql.things,
+									edges: context.bql.edges,
+									schema: context.schema,
+								}),
+								src: 'buildTQLMutation',
+								onDone: {
+									actions: assign({
+										typeDb: ({ event }: any) => {
+											return { tqlMutation: event.output };
+										},
+									}),
+									target: 'OPEN_TX',
+								},
+							},
+						},
+						OPEN_TX: {
+							invoke: {
+								src: 'openTQLTransaction',
+								onDone: {
+									//actions: () => {}, //update handles
+									target: 'RUN_QUERY',
+								},
+								onError: {
+									actions: ({ event }: { event: any }) => {
+										throw new Error(event.error);
+									},
+									target: '#mutationPipeline.ERROR',
+								},
+							},
+						},
+						RUN_QUERY: {
+							invoke: {
+								input: ({ context }) => ({
+									tqlMutation: context.typeDb.tqlMutation,
+									dbHandles: context.handles,
+									config: context.config,
+								}),
+								src: 'runTQLMutation',
+								onDone: {
+									actions: assign({
+										typeDb: ({ event }: any) => {
+											return { tqlRes: event.output };
+										},
+									}),
+									target: '#mutationPipeline.SUCCESS',
+								},
+								onError: {
+									actions: ({ event }: { event: any }) => {
+										throw new Error(event.error);
+									},
+									target: '#mutationPipeline.ERROR',
+								},
+							},
+						},
 					},
 				},
-				runSurrealDBMutation: {
+			},
+			/*SURREAL_DB: {
 					invoke: {
 						input: {},
 						src: 'runSurrealDBMutation',
 					},
-				},
-			},
+				},*/
+
 			onDone: {
 				target: '#mutationPipeline.SUCCESS',
 			},
-			/*onError: {
+			onError: {
+				actions: ({ event }: { event: any }) => {
+					throw new Error(event.error);
+				},
 				target: '#mutationPipeline.ERROR',
-			},*/
-			type: 'parallel',
+			},
 		},
 		SUCCESS: {
 			type: 'final',

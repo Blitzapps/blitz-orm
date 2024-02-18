@@ -15,7 +15,7 @@ import type {
 	RawBQLQuery,
 } from './types';
 import { enableMapSet } from 'immer';
-import { createActor, waitFor } from 'xstate';
+import { createActor } from 'xstate';
 import { mutationActor } from './stateMachine/mutation/machine';
 
 export * from './types';
@@ -149,11 +149,16 @@ class BormClient {
 			},
 		});
 
-		runMutation.start();
+		/*runMutation.start();
 
+		runMutation.subscribe((state) => {
+			console.log('State transitioned to: ', state.value);
+			//console.log('Context: ', state.context);
+		});
 		await waitFor(runMutation, (state) => state.status === 'done');
+		//return [] as BQLResponseMulti; //todo: MutationBQLResponse*/
 
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
+		//@ts-expect-error - enforceConnection ensures dbHandles is defined
 		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
 	};
 

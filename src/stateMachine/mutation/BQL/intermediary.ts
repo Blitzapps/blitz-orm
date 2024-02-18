@@ -16,5 +16,8 @@ export const addIntermediaryRelationsBQLMutation = (
 			}
 		}),
 	);
+
+	console.log('after intermediaries', result.$root.$subRoot);
+	console.log('After intermediaries', JSON.stringify(result.$root.$subRoot, null, 2));
 	return result.$root.$subRoot;
 };
