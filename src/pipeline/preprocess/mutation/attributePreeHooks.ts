@@ -34,6 +34,7 @@ export const attributePreHooks: PipelineOperation = async (req) => {
 					}
 					const [idField] = idFields;
 
+					//@ts-expect-error - TODO
 					const filledFields = listify(value, (attKey, v) => (v !== undefined ? attKey : undefined)) as string[];
 					/// if at least one of the filled fields is virtual, then throw error
 					const virtualFilledFields = filledFields.filter((x) => virtualFields?.includes(x));

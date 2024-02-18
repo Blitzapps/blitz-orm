@@ -1,21 +1,23 @@
 import { setup, fromPromise, assign } from 'xstate';
-import type {
-	BQLMutationBlock,
-	EnrichedBQLMutationBlock,
-	EnrichedBormSchema,
-	FilledBQLMutationBlock,
-} from '../../types';
+import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../types';
 import { splitIdsBQLMutation } from './BQL/split';
 import { enrichBQLMutation } from './BQL/enrich';
 import { getCurrentSchema } from '../../helpers';
 import { isArray } from 'radash';
 import { parseBQLMutation } from './BQL/parse';
+import { addIntermediaryRelationsBQLMutation } from './BQL/intermediary';
+
+type rawMutationContext = {
+	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
+	raw: BQLMutationBlock | BQLMutationBlock[];
+	schema: EnrichedBormSchema;
+};
 
 type mutationContext = {
 	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
-	raw: BQLMutationBlock;
 	schema: EnrichedBormSchema;
 };
+
 export const mutationActor = setup({
 	actions: {
 		updateBql: assign({
@@ -25,71 +27,78 @@ export const mutationActor = setup({
 		}),
 	},
 	guards: {
-		requiresSplitIds: ({ context, event }, params) => {
+		/*example: ({ context, event }, params) => {
+			return true;
+		},*/
+		requiresSplitIds: () => {
 			return true;
 		},
-		requiresPrequery: ({ context, event }, params) => {
+		requiresPrequery: () => {
 			return false;
 		},
 		requiresParseBQL: ({ context }) => {
 			//this would be more complicated than this, like count the entities requiring this, not just the root
 			const root = context.bql.current;
-			console.log('root', root);
+			console.log('root', root.spaces);
 			const rootBase = isArray(root) ? root[0] : root;
 			return getCurrentSchema(context.schema, rootBase).dbContext.mutation.requiresParseBQL;
 		},
 	},
 	actors: {
-		enrich: fromPromise(async ({ input }: { input: mutationContext }) => {
-			console.log('Before enrich', input.current, input.raw);
+		enrich: fromPromise(async ({ input }: { input: rawMutationContext }) => {
 			const result = Object.keys(input.current).length
 				? enrichBQLMutation(input.current, input.schema)
 				: enrichBQLMutation(input.raw, input.schema);
-			console.log('After enrich', result);
-			return result;
+			return Promise.resolve(result);
 		}),
 		split_ids: fromPromise(async ({ input }: { input: mutationContext }) => {
-			console.log('bedore split', input.current, input.raw);
-			const result = Object.keys(input.current).length
-				? splitIdsBQLMutation(input.current, input.schema)
-				: splitIdsBQLMutation(input.raw, input.schema);
-			console.log('after split', result);
-			return result;
+			const result = splitIdsBQLMutation(input.current, input.schema);
+			return Promise.resolve(result);
 		}),
-		parseBQL: fromPromise(
-			async ({
+		addIntermediaries: fromPromise(
+			({
 				input,
 			}: {
 				input: { current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]; schema: EnrichedBormSchema };
 			}) => {
-				console.log('Before parseBQL', input.current);
-				const result = parseBQLMutation(input.current, input.schema);
-				console.log('After parseBQL', result);
-				return result;
+				console.log('before intermediaries', input.current);
+				const result = addIntermediaryRelationsBQLMutation(input.current, input.schema);
+				console.log('after intermediaries', result);
+				console.log('After intermediaries', JSON.stringify(result, null, 2));
+				return Promise.resolve(result);
+			},
+		),
+		parseBQL: fromPromise(
+			({
+				input,
+			}: {
+				input: { current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]; schema: EnrichedBormSchema };
+			}) => {
+				return Promise.resolve(parseBQLMutation(input.current, input.schema));
 			},
 		),
 		preQuery: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
+			return input as EnrichedBQLMutationBlock;
 		}),
 		attributesPrehook: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
+			return input as EnrichedBQLMutationBlock;
 		}),
 		runTypeDBMutation: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
+			return input as EnrichedBQLMutationBlock;
 		}),
 		runSurrealDBMutation: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
+			return input as EnrichedBQLMutationBlock;
 		}),
 	},
 }).createMachine({
 	context: ({ input }: any) => ({
 		bql: {
 			raw: input.raw,
-			current: {} as FilledBQLMutationBlock,
+			current: {} as EnrichedBQLMutationBlock,
 			things: [],
 			edges: [],
 		},
@@ -117,17 +126,33 @@ export const mutationActor = setup({
 						actions: 'updateBql',
 					},
 				],
-				onError: [
-					{
-						target: 'ERROR',
+				onError: {
+					actions: ({ event }: { event: any }) => {
+						throw new Error(event.error);
 					},
-				],
+					target: 'ERROR',
+				},
 			},
 		},
 		SPLIT_IDS: {
 			invoke: {
 				src: 'split_ids',
-				input: ({ context }) => ({ current: context.bql.current, raw: context.bql.raw, schema: context.schema }),
+				input: ({ context }) => ({ current: context.bql.current, schema: context.schema }),
+				onDone: [
+					{
+						target: 'ADD_INTERMEDIARIES',
+						actions: 'updateBql',
+					},
+				],
+				onError: {
+					target: 'ERROR',
+				},
+			},
+		},
+		ADD_INTERMEDIARIES: {
+			invoke: {
+				src: 'addIntermediaries',
+				input: ({ context }) => ({ current: context.bql.current, schema: context.schema }),
 				onDone: [
 					{
 						target: 'PARSE_BQL',
@@ -139,6 +164,9 @@ export const mutationActor = setup({
 						actions: 'updateBql',
 					},
 				],
+				onError: {
+					target: 'ERROR',
+				},
 			},
 		},
 		PRE_QUERY: {

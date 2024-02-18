@@ -27,8 +27,8 @@ export type BormRelation = BormEntity & {
 	roles?: { [key: string]: RoleField };
 };
 
-export type BormOperation = 'create' | 'update' | 'delete' | 'link' | 'unlink';
-export type BormTrigger = 'onCreate' | 'onUpdate' | 'onDelete' | 'onLink' | 'onUnlink';
+export type BormOperation = 'create' | 'update' | 'delete' | 'link' | 'unlink' | 'replace';
+export type BormTrigger = 'onCreate' | 'onUpdate' | 'onDelete' | 'onLink' | 'onUnlink' | 'onReplace';
 
 export type Hooks = {
 	pre?: readonly PreHook[];

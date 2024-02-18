@@ -4,17 +4,17 @@ import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
-import type { BQLMutationBlock, EnrichedBormSchema, FilledBQLMutationBlock } from '../../../types';
+import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 
-export const parseBQLMutation = (
-	blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+export const parseBQLMutation = async (
+	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
 	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
 
-	const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
+	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
 		// todo: make immutable
 
 		const nodes: BQLMutationBlock[] = [];
@@ -26,7 +26,7 @@ export const parseBQLMutation = (
       return ids.length === 1 ? ids[0] : ids;
     } */
 
-		const getIdValue = (node: BQLMutationBlock) => {
+		const getIdValue = (node: EnrichedBQLMutationBlock) => {
 			if (node.$id) {
 				return node.$id;
 			}
@@ -59,7 +59,7 @@ export const parseBQLMutation = (
 			return idValue;
 		};
 
-		const toNodes = (node: BQLMutationBlock) => {
+		const toNodes = (node: EnrichedBQLMutationBlock) => {
 			if (node.$op === 'create') {
 				const idValue = getIdValue(node);
 
@@ -73,6 +73,7 @@ export const parseBQLMutation = (
 				return;
 			}
 
+			//@ts-expect-error - TODO
 			if (node.$tempId && node.$op === 'match') {
 				/// we don't add to the node list, those that are being matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
 				return;
@@ -80,7 +81,7 @@ export const parseBQLMutation = (
 			nodes.push(node);
 		};
 
-		const toEdges = (edge: BQLMutationBlock) => {
+		const toEdges = (edge: EnrichedBQLMutationBlock) => {
 			if (edge.$op === 'create') {
 				const idValue = getIdValue(edge);
 
@@ -100,10 +101,10 @@ export const parseBQLMutation = (
 			if (!isObject(val)) {
 				return;
 			}
-			const value = val as BQLMutationBlock;
+			const value = val as EnrichedBQLMutationBlock;
 
 			/// no idea why this is needed lol, but sometimes is indeed undefined 🤷‍♀️
-			if (value.$entity || value.$relation) {
+			if (value.$thing) {
 				if (!value.$op) {
 					throw new Error(`Operation should be defined at this step ${JSON.stringify(value)}`);
 				}
@@ -156,7 +157,6 @@ export const parseBQLMutation = (
 					[Symbol.for('path')]: value[Symbol.for('path') as any],
 
 					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
-					[Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -244,6 +244,7 @@ export const parseBQLMutation = (
 					// const testVal = {};
 
 					// todo: stuff 😂
+					//@ts-expect-error - TODO
 					toEdges(edgeType1);
 
 					/// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a match
@@ -253,6 +254,7 @@ export const parseBQLMutation = (
 						toEdges({
 							$relation: value[Symbol.for('relation') as any],
 							$bzId: linkTempId,
+							//@ts-expect-error - TODO
 							$op: 'match',
 							[value[Symbol.for('oppositeRole') as any]]: parentId,
 							[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
@@ -269,6 +271,7 @@ export const parseBQLMutation = (
 
 					/// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
 					// todo: this is super weird, remove
+					//@ts-expect-error - TODO
 					const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
 						if (isArray(v)) {
 							return [k, v];
@@ -307,6 +310,7 @@ export const parseBQLMutation = (
 									/// Replace the array of objects with an array of ids
 									return [k, v.map((vNested: any) => vNested.$bzId || vNested)];
 								}
+								//@ts-expect-error - TODO
 								return [k, v.$bzId || v];
 							});
 							// console.log('rolesObjOnlyIdsGrouped', rolesObjOnlyIdsGrouped);
@@ -325,12 +329,14 @@ export const parseBQLMutation = (
 								[Symbol.for('edgeType')]: 'roleField on C/D',
 							};
 
+							//@ts-expect-error - TODO
 							toEdges(edgeType2);
 							return;
 						}
 						// #endregion
 						// region 2.2 relations on nested stuff
 						// todo: probably remove the match here
+						//@ts-expect-error - TODO
 						if (value.$op === 'match' || (value.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
 							let totalUnlinks = 0;
 
@@ -373,6 +379,7 @@ export const parseBQLMutation = (
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',
 									};
 
+									//@ts-expect-error - TODO
 									toEdges(edgeType3);
 									/// when unlinking stuff, it must be merged with other potential roles.
 									/// so we need to add it as both as match and 'unlink' so it gets merged with other unlinks

@@ -151,12 +151,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp(),
 					$bzId: value.$tempId ? value.$tempId : value.$bzId,
-					[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
-					[Symbol.for('path')]: value[Symbol.for('path') as any],
-
-					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
-					[Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -234,11 +228,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 						// roles
 						...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
 						[value[Symbol.for('oppositeRole') as any]]: parentId,
-
-						[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 						[Symbol.for('edgeType')]: 'linkField',
-						[Symbol.for('info')]: 'normal linkField',
-						[Symbol.for('path')]: value[Symbol.for('path') as any],
 					};
 
 					// const testVal = {};
@@ -255,10 +245,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 							$bzId: linkTempId,
 							$op: 'match',
 							[value[Symbol.for('oppositeRole') as any]]: parentId,
-							[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 							[Symbol.for('edgeType')]: 'linkField',
-							[Symbol.for('info')]: 'additional ownrelation unlink linkField',
-							[Symbol.for('path')]: value[Symbol.for('path') as any],
 						});
 					}
 				}
@@ -319,9 +306,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 								$op: getEdgeOp(),
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
-								[Symbol.for('path')]: value[Symbol.for('path') as any],
-								[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-								[Symbol.for('info')]: 'coming from created or deleted relation',
 								[Symbol.for('edgeType')]: 'roleField on C/D',
 							};
 
@@ -367,9 +351,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
-										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-										[Symbol.for('path')]: value[Symbol.for('path') as any],
-										[Symbol.for('info')]: 'updating roleFields',
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',
 									};
 

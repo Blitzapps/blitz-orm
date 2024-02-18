@@ -406,10 +406,12 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		'$tempId',
 		'$bzId',
 		'$relation',
-		'$parentKey',
+		'$parentKey', //todo: this is not a valid one, to delete!
 		'$filter',
 		'$fields',
 		'$excludedFields',
+		'$thing',
+		'$thingType',
 	];
 
 	const allowedFields = [...reservedRootFields, ...availableFields];
@@ -425,6 +427,9 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 	const usedFields = node.$fields
 		? (node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
+					if (x.startsWith('$')) {
+						return;
+					}
 					return x;
 				}
 				if ('$path' in x && typeof x.$path === 'string') {
