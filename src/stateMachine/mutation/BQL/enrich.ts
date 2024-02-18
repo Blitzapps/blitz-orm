@@ -6,8 +6,26 @@ import { isArray, isObject } from 'radash';
 import { doAction } from './utils';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
 import { ParentBzId, ParentFieldSchema } from '../../../types/symbols';
-import type { BQLMutationBlock, BormOperation, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { replaceToObj } from './enrichSteps/replaces';
+import { setRootMeta } from './enrichSteps/rootMeta';
+import { splitMultipleIds } from './enrichSteps/splitIds';
+import { getOp } from './enrichSteps/getOp';
+
+const getParentBzId = (node: BQLMutationBlock) => {
+	if ('$root' in node) {
+		return `R_${uuidv4()}`;
+	} else {
+		if (node.$tempId) {
+			return node.$tempId;
+		} else if (node.$bzId) {
+			return node.$bzId;
+		} else {
+			throw new Error(`[Internal] No bzId found in ${JSON.stringify(isDraft(node) ? current(node) : node)}`);
+		}
+	}
+};
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -24,32 +42,7 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 };
 
 const dataFieldStep = (node: BQLMutationBlock, field: string) => {
-	node[field] = 'TEST';
-};
-
-const stringToObjects = () => {};
-
-const get$Op = (parentNode: BQLMutationBlock, node: BQLMutationBlock, schema: EnrichedBormSchema): BormOperation => {
-	if (node.$op) {
-		//validations
-		return node.$op as BormOperation;
-	} else {
-		const nodeSchema = getCurrentSchema(schema, node);
-		const { usedFields } = getCurrentFields(nodeSchema, node);
-		if (node.$id || node.$filter) {
-			if (usedFields.length > 0) {
-				if (parentNode.$op === 'create') {
-					return 'create';
-				} else {
-					return 'update';
-				}
-			} else {
-				return 'link';
-			}
-		} else {
-			return 'create';
-		}
-	}
+	console.log(`${field}:node[field]`);
 };
 
 export const enrichBQLMutation = async (
@@ -58,14 +51,16 @@ export const enrichBQLMutation = async (
 ): Promise<EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]> => {
 	console.log('Before enrich', JSON.stringify(blocks, null, 2));
 
-	const rootBlock = { $root: blocks };
+	const rootBlock = { $rootWrap: { $root: blocks } };
 	const result = produce(rootBlock, (draft) =>
 		traverse(draft, ({ value, parent, key }: TraversalCallbackContext) => {
-			if (!parent) {
+			if (!parent || !key) {
 				return;
 			}
 			if (isObject(value)) {
-				if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
+				if ('$root' in value) {
+					// This is hte $root object, we will split the real root if needed in this iteration
+				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
 					if (key === '$root') {
 						throw new Error('Root things must specify $entity or $relation');
 					} else {
@@ -77,30 +72,18 @@ export const enrichBQLMutation = async (
 
 				const node = value as BQLMutationBlock;
 
-				const parentBzId = node.$tempId ? node.$tempId : `R_${uuidv4()}`;
-
-				const withMetadata = {
-					...(node.$thing ? {} : { $thing: node.$entity || node.$relation }),
-					...(node.$thingType ? {} : { $thingType: node.$entity ? 'entity' : 'relation' }),
-					...(node.$op ? {} : { $op: get$Op({} as BQLMutationBlock, node, schema) }),
-					...(node.$bzId ? {} : { $bzId: parentBzId }),
-				};
-				//@ts-expect-error - TODO
-				parent[key] = { ...withMetadata, ...node };
-				//@ts-expect-error - TODO
-				delete parent[key].$entity;
-				//@ts-expect-error - TODO
-				delete parent[key].$relation;
+				const parentBzId = getParentBzId(node);
 
 				Object.keys(node).forEach((field) => {
 					///1. Clean step
 					cleanStep(node, field);
 
-					if (field.startsWith('$')) {
+					if (field !== '$root' && field.startsWith('$')) {
 						return;
 					}
 
-					const fieldSchema = getFieldSchema(schema, node, field);
+					const fieldSchema =
+						field !== '$root' ? getFieldSchema(schema, node, field) : ({ fieldType: 'rootField' } as any);
 					if (!fieldSchema) {
 						throw new Error(`[Internal] Field ${field} not found in schema`);
 					}
@@ -111,58 +94,87 @@ export const enrichBQLMutation = async (
 					}
 
 					///3.NESTED OBJECTS: RoleFields and linkFields
-					const isArrayField = isArray(node[field]);
-					const childrenArray = isArrayField ? node[field] : [node[field]];
-					///3.1$thing => linkField or roleField
-					if (field === '$root' || ['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-						/// 3.1.1 replaces
-						if (childrenArray.every((child: unknown) => typeof child === 'string')) {
-							stringToObjects();
-							if (childrenArray.some((child: unknown) => !isObject(child))) {
-								throw new Error('[Internal] At least one child is not an object');
-							}
+
+					// 3.1 splitIds
+
+					///3.2$thing => linkField or roleField
+					if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+						///In the next steps we have (isArray(node[field]) ? node[field] : [node[field]]) multiple times, because it might mutate, can't replace by a var
+
+						/// 3.2.1 replaces
+						replaceToObj(node, field);
+						console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+
+						//3.2.2 root $thing
+						if (fieldSchema.fieldType === 'rootField') {
+							setRootMeta(node, parentBzId, schema);
+							console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
-						/// 3.1.2 children mutation
-						childrenArray.forEach((subNode: EnrichedBQLMutationBlock) => {
+
+						//3.2.3 splitIds()
+						splitMultipleIds(node, field, schema);
+						console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+
+						/// 3.2.4 children mutation & validations
+						//redefining childrenArray as it might have changed
+						(isArray(node[field]) ? node[field] : [node[field]]).forEach((subNode: EnrichedBQLMutationBlock) => {
 							///symbols
-							subNode[ParentFieldSchema] = fieldSchema;
+							if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+								subNode[ParentFieldSchema] = fieldSchema;
+								//#region nested nodes
+								const getOppositePlayers = () => {
+									if (fieldSchema.fieldType === 'linkField') {
+										return fieldSchema.oppositeLinkFieldsPlayedBy;
+									} else if (fieldSchema.fieldType === 'roleField') {
+										return fieldSchema.playedBy;
+									} else {
+										throw new Error(`[Internal] Field ${field} is not a linkField or roleField`);
+									}
+								};
+								const oppositePlayers = getOppositePlayers();
 
-							//#region nested nodes
-							const getOppositePlayers = () => {
-								if (fieldSchema.fieldType === 'linkField') {
-									return fieldSchema.oppositeLinkFieldsPlayedBy;
-								} else if (fieldSchema.fieldType === 'roleField') {
-									return fieldSchema.playedBy;
+								if (oppositePlayers?.length != 1) {
+									throw new Error(`[Internal-future] Field ${field} should have a single player`);
 								} else {
-									throw new Error(`[Internal] Field ${field} is not a linkField or roleField`);
+									const [player] = oppositePlayers;
+									subNode.$thing = player.thing;
+									subNode.$thingType = player.thingType;
+									subNode.$op = getOp(node, subNode, schema);
+									subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
+									subNode[ParentBzId] = parentBzId ? parentBzId : node.$bzId;
 								}
-							};
-							const oppositePlayers = getOppositePlayers();
-
-							if (oppositePlayers?.length != 1) {
-								throw new Error(`[Internal-future] Field ${field} should have a single player`);
-							} else {
-								const [player] = oppositePlayers;
-								subNode.$thing = player.thing;
-								subNode.$thingType = player.thingType;
-								subNode.$op = get$Op(node, subNode, schema);
-								subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
-								subNode[ParentBzId] = parentBzId ? parentBzId : node.$bzId;
+								//#endregion nested nodes
 							}
-							//#endregion nested nodes
+
+							//#region validations
+							const subNodeSchema = getCurrentSchema(schema, subNode);
+							const { unidentifiedFields } = getCurrentFields(subNodeSchema, subNode);
+							if (unidentifiedFields.length > 0) {
+								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
+							}
+							//#endregion validations
 						});
+						console.log(
+							'After children mutation & validations',
+							JSON.stringify(isDraft(node) ? current(node) : node, null, 2),
+						);
 					}
 				});
 			}
 		}),
 	);
-	if (isArray(result.$root)) {
-		console.log('After enrich', result.$root);
-		console.log('After enrich', JSON.stringify(result.$root, null, 2));
-		return result.$root as EnrichedBQLMutationBlock[];
+	console.log('After enrich', result.$rootWrap.$root);
+	console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
+
+	traverse(result, ({ value }: TraversalCallbackContext) => {
+		if (isObject(value)) {
+			console.log('WHAAAAT', value);
+		}
+	});
+
+	if (isArray(result.$rootWrap.$root)) {
+		return result.$rootWrap.$root as EnrichedBQLMutationBlock[];
 	} else {
-		console.log('After enrich', result.$root);
-		console.log('After enrich', JSON.stringify(result.$root, null, 2));
-		return result.$root as EnrichedBQLMutationBlock;
+		return result.$rootWrap.$root as EnrichedBQLMutationBlock;
 	}
 };

@@ -1,12 +1,13 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
 
 import { getCurrentSchema, isBQLBlock } from '../../../helpers';
-import type { BQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
+import { ParentFieldSchema } from '../../../types/symbols';
 
 export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
 	// todo: Split attributes and edges
 	const nodeToTypeQL = (
-		node: BQLMutationBlock,
+		node: EnrichedBQLMutationBlock,
 	): {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
@@ -27,6 +28,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		// todo: composite ids
 		const idField = idFields?.[0];
 
+		//@ts-expect-error - TODO
 		const attributes = listify(node, (k, v) => {
 			// @ts-expect-error - TODO description
 			if (k.startsWith('$') || k === idField || v === undefined || v === null) {
@@ -63,6 +65,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 
 		const attributesVar = `${bzId}-atts`;
 
+		//@ts-expect-error - TODO
 		const matchAttributes = listify(node, (k) => {
 			// @ts-expect-error - TODO description
 			if (k.startsWith('$') || k === idField) {
@@ -139,7 +142,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	};
 
 	const edgeToTypeQL = (
-		node: BQLMutationBlock,
+		node: EnrichedBQLMutationBlock,
 	): {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
@@ -153,18 +156,19 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		const bzId = `$${node.$bzId}`;
 		const idValue = node.$id;
 
-		const relationDbPath = currentSchema.defaultDBConnector?.path || node.$relation;
+		const relationDbPath = currentSchema.defaultDBConnector?.path || node.$thing;
 
 		const roleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
 
 		const roleDbPaths =
-			node.$relation &&
-			'roles' in currentSchema &&
-			mapEntries(currentSchema.roles, (k, v) => [k, v.dbConnector?.path || k]);
+			'roles' in currentSchema
+				? mapEntries(currentSchema.roles, (k, v) => [k, v.dbConnector?.path || k])
+				: ({} as { [k: string]: string });
 
 		// roles can be specified in three ways, either they are a roleField in the node, they are the children of something, or they have a default/computed link
 		// 1) roleFields
 
+		//@ts-expect-error - TODO
 		const fromRoleFields = listify(node, (k: string, v) => {
 			if (!roleFields.includes(k)) {
 				return null;
@@ -183,9 +187,11 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 
 		/// if one of the roles's id is undefined it means it applies to every object of that thingType so we need to create an id for it
 		const fromRoleFieldsTql = fromRoleFields.map((x) => {
+			//@ts-expect-error - TODO
 			if (!x?.path) {
 				throw new Error('Object without path');
 			}
+			//@ts-expect-error - TODO
 			return `${x.path}: $${x.id}`;
 		});
 
@@ -193,7 +199,11 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 
 		// console.log('roles', roles);
 
-		const edgeType = node[Symbol.for('edgeType') as any];
+		if (node[ParentFieldSchema] === undefined) {
+			throw new Error('[internal error] Symbol ParentFieldSchema not defined');
+		}
+		//@ts-expect-error - TODO
+		const edgeType = node[ParentFieldSchema].fieldType;
 		if (!edgeType) {
 			throw new Error('[internal error] Symbol edgeType not defined');
 		}
@@ -299,7 +309,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	};
 
 	const toTypeQL = (
-		nodes: BQLMutationBlock[] | BQLMutationBlock,
+		nodes: EnrichedBQLMutationBlock[] | EnrichedBQLMutationBlock,
 		mode?: 'nodes' | 'edges',
 	):
 		| {
@@ -372,6 +382,5 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	);
 
 	console.log('tqlMutation', tqlMutation);
-	console.log('tqlMutation', JSON.stringify(tqlMutation, null, 2));
 	return tqlMutation;
 };

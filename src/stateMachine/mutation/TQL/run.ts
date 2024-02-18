@@ -1,6 +1,6 @@
 import { TransactionType } from 'typedb-driver';
 import { getSessionOrOpenNewOne } from '../../../pipeline/transaction/helpers';
-import type { DBHandles } from '../../../types';
+import type { BormConfig, DBHandles } from '../../../types';
 
 export type TqlMutation = {
 	deletions: string;
@@ -9,7 +9,7 @@ export type TqlMutation = {
 	insertionMatches: string;
 };
 
-export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHandles, config: any) => {
+export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHandles, config: BormConfig) => {
 	if (!tqlMutation) {
 		throw new Error('TQL request not built');
 	}

@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
-import { produce } from 'immer';
+import type { Draft } from 'immer';
+import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify } from 'radash';
@@ -544,4 +545,30 @@ export const normalPropsCount = (obj: Record<string, any>) => {
 
 export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
 	return isObject(block) && ('$entity' in block || '$relation' in block || '$thing' in block);
+};
+
+type Drafted<T> = T | Draft<T>;
+
+// Recursively define the type to handle nested structures
+type DeepCurrent<T> =
+	T extends Array<infer U> ? Array<DeepCurrent<U>> : T extends object ? { [K in keyof T]: DeepCurrent<T[K]> } : T;
+
+export const deepCurrent = <T>(obj: Drafted<T>): any => {
+	if (Array.isArray(obj)) {
+		// Explicitly cast the return type for arrays
+		return obj.map((item) => deepCurrent(item)) as DeepCurrent<T>;
+	} else if (obj && typeof obj === 'object') {
+		// Handle non-null objects
+		const plainObject = isDraft(obj) ? current(obj) : obj;
+		const result: any = {};
+		Object.entries(plainObject).forEach(([key, value]) => {
+			// Use the key to dynamically assign the converted value
+			result[key] = deepCurrent(value);
+		});
+		// Explicitly cast the return type for objects
+		return result as DeepCurrent<T>;
+	} else {
+		// Return the value directly for non-objects and non-arrays
+		return obj as DeepCurrent<T>;
+	}
 };

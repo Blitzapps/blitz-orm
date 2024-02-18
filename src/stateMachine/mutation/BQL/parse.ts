@@ -4,16 +4,23 @@ import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
-import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type {
+	BQLMutationBlock,
+	BormOperation,
+	EnrichedBQLMutationBlock,
+	EnrichedBormSchema,
+	EnrichedLinkField,
+} from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
-import { ParentBzId } from '../../../types/symbols';
+import { ParentBzId, ParentFieldSchema } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
+	console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
+	console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
 
 	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
 		// todo: make immutable
@@ -145,15 +152,13 @@ export const parseBQLMutation = async (
 				};
 
 				const dataObj = {
-					...(value.$entity && { $entity: value.$entity }),
-					...(value.$relation && { $relation: value.$relation }),
 					...(value.$id && { $id: value.$id }),
 					...(value.$tempId && { $tempId: value.$tempId }),
 					...(value.$filter && { $filter: value.$filter }),
-					...(value.$thing && { $thing: value.$thing }),
+					...{ $thing: value.$thing },
 					...(value.$thingType && { $thingType: value.$thingType }),
 					...shake(pick(value, dataFieldPaths || [''])),
-					$op: getChildOp(),
+					$op: getChildOp() as BormOperation,
 					$bzId: value.$tempId ? value.$tempId : value.$bzId,
 				};
 
@@ -163,11 +168,9 @@ export const parseBQLMutation = async (
 				// console.log('value', isDraft(value) ? current(value) : value);
 
 				// CASE 1: HAVE A PARENT THROUGH LINKFIELDS
-				if (
-					value[Symbol.for('relation') as any] &&
-					value[Symbol.for('edgeType') as any] === 'linkField'
-					// value[Symbol.for('relation')] !== '$self'
-				) {
+				const edgeSchema = value[ParentFieldSchema] as EnrichedLinkField;
+
+				if (edgeSchema?.fieldType === 'linkField') {
 					if (value.$op === 'link' || value.$op === 'unlink') {
 						if (value.$id || value.$filter) {
 							if (value.$tempId) {
@@ -181,7 +184,7 @@ export const parseBQLMutation = async (
 					// this linkObj comes from nesting, which means it has no properties and no ID
 					// relations explicitely created are not impacted by this, and they get the $id from it's actual current value
 
-					const ownRelation = value[Symbol.for('relation') as any] === value.$relation;
+					const ownRelation = edgeSchema.relation === value.$thing;
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
@@ -222,15 +225,17 @@ export const parseBQLMutation = async (
 					};
 
 					const edgeType1 = {
-						$relation: value[Symbol.for('relation') as any],
 						$bzId: linkTempId,
+						$thing: edgeSchema.relation,
 						...(value.$tempId ? { $tempId: value.$tempId } : {}),
 						$op: getLinkObjOp(),
 
 						// roles
-						...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
-						[value[Symbol.for('oppositeRole') as any]]: parentId,
-						[Symbol.for('edgeType')]: 'linkField',
+						...(!ownRelation ? { [edgeSchema.path]: value.$bzId } : {}),
+						[edgeSchema.plays]: parentId,
+
+						//Metadata
+						[ParentFieldSchema]: edgeSchema,
 					};
 
 					// const testVal = {};
@@ -388,8 +393,8 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
-	//console.log('parsedThings', parsedThings);
-	//console.log('parsedEdges', parsedEdges);
+	console.log('parsedThings', parsedThings);
+	console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
@@ -456,7 +461,7 @@ export const parseBQLMutation = async (
 						newRelation[key] = currVal;
 					}
 				}
-				///the curent one is but hte new one it is not
+				///the current one is but the new one it is not
 				else if (Array.isArray(existingVal) && !Array.isArray(currVal)) {
 					if (currVal !== undefined) {
 						// Avoid merging with undefined values.

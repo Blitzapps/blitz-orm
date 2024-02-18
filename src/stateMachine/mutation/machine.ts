@@ -15,6 +15,8 @@ import { addIntermediaryRelationsBQLMutation } from './BQL/intermediary';
 import { buildTQLMutation } from './TQL/build';
 import type { TqlMutation } from './TQL/run';
 import { runTQLMutation } from './TQL/run';
+import type { TqlRes } from './TQL/parse';
+import { parseTQLMutation } from './TQL/parse';
 
 type rawMutationContext = {
 	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
@@ -35,9 +37,14 @@ type BuildContext = {
 
 export const mutationActor = setup({
 	actions: {
-		updateBql: assign({
+		updateBqlReq: assign({
 			bql: ({ context, event }: any) => {
 				return { ...context.bql, current: event.output };
+			},
+		}),
+		updateBqlRes: assign({
+			bql: ({ context, event }: any) => {
+				return { ...context.bql, res: event.output }; //this should be an array spread to gather the different DBs
 			},
 		}),
 	},
@@ -101,6 +108,12 @@ export const mutationActor = setup({
 				return result;
 			},
 		),
+		parseTQLMutation: fromPromise(
+			({ input }: { input: { tqlRes: TqlRes; things: any[]; edges: any[]; config: BormConfig } }) => {
+				const result = parseTQLMutation(input.tqlRes, input.things, input.edges, input.config);
+				return result;
+			},
+		),
 		/// SURREAL DB
 		runSurrealDBMutation: fromPromise(async ({ input }) => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
@@ -114,9 +127,11 @@ export const mutationActor = setup({
 			current: {} as EnrichedBQLMutationBlock,
 			things: [],
 			edges: [],
+			res: [], //todo: probably build this in a last step outside of the mutation steps
 		},
 		typeDb: {
 			tqlMutation: {} as TqlMutation,
+			tqlRes: {} as TqlRes,
 		},
 		schema: input.schema,
 		config: input.config,
@@ -132,14 +147,18 @@ export const mutationActor = setup({
 				src: 'enrich',
 				onDone: [
 					{
+						target: 'ADD_INTERMEDIARIES',
+						actions: 'updateBqlReq',
+					},
+					/*{
 						target: 'SPLIT_IDS',
 						guard: 'requiresSplitIds',
-						actions: 'updateBql',
-					},
+						actions: 'updateBqlReq',
+					},*/
 					{
 						target: 'PARSE_BQL',
 						guard: 'requiresParseBQL',
-						actions: 'updateBql',
+						actions: 'updateBqlReq',
 					},
 				],
 				onError: {
@@ -150,14 +169,14 @@ export const mutationActor = setup({
 				},
 			},
 		},
-		SPLIT_IDS: {
+		/*SPLIT_IDS: {
 			invoke: {
 				src: 'split_ids',
 				input: ({ context }) => ({ current: context.bql.current, schema: context.schema }),
 				onDone: [
 					{
 						target: 'ADD_INTERMEDIARIES',
-						actions: 'updateBql',
+						actions: 'updateBqlReq',
 					},
 				],
 				onError: {
@@ -167,7 +186,7 @@ export const mutationActor = setup({
 					target: 'ERROR',
 				},
 			},
-		},
+		},*/
 		ADD_INTERMEDIARIES: {
 			invoke: {
 				src: 'addIntermediaries',
@@ -176,11 +195,11 @@ export const mutationActor = setup({
 					{
 						target: 'PARSE_BQL',
 						guard: 'requiresParseBQL',
-						actions: 'updateBql',
+						actions: 'updateBqlReq',
 					},
 					{
 						target: 'SUCCESS',
-						actions: 'updateBql',
+						actions: 'updateBqlReq',
 					},
 				],
 				onError: {
@@ -257,9 +276,9 @@ export const mutationActor = setup({
 			type: 'parallel',
 			states: {
 				TYPE_DB: {
-					initial: 'BUILD_QUERY',
+					initial: 'BUILD_MUTATION',
 					states: {
-						BUILD_QUERY: {
+						BUILD_MUTATION: {
 							invoke: {
 								input: ({ context }) => ({
 									things: context.bql.things,
@@ -282,7 +301,7 @@ export const mutationActor = setup({
 								src: 'openTQLTransaction',
 								onDone: {
 									//actions: () => {}, //update handles
-									target: 'RUN_QUERY',
+									target: 'RUN_MUTATION',
 								},
 								onError: {
 									actions: ({ event }: { event: any }) => {
@@ -292,7 +311,7 @@ export const mutationActor = setup({
 								},
 							},
 						},
-						RUN_QUERY: {
+						RUN_MUTATION: {
 							invoke: {
 								input: ({ context }) => ({
 									tqlMutation: context.typeDb.tqlMutation,
@@ -304,6 +323,31 @@ export const mutationActor = setup({
 									actions: assign({
 										typeDb: ({ event }: any) => {
 											return { tqlRes: event.output };
+										},
+									}),
+									target: 'PARSE_MUTATION',
+								},
+								onError: {
+									actions: ({ event }: { event: any }) => {
+										throw new Error(event.error);
+									},
+									target: '#mutationPipeline.ERROR',
+								},
+							},
+						},
+						PARSE_MUTATION: {
+							invoke: {
+								input: ({ context }) => ({
+									tqlRes: context.typeDb.tqlRes,
+									things: context.bql.things,
+									edges: context.bql.edges,
+									config: context.config,
+								}),
+								src: 'parseTQLMutation',
+								onDone: {
+									actions: assign({
+										typeDb: ({ event }: any) => {
+											return { bql: event.output };
 										},
 									}),
 									target: '#mutationPipeline.SUCCESS',

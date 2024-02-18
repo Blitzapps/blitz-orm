@@ -156,7 +156,7 @@ class BormClient {
 			//console.log('Context: ', state.context);
 		});
 		await waitFor(runMutation, (state) => state.status === 'done');
-		//return [] as BQLResponseMulti; //todo: MutationBQLResponse*/
+		//return [] as BQLResponseMulti; //todo: MutationBQLResponse */
 
 		//@ts-expect-error - enforceConnection ensures dbHandles is defined
 		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);

@@ -12,7 +12,7 @@ import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 export const parseBQLMutation: PipelineOperation = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
-	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
+	console.log('blocks.OLD', JSON.stringify(filledBqlRequest, null, 2));
 
 	const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
 		// todo: make immutable
@@ -481,8 +481,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
 
-	//console.log('mergedThings', mergedThings);
-	//console.log('mergedEdges', mergedEdges);
+	console.log('mergedThingsOLD', mergedThings);
+	console.log('mergedEdgesOLD', mergedEdges);
 
 	/// VALIDATIONS
 	/// in the same mutation, we can't link cardinality ONE stuff in multiple places

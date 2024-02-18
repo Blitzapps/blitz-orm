@@ -51,6 +51,7 @@
 		"Upsert",
 		"uuidv",
 		"vals",
+		"xstate",
 		"zustand"
 	],
 	"[typescript]": {
