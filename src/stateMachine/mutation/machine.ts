@@ -343,11 +343,7 @@ export const mutationActor = setup({
 								}),
 								src: 'parseTQLMutation',
 								onDone: {
-									actions: assign({
-										typeDb: ({ event }: any) => {
-											return { bql: event.output };
-										},
-									}),
+									actions: 'updateBqlRes',
 									target: '#mutationPipeline.SUCCESS',
 								},
 								onError: {

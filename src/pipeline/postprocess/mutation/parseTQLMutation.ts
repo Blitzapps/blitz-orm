@@ -61,7 +61,7 @@ export const parseTQLMutation: PipelineOperation = async (req, res) => {
 
 		// todo
 		res.bqlRes = result;
-		console.log('ParseTQLResultOld', result);
+		//console.log('ParseTQLResultOld', result);
 		return;
 	}
 };

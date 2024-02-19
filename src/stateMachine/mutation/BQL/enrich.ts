@@ -41,15 +41,16 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 	}
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const dataFieldStep = (node: BQLMutationBlock, field: string) => {
-	console.log(`${field}:node[field]`);
+	//console.log(`${field}:node[field]`);
 };
 
 export const enrichBQLMutation = async (
 	blocks: BQLMutationBlock | BQLMutationBlock[] | EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ): Promise<EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]> => {
-	console.log('Before enrich', JSON.stringify(blocks, null, 2));
+	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
 
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	const result = produce(rootBlock, (draft) =>
@@ -103,17 +104,17 @@ export const enrichBQLMutation = async (
 
 						/// 3.2.1 replaces
 						replaceToObj(node, field);
-						console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+						//console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						//3.2.2 root $thing
 						if (fieldSchema.fieldType === 'rootField') {
 							setRootMeta(node, parentBzId, schema);
-							console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
 
 						//3.2.3 splitIds()
 						splitMultipleIds(node, field, schema);
-						console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+						//console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						/// 3.2.4 children enrichment
 						//redefining childrenArray as it might have changed
@@ -122,16 +123,11 @@ export const enrichBQLMutation = async (
 						}
 
 						/// 3.2.5 Field computes
-						console.log('toBeComputed', node, field);
 						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							console.log('toBeComputed', node, field);
+							//console.log('toBeComputed', node, field);
 							computeFields(node, field, schema);
 						}
 
-						console.log(
-							'After children mutation & validations',
-							JSON.stringify(isDraft(node) ? current(node) : node, null, 2),
-						);
 						// 3.2.6
 						/*//#region validations
 						const subNodeSchema = getCurrentSchema(schema, subNode);
@@ -145,12 +141,12 @@ export const enrichBQLMutation = async (
 			}
 		}),
 	);
-	console.log('After enrich', result.$rootWrap.$root);
-	console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
+	//console.log('After enrich', result.$rootWrap.$root);
+	//console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
 
 	traverse(result, ({ value }: TraversalCallbackContext) => {
 		if (isObject(value)) {
-			console.log('WHAAAAT', value);
+			//
 		}
 	});
 

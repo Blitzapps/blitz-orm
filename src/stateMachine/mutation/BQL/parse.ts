@@ -19,8 +19,8 @@ export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
-	console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
+	//console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
+	//console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
 
 	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
 		// todo: make immutable
@@ -393,8 +393,8 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
-	console.log('parsedThings', parsedThings);
-	console.log('parsedEdges', parsedEdges);
+	//console.log('parsedThings', parsedThings);
+	//console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
@@ -514,8 +514,8 @@ export const parseBQLMutation = async (
 		}
 	});
 
-	console.log('mergedThings', mergedThings);
-	console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

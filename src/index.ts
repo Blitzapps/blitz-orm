@@ -4,7 +4,7 @@ import { TypeDB, SessionType } from 'typedb-driver';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { queryPipeline } from './pipeline/pipeline';
+import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
 import type {
 	BQLResponseMulti,
 	BormConfig,
@@ -140,6 +140,13 @@ class BormClient {
 			},
 		};
 
+		const startTime2 = performance.now();
+		//@ts-expect-error - enforceConnection ensures dbHandles is defined
+		mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
+		const endTime2 = performance.now();
+		console.log(`Old Mutation took ${endTime2 - startTime2}ms`);
+
+		const startTime = performance.now();
 		const runMutation = createActor(mutationActor, {
 			input: {
 				raw: mutation,
@@ -149,18 +156,12 @@ class BormClient {
 				deepLevel: 0, //this is the root
 			},
 		});
-
 		runMutation.start();
+		const result = await (await waitFor(runMutation, (state) => state.status === 'done')).context.bql.res;
+		const endTime = performance.now();
+		console.log(`New Mutation took ${endTime - startTime}ms`);
 
-		runMutation.subscribe((state) => {
-			console.log('State transitioned to: ', state.value);
-			//console.log('Context: ', state.context);
-		});
-		await waitFor(runMutation, (state) => state.status === 'done');
-		return [] as BQLResponseMulti; //todo: MutationBQLResponse
-
-		//@ ts-expect-error - enforceConnection ensures dbHandles is defined
-		//return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
+		return result as BQLResponseMulti;
 	};
 
 	close = async () => {

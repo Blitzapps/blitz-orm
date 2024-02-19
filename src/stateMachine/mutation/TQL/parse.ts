@@ -39,6 +39,6 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 		})
 		.filter((z) => z);
 
-	console.log('ParseTQLResultNew', result);
+	//console.log('ParseTQLResultNew', result);
 	return result;
 };
