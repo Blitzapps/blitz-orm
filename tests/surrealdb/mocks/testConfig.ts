@@ -11,8 +11,8 @@ export const testConfig: BormConfig = {
       namespace: 'test',
 			dbName: 'test',
 			url: 'ws://127.0.0.1:8000',
-      username: 'root',
-      password: 'root'
+      username: 'tester',
+      password: 'tester'
 		},
 	],
 };

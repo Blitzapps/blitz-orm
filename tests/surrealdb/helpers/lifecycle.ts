@@ -48,7 +48,15 @@ export const init = async () => {
   })
 
 	try {
+    // FIXME cannot add schema in runtime due to this issue. Wait for it to be fixed, https://github.com/surrealdb/surrealdb/issues/3541
     await db.query(surqlSchema)
+
+    await db.query(`BEGIN TRANSACTION;
+    INSERT INTO User {
+      name: 'hello',
+      email: 'email@example.com'
+    };
+    COMMIT TRANSACTION;`)
 
 		const bormClient = new BormClient({
 			schema: testSchema,
@@ -70,11 +78,13 @@ export const cleanup = async (client: BormClient, dbName: string) => {
 	const dbHandles = client.getDbHandles();
 	const surrealDB = dbHandles?.surrealDB;
 	surrealDB?.forEach(async (db) => {
-    // @ts-expect-error the type is still in PR, https://github.com/surrealdb/surrealdb.node/pull/34
-    await db.close();
-    await db.client.query(`REMOVE DATABASE $db;`, {
-      db: dbName
-    })
+    // FIXME another bug, varaible replace is documented, but not working as expected
+    // await db.client.query(`REMOVE DATABASE $name;`, {
+    //   name: dbName
+    // })
+
+    // NOTE no cleanup, as we want to run the test again and we have to manually open sql shell now
+    // await db.client.query(`REMOVE DATABASE ${dbName};`)
 	});
 
 	await client.close();
