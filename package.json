@@ -68,7 +68,8 @@
 		"prettier": "^3.2.4",
 		"ts-jest": "^29.1.2",
 		"tsup": "^8.0.1",
-		"typescript": "^5.3.3"
+		"typescript": "^5.3.3",
+		"v8-profiler-next": "^1.10.0"
 	},
 	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
 	"bugs": {

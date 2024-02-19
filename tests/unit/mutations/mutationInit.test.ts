@@ -1,8 +1,12 @@
 import 'jest';
+// import * as v8Profiler from 'v8-profiler-next';
+// import * as fs from 'fs';
 
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+
+// v8Profiler.setGenerateType(1);
 
 // some random issues forced a let here
 let firstUser = {
@@ -68,10 +72,25 @@ describe('Mutations: Init', () => {
 		bormClient = configBormClient;
 	}, 25000);
 
-	it('b1[create] Basic', async () => {
+	it.only('b1[create] Basic', async () => {
 		expect(bormClient).toBeDefined();
 
+    // const title = 'pipeline';
+    // const title = 'state-machine';
+    // v8Profiler.startProfiling(title, true);
 		const res = await bormClient.mutate(firstUser, { noMetadata: true });
+    // const profile = v8Profiler.stopProfiling(title);
+    // profile.export(function (error, result) {
+    //   // if it doesn't have the extension .cpuprofile then
+    //   // chrome's profiler tool won't like it.
+    //   // examine the profile:
+    //   //   Navigate to chrome://inspect
+    //   //   Click Open dedicated DevTools for Node
+    //   //   Select the profiler tab
+    //   //   Load your file
+    //   fs.writeFileSync(`.profiles/${title}.cpuprofile`, result || '');
+    //   profile.delete();
+    // });
 		const expectedUnit = {
 			id: '$unitId',
 			name: 'John',
