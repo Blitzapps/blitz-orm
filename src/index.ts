@@ -4,7 +4,7 @@ import { TypeDB, SessionType } from 'typedb-driver';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
+import { queryPipeline } from './pipeline/pipeline';
 import type {
 	BQLResponseMulti,
 	BormConfig,
@@ -140,11 +140,11 @@ class BormClient {
 			},
 		};
 
-		const startTime2 = performance.now();
-		//@ts-expect-error - enforceConnection ensures dbHandles is defined
+		/*const startTime2 = performance.now();
+		//@t s-expect-error - enforceConnection ensures dbHandles is defined
 		mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
 		const endTime2 = performance.now();
-		console.log(`Old Mutation took ${endTime2 - startTime2}ms`);
+		console.log(`Old Mutation took ${endTime2 - startTime2}ms`);*/
 
 		const startTime = performance.now();
 		const runMutation = createActor(mutationActor, {

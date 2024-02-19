@@ -85,16 +85,16 @@ export const mutationActor = setup({
 			return Promise.resolve(parseBQLMutation(input.current, input.schema));
 		}),
 		preQuery: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 1));
 			return input as EnrichedBQLMutationBlock;
 		}),
 		attributesPrehook: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 1));
 			return input as EnrichedBQLMutationBlock;
 		}),
 		/// TYPE_DB
 		openTQLTransaction: fromPromise(() => {
-			return new Promise((resolve) => setTimeout(resolve, 10));
+			return new Promise((resolve) => setTimeout(resolve, 1));
 		}),
 		buildTQLMutation: fromPromise(({ input }: { input: BuildContext }) => {
 			const result = buildTQLMutation(input.things, input.edges, input.schema);
@@ -114,7 +114,7 @@ export const mutationActor = setup({
 		),
 		/// SURREAL DB
 		runSurrealDBMutation: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 1));
 			return input as EnrichedBQLMutationBlock;
 		}),
 	},
