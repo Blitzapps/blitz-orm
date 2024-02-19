@@ -61,10 +61,8 @@ export const mutationActor = setup({
 		requiresParseBQL: ({ context }) => {
 			//this would be more complicated than this, like count the entities requiring this, not just the root
 			const root = context.bql.current;
-			console.log('root', root);
 			const rootBase = isArray(root) ? root[0] : root;
 			const { requiresParseBQL } = getCurrentSchema(context.schema, rootBase).dbContext.mutation;
-			console.log('requiresParseBql', requiresParseBQL);
 			return requiresParseBQL;
 		},
 	},

@@ -4,8 +4,9 @@ import { TypeDB, SessionType } from 'typedb-driver';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
+import { queryPipeline } from './pipeline/pipeline';
 import type {
+	BQLResponseMulti,
 	BormConfig,
 	BormSchema,
 	DBHandles,
@@ -15,7 +16,7 @@ import type {
 	RawBQLQuery,
 } from './types';
 import { enableMapSet } from 'immer';
-import { createActor } from 'xstate';
+import { createActor, waitFor } from 'xstate';
 import { mutationActor } from './stateMachine/mutation/machine';
 
 export * from './types';
@@ -149,17 +150,17 @@ class BormClient {
 			},
 		});
 
-		/*runMutation.start();
+		runMutation.start();
 
 		runMutation.subscribe((state) => {
 			console.log('State transitioned to: ', state.value);
 			//console.log('Context: ', state.context);
 		});
 		await waitFor(runMutation, (state) => state.status === 'done');
-		//return [] as BQLResponseMulti; //todo: MutationBQLResponse */
+		return [] as BQLResponseMulti; //todo: MutationBQLResponse
 
-		//@ts-expect-error - enforceConnection ensures dbHandles is defined
-		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
+		//@ ts-expect-error - enforceConnection ensures dbHandles is defined
+		//return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
 	};
 
 	close = async () => {

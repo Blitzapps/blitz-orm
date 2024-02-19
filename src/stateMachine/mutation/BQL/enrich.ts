@@ -4,14 +4,14 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { doAction } from './utils';
-import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
-import { ParentBzId, ParentFieldSchema } from '../../../types/symbols';
+import { getFieldSchema } from '../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { replaceToObj } from './enrichSteps/replaces';
 import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
-import { getOp } from './enrichSteps/getOp';
+import { enrichChildren } from './enrichSteps/enrichChildren';
+import { computeFields } from './enrichSteps/computeFields';
 
 const getParentBzId = (node: BQLMutationBlock) => {
 	if ('$root' in node) {
@@ -115,49 +115,31 @@ export const enrichBQLMutation = async (
 						splitMultipleIds(node, field, schema);
 						console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
-						/// 3.2.4 children mutation & validations
+						/// 3.2.4 children enrichment
 						//redefining childrenArray as it might have changed
-						(isArray(node[field]) ? node[field] : [node[field]]).forEach((subNode: EnrichedBQLMutationBlock) => {
-							///symbols
-							if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-								subNode[ParentFieldSchema] = fieldSchema;
-								//#region nested nodes
-								const getOppositePlayers = () => {
-									if (fieldSchema.fieldType === 'linkField') {
-										return fieldSchema.oppositeLinkFieldsPlayedBy;
-									} else if (fieldSchema.fieldType === 'roleField') {
-										return fieldSchema.playedBy;
-									} else {
-										throw new Error(`[Internal] Field ${field} is not a linkField or roleField`);
-									}
-								};
-								const oppositePlayers = getOppositePlayers();
+						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+							enrichChildren(node, field, fieldSchema, parentBzId, schema);
+						}
 
-								if (oppositePlayers?.length != 1) {
-									throw new Error(`[Internal-future] Field ${field} should have a single player`);
-								} else {
-									const [player] = oppositePlayers;
-									subNode.$thing = player.thing;
-									subNode.$thingType = player.thingType;
-									subNode.$op = getOp(node, subNode, schema);
-									subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
-									subNode[ParentBzId] = parentBzId ? parentBzId : node.$bzId;
-								}
-								//#endregion nested nodes
-							}
+						/// 3.2.5 Field computes
+						console.log('toBeComputed', node, field);
+						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+							console.log('toBeComputed', node, field);
+							computeFields(node, field, schema);
+						}
 
-							//#region validations
-							const subNodeSchema = getCurrentSchema(schema, subNode);
-							const { unidentifiedFields } = getCurrentFields(subNodeSchema, subNode);
-							if (unidentifiedFields.length > 0) {
-								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
-							}
-							//#endregion validations
-						});
 						console.log(
 							'After children mutation & validations',
 							JSON.stringify(isDraft(node) ? current(node) : node, null, 2),
 						);
+						// 3.2.6
+						/*//#region validations
+						const subNodeSchema = getCurrentSchema(schema, subNode);
+						const { unidentifiedFields } = getCurrentFields(subNodeSchema, subNode);
+						if (unidentifiedFields.length > 0) {
+							throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
+						}
+						//#endregion validations */
 					}
 				});
 			}
