@@ -3,12 +3,20 @@ USE DB test;
 
 BEGIN TRANSACTION;
 
-INSERT INTO user [
-  {id: "user:user1", name: "Antoine", email: "antoine@test.com"},
-  {id: "user:user2", name: "Loic", email: "loic@test.com"},
-  {id: "user:user3", name: "Ann", email: "ann@test.com"},
-  {id: "user:user4", name: "Ben"},
-  {id: "user:user5", name: "Charlize", email: "charlize@test.com"},
+INSERT INTO User [
+  {id: "user1", name: "Antoine", email: "antoine@test.com"},
+  {id: "user2", name: "Loic", email: "loic@test.com"},
+  {id: "user3", name: "Ann", email: "ann@test.com"},
+  {id: "user4", name: "Ben"},
+  {id: "user5", name: "Charlize", email: "charlize@test.com"},
+];
+
+INSERT INTO SuperUser [
+  {id: "superuser1", name: "Beatrix Kiddo", email: "black.mamba@deadly-viper.com", power: "katana"}
+];
+
+INSERT INTO God [
+  {id: "god1", name: "Richard David James", email: "afx@rephlex.com", power: "mind control", isEvil: true}
 ];
 
 INSERT INTO Space [
@@ -23,6 +31,18 @@ INSERT INTO Thing [
   {id: "thing3", stuff: "C"},
   {id: "thing4", stuff: "D"},
   {id: "thing5", stuff: "E"}
+];
+
+INSERT INTO SubthingOne [
+  {id: "subthingone1", stuff: "F"},
+  {id: "subthingone2", stuff: "G"},
+  {id: "subthingone3", stuff: "H"}
+];
+
+INSERT INTO SubthingTwo [
+  {id: "subthingtwo1", stuff: "I"},
+  {id: "subthingtwo2", stuff: "J"},
+  {id: "subthingtwo3", stuff: "K"}
 ];
 
 INSERT INTO Account [
