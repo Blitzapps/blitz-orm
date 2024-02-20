@@ -60,11 +60,6 @@ INSERT INTO Post [
   { id: "post4", "mentions": [ "@Ann" ] }
 ];
 
-INSERT INTO Color [
-  { id: "yellow" },
-  { id: "blue" }
-];
-
 INSERT INTO Power [
   { id: "power1", description: "useless power" }
 ];
@@ -77,9 +72,25 @@ INSERT INTO SpaceUser [
   { id: "u3s2", users: User:user3, spaces: Space:space2, power: Power:power1}
 ];
 
--- INSERT INTO Kind [
---   { id: "kind_book", name: "book", space: Space:space2 }
--- ];
+INSERT INTO UserTag [
+  { id: "tag1", user: User:user1 },
+  { id: "tag21", user: User:user1 },
+  { id: "tag22", user: User:user3 },
+  { id: "tag3", user: User:user2 },
+  { id: "tag4", user: User:user2 }
+];
+
+-- $group-1 (tags: $tag-1, tags: $tag-2, color: $yellow) isa UserTagGroup, has id 'utg-1';
+-- $group-2 (tags: $tag-3, color:$blue, space: $space-3) isa UserTagGroup, has id 'utg-2';
+
+INSERT INTO Color [
+  { id: "yellow" },
+  { id: "blue" }
+];
+
+INSERT INTO Kind [
+  { id: "kind_book", name: "book", space: Space:space2 }
+];
 
 INSERT INTO Self [
   { id: "self1", space: Space:space2 },

@@ -16,9 +16,6 @@ DEFINE FIELD email ON TABLE God TYPE string;
 DEFINE FIELD power ON TABLE God TYPE string;
 DEFINE FIELD isEvil ON TABLE God TYPE bool;
 
-DEFINE TABLE Tag SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE Tag TYPE string;
-
 DEFINE TABLE Space SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE Space TYPE string;
 
@@ -72,13 +69,14 @@ DEFINE FIELD spaces ON TABLE SpaceUser TYPE record<Space>;
 DEFINE FIELD users ON TABLE SpaceUser TYPE record<User>;
 DEFINE FIELD power ON TABLE SpaceUser TYPE option<record<Power>>;
 
--- DEFINE TABLE UserTag SCHEMALESS PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE UserTag TYPE record<User | Tag>;
--- DEFINE FIELD out ON TABLE UserTag TYPE record<User | Tag>;
+DEFINE TABLE UserTag SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
+DEFINE FIELD user ON TABLE UserTag TYPE record<User>;
+DEFINE FIELD tag ON TABLE UserTag TYPE option<record<Tag>>;
 
 -- DEFINE TABLE UserTagGroup SCHEMALESS PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE UserTagGroup TYPE record<Space | UserTag>;
--- DEFINE FIELD out ON TABLE UserTagGroup TYPE record<Space | UserTag>;
+-- DEFINE FIELD tag ON Kind Type record<Tag>;
+-- DEFINE FIELD space ON Kind Type option<record<Space>>;
 -- DEFINE FIELD color ON TABLE UserTagGroup TYPE record<Color>;
 
 -- DEFINE TABLE HookParent SCHEMALESS PERMISSIONS FULL;
@@ -98,10 +96,9 @@ DEFINE FIELD power ON TABLE SpaceUser TYPE option<record<Power>>;
 -- DEFINE FIELD out ON TABLE SpaceDef TYPE record<SpaceObj>;
 -- DEFINE FIELD description ON SpaceDef TYPE string;
 
--- DEFINE TABLE Kind SCHEMALESS PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE Kind TYPE record<SpaceDef>;
--- DEFINE FIELD out ON TABLE Kind TYPE record<SpaceDef>;
--- DEFINE FIELD name ON Kind TYPE string;
+DEFINE TABLE Kind SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD space ON Table Kind Type record<Space>;
+DEFINE FIELD name ON Table Kind TYPE string;
 
 -- DEFINE TABLE Field SCHEMALESS PERMISSIONS FULL;
 -- DEFINE FIELD in ON TABLE Field TYPE record<SpaceDef>;
