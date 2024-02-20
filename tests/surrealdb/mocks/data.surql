@@ -20,9 +20,9 @@ INSERT INTO God [
 ];
 
 INSERT INTO Space [
-  { id: "space-1", name: "Production" },
-  { id: "space-2", name: "Dev" },
-  { id: "space-3", name: "Not-owned" }
+  { id: "space1", name: "Production" },
+  { id: "space2", name: "Dev" },
+  { id: "space3", name: "Not-owned" }
 ];
 
 INSERT INTO Thing [
@@ -46,11 +46,11 @@ INSERT INTO SubthingTwo [
 ];
 
 INSERT INTO Account [
-  { id: "account1-1", "provider": "google" },
-  { id: "account1-2", "provider": "facebook" },
-  { id: "account1-3", "provider": "github" },
-  { id: "account2-1", "provider": "google" },
-  { id: "account3-1", "provider": "facebook" }
+  { id: "account11", "provider": "google" },
+  { id: "account12", "provider": "facebook" },
+  { id: "account13", "provider": "github" },
+  { id: "account21", "provider": "google" },
+  { id: "account31", "provider": "facebook" }
 ];
 
 INSERT INTO Post [
@@ -69,12 +69,31 @@ INSERT INTO Power [
   { id: "power1", description: "useless power" }
 ];
 
+INSERT INTO SpaceUser [
+  { id: "u1s1", users: User:user1, spaces: Space:space1 },
+  { id: "u1s2", users: User:user1, spaces: Space:space2 },
+  { id: "u5s1", users: User:user5, spaces: Space:space1 },
+  { id: "u2s2", users: User:user2, spaces: Space:space2 },
+  { id: "u3s2", users: User:user3, spaces: Space:space2, power: Power:power1}
+];
+
+-- INSERT INTO Kind [
+--   { id: "kind_book", name: "book", space: Space:space2 }
+-- ];
+
+INSERT INTO Self [
+  { id: "self1", space: Space:space2 },
+  { id: "self2", space: Space:space2, owner: Self:self1 },
+  { id: "self3", space: Space:space2, owner: Self:self2 },
+  { id: "self4", space: Space:space2, owner: Self:self2 },
+];
+
 INSERT INTO Hook [
-  { "id": "hook1", "requiredOption": "a" },
-  { "id": "hook2", "requiredOption": "b" },
-  { "id": "hook3", "requiredOption": "c" },
-  { "id": "hook4", "requiredOption": "a" },
-  { "id": "hook5", "requiredOption": "b" }
+  { id: "hook1", requiredOption: "a" },
+  { id: "hook2", requiredOption: "b" },
+  { id: "hook3", requiredOption: "c" },
+  { id: "hook4", requiredOption: "a" },
+  { id: "hook5", requiredOption: "b" }
 ];
 
 COMMIT TRANSACTION;
