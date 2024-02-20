@@ -15,3 +15,5 @@ Then, we have to enter SQL shell by `surreal sql`, and execute the following com
 ```sh
 DEFINE NAMESPACE test; USE NS test; DEFINE DATABASE test; DEFINE USER tester ON NAMESPACE PASSWORD 'tester' ROLES OWNER;
 ```
+
+And then copy the schema from `tests/surrealdb/mocks/schema.surql` and the seed from `tests/surrealdb/mocks/data.surql` into the shell to complete the migration and seeding.
