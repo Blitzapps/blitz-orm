@@ -271,11 +271,15 @@ describe('Mutations: Init', () => {
 			$id: firstUser.id,
 		});
 
-		expect(res).toEqual({
-			$entity: 'User',
-			$op: 'delete',
-			$id: firstUser.id,
-		});
+		expect(res).toEqual([
+			{
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: firstUser.id,
+				$bzId: expect.any(String),
+			},
+		]);
 
 		if (!firstUser.id) {
 			throw new Error('firstUser.id is undefined');

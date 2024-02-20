@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import type { BQLMutationBlock, BormConfig } from '../../../types';
-import { mapEntries } from 'radash';
+import { clone } from 'radash';
 
 export type TqlRes = any;
 
@@ -8,7 +8,7 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 	// todo: check if something weird happened
 	const expected = [...reqThings, ...reqEdges];
 
-	const result = expected
+	const parsed = expected
 		.map((exp) => {
 			//! reads all the insertions and gets the first match. This means each id must be unique
 			// @ts-expect-error - TODO description
@@ -19,10 +19,16 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 			if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
 				const dbIdd = currentNode?.asThing().iid;
 				if (config.mutation?.noMetadata) {
-					return mapEntries(exp, (k: string, v) => [
-						k.toString().startsWith('$') ? Symbol.for(k) : k,
-						v,
-					]) as BQLMutationBlock;
+					const filteredObject = Object.entries(exp)
+						.filter(([k, _]) => !k.startsWith('$')) // Skip keys starting with '$'
+						.reduce(
+							(acc, [k, v]) => {
+								acc[k] = v;
+								return acc;
+							},
+							{} as Record<string, any>,
+						);
+					return filteredObject as BQLMutationBlock;
 				}
 				return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id } } as BQLMutationBlock;
 			}
@@ -40,5 +46,5 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 		.filter((z) => z);
 
 	//console.log('ParseTQLResultNew', result);
-	return result;
+	return clone(parsed);
 };

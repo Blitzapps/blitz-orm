@@ -13,7 +13,7 @@ import type {
 } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
-import { ParentBzId, ParentFieldSchema } from '../../../types/symbols';
+import { EdgeSchema, EdgeType, ParentBzId } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -81,7 +81,6 @@ export const parseBQLMutation = async (
 				return;
 			}
 
-			//@ts-expect-error - TODO
 			if (node.$tempId && node.$op === 'match') {
 				/// we don't add to the node list, those that are being matched as they don't need to be matched in db and if they have a $tempId then it means... they are being created in the same query!
 				return;
@@ -168,7 +167,7 @@ export const parseBQLMutation = async (
 				// console.log('value', isDraft(value) ? current(value) : value);
 
 				// CASE 1: HAVE A PARENT THROUGH LINKFIELDS
-				const edgeSchema = value[ParentFieldSchema] as EnrichedLinkField;
+				const edgeSchema = value[EdgeSchema] as EnrichedLinkField;
 
 				if (edgeSchema?.fieldType === 'linkField') {
 					if (value.$op === 'link' || value.$op === 'unlink') {
@@ -235,7 +234,8 @@ export const parseBQLMutation = async (
 						[edgeSchema.plays]: parentId,
 
 						//Metadata
-						[ParentFieldSchema]: edgeSchema,
+						[EdgeSchema]: edgeSchema,
+						[EdgeType]: 'linkField',
 					};
 
 					// const testVal = {};
@@ -249,18 +249,19 @@ export const parseBQLMutation = async (
 					/// this is only for relations that are not $self, as other relations will be deleted and don't need a match
 					if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
 						toEdges({
-							$relation: value[Symbol.for('relation') as any],
+							$thing: edgeSchema.relation,
+							$thingType: 'relation' as const,
 							$bzId: linkTempId,
-							//@ts-expect-error - TODO
 							$op: 'match',
-							[value[Symbol.for('oppositeRole') as any]]: parentId,
-							[Symbol.for('edgeType')]: 'linkField',
+							[edgeSchema.plays]: parentId,
+							[EdgeSchema]: edgeSchema,
+							[EdgeType]: 'linkField',
 						});
 					}
 				}
 
 				// CASE 2: IS RELATION AND HAS THINGS IN THEIR ROLES
-				if (value.$relation) {
+				if (value.$thingType === 'relation') {
 					const rolesObjFiltered = oFilter(value, (k: string, _v) => roleFieldPaths.includes(k));
 
 					/// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
@@ -288,7 +289,7 @@ export const parseBQLMutation = async (
 						// #region 2.1) relations on creation/deletion
 						if (value.$op === 'create' || value.$op === 'delete') {
 							/// if the relation is being created, then all objects in the roles are actually add
-							const getEdgeOp = () => {
+							const getEdgeOp = (): BormOperation => {
 								if (value.$op === 'create') {
 									return 'link';
 								}
@@ -313,28 +314,27 @@ export const parseBQLMutation = async (
 							/// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
 							const edgeType2 = {
 								...objWithMetaDataOnly,
-								$relation: value.$relation,
+								$thing: value.$thing,
+								$thingType: 'relation' as const,
 								$op: getEdgeOp(),
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
-								[Symbol.for('edgeType')]: 'roleField on C/D',
+								[EdgeType]: 'roleField' as const,
 							};
 
-							//@ts-expect-error - TODO
 							toEdges(edgeType2);
 							return;
 						}
 						// #endregion
 						// region 2.2 relations on nested stuff
 						// todo: probably remove the match here
-						//@ts-expect-error - TODO
 						if (value.$op === 'match' || (value.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
 							let totalUnlinks = 0;
 
 							Object.entries(rolesObjFiltered).forEach(([role, operations]) => {
 								const operationsArray = isArray(operations) ? operations : [operations];
 
-								const getOp = (childOp: string) => {
+								const getOp = (childOp: BormOperation): BormOperation => {
 									if (childOp === 'create' || childOp === 'replace') {
 										// if the children is being created, the edge is a link
 										return 'link';
@@ -360,14 +360,14 @@ export const parseBQLMutation = async (
 
 									const edgeType3 = {
 										...objWithMetaDataOnly,
-										$relation: value.$relation,
+										$thing: value.$thing,
+										$thingType: 'relation' as const,
 										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
-										[Symbol.for('edgeType')]: 'roleField on L/U/R',
+										[EdgeType]: 'roleField' as const,
 									};
 
-									//@ts-expect-error - TODO
 									toEdges(edgeType3);
 									/// when unlinking stuff, it must be merged with other potential roles.
 									/// so we need to add it as both as match and 'unlink' so it gets merged with other unlinks

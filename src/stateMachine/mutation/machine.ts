@@ -295,6 +295,7 @@ export const mutationActor = setup({
 							},
 						},
 						OPEN_TX: {
+							//!to replace by just a TX:isOpen()
 							invoke: {
 								src: 'openTQLTransaction',
 								onDone: {

@@ -2,7 +2,7 @@ import { isArray, listify, mapEntries, shake } from 'radash';
 
 import { getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
-import { ParentFieldSchema } from '../../../types/symbols';
+import { EdgeType } from '../../../types/symbols';
 
 export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
 	// todo: Split attributes and edges
@@ -199,11 +199,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 
 		// console.log('roles', roles);
 
-		if (node[ParentFieldSchema] === undefined) {
-			throw new Error('[internal error] Symbol ParentFieldSchema not defined');
-		}
-		//@ts-expect-error - TODO
-		const edgeType = node[ParentFieldSchema].fieldType;
+		const edgeType = node[EdgeType];
 		if (!edgeType) {
 			throw new Error('[internal error] Symbol edgeType not defined');
 		}
@@ -345,8 +341,8 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	// console.log('nodeOperations', nodeOperations);
-	// console.log('edgeOperations', edgeOperations);
+	console.log('nodeOperations', nodeOperations);
+	console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
 	// console.log('allOperations', allOperations);
@@ -381,6 +377,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		(x) => !x,
 	);
 
-	//console.log('tqlMutation', tqlMutation);
+	console.log('tqlMutation', tqlMutation);
 	return tqlMutation;
 };

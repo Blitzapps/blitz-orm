@@ -7,7 +7,7 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 } from '../../../../types';
-import { ParentFieldSchema, ParentBzId } from '../../../../types/symbols';
+import { ParentBzId, EdgeSchema } from '../../../../types/symbols';
 import { getOp } from './getOp';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +20,7 @@ export const enrichChildren = (
 ) => {
 	(isArray(node[field]) ? node[field] : [node[field]]).forEach((subNode: EnrichedBQLMutationBlock) => {
 		///symbols
-		subNode[ParentFieldSchema] = fieldSchema;
+		subNode[EdgeSchema] = fieldSchema;
 		//#region nested nodes
 		const getOppositePlayers = () => {
 			if (fieldSchema.fieldType === 'linkField') {

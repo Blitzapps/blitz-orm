@@ -46,11 +46,11 @@ const dataFieldStep = (node: BQLMutationBlock, field: string) => {
 	//console.log(`${field}:node[field]`);
 };
 
-export const enrichBQLMutation = async (
+export const enrichBQLMutation = (
 	blocks: BQLMutationBlock | BQLMutationBlock[] | EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
-): Promise<EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]> => {
-	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
+): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
+	console.log('Before enrich', JSON.stringify(blocks, null, 2));
 
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	const result = produce(rootBlock, (draft) =>
@@ -108,7 +108,11 @@ export const enrichBQLMutation = async (
 
 						//3.2.2 root $thing
 						if (fieldSchema.fieldType === 'rootField') {
-							setRootMeta(node, parentBzId, schema);
+							if (!('$root' in node)) {
+								throw new Error(`[Internal] Field ${field} is a rootField but the object is not a root`);
+							}
+							const rootNode = node as unknown as { $root: BQLMutationBlock | BQLMutationBlock[] };
+							setRootMeta(rootNode, parentBzId, schema);
 							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
 
@@ -142,7 +146,7 @@ export const enrichBQLMutation = async (
 		}),
 	);
 	//console.log('After enrich', result.$rootWrap.$root);
-	//console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
+	console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
 
 	traverse(result, ({ value }: TraversalCallbackContext) => {
 		if (isObject(value)) {
