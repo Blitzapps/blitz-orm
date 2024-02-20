@@ -10,6 +10,8 @@ import type {
 	BormConfig,
 	BormSchema,
 	DBHandles,
+	EnrichedBQLMutationBlock,
+	EnrichedBormSchema,
 	MutateConfig,
 	QueryConfig,
 	RawBQLMutation,
@@ -18,6 +20,9 @@ import type {
 import { enableMapSet } from 'immer';
 import { createActor, waitFor } from 'xstate';
 import { mutationActor } from './stateMachine/mutation/machine';
+import { awaitMachine as startMachine } from './stateMachine/mutation/robot';
+import { TqlMutation } from './stateMachine/mutation/TQL/run';
+import { TqlRes } from './stateMachine/mutation/TQL/parse';
 
 export * from './types';
 
@@ -140,28 +145,54 @@ class BormClient {
 			},
 		};
 
-		const startTime2 = performance.now();
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
-		const result = await mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
-		const endTime2 = performance.now();
-		console.log(`Old Mutation took ${endTime2 - startTime2}ms`);
+		// const startTime2 = performance.now();
+		// // @ts-expect-error - enforceConnection ensures dbHandles is defined
+		// const result = await mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
+		// const endTime2 = performance.now();
+		// console.log(`Old Mutation took ${endTime2 - startTime2}ms`);
 
-		// const startTime = performance.now();
-		// const runMutation = createActor(mutationActor, {
-		// 	input: {
-		// 		raw: mutation,
-		// 		config: mConfig,
-		// 		schema: this.schema,
-		// 		handles: this.dbHandles,
-		// 		deepLevel: 0, //this is the root
-		// 	},
-		// });
-		// runMutation.start();
-		// const result = await (await waitFor(runMutation, (state) => state.status === 'done')).context.bql.res;
-		// const endTime = performance.now();
-		// console.log(`New Mutation took ${endTime - startTime}ms`);
+    if (Date.now() < 0) {
+      const startTime = performance.now();
+      const runMutation = createActor(mutationActor, {
+        input: {
+          raw: mutation,
+          config: mConfig,
+          schema: this.schema,
+          handles: this.dbHandles,
+          deepLevel: 0, //this is the root
+        },
+      });
+      runMutation.start();
+      const result = await (await waitFor(runMutation, (state) => state.status === 'done')).context.bql.res;
+      const endTime = performance.now();
+      console.log(`xstate took ${endTime - startTime}ms`);
 
-		return result as BQLResponseMulti;
+      return result as BQLResponseMulti;
+    }
+
+    const startTime = performance.now();
+    const result = await startMachine({
+      bql: {
+        raw: mutation,
+        current: {} as EnrichedBQLMutationBlock,
+        things: [],
+        edges: [],
+        res: [],
+      },
+      typeDB: {
+        tqlMutation: {} as TqlMutation,
+        tqlRes: {} as TqlRes,
+      },
+      schema: this.schema as EnrichedBormSchema,
+      config: mConfig,
+      handles: this.dbHandles,
+      depthLevel: 0,
+      error: null,
+    });
+    const endTime = performance.now();
+    console.log(`robot3 took ${endTime - startTime}ms`);
+
+		return result.bql.res as BQLResponseMulti;
 	};
 
 	close = async () => {

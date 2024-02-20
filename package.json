@@ -23,7 +23,7 @@
 		"precommit": "pnpm lint-staged && pnpm test:ignoreTodo",
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
-		"test": "jest --coverage",
+		"test": "jest mutationInit.test.ts",
 		"test:ignoreTodo": "jest -t \"^(?!.*TODO:).*\" --detectOpenHandles",
 		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "jest --watch",
@@ -49,6 +49,7 @@
 		"immer": "9.0.21",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
+		"robot3": "^0.4.1",
 		"typedb-driver": "2.26.6-rc1",
 		"uuid": "^9.0.1",
 		"xstate": "^5.6.2"
