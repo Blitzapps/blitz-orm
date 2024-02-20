@@ -27,6 +27,12 @@ DEFINE FIELD stuff ON TABLE SubthingOne TYPE string;
 DEFINE TABLE SubthingTwo SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD stuff ON TABLE SubthingTwo TYPE string;
 
+-- ThingRelation sub relation,
+--     owns id @key,
+--     relates root,
+--     relates extra,
+--     relates things;
+
 DEFINE TABLE Account SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD provider ON TABLE Account TYPE string;
 DEFINE FIELD isSecureProvider ON TABLE Account TYPE option<bool>;
@@ -48,6 +54,28 @@ DEFINE TABLE Hook SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD requiredOption ON TABLE Hook TYPE string;
 DEFINE FIELD manyOptions ON TABLE Hook TYPE string;
 DEFINE FIELD fnValidatedField ON TABLE Hook TYPE string;
+
+-- Handle relationship
+-- User-Accounts sub relation,
+--     owns id @key,
+--     relates user,
+--     relates accounts;
+
+-- User-Sessions sub relation,
+--     owns id @key,
+--     relates sessions,
+--     relates user;
+
+
+
+
+
+
+
+
+
+
+
 
 -- Not sure how to migrate this to SurrealDB
 -- #1 Secure provider rule
