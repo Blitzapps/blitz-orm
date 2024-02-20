@@ -241,7 +241,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	// @ts-expect-error todo
 	cachePaths(preQueryRes || {});
 
-	console.log('cache', JSON.stringify(cache, null, 2));
+	// console.log('cache', JSON.stringify(cache, null, 2));
 
 	const fillObjectPaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -279,13 +279,18 @@ export const preQuery: PipelineOperation = async (req) => {
 						parent[key].$objectPath = getObjectPath(parent, key);
 					}
 				}
+				// else if (isObject(value) && !parent) {
+				// 	// @ts-expect-error todo
+				// 	value.$objectPath = { $isRoot: true };
+				// 	console.log('NO PARENT, ROOT?', JSON.stringify({ value, parent }, null, 2));
+				// }
 			}),
 		);
 	};
 
 	const bqlWithObjectPaths = fillObjectPaths(filledBqlRequest);
 
-	console.log('bqlWithObjectPaths', JSON.stringify(bqlWithObjectPaths, null, 2));
+	// console.log('bqlWithObjectPaths', JSON.stringify(bqlWithObjectPaths, null, 2));
 
 	const splitBzIds = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlocks = (
@@ -417,7 +422,7 @@ export const preQuery: PipelineOperation = async (req) => {
 								// console.log('multiples', JSON.stringify(multiples,null,2))
 								const processedMultiples = multiples.map((multiple: FilledBQLMutationBlock) => {
 									const cKey = objectPathToKey(multiple.$objectPath);
-									console.log('cKey', JSON.stringify(cKey, null, 2));
+									// console.log('cKey', JSON.stringify(cKey, null, 2));
 									const getIdsToKey = (searchKey: string) => {
 										const ids = [];
 										const searchSegments = searchKey.split('.');
@@ -530,7 +535,7 @@ export const preQuery: PipelineOperation = async (req) => {
 						}
 					};
 					const returnFields = getReturnFields();
-					console.log('returnFields', JSON.stringify({ returnFields, fieldsWithoutMultiples }, null, 2));
+					// console.log('returnFields', JSON.stringify({ returnFields, fieldsWithoutMultiples }, null, 2));
 					//@ts-expect-error - todo
 					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields];
 				});
@@ -566,11 +571,11 @@ export const preQuery: PipelineOperation = async (req) => {
 		blocks.forEach((block) => {
 			newBlocks = [...newBlocks, ...processBlocks([block])];
 		});
-		console.log('newBlocks', JSON.stringify(newBlocks, null, 2));
+		// console.log('newBlocks', JSON.stringify(newBlocks, null, 2));
 		const splitBlocks = newBlocks.map((block) => {
 			return processOperationBlock(block);
 		});
-		console.log('splitBlocks', JSON.stringify(splitBlocks, null, 2));
+		// console.log('splitBlocks', JSON.stringify(splitBlocks, null, 2));
 
 		return splitBlocks;
 	};
@@ -665,42 +670,56 @@ export const preQuery: PipelineOperation = async (req) => {
 				// console.log('allCombinations', JSON.stringify({ multipleBlock, allCombinations }, null, 2));
 				// 2c. Check cache and prune combinations that don't have any ids in the cache
 				allCombinations.forEach((combinationBlock) => {
-					// keys for this combination
-					const keys = getFieldKeys(combinationBlock);
-					if (!combinationBlock.$objectPath) {
-						throw new Error(`No $objectPath for this combination: ${JSON.stringify(combinationBlock, null, 2)}`);
-					}
-					const beforePath = objectPathToKey(combinationBlock.$objectPath);
-					// the ids that will be added to the cache key to check which ids are found in all keys
-					const idsOfBeforePath = cache[beforePath]?.$ids || [];
-					// console.log(
-					// 	'combination search info: ',
-					// 	JSON.stringify({ combinationBlock, keys, beforePath, idsOfBeforePath }, null, 2),
-					// );
-					const idsMatchingCombination: string[] = [];
+					// not the root block
+					if (combinationBlock.$objectPath) {
+						// throw new Error(`No $objectPath for this combination: ${JSON.stringify(combinationBlock, null, 2)}`);
+						// keys for this combination
+						const keys = getFieldKeys(combinationBlock);
 
-					idsOfBeforePath.forEach((id) => {
-						const keysFound: string[][] = [];
-						keys.forEach((key) => {
-							const cacheKey = `${beforePath}.${id}${preQueryPathSeparator}${key}`;
-							const cacheResult = cache[cacheKey]?.$ids;
+						const beforePath = objectPathToKey(combinationBlock.$objectPath);
+						// the ids that will be added to the cache key to check which ids are found in all keys
+						const idsOfBeforePath = cache[beforePath]?.$ids || [];
 
-							if (cacheResult) {
-								keysFound.push(cacheResult);
+						const idsMatchingCombination: string[] = [];
+						idsOfBeforePath.forEach((id) => {
+							const keysFound: { idsToKey: string[]; key: string }[] = [];
+							keys.forEach((key) => {
+								const cacheKey = `${beforePath}.${id}${preQueryPathSeparator}${key}`;
+								const cacheResult = cache[cacheKey]?.$ids;
+
+								if (cacheResult) {
+									keysFound.push({ idsToKey: cacheResult, key });
+								}
+							});
+
+							// console.log(
+							// 	'combination search info: ',
+							// 	JSON.stringify({ combinationBlock, keys, beforePath, idsOfBeforePath, keysFound }, null, 2),
+							// );
+							const findCommonIds = (data: { idsToKey: string[]; key: string }[]): string[] => {
+								// console.log('data: ', JSON.stringify(data, null, 2));
+								return [];
+							};
+							const commonIds = findCommonIds(keysFound);
+							const toInclude = keysFound.length === keys.length && !alreadyIncluded.includes(id);
+							if (toInclude) {
+								idsMatchingCombination.push(id);
+								alreadyIncluded.push(id);
 							}
 						});
-						const include = keysFound.length === keys.length && !alreadyIncluded.includes(id);
-						if (include) {
-							idsMatchingCombination.push(id);
-							alreadyIncluded.push(id);
-						}
-					});
-					// console.log('idsMatchingCombination', JSON.stringify(idsMatchingCombination, null, 2));
-					idsMatchingCombination.forEach((id) => {
-						const newBlock = { ...combinationBlock, $id: id, $bzId: `T_${uuidv4()}` };
-						combinationsToKeep.push(newBlock);
-					});
+						// console.log('idsMatchingCombination', JSON.stringify(idsMatchingCombination, null, 2));
+						idsMatchingCombination.forEach((id) => {
+							const newBlock = { ...combinationBlock, $id: id, $bzId: `T_${uuidv4()}` };
+							combinationsToKeep.push(newBlock);
+						});
+					} else if (getFieldKeys(combinationBlock).length > 0) {
+						// console.log('IS ROOT');
+						// always include the root block
+						combinationsToKeep.push(combinationBlock);
+					}
 				});
+				// console.log('combinationsToKeep', JSON.stringify(combinationsToKeep, null, 2));
+
 				crossReferencedOperations = [...crossReferencedOperations, ...combinationsToKeep];
 			});
 			const allOperations = [...crossReferencedOperations, ...operationWithoutMultiples];
@@ -722,7 +741,7 @@ export const preQuery: PipelineOperation = async (req) => {
 	// console.log('filledBql', JSON.stringify([filledBqlRequest], null, 2));
 
 	const splitBql = _splitBzIds(Array.isArray(bqlWithObjectPaths) ? bqlWithObjectPaths : [bqlWithObjectPaths]);
-	console.log('splitBql', JSON.stringify(splitBql, null, 2));
+	// console.log('splitBql', JSON.stringify(splitBql, null, 2));
 
 	const processReplaces = (blocks: FilledBQLMutationBlock[]) => {
 		return blocks.map((block) => {
