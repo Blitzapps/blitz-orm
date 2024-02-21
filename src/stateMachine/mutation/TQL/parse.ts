@@ -23,6 +23,18 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 						.filter(([k, _]) => !k.startsWith('$')) // Skip keys starting with '$'
 						.reduce(
 							(acc, [k, v]) => {
+								///Relations come with the $bzId in the roles instead of the $ids, lets replace them:
+								if (exp.$thingType === 'relation') {
+									const matchedThings = expected.filter((x) => x.$id && x.$bzId === v);
+									if (matchedThings.length > 1) {
+										throw new Error(`Multiple things with the same bzId ${v}`);
+									} else if (matchedThings.length === 1) {
+										acc[k] = matchedThings[0].$id;
+										return acc;
+									}
+									acc[k] = v;
+									return acc;
+								}
 								acc[k] = v;
 								return acc;
 							},

@@ -458,7 +458,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		// console.log('res', res);
+		//console.log('res', res);
 
 		// @ts-expect-error - TODO description
 		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
@@ -732,7 +732,7 @@ describe('Mutations: Init', () => {
 		]);
 	});
 
-	it('TODO:b6.2[create, default id] Create without id', async () => {
+	it('b6.2[create, default id] Create without id', async () => {
 		await bormClient.mutate([
 			{
 				$entity: 'Space',
@@ -744,19 +744,25 @@ describe('Mutations: Init', () => {
 		const res = await bormClient.query(
 			{
 				$relation: 'Kind',
-				$id: 'b6-k',
+				$filter: { name: 'b6-k' },
 				$fields: ['id', 'name'],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(res).toEqual({
-			name: 'b6-k',
-		});
+		expect(res).toEqual([
+			{
+				name: 'b6-k',
+				id: expect.any(String),
+			},
+		]);
+		//@ts-expect-error - TODO
+		const kindId = res[0].id;
 
 		/// CLEAN
 		await bormClient.mutate({
 			$relation: 'Kind',
+			$id: kindId,
 			$op: 'delete',
 		});
 	});

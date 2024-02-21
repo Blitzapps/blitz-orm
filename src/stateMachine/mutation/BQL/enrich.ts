@@ -6,13 +6,13 @@ import { isArray, isObject } from 'radash';
 import { doAction } from './utils';
 import { getFieldSchema } from '../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
-import { v4 as uuidv4 } from 'uuid';
 import { replaceToObj } from './enrichSteps/replaces';
 import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
 import { enrichChildren } from './enrichSteps/enrichChildren';
 import { computeFields } from './enrichSteps/computeFields';
 
+/*
 const getParentBzId = (node: BQLMutationBlock) => {
 	if ('$root' in node) {
 		return `R_${uuidv4()}`;
@@ -25,7 +25,7 @@ const getParentBzId = (node: BQLMutationBlock) => {
 			throw new Error(`[Internal] No bzId found in ${JSON.stringify(isDraft(node) ? current(node) : node)}`);
 		}
 	}
-};
+};*/
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -73,8 +73,6 @@ export const enrichBQLMutation = (
 
 				const node = value as BQLMutationBlock;
 
-				const parentBzId = getParentBzId(node);
-
 				Object.keys(node).forEach((field) => {
 					///1. Clean step
 					cleanStep(node, field);
@@ -102,8 +100,12 @@ export const enrichBQLMutation = (
 					if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 						///In the next steps we have (isArray(node[field]) ? node[field] : [node[field]]) multiple times, because it might mutate, can't replace by a var
 
+						//console.log('Before enrich', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						/// 3.2.1 replaces
-						replaceToObj(node, field);
+						//console.log('Before replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
+						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+							replaceToObj(node, field, fieldSchema);
+						}
 						//console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						//3.2.2 root $thing
@@ -112,7 +114,7 @@ export const enrichBQLMutation = (
 								throw new Error(`[Internal] Field ${field} is a rootField but the object is not a root`);
 							}
 							const rootNode = node as unknown as { $root: BQLMutationBlock | BQLMutationBlock[] };
-							setRootMeta(rootNode, parentBzId, schema);
+							setRootMeta(rootNode, schema);
 							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
 
@@ -123,14 +125,16 @@ export const enrichBQLMutation = (
 						/// 3.2.4 children enrichment
 						//redefining childrenArray as it might have changed
 						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							enrichChildren(node, field, fieldSchema, parentBzId, schema);
+							enrichChildren(node, field, fieldSchema, schema);
 						}
+						//console.log('After enrichChildren', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						/// 3.2.5 Field computes
 						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 							//console.log('toBeComputed', node, field);
 							computeFields(node, field, schema);
 						}
+						//console.log('After computeFields', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						// 3.2.6
 						/*//#region validations

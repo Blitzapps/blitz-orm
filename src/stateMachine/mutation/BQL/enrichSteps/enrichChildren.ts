@@ -8,41 +8,30 @@ import type {
 	EnrichedRoleField,
 } from '../../../../types';
 import { ParentBzId, EdgeSchema } from '../../../../types/symbols';
-import { getOp } from './getOp';
+import { getOp } from './shared/getOp';
 import { v4 as uuidv4 } from 'uuid';
+import { getOppositePlayers } from './shared/getOppositePlayers';
 
 export const enrichChildren = (
 	node: BQLMutationBlock,
 	field: string,
 	fieldSchema: EnrichedLinkField | EnrichedRoleField,
-	parentBzId: string,
 	schema: EnrichedBormSchema,
 ) => {
 	(isArray(node[field]) ? node[field] : [node[field]]).forEach((subNode: EnrichedBQLMutationBlock) => {
 		///symbols
 		subNode[EdgeSchema] = fieldSchema;
 		//#region nested nodes
-		const getOppositePlayers = () => {
-			if (fieldSchema.fieldType === 'linkField') {
-				return fieldSchema.oppositeLinkFieldsPlayedBy;
-			} else if (fieldSchema.fieldType === 'roleField') {
-				return fieldSchema.playedBy;
-			} else {
-				throw new Error(`[Internal] Field ${field} is not a linkField or roleField`);
-			}
-		};
-		const oppositePlayers = getOppositePlayers();
 
-		if (oppositePlayers?.length != 1) {
-			throw new Error(`[Internal-future] Field ${field} should have a single player`);
-		} else {
-			const [player] = oppositePlayers;
-			subNode.$thing = player.thing;
-			subNode.$thingType = player.thingType;
-			subNode.$op = getOp(node, subNode, schema);
-			subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
-			subNode[ParentBzId] = parentBzId ? parentBzId : node.$bzId;
-		}
+		const oppositePlayers = getOppositePlayers(field, fieldSchema);
+		const [player] = oppositePlayers;
+
+		subNode.$thing = player.thing;
+		subNode.$thingType = player.thingType;
+		subNode.$op = getOp(node, subNode, schema);
+		subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
+		subNode[ParentBzId] = node.$bzId;
+
 		//#endregion nested nodes
 	});
 };

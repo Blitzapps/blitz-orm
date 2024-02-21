@@ -226,6 +226,7 @@ export const parseBQLMutation = async (
 					const edgeType1 = {
 						$bzId: linkTempId,
 						$thing: edgeSchema.relation,
+						$thingType: 'relation' as const,
 						...(value.$tempId ? { $tempId: value.$tempId } : {}),
 						$op: getLinkObjOp(),
 

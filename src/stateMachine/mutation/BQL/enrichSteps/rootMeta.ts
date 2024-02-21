@@ -1,12 +1,9 @@
 import { isArray } from 'radash';
 import type { BQLMutationBlock, EnrichedBormSchema } from '../../../../types';
-import { getOp } from './getOp';
+import { getOp } from './shared/getOp';
+import { v4 as uuidv4 } from 'uuid';
 
-export const setRootMeta = (
-	node: { $root: BQLMutationBlock | BQLMutationBlock[] },
-	parentBzId: string,
-	schema: EnrichedBormSchema,
-) => {
+export const setRootMeta = (node: { $root: BQLMutationBlock | BQLMutationBlock[] }, schema: EnrichedBormSchema) => {
 	const rootArray = isArray(node.$root) ? node.$root : [node.$root];
 
 	const withMetadataRootArray = rootArray.map((rootNode) => {
@@ -16,7 +13,7 @@ export const setRootMeta = (
 			...(rootNode.$thing ? {} : { $thing: rootNode.$entity || rootNode.$relation }),
 			...(rootNode.$thingType ? {} : { $thingType: rootNode.$entity ? 'entity' : 'relation' }),
 			...(rootNode.$op ? {} : { $op: rootOp }),
-			...(rootNode.$bzId ? {} : { $bzId: parentBzId }),
+			...(rootNode.$bzId ? {} : { $bzId: `R_${uuidv4()}` }),
 		};
 		// eslint-disable-next-line no-param-reassign
 		return { ...withMetadata, ...rootNode };

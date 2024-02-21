@@ -13,6 +13,9 @@ export const splitMultipleIds = (node: BQLMutationBlock, field: string, schema: 
 					/*const childSchema =*/ getCurrentSchema(schema, subNode);
 					//console.log('childSchema', childSchema);
 					/// Depending on the DB this operation is required or not
+					if (!subNode.$bzId) {
+						throw new Error('[Internal Error] No bzId found');
+					}
 					// eslint-disable-next-line no-constant-condition
 					if (/*childSchema.dbContext.mutation?.splitArray$Ids*/ true) {
 						console.log('subNode', subNode);
