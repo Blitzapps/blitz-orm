@@ -1,10 +1,11 @@
 import { isObject } from 'radash';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 
-export const cleanQueryRes: PipelineOperation = async (req, res) => {
+export const cleanQueryRes: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { config } = req;
 	const { bqlRes } = res;
 

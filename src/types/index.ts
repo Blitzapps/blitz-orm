@@ -9,3 +9,4 @@ export * from './schema/base';
 export * from './schema/enriched';
 export * from './schema/fields';
 export * from './typeGen';
+export * from './pipeline/base'

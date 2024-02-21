@@ -5,11 +5,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
 import type { BQLMutationBlock, FilledBQLMutationBlock } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 
-export const parseBQLMutation: PipelineOperation = async (req) => {
+export const parseBQLMutation: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
 	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));

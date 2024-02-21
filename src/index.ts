@@ -134,13 +134,20 @@ class BormClient {
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
 	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
-		await this.#enforceConnection();
-		const qConfig = {
-			...this.config,
-			query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
-		};
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
-		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
+    const handles = this.dbHandles;
+    if(!handles){
+      throw new Error('dbHandles undefined')
+    }
+
+    await this.#enforceConnection();
+
+    const qConfig = {
+      ...this.config,
+      query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
+    };
+
+    // @ts-expect-error type of Query is incorrect
+    return queryPipeline(query, qConfig, this.schema, handles);
 	};
 
 	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: MutateConfig) => {

@@ -2,9 +2,10 @@ import { isArray, listify, mapEntries, shake } from 'radash';
 
 import { getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { BQLMutationBlock } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 
-export const buildTQLMutation: PipelineOperation = async (req) => {
+export const buildTQLMutation: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { bqlRequest, schema } = req;
 	if (!bqlRequest) {
 		throw new Error('BQL request not parsed');

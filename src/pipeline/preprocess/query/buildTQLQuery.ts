@@ -1,10 +1,11 @@
 import { QueryPath } from '../../../types/symbols';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
 
-export const buildTQLQuery: PipelineOperation = async (req) => {
+export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { enrichedBqlQuery } = req;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL query not enriched');

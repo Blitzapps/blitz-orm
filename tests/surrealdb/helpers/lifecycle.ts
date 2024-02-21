@@ -49,9 +49,7 @@ export const init = async () => {
 
 	try {
     // FIXME cannot add schema in runtime due to this issue. Wait for it to be fixed, https://github.com/surrealdb/surrealdb/issues/3541
-    await db.query(surqlSchema)
-
-    console.log('check', await db.select('User'))
+    // await db.query(surqlSchema)
 
     // This will not work, as SurrealDB 1.0 expect transaction to happen at the same query call. It will be implemented in SurrealDB 2.0
     // REF https://discord.com/channels/902568124350599239/970338835990974484/1206357894879248406
@@ -62,11 +60,6 @@ export const init = async () => {
     //   email: 'shownotshow@example.com'
     // };`)
     // await db.query(`COMMIT TRANSACTION;`)
-
-    await db.create('User', {
-      name: "user",
-      email: "user@example.com"
-    })
 
 		const bormClient = new BormClient({
 			schema: testSchema,

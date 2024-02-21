@@ -7,10 +7,10 @@ Therefore, we cannot only make all table schemaless.
 Before we run test, start the db:
 
 ```sh
-surreal start file:database.db  --allow-all
+surreal start file:database.db  --allow-all -u tester -p tester
 ```
 
-Then, we have to enter SQL shell by `surreal sql`, and execute the following command.
+Then, we have to enter SQL shell by `surreal sql -u tester -p tester`, and execute the following command.
 
 ```sh
 DEFINE NAMESPACE test; USE NS test; DEFINE DATABASE test; DEFINE USER tester ON NAMESPACE PASSWORD 'tester' ROLES OWNER;

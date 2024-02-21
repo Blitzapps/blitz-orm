@@ -17,6 +17,9 @@ import type {
 	TQLRequest,
 	FilledBQLMutationBlock,
 	BQLResponseMulti,
+  Pipeline,
+  Request,
+  BaseResponse
 } from '../types';
 import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
@@ -28,6 +31,7 @@ import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';
 import { validationHooks } from './preprocess/mutation/validationHooks';
 import { postHooks } from './postprocess/query/postHooks';
 import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
+import { SurrealDbPipelines } from '../adapters/surrealDB'
 
 export type RelationName = string;
 export type EntityName = string;
@@ -36,19 +40,7 @@ export type ID = string;
 type EntityID = ID;
 export type Entity = { $entity: string; $id: string; $show?: boolean } & Record<string, any>;
 
-type Request = {
-	rawBqlRequest: RawBQLRequest;
-	filledBqlRequest?: FilledBQLMutationBlock[] | FilledBQLMutationBlock; // todo: transform into filledBQLRequest with queries as well
-	bqlRequest?: { query?: BQLQuery; mutation?: BQLMutation };
-	schema: EnrichedBormSchema;
-	config: BormConfig;
-	tqlRequest?: TQLRequest;
-	dbHandles: DBHandles;
-	// todo: define type
-	enrichedBqlQuery?: any;
-};
-
-type Response = {
+export type TypeDbResponse = {
 	rawTqlRes?: {
 		// queries
 		entity?: ConceptMapGroup[];
@@ -75,17 +67,7 @@ type Response = {
 	isBatched?: boolean;
 };
 
-type NextPipeline = {
-	req: Request;
-	res: Response;
-	pipeline: PipelineOperation[];
-};
-
-export type PipelineOperation = (req: Request, res: Response) => Promise<void | NextPipeline[]>;
-
-type Pipeline = PipelineOperation[];
-
-const Pipelines: Record<string, Pipeline> = {
+const Pipelines: Record<string, Pipeline<TypeDbResponse>> = {
 	query: [enrichBQLQuery, buildTQLQuery, runTQLQuery, parseTQLQuery, postHooks, cleanQueryRes],
 	mutation: [
 		enrichBQLMutation,
@@ -104,10 +86,10 @@ const Pipelines: Record<string, Pipeline> = {
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];
 // const finalPipeline = [];
 
-const runPipeline = async (
-	pipeline: Pipeline,
+const runPipeline = async <Res extends BaseResponse>(
+	pipeline: Pipeline<TypeDbResponse>,
 	req: Request,
-	res: Response = {},
+	res: Res,
 	root = true,
 	// todo: ts antoine
 	// eslint-disable-next-line consistent-return
@@ -146,17 +128,33 @@ export const queryPipeline = (
 	bormConfig: BormConfig,
 	bormSchema: EnrichedBormSchema,
 	dbHandles: DBHandles,
-) =>
-	runPipeline(
-		Pipelines.query,
-		{
-			config: bormConfig,
-			schema: bormSchema,
-			rawBqlRequest: bqlRequest,
-			dbHandles,
-		},
-		{},
-	);
+) => {
+  if(dbHandles.typeDB && dbHandles.typeDB.size > 0){
+    return runPipeline(
+      Pipelines.query,
+      {
+        config: bormConfig,
+        schema: bormSchema,
+        rawBqlRequest: bqlRequest,
+        dbHandles,
+      },
+      {},
+    );
+  } else if (dbHandles.surrealDB && dbHandles.surrealDB.size > 0) {
+    return runPipeline(
+      SurrealDbPipelines.query,
+      {
+        config: bormConfig,
+        schema: bormSchema,
+        rawBqlRequest: bqlRequest,
+        dbHandles,
+      },
+      {},
+    );
+  } else {
+    throw new Error("no pipeline defined")
+  }
+}
 
 export const mutationPipeline = (
 	bqlRequest: RawBQLRequest,

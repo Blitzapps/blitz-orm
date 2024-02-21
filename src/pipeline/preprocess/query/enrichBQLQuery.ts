@@ -1,5 +1,6 @@
 import { produce } from 'immer';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { traverse } from 'object-traversal';
 import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
@@ -52,7 +53,7 @@ const processFilter = ($filter: any, currentSchema: EnrichedBormEntity | Enriche
 	}, {});
 };
 
-export const enrichBQLQuery: PipelineOperation = async (req) => {
+export const enrichBQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { rawBqlRequest: rawBqlQuery, schema } = req;
 
 	if (!Array.isArray(rawBqlQuery)) {

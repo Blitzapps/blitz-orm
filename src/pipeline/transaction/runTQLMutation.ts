@@ -1,9 +1,10 @@
 import { TransactionType } from 'typedb-driver';
 
-import type { PipelineOperation } from '../pipeline';
+import type { TypeDbResponse } from '../pipeline'
+import type { PipelineOperation } from '../../types';
 import { getSessionOrOpenNewOne } from './helpers';
 
-export const runTQLMutation: PipelineOperation = async (req, res) => {
+export const runTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { dbHandles, tqlRequest, bqlRequest, config } = req;
 	if (!tqlRequest) {
 		throw new Error('TQL request not built');
