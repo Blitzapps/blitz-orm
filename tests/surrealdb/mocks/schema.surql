@@ -56,9 +56,9 @@ DEFINE FIELD fnValidatedField ON TABLE Hook TYPE option<string>;
 -- DEFINE FIELD in ON TABLE ThingRelation TYPE record<Thing>;
 -- DEFINE FIELD out ON TABLE ThingRelation TYPE record<Thing>;
 
--- DEFINE TABLE UserAccounts SCHEMALESS PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE UserAccounts TYPE record<User | Account>;
--- DEFINE FIELD out ON TABLE UserAccounts TYPE record<User | Account>;
+DEFINE TABLE UserAccounts SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD user ON TABLE UserAccounts TYPE record<User>;
+DEFINE FIELD account ON TABLE UserAccounts TYPE record<Account>;
 
 -- DEFINE TABLE UserSessions SCHEMALESS PERMISSIONS FULL;
 -- DEFINE FIELD in ON TABLE UserSessions TYPE record<User | Session>;

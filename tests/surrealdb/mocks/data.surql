@@ -45,6 +45,18 @@ INSERT INTO SubthingTwo [
   {id: "subthingtwo3", stuff: "K"}
 ];
 
+-- # $thingrelation-1 (things: $thing1, things: $subthing-one-1, things: $subthing-two-1, things: $subthing-two-2) isa ThingRelation, has id 'tr1';
+-- $thingrelation-2 (things: $thing5, root: $thing2, extra: $thing1) isa ThingRelation, has id 'tr2';
+-- $thingrelation-3 (things: $thing5, things: $thing4, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr3';
+-- $thingrelation-4 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr4';
+-- $thingrelation-5 (things: $thing5, root: $thing1, extra: $thing1) isa ThingRelation, has id 'tr5';
+-- $thingrelation-6 (things: $thing5, root: $thing2, extra: $thing1) isa ThingRelation, has id 'tr6';
+-- $thingrelation-7 (things: $thing5, root: $thing3, extra: $thing1) isa ThingRelation, has id 'tr7';
+-- $thingrelation-8 (things: $thing5, root: $thing4, extra: $thing1) isa ThingRelation, has id 'tr8';
+-- $thingrelation-9 (things: $thing5, root: $thing4, extra: $thing1) isa ThingRelation, has id 'tr9';
+-- $thingrelation-10 (extra: $thing1) isa ThingRelation, has id 'tr10';
+-- $thingrelation-11 (root: $thing4, extra: $thing5) isa ThingRelation, has id 'tr11';
+
 INSERT INTO Account [
   { id: "account11", "provider": "google" },
   { id: "account12", "provider": "facebook" },
@@ -58,6 +70,14 @@ INSERT INTO Post [
   { id: "post2", "mentions": [ "@Antoine", "@Loic" ]},
   { id: "post3", "mentions": [ "@Loic" ] },
   { id: "post4", "mentions": [ "@Ann" ] }
+];
+
+INSERT INTO UserAccounts [
+  { id: "ua11", user: User:user1, account: Account:account11 },
+  { id: "ua12", user: User:user1, account: Account:account12 },
+  { id: "ua13", user: User:user1, account: Account:account13 },
+  { id: "ua21", user: User:user2, account: Account:account21 },
+  { id: "ua31", user: User:user3, account: Account:account31 }
 ];
 
 INSERT INTO Power [
