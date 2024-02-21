@@ -9,7 +9,29 @@ type SurrealDbResponse = {
 } & BaseResponse;
 
 const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-  console.log('check req and res', req.enrichedBqlQuery, JSON.stringify(req.enrichedBqlQuery))
+  const { dbHandles, enrichedBqlQuery } = req;
+	if (!enrichedBqlQuery) {
+		throw new Error('BQL request not parsed');
+	}
+  if(!dbHandles.surrealDB){
+    throw new Error('missing SurrealDB in dbHandles');
+  }
+
+  const connector = req.config.dbConnectors.find((connector) => connector.provider === "surrealDB")
+
+  if(!connector){
+    throw new Error('missing SurrealDB config')
+  }
+
+  const mapItem = dbHandles.surrealDB.get(connector.id)
+
+  if(!mapItem){
+    throw new Error(`missing SurrealDB client with id of ${connector.id}`)
+  }
+
+  const { client } = mapItem
+
+  // console.log('check req and res', req, req.enrichedBqlQuery, client)
 }
 
 export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
