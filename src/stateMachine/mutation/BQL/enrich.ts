@@ -34,7 +34,11 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 
 	if (field === '$tempId') {
 		if (doAction('set_tempId', node)) {
-			Reflect.set(node, '$tempId', 'transfomed hehe');
+			if (node.$tempId?.startsWith('_:')) {
+				const tempId = node.$tempId.substring(2);
+				node.$tempId = tempId;
+				node.$bzId = tempId;
+			}
 		} else {
 			throw new Error('[Internal] TempId already modified');
 		}

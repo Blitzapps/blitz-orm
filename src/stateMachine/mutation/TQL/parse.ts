@@ -42,7 +42,9 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 						);
 					return filteredObject as BQLMutationBlock;
 				}
-				return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id } } as BQLMutationBlock;
+				/// We revert the cleaning of the tempId
+				const tempId = exp.$tempId && !exp.$tempId.startsWith('_:') ? { $tempId: `_:${exp.$tempId}` } : {};
+				return { $dbId: dbIdd, ...exp, ...{ [exp.path]: exp.$id, ...tempId } } as BQLMutationBlock;
 			}
 			if (exp.$op === 'delete' || exp.$op === 'unlink') {
 				// todo when typeDB confirms deletions, check them here
