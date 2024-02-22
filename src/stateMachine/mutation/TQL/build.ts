@@ -256,6 +256,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 				/// this got commented as the match brings what is needed but will probably need a refacto
 				/// this is coded as generating a match block in [parseBQLmutation.ts], toEdges(edgeType1)
 				// return `${bzId} ${roles} isa ${relationDbPath};`;
+				//return `${relationTql};`; //!this fixes rep-del1 but breaks other tests, ideally should be added
 			}
 			if (op === 'match') {
 				return `${relationTql};`;
@@ -293,6 +294,8 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
       }
       return [];
     }; */
+		const deletionMatch = getDeletionMatchInEdges();
+		console.log('deletionMatches', deletionMatch);
 
 		return {
 			// preDeletionBatch: getPreDeletionBatch(),
@@ -341,11 +344,11 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	//console.log('nodeOperations', nodeOperations);
-	//console.log('edgeOperations', edgeOperations);
+	console.log('nodeOperations', nodeOperations);
+	console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
-	// console.log('allOperations', allOperations);
+	//console.log('allOperations', allOperations);
 
 	// todo: split BQL mutation in N DBstreams per DB
 	// todo: then pack them per DB,

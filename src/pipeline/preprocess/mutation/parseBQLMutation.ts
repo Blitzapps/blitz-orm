@@ -348,7 +348,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 									const edgeType3 = {
 										...objWithMetaDataOnly,
 										$relation: value.$relation,
-										$op: op === 'delete' ? 'unlink' : op,
+										$op: op === 'delete' ? 'unlink' : op, //using "match" instead of link would add it also to insert match dependencies. Maybe match-link and match-unlink should be specified, but so far using just link and unlink does it
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',

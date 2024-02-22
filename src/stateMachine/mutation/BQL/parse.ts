@@ -8,6 +8,7 @@ import type {
 	BQLMutationBlock,
 	BormOperation,
 	EnrichedBQLMutationBlock,
+	EnrichedBormRelation,
 	EnrichedBormSchema,
 	EnrichedLinkField,
 } from '../../../types';
@@ -268,7 +269,7 @@ export const parseBQLMutation = async (
 					/// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
 					// todo: this is super weird, remove
 					//@ts-expect-error - TODO
-					const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
+					const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k: string, v) => {
 						if (isArray(v)) {
 							return [k, v];
 						}
@@ -287,7 +288,7 @@ export const parseBQLMutation = async (
 					});
 
 					if (Object.keys(rolesObjFiltered).filter((x) => !x.startsWith('$')).length > 0) {
-						// #region 2.1) relations on creation/deletion
+						// 2.1 EDGE TYPE 2
 						if (value.$op === 'create' || value.$op === 'delete') {
 							/// if the relation is being created, then all objects in the roles are actually add
 							const getEdgeOp = (): BormOperation => {
@@ -300,9 +301,22 @@ export const parseBQLMutation = async (
 								throw new Error('Unsupported parent of edge op');
 							};
 
+							const currentRoles = (getCurrentSchema(schema, value) as EnrichedBormRelation).roles;
 							/// group ids when cardinality MANY
-							const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k, v) => {
+							const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k: string, v) => {
+								const currentRoleCardinality = currentRoles[k]?.cardinality;
+								if (!currentRoleCardinality) {
+									throw new Error(`Role ${k} not found in schema`);
+								}
+
 								if (Array.isArray(v)) {
+									if (currentRoleCardinality === 'ONE') {
+										if (v.length > 1) {
+											throw new Error(`[Error] Role ${k} is not a MANY relation`);
+										} else {
+											return [k, v[0].$bzId || v[0]];
+										}
+									}
 									/// Replace the array of objects with an array of ids
 									return [k, v.map((vNested: any) => vNested.$bzId || vNested)];
 								}
@@ -327,8 +341,7 @@ export const parseBQLMutation = async (
 							return;
 						}
 						// #endregion
-						// region 2.2 relations on nested stuff
-						// todo: probably remove the match here
+						// 2.2 EDGE TYPE 3
 						if (value.$op === 'match' || (value.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
 							let totalUnlinks = 0;
 
@@ -359,6 +372,7 @@ export const parseBQLMutation = async (
 										);
 									}
 
+									/// Edges can only be link or unlink. When its match for deletion or creation we need to know which one of those, so its either unlink or link!
 									const edgeType3 = {
 										...objWithMetaDataOnly,
 										$thing: value.$thing,
@@ -379,7 +393,6 @@ export const parseBQLMutation = async (
 								});
 							});
 						}
-						// #endregion
 						// throw new Error('Unsupported direct relation operation');
 					}
 				}

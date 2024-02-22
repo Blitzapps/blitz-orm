@@ -2740,6 +2740,67 @@ describe('Mutations: Edges', () => {
 		]);
 	});
 
+	it('rep-del1[delete, replace, ONE] replace on cardinality ONE but deleting existing', async () => {
+		//! todo: this one requires doing match-delete and match-insert
+		expect(bormClient).toBeDefined();
+
+		await bormClient.mutate(
+			{
+				$relation: 'UserTagGroup',
+				id: 'rep-del1-utg1',
+				color: { id: 'pink' },
+			},
+			{ noMetadata: true },
+		);
+
+		const origin = await bormClient.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'rep-del1-utg1',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(origin).toBeDefined();
+		expect(origin).toEqual({
+			id: 'rep-del1-utg1',
+			color: 'pink',
+		});
+
+		//The real test
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$thing: 'UserTagGroup',
+			$id: 'rep-del1-utg1',
+			color: [{ $op: 'delete' }, { id: 'purple' }],
+		});
+
+		const colors = await bormClient.query(
+			{
+				$thing: 'Color',
+				$thingType: 'entity',
+				$fields: ['id', 'group'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(colors).toBeDefined();
+		expect(deepSort(colors, 'id')).toEqual([
+			{
+				group: 'utg-2',
+				id: 'blue',
+			},
+			{
+				id: 'purple',
+				group: 'rep-del1-utg1',
+			},
+			{
+				group: 'utg-1',
+				id: 'yellow',
+			},
+		]);
+	});
+
 	/*
   it('f1[json] Basic nested json-like field', async () => {
     /// In general, this json-like is used only as a way to group properties that actually belong to the entity
