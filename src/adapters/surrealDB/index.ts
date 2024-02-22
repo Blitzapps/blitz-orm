@@ -31,7 +31,10 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
   const { client } = mapItem
 
-  // console.log('check req and res', req, req.enrichedBqlQuery, client)
+
+  for(const query of req.enrichedBqlQuery) {
+    console.log('check query', query)
+  }
 }
 
 export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
