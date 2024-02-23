@@ -3,6 +3,8 @@ import type { BaseResponse, EnrichedBormSchema, PipelineOperation } from '../../
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { postHooks } from '../../pipeline/postprocess/query/postHooks';
 import { cleanQueryRes } from '../../pipeline/postprocess/query/cleanQueryRes';
+import { pascal, snake } from 'radash'
+import { QueryPath } from '../../types/symbols';
 
 type SurrealDbResponse = {
 
@@ -23,6 +25,36 @@ const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", 
   return result
 }
 
+type EnrichedBqlQueryEntity = {
+  '$thingType': 'entity',
+  '$plays': string,
+  '$playedBy': {
+    path: string,
+    cardinality: string,
+    relation: string,
+    plays: string,
+    target: string,
+    thing: string,
+    thingType: string,
+  },
+  '$path': string,
+  '$dbPath': undefined,
+  '$as': string,
+  '$var': string,
+  '$thing': string,
+  '$fields': Array<any>
+  '$excludedFields': undefined,
+  '$fieldType': string,
+  '$target': string,
+  '$intermediary': string,
+  '$justId': boolean
+  '$id': undefined,
+  '$filter': {},
+  '$idNotIncluded': boolean,
+  '$filterByUnique': boolean,
+  '$filterProcessed': boolean
+}
+
 type EnrichedBqlQuery = {
   '$path': string,
   '$thing': string,
@@ -40,50 +72,23 @@ type EnrichedBqlQuery = {
     '$filter': undefined,
     '$isVirtual': undefined,
     '$filterProcessed': boolean,
-  } | {
-    '$thingType': 'entity',
-    '$plays': string,
-    '$playedBy': {
-      path: string,
-      cardinality: string,
-      relation: string,
-      plays: string,
-      target: string,
-      thing: string,
-      thingType:string,
-    },
-    '$path': string,
-    '$dbPath': undefined,
-    '$as': string,
-    '$var': string,
-    '$thing': string,
-    '$fields': Array<any>
-    '$excludedFields': undefined,
-    '$fieldType': string,
-    '$target': string,
-    '$intermediary': string,
-    '$justId': boolean
-    '$id': undefined,
-    '$filter': {},
-    '$idNotIncluded': boolean,
-    '$filterByUnique': boolean,
-    '$filterProcessed': boolean
-  }>
+  } | EnrichedBqlQueryEntity>
 }
 
 // any now, wait for type from enrichedBqlQuery
-const buildQuery = (query: EnrichedBqlQuery) => {
+const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
+  const attributes = query["$fields"].filter((q) => q["$thingType"] === "attribute")
+  const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
 
-  const attributes =  query["$fields"].filter((q) => q["$thingType"] === "attribute")
+  const entitiesQuery = entities.map((entity) => {
+    const role = pascal(entity["$playedBy"].relation)
 
-  // console.log('hi', attributes.map((attr) => `${attr['$path']}` ).join(','))
+    return `<-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out as ${entity['$as']}`
+  })
 
-  const entities = query["$fields"].filter((q) => q["$thingType"] === "entity")
-
-  console.log('bye entities', entities)
-
-  // console.log('hi entities', JSON.stringify(entities, null, 2))
-
+  return `SELECT 
+    ${[...attributes.map((attr) => `${attr['$path']}`), ...entitiesQuery].join(",")}
+  FROM ${thing} FETCH ${entities.map((entity) => entity["$path"]).join(",")} PARALLEL`
 }
 
 const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
@@ -110,36 +115,29 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
   const { client } = mapItem
 
-  // @ts-expect-error enrichedBqlQuery is any
-  const allEntities = req.enrichedBqlQuery.map((query) => {
+  const results = await Promise.all((req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query, idx) => {
     if (query["$thingType"] !== "entity") {
       throw new Error('unimplemented')
     }
 
-    // console.log('what is schema', schema)
+    const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
 
-    console.log('byeee query', buildQuery(query))
+    return await Promise.all(subtypes.map(async (subtype) => {
+      const queryRes: Array<Record<string, unknown>> = await client.query(buildQuery(subtype, query))
 
-    return [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
-  })
+      const transformed = queryRes.map((item) => ({
+        "$id": item.id,
+        "$thing": subtype,
+        "$thingType": "entity",
+        ...item,
+        [QueryPath]: enrichedBqlQuery[0][QueryPath]
+      }));
 
-  if(allEntities.length > 1){
-    throw new Error('multiple qureies unimplemented')
-  }
-
-  const queryRes = await Promise.all(allEntities[0].map(async (entity: string) => {
-    return await client.query(`
-    SELECT
-      *,
-      <-SpaceUser_users<-SpaceUser->SpaceUser_spaces.out.id as spaces,
-      <-UserAccounts_user<-UserAccounts->UserAccounts_accounts.out as accounts
-    FROM ${entity} FETCH Space, Account PARALLEL;
-    `)
+      return transformed
+    }))
   }))
 
-  const result = queryRes.flat()
-
-  res.bqlRes = result
+  res.bqlRes = results.flat(2)
 }
 
 export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
