@@ -67,7 +67,7 @@ DEFINE TABLE UserAccounts_user SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE UserAccounts_user TYPE record<UserAccounts>;
 DEFINE FIELD out ON TABLE UserAccounts_user TYPE record<User>;
 DEFINE TABLE UserAccounts_accounts SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserAccounts_accounts TYPE record<Account>;
+DEFINE FIELD in ON TABLE UserAccounts_accounts TYPE record<UserAccounts>;
 DEFINE FIELD out ON TABLE UserAccounts_accounts TYPE record<Account>;
 
 DEFINE TABLE UserSessions SCHEMALESS PERMISSIONS FULL;
@@ -101,7 +101,7 @@ DEFINE FIELD in ON TABLE UserTagGroup_tags TYPE record<UserTagGroup>;
 DEFINE FIELD out ON TABLE UserTagGroup_tags TYPE record<UserTag>;
 DEFINE TABLE UserTagGroup_space SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE UserTagGroup_space TYPE record<UserTagGroup>;
-DEFINE FIELD out ON TABLE UserTagGroup_space TYPE record<space>;
+DEFINE FIELD out ON TABLE UserTagGroup_space TYPE record<Space>;
 DEFINE TABLE UserTagGroup_color SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE UserTagGroup_color TYPE record<UserTagGroup>;
 DEFINE FIELD out ON TABLE UserTagGroup_color TYPE record<Color>;
