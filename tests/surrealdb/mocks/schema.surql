@@ -52,39 +52,75 @@ DEFINE FIELD fnValidatedField ON TABLE Hook TYPE option<string>;
 
 -- relationship
 DEFINE TABLE ThingRelation SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD root ON TABLE ThingRelation TYPE option<record<Thing>>;
-DEFINE FIELD extra ON TABLE ThingRelation TYPE option<record<Thing>>;
-DEFINE FIELD things ON TABLE ThingRelation TYPE array<record<Thing>>;
+DEFINE TABLE ThingRelation_root SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ThingRelation_root TYPE record<ThingRelation>;
+DEFINE FIELD out ON TABLE ThingRelation_root TYPE record<Thing>;
+DEFINE TABLE ThingRelation_extra SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ThingRelation_extra TYPE record<ThingRelation>;
+DEFINE FIELD out ON TABLE ThingRelation_extra TYPE record<Thing>;
+DEFINE TABLE ThingRelation_things SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
+DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
 
 DEFINE TABLE UserAccounts SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD user ON TABLE UserAccounts TYPE record<User>;
-DEFINE FIELD accounts ON TABLE UserAccounts TYPE array<record<Account>>;
+DEFINE TABLE UserAccounts_user SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserAccounts_user TYPE record<UserAccounts>;
+DEFINE FIELD out ON TABLE UserAccounts_user TYPE record<User>;
+DEFINE TABLE UserAccounts_accounts SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserAccounts_accounts TYPE record<Account>;
+DEFINE FIELD out ON TABLE UserAccounts_accounts TYPE record<Account>;
 
 DEFINE TABLE UserSessions SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD user ON TABLE UserSessions TYPE record<User>;
-DEFINE FIELD sessions ON TABLE UserSessions TYPE array<record<Session>>;
+DEFINE TABLE UserSessions_user SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserSessions_user TYPE record<UserSessions>;
+DEFINE FIELD out ON TABLE UserSessions_user TYPE record<User>;
+DEFINE TABLE UserSessions_accounts SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserSessions_accounts TYPE record<UserSessions>;
+DEFINE FIELD out ON TABLE UserSessions_accounts TYPE record<Session>;
 
 DEFINE TABLE SpaceUser SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD spaces ON TABLE SpaceUser TYPE record<Space>;
-DEFINE FIELD users ON TABLE SpaceUser TYPE record<User>;
-DEFINE FIELD power ON TABLE SpaceUser TYPE option<record<Power>>;
+DEFINE TABLE SpaceUser_spaces SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE SpaceUser_spaces TYPE record<SpaceUser>;
+DEFINE FIELD out ON TABLE SpaceUser_spaces TYPE record<Space>;
+DEFINE TABLE SpaceUser_users SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE SpaceUser_users TYPE record<SpaceUser>;
+DEFINE FIELD out ON TABLE SpaceUser_users TYPE record<User>;
+DEFINE TABLE SpaceUser_power SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE SpaceUser_power TYPE record<SpaceUser>;
+DEFINE FIELD out ON TABLE SpaceUser_power TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMALESS PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
-DEFINE FIELD users ON TABLE UserTag TYPE array<record<User>>;
+DEFINE TABLE UserTag_users SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserTag_users TYPE record<UserTag>;
+DEFINE FIELD out ON TABLE UserTag_users TYPE record<User>;
 
 DEFINE TABLE UserTagGroup SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD tags ON UserTagGroup Type array<record<UserTag>>;
-DEFINE FIELD space ON UserTagGroup Type option<record<Space>>;
-DEFINE FIELD color ON TABLE UserTagGroup TYPE record<Color>;
+DEFINE TABLE UserTagGroup_tags SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserTagGroup_tags TYPE record<UserTagGroup>;
+DEFINE FIELD out ON TABLE UserTagGroup_tags TYPE record<UserTag>;
+DEFINE TABLE UserTagGroup_space SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserTagGroup_space TYPE record<UserTagGroup>;
+DEFINE FIELD out ON TABLE UserTagGroup_space TYPE record<space>;
+DEFINE TABLE UserTagGroup_color SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE UserTagGroup_color TYPE record<UserTagGroup>;
+DEFINE FIELD out ON TABLE UserTagGroup_color TYPE record<Color>;
 
 DEFINE TABLE HookParent SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD mainHook ON TABLE HookParent TYPE record<Hook>;
-DEFINE FIELD hooks ON TABLE HookParent TYPE array<record<Hook>>;
+DEFINE TABLE HookParent_mainHook SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE HookParent_mainHook TYPE record<HookParent>;
+DEFINE FIELD out ON TABLE HookParent_mainHook TYPE record<Hook>;
+DEFINE TABLE HookParent_hooks SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE HookParent_hooks TYPE record<HookParent>;
+DEFINE FIELD out ON TABLE HookParent_hooks TYPE record<Hook>;
 
 DEFINE TABLE HookATag SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD hookTypeA ON TABLE HookATag TYPE record<Hook>;
-DEFINE FIELD otherHooks ON TABLE HookATag TYPE array<record<Hook>>;
+DEFINE TABLE HookATag_hookTypeA SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE HookParent_hookTypeA TYPE record<HookATag>;
+DEFINE FIELD out ON TABLE HookParent_hookTypeA TYPE record<Hook>;
+DEFINE TABLE HookATag_otherHooks SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE HookParent_otherHooks TYPE record<HookATag>;
+DEFINE FIELD out ON TABLE HookParent_otherHooks TYPE record<Hook>;
 
 -- DEFINE TABLE SpaceObj SCHEMALESS PERMISSIONS FULL;
 -- DEFINE FIELD in ON TABLE SpaceObj TYPE record<Space>;
@@ -96,8 +132,11 @@ DEFINE FIELD otherHooks ON TABLE HookATag TYPE array<record<Hook>>;
 -- DEFINE FIELD description ON SpaceDef TYPE string;
 
 DEFINE TABLE Kind SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD space ON Table Kind Type record<Space>;
 DEFINE FIELD name ON Table Kind TYPE string;
+
+DEFINE TABLE Kind_space SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE Kind_space TYPE record<Kind>;
+DEFINE FIELD out ON TABLE Kind_space TYPE record<Space>;
 
 -- DEFINE TABLE Field SCHEMALESS PERMISSIONS FULL;
 -- DEFINE FIELD in ON TABLE Field TYPE record<SpaceDef>;
@@ -122,8 +161,12 @@ DEFINE FIELD name ON Table Kind TYPE string;
 -- DEFINE FIELD type ON DataValue TYPE string;
 
 DEFINE TABLE Self SCHEMALESS PERMISSIONS FULL;
-DEFINE FIELD space ON TABLE Self TYPE record<Space>;
-DEFINE FIELD owner ON Self TYPE option<record<Self>>;
+DEFINE TABLE Self_space SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE Self_space TYPE record<Self>;
+DEFINE FIELD out ON TABLE Self_space TYPE record<Space>;
+DEFINE TABLE Self_owner SCHEMALESS PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE Self_owner TYPE record<Self>;
+DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 
 -- relations END
 
