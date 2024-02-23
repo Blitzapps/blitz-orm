@@ -78,17 +78,17 @@ INSERT INTO God [
 ];
 
 INSERT INTO Space [
-  { id: "space1", name: "Production" },
-  { id: "space2", name: "Dev" },
-  { id: "space3", name: "Not-owned" }
+  { id: "space_1", name: "Production" },
+  { id: "space_2", name: "Dev" },
+  { id: "space_3", name: "Not-owned" }
 ];
 
 INSERT INTO Account [
-  { id: "account11", "provider": "google" },
-  { id: "account12", "provider": "facebook" },
-  { id: "account13", "provider": "github" },
-  { id: "account21", "provider": "google" },
-  { id: "account31", "provider": "facebook" }
+  { id: "account1_1", "provider": "google" },
+  { id: "account1_2", "provider": "facebook" },
+  { id: "account1_3", "provider": "github" },
+  { id: "account2_1", "provider": "google" },
+  { id: "account3_1", "provider": "facebook" }
 ];
 
 INSERT INTO Post [
@@ -107,15 +107,15 @@ INSERT INTO UserAccounts [
 ];
 
 RELATE UserAccounts:ua11 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua11 -> UserAccounts_accounts -> Account:account11;
+RELATE UserAccounts:ua11 -> UserAccounts_accounts -> Account:account1_1;
 RELATE UserAccounts:ua12 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua12 -> UserAccounts_accounts -> Account:account12;
+RELATE UserAccounts:ua12 -> UserAccounts_accounts -> Account:account1_2;
 RELATE UserAccounts:ua13 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua13 -> UserAccounts_accounts -> Account:account13;
+RELATE UserAccounts:ua13 -> UserAccounts_accounts -> Account:account1_3;
 RELATE UserAccounts:ua21 -> UserAccounts_user -> User:user2;
-RELATE UserAccounts:ua21 -> UserAccounts_accounts -> Account:account21;
+RELATE UserAccounts:ua21 -> UserAccounts_accounts -> Account:account2_1;
 RELATE UserAccounts:ua31 -> UserAccounts_user -> User:user3;
-RELATE UserAccounts:ua31 -> UserAccounts_accounts -> Account:account31;
+RELATE UserAccounts:ua31 -> UserAccounts_accounts -> Account:account3_1;
 
 INSERT INTO Power [
   { id: "power1", description: "useless power" }
@@ -130,29 +130,29 @@ INSERT INTO SpaceUser [
 ];
 
 RELATE SpaceUser:u1s1 -> SpaceUser_users -> User:user1;
-RELATE SpaceUser:u1s1 -> SpaceUser_spaces -> Space:space1;
+RELATE SpaceUser:u1s1 -> SpaceUser_spaces -> Space:space_1;
 RELATE SpaceUser:u1s2 -> SpaceUser_users -> User:user1;
-RELATE SpaceUser:u1s2 -> SpaceUser_spaces -> Space:space2;
+RELATE SpaceUser:u1s2 -> SpaceUser_spaces -> Space:space_2;
 RELATE SpaceUser:u5s1 -> SpaceUser_users -> User:user5;
-RELATE SpaceUser:u5s1 -> SpaceUser_spaces -> Space:space1;
+RELATE SpaceUser:u5s1 -> SpaceUser_spaces -> Space:space_1;
 RELATE SpaceUser:u2s2 -> SpaceUser_users -> User:user2;
-RELATE SpaceUser:u2s2 -> SpaceUser_spaces -> Space:space2;
+RELATE SpaceUser:u2s2 -> SpaceUser_spaces -> Space:space_2;
 RELATE SpaceUser:u3s2 -> SpaceUser_users -> User:user3;
-RELATE SpaceUser:u3s2 -> SpaceUser_spaces -> Space:space2;
+RELATE SpaceUser:u3s2 -> SpaceUser_spaces -> Space:space_2;
 RELATE SpaceUser:u3s2 -> SpaceUser_power -> Power:power1;
 
 INSERT INTO UserTag [
-  { id: "tag1" },
-  { id: "tag2" },
-  { id: "tag3" },
-  { id: "tag4" }
+  { id: "tag_1" },
+  { id: "tag_2" },
+  { id: "tag_3" },
+  { id: "tag_4" }
 ];
 
-RELATE UserTag:tag1 -> UserTag_users -> User:user1;
-RELATE UserTag:tag2 -> UserTag_users -> User:user1;
-RELATE UserTag:tag2 -> UserTag_users -> User:user3;
-RELATE UserTag:tag3 -> UserTag_users -> User:user2;
-RELATE UserTag:tag4 -> UserTag_users -> User:user2;
+RELATE UserTag:tag_1 -> UserTag_users -> User:user1;
+RELATE UserTag:tag_2 -> UserTag_users -> User:user1;
+RELATE UserTag:tag_2 -> UserTag_users -> User:user3;
+RELATE UserTag:tag_3 -> UserTag_users -> User:user2;
+RELATE UserTag:tag_4 -> UserTag_users -> User:user2;
 
 INSERT INTO Color [
   { id: "yellow" },
@@ -160,24 +160,24 @@ INSERT INTO Color [
 ];
 
 INSERT INTO UserTagGroup [
-  { id: "utg1" },
-  { id: "utg2" },
+  { id: "utg_1" },
+  { id: "utg_2" },
 ];
 
-RELATE UserTagGroup:utg1 -> UserTagGroup_color -> Color:yellow;
-RELATE UserTagGroup:utg1 -> UserTagGroup_tags -> UserTag:tag1;
-RELATE UserTagGroup:utg1 -> UserTagGroup_tags -> UserTag:tag2;
+RELATE UserTagGroup:utg_1 -> UserTagGroup_color -> Color:yellow;
+RELATE UserTagGroup:utg_1 -> UserTagGroup_tags -> UserTag:tag_1;
+RELATE UserTagGroup:utg_1 -> UserTagGroup_tags -> UserTag:tag_2;
 
-RELATE UserTagGroup:utg2 -> UserTagGroup_color -> Color:blue;
-RELATE UserTagGroup:utg2 -> UserTagGroup_tags -> UserTag:tag3;
-RELATE UserTagGroup:utg2 -> UserTagGroup_space -> Space:space3;
+RELATE UserTagGroup:utg_2 -> UserTagGroup_color -> Color:blue;
+RELATE UserTagGroup:utg_2 -> UserTagGroup_tags -> UserTag:tag_3;
+RELATE UserTagGroup:utg_2 -> UserTagGroup_space -> Space:space_3;
 
 
 INSERT INTO Kind [
   { id: "kind_book", name: "book" }
 ];
 
-RELATE Kind:kind_book -> Kind_space -> Space:space2;
+RELATE Kind:kind_book -> Kind_space -> Space:space_2;
 
 INSERT INTO Self [
   { id: "self1" },
@@ -186,12 +186,12 @@ INSERT INTO Self [
   { id: "self4" },
 ];
 
-RELATE Self:self1 -> Self_space -> Space:space2;
-RELATE Self:self2 -> Self_space -> Space:space2;
+RELATE Self:self1 -> Self_space -> Space:space_2;
+RELATE Self:self2 -> Self_space -> Space:space_2;
 RELATE Self:self2 -> Self_owner -> Self:self1;
-RELATE Self:self3 -> Self_space -> Space:space2;
+RELATE Self:self3 -> Self_space -> Space:space_2;
 RELATE Self:self3 -> Self_owner -> Self:self2;
-RELATE Self:self4 -> Self_space -> Space:space2;
+RELATE Self:self4 -> Self_space -> Space:space_2;
 RELATE Self:self4 -> Self_owner -> Self:self2;
 
 INSERT INTO Hook [

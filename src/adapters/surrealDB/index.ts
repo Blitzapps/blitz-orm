@@ -3,7 +3,7 @@ import type { BaseResponse, EnrichedBormSchema, PipelineOperation } from '../../
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { postHooks } from '../../pipeline/postprocess/query/postHooks';
 import { cleanQueryRes } from '../../pipeline/postprocess/query/cleanQueryRes';
-import { pascal, snake } from 'radash'
+import { pascal, snake, dash } from 'radash'
 import { QueryPath } from '../../types/symbols';
 
 type SurrealDbResponse = {
@@ -123,13 +123,16 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
     const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
 
     return await Promise.all(subtypes.map(async (subtype) => {
-      const queryRes: Array<Record<string, unknown>> = await client.query(buildQuery(subtype, query))
+      const queryRes: Array<Record<string, unknown> & {
+        id: string
+      }> = await client.query(buildQuery(subtype, query))
 
       const transformed = queryRes.map((item) => ({
-        "$id": item.id,
+        "$id": dash(item.id),
         "$thing": subtype,
         "$thingType": "entity",
         ...item,
+        id: dash(item.id),
         [QueryPath]: enrichedBqlQuery[0][QueryPath]
       }));
 
