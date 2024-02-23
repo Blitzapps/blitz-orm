@@ -55,39 +55,47 @@ type EnrichedBqlQueryEntity = {
   '$filterProcessed': boolean
 }
 
+type EnrichedBqlQueryAttribute = {
+  '$path': string,
+  '$dbPath': string,
+  '$thingType': 'attribute'
+  '$as': string,
+  '$var': string,
+  '$fieldType': 'data',
+  '$excludedFields': undefined,
+  '$justId': boolean,
+  '$id': undefined,
+  '$filter': undefined,
+  '$isVirtual': undefined,
+  '$filterProcessed': boolean,
+}
+
 type EnrichedBqlQuery = {
   '$path': string,
   '$thing': string,
   '$thingType': string
-  '$fields': Array<{
-    '$path': string,
-    '$dbPath': string,
-    '$thingType': 'attribute'
-    '$as': string,
-    '$var': string,
-    '$fieldType': 'data',
-    '$excludedFields': undefined,
-    '$justId': boolean,
-    '$id': undefined,
-    '$filter': undefined,
-    '$isVirtual': undefined,
-    '$filterProcessed': boolean,
-  } | EnrichedBqlQueryEntity>
+  '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity>
+}
+
+const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
+  return attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`
 }
 
 // any now, wait for type from enrichedBqlQuery
 const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
-  const attributes = query["$fields"].filter((q) => q["$thingType"] === "attribute")
+  const attributes = query["$fields"].filter((q): q is EnrichedBqlQueryAttribute => q["$thingType"] === "attribute")
   const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
 
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
 
-    return `(SELECT meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
+    // return `(SELECT meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
+
+    return `<-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out as ${entity['$as']}`
   })
 
   const x = `SELECT 
-    ${[...attributes.map((attr) => attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`), ...entitiesQuery].join(",")}
+    ${[...attributes.map(convertEntityId), ...entitiesQuery].join(",")}
   FROM ${thing} FETCH ${entities.map((entity) => entity["$path"]).join(",")} PARALLEL`
 
   return x
