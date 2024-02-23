@@ -76,19 +76,21 @@ type EnrichedBqlQuery = {
 }
 
 // any now, wait for type from enrichedBqlQuery
-const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
+const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
   const attributes = query["$fields"].filter((q) => q["$thingType"] === "attribute")
   const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
 
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
 
-    return `<-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out as ${entity['$as']}`
+    return `(SELECT meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
-  return `SELECT 
-    ${[...attributes.map((attr) => `${attr['$path']}`), ...entitiesQuery].join(",")}
+  const x = `SELECT 
+    ${[...attributes.map((attr) => attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`), ...entitiesQuery].join(",")}
   FROM ${thing} FETCH ${entities.map((entity) => entity["$path"]).join(",")} PARALLEL`
+
+  return x
 }
 
 const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
