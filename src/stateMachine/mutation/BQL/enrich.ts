@@ -4,13 +4,14 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { doAction } from './utils';
-import { getFieldSchema } from '../../../helpers';
+import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { replaceToObj } from './enrichSteps/replaces';
 import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
 import { enrichChildren } from './enrichSteps/enrichChildren';
 import { computeFields } from './enrichSteps/computeFields';
+import { unlinkAll } from './enrichSteps/unlinkAll';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {
@@ -121,16 +122,20 @@ export const enrichBQLMutation = (
 							setRootMeta(rootNode, schema);
 							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
+						/// 3.2.3 children enrichment
+						//redefining childrenArray as it might have changed
+						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
+							if (node[field] === null) {
+								unlinkAll(node, field, fieldSchema);
+							} else {
+								enrichChildren(node, field, fieldSchema, schema);
+							}
+						}
 
-						//3.2.3 splitIds()
+						//3.2.4 splitIds()
 						splitMultipleIds(node, field, schema);
 						//console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
-						/// 3.2.4 children enrichment
-						//redefining childrenArray as it might have changed
-						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							enrichChildren(node, field, fieldSchema, schema);
-						}
 						//console.log('After enrichChildren', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						/// 3.2.5 Field computes
@@ -141,13 +146,34 @@ export const enrichBQLMutation = (
 						//console.log('After computeFields', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						// 3.2.6
-						/*//#region validations
-						const subNodeSchema = getCurrentSchema(schema, subNode);
-						const { unidentifiedFields } = getCurrentFields(subNodeSchema, subNode);
-						if (unidentifiedFields.length > 0) {
-							throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
-						}
-						//#endregion validations */
+						//#region validations
+						const toValidate = isArray(node[field]) ? node[field] : [node[field]];
+
+						toValidate.forEach((subNode: BQLMutationBlock) => {
+							const subNodeSchema = getCurrentSchema(schema, subNode);
+							const { unidentifiedFields, usedLinkFields } = getCurrentFields(subNodeSchema, subNode);
+							if (unidentifiedFields.length > 0) {
+								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
+							}
+							//Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.
+							if (usedLinkFields.length > 1) {
+								const usedLinkFieldsSchemas = subNodeSchema.linkFields?.filter((lf) =>
+									usedLinkFields.includes(lf.path),
+								);
+								/// Check if at least two of the usedLinkFields schemas, share same relation and have different targets
+								usedLinkFieldsSchemas?.some((lf1, i) => {
+									return usedLinkFieldsSchemas.some((lf2, j) => {
+										if (i !== j && lf1.target !== lf2.target && lf1.relation === lf2.relation) {
+											throw new Error(
+												"[Unsupported]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
+											);
+										}
+									});
+								});
+							}
+						});
+
+						//#endregion validations
 					}
 				});
 			}

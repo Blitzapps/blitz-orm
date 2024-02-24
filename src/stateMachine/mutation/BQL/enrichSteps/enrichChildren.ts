@@ -18,20 +18,24 @@ export const enrichChildren = (
 	fieldSchema: EnrichedLinkField | EnrichedRoleField,
 	schema: EnrichedBormSchema,
 ) => {
-	(isArray(node[field]) ? node[field] : [node[field]]).forEach((subNode: EnrichedBQLMutationBlock) => {
+	const newNodes = (isArray(node[field]) ? node[field] : [node[field]]).map((subNode: EnrichedBQLMutationBlock) => {
 		///symbols
-		subNode[EdgeSchema] = fieldSchema;
 		//#region nested nodes
-
 		const oppositePlayers = getOppositePlayers(field, fieldSchema);
 		const [player] = oppositePlayers;
 
-		subNode.$thing = player.thing;
-		subNode.$thingType = player.thingType;
-		subNode.$op = getOp(node, subNode, schema);
-		subNode.$bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
-		subNode[ParentBzId] = node.$bzId;
+		return {
+			...subNode,
+			[EdgeSchema]: fieldSchema,
+			$thing: player.thing,
+			$thingType: player.thingType,
+			$op: getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema),
+			$bzId: subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`,
+			[ParentBzId]: node.$bzId,
+		};
 
 		//#endregion nested nodes
 	});
+
+	node[field] = isArray(node[field]) ? newNodes : newNodes[0];
 };

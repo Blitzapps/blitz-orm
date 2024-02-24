@@ -246,7 +246,7 @@ export const parseBQLMutation = async (
 					//@ts-expect-error - TODO
 					toEdges(edgeType1);
 
-					/// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a match
+					/// when it has a parent through a linkField, we need to add an additional node (its dependency), as well as a match
 					/// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as match and deletions as unlink (or dependencies would be also added)
 					/// this is only for relations that are not $self, as other relations will be deleted and don't need a match
 					if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
@@ -528,8 +528,8 @@ export const parseBQLMutation = async (
 		}
 	});
 
-	//console.log('mergedThings', mergedThings);
-	//console.log('mergedEdges', mergedEdges);
+	console.log('mergedThings', mergedThings);
+	console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

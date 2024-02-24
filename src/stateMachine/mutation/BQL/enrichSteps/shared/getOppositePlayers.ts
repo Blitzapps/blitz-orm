@@ -15,7 +15,6 @@ export const getOppositePlayers = (field: string, fieldSchema: EnrichedLinkField
 		} else if (!fieldSchema.playedBy?.length) {
 			throw new Error(`[Internal] Field ${field} should have a player`);
 		}
-
 		return fieldSchema.playedBy;
 	} else {
 		throw new Error(`[Internal] Field ${field} is not a linkField or roleField`);

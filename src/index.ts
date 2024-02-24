@@ -166,7 +166,7 @@ class BormClient {
 		console.log(`New Mutation took ${endTime - startTime}ms`); */
 
 		const startTime = performance.now();
-		const res = await awaitMachine({
+		const [errorRes, res] = await tryit(awaitMachine)({
 			bql: {
 				raw: mutation,
 				current: {} as EnrichedBQLMutationBlock,
@@ -184,6 +184,10 @@ class BormClient {
 			depthLevel: 0,
 			error: null,
 		});
+		if (errorRes) {
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			throw new Error(errorRes.error.message);
+		}
 
 		const result = res.bql.res;
 		const endTime = performance.now();
@@ -196,7 +200,7 @@ class BormClient {
 		if (!this.dbHandles) {
 			return;
 		}
-		//todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for intance
+		//todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for instance
 		this.dbHandles.typeDB?.forEach(async ({ client, session }) => {
 			if (session.isOpen()) {
 				await session.close();

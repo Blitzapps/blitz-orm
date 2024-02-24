@@ -203,7 +203,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 							if (ownRelation) {
 								return 'unlink';
 							} // delete already present in the nodes array
-							return 'delete';
+							return 'delete'; // we will need to transform this to "unlink" later
 						}
 						if (value.$op === 'link' || value.$op === 'create') {
 							if (ownRelation) {
@@ -623,8 +623,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	/// case c: Before merge, a role with cardinality ONE has an array => This one is already managed before, so n
 
 	/// Check that everyEdge has at least one player
-	//console.log('mergedEdges', mergedEdges);
-	//console.log('mergedThings', mergedThings);
+	console.log('mergedEdges', mergedEdges);
+	console.log('mergedThings', mergedThings);
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
 	mergedThings.forEach((thing) => {

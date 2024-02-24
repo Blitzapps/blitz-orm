@@ -116,11 +116,11 @@ describe('Mutations: Edges', () => {
 
 		//THis test also test the autogeneration of ids as we are not defining them we need to catch them to delete them
 		const createdTagsIds = mutation
-			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTag')
+			?.filter((obj) => obj['$op'] === 'create' && obj['$thing'] === 'UserTag')
 			.map((obj) => obj.id);
 
 		const createdTagGroupsIds = mutation
-			?.filter((obj) => obj['$op'] === 'create' && obj['$relation'] === 'UserTagGroup')
+			?.filter((obj) => obj['$op'] === 'create' && obj['$thing'] === 'UserTagGroup')
 			.map((obj) => obj.id);
 
 		expect(createdTagsIds.length).toBe(2);
@@ -176,7 +176,7 @@ describe('Mutations: Edges', () => {
 		);
 	});
 
-	it('l3ent[unlink, multiple, entity] unlink multiple linkfields (not rolefields)', async () => {
+	it('l3ent[unlink, multiple, entity] unlink multiple linkFields (not roleFields)', async () => {
 		// todo 4 cases
 		// case 1: Unlink a simple a-b relation (Edge = delete)
 		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)
@@ -226,8 +226,8 @@ describe('Mutations: Edges', () => {
 			{
 				$entity: 'User',
 				$id: 'user2',
-				spaces: ['space-2'],
-				accounts: ['account2-1'],
+				spaces: [{ $op: 'unlink' }, { $op: 'link', $id: 'space-2' }],
+				accounts: [{ $op: 'unlink' }, { $op: 'link', $id: 'account2-1' }],
 			},
 			{ noMetadata: true, preQuery: true },
 		);
@@ -590,7 +590,7 @@ describe('Mutations: Edges', () => {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
 				expect(error.message).toBe(
-					"Unsupported: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
+					"[Unsupported]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
 				);
 			} else {
 				// If the error is not of type Error, fail the test
@@ -2752,7 +2752,6 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-
 		const origin = await bormClient.query(
 			{
 				$relation: 'UserTagGroup',

@@ -11,6 +11,9 @@ import { computeField } from '../../../../engine/compute';
 
 export const computeFields = (node: BQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
 	const currentNode = node[field] as EnrichedBQLMutationBlock;
+	if (!currentNode) {
+		return;
+	}
 	(isArray(currentNode) ? currentNode : [currentNode]).forEach((subNode: EnrichedBQLMutationBlock) => {
 		const currentSchema = getCurrentSchema(schema, subNode);
 		const { unidentifiedFields } = getCurrentFields(currentSchema, subNode);

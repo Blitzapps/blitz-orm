@@ -438,7 +438,9 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 				}
 				throw new Error(' Wrongly structured query');
 			}) as string[])
-		: listify<any, string, string>(node, (k: string) => k);
+		: (listify<any, string, any>(node, (k: string) => (k.startsWith('$') ? undefined : k)).filter(
+				(x) => x !== undefined,
+			) as string[]);
 
 	const localFilterFields = !node.$filter
 		? []
