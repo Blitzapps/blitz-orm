@@ -677,58 +677,60 @@ describe('Mutations: Edges', () => {
 	it('l11[link, replace, relation] Get existing relation and link it to multiple existing things', async () => {
 		expect(bormClient).toBeDefined();
 
-		// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
+		try {
+			// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
 
-		/// This test requires pre-queries to work in typeDB
-		await bormClient.mutate(
-			{
-				$relation: 'UserTagGroup',
-				$op: 'create',
+			/// This test requires pre-queries to work in typeDB
+			await bormClient.mutate(
+				{
+					$relation: 'UserTagGroup',
+					$op: 'create',
+					id: 'tmpGroup',
+					space: { id: 'tempSpace' }, /// one linkField is linked
+					color: { id: 'tempYellow' },
+					tags: ['tag-1', 'tag-2'],
+					/// group is undefined,
+					/// the replace must work in both!
+				},
+				{ preQuery: true },
+			);
+			await bormClient.mutate(
+				{
+					$relation: 'UserTagGroup',
+					$id: 'tmpGroup',
+					tags: ['tag-1', 'tag-4'],
+					color: { $op: 'create', id: 'tempBlue' },
+					// group: { $op: 'link', $id: 'utg-2' },
+				},
+				{ preQuery: true },
+			);
+
+			const newUserTagGroup = await bormClient.query(
+				{
+					$relation: 'UserTagGroup',
+					$id: 'tmpGroup',
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(newUserTagGroup, 'id')).toEqual({
 				id: 'tmpGroup',
-				space: { id: 'tempSpace' }, /// one linkfield is linked
-				color: { id: 'tempYellow' },
-				tags: ['tag-1', 'tag-2'],
-				/// group is undefined,
-				/// the replace must work in both!
-			},
-			{ preQuery: true },
-		);
-		await bormClient.mutate(
-			{
-				$relation: 'UserTagGroup',
-				$id: 'tmpGroup',
 				tags: ['tag-1', 'tag-4'],
-				color: { $op: 'create', id: 'tempBlue' },
-				// group: { $op: 'link', $id: 'utg-2' },
-			},
-			{ preQuery: true },
-		);
-
-		const newUserTagGroup = await bormClient.query(
-			{
-				$relation: 'UserTagGroup',
-				$id: 'tmpGroup',
-			},
-			{ noMetadata: true },
-		);
-
-		expect(deepSort(newUserTagGroup, 'id')).toEqual({
-			id: 'tmpGroup',
-			tags: ['tag-1', 'tag-4'],
-			color: 'tempBlue',
-			space: 'tempSpace',
-		});
-
-		/// clean created groups
-		await bormClient.mutate(
-			{
-				$relation: 'UserTagGroup',
-				$id: 'tmpGroup',
-				color: { $op: 'delete' },
-				$op: 'delete',
-			},
-			{ preQuery: true },
-		);
+				color: 'tempBlue',
+				space: 'tempSpace',
+			});
+		} finally {
+			/// clean created groups
+			await bormClient.mutate(
+				{
+					$relation: 'UserTagGroup',
+					$id: 'tmpGroup',
+					color: { $op: 'delete' },
+					$op: 'delete',
+				},
+				{ preQuery: true },
+			);
+		}
 	});
 
 	it('l12[link,many] Insert items in multiple', async () => {
@@ -940,7 +942,7 @@ describe('Mutations: Edges', () => {
 				$id: 'tag-2',
 				group: {
 					$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
-					color: null, //this should unlink the color of the utg connected to tgat 2, so the yellow gets unlinked
+					color: null, //this should unlink the color of the utg connected to tag-2, so the yellow gets unlinked
 				},
 			},
 			{ noMetadata: true, preQuery: true },

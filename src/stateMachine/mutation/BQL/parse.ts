@@ -447,7 +447,7 @@ export const parseBQLMutation = async (
 		const existingEdge = acc.find(
 			(r) =>
 				((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
-				r.$relation === curr.$relation &&
+				r.$thing === curr.$thing &&
 				r.$op === curr.$op,
 		);
 
@@ -494,7 +494,7 @@ export const parseBQLMutation = async (
 				(r) =>
 					!(
 						((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
-						r.$relation === curr.$relation &&
+						r.$thing === curr.$thing &&
 						r.$op === curr.$op
 					),
 			);
@@ -512,7 +512,7 @@ export const parseBQLMutation = async (
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
 	mergedThings.forEach((thing) => {
-		if ('$relation' in thing) {
+		if (thing.$thingType === 'relation' || 'relation' in thing) {
 			//if it is a relation, we need at lease one edge defined for it
 			if (
 				mergedEdges.filter((edge) => edge.$bzId === thing.$bzId || (edge.$tempId && edge.$tempId === thing.$tempId))
