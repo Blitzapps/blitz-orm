@@ -57,6 +57,9 @@ describe('Query', () => {
 				email: 'afx@rephlex.com',
 				id: 'god1',
 				name: 'Richard David James',
+        'accounts': [],
+				'spaces': [],
+				'user-tags': [],
 			},
 			{
 				$id: 'superuser1',
@@ -65,6 +68,9 @@ describe('Query', () => {
 				email: 'black.mamba@deadly-viper.com',
 				id: 'superuser1',
 				name: 'Beatrix Kiddo',
+        'accounts': [],
+				'spaces': [],
+				'user-tags': [],
 			},
 			{
 				// '$entity': 'User',
@@ -109,6 +115,9 @@ describe('Query', () => {
 				$id: 'user4',
 				id: 'user4',
 				name: 'Ben',
+        'accounts': [],
+				'spaces': [],
+				'user-tags': [],
 			},
 			{
 				// $entity: 'User',
@@ -119,6 +128,8 @@ describe('Query', () => {
 				id: 'user5',
 				name: 'Charlize',
 				spaces: ['space-1'],
+        'accounts': [],
+				'user-tags': [],
 			},
 		];
 		const res = await bormClient.query(query);

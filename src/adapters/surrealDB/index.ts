@@ -89,9 +89,7 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
 
-    // return `(SELECT meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
-
-    return `<-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out as ${entity['$as']}`
+    return `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
   const x = `SELECT 
