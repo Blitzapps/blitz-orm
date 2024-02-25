@@ -294,8 +294,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
       }
       return [];
     }; */
-		const deletionMatch = getDeletionMatchInEdges();
-		console.log('deletionMatches', deletionMatch);
 
 		return {
 			// preDeletionBatch: getPreDeletionBatch(),
@@ -344,8 +342,8 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	console.log('nodeOperations', nodeOperations);
-	console.log('edgeOperations', edgeOperations);
+	//console.log('nodeOperations', nodeOperations);
+	//console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
 	//console.log('allOperations', allOperations);
@@ -380,6 +378,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		(x) => !x,
 	);
 
-	//console.log('tqlMutation', tqlMutation);
+	console.log('tqlMutation', tqlMutation);
 	return tqlMutation;
 };

@@ -304,6 +304,9 @@ export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 ): EnrichedBormEntity | EnrichedBormRelation => {
+	if (!node) {
+		throw new Error('[Internal] No node for getCurrentSchema');
+	}
 	if (node.$thing) {
 		if (node.$thingType === 'entity') {
 			if (!(node.$thing in schema.entities)) {

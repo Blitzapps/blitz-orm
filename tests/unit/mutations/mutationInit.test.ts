@@ -345,7 +345,7 @@ describe('Mutations: Init', () => {
 					],
 				},
 			},
-			{ preQuery: false },
+			{ preQuery: true },
 		);
 		const res1 = await bormClient.query(
 			{
@@ -524,7 +524,7 @@ describe('Mutations: Init', () => {
 			{
 				...thirdUser,
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 
 		// create spaces
@@ -539,7 +539,7 @@ describe('Mutations: Init', () => {
 					...spaceFour,
 				},
 			],
-			{ noMetadata: true },
+			{ noMetadata: true, preQuery: true },
 		);
 
 		// console.log('res', res);
@@ -556,7 +556,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toBeInstanceOf(Object);
 
 		// link the user to the spaces
-
+		console.log('res3-3', spaceThree.id, spaceFour.id, thirdUser.id);
 		const res3 = await bormClient.mutate(
 			{
 				$entity: 'User',
@@ -566,7 +566,8 @@ describe('Mutations: Init', () => {
 					{ $id: spaceFour.id, $op: 'link' },
 				],
 			},
-			{ noMetadata: true },
+
+			{ noMetadata: true, preQuery: true },
 		);
 
 		expectArraysInObjectToContainSameElements(JSON.parse(JSON.stringify(res3)), [

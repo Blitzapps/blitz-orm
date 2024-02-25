@@ -618,13 +618,13 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	// todo
 	// checkCardinality(); // todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers
 
-	/// case b: We have repeated the same relation id in two places and we are asigning it one of the roles more than one item
+	/// case b: We have repeated the same relation id in two places and we are assigning it one of the roles more than one item
 
 	/// case c: Before merge, a role with cardinality ONE has an array => This one is already managed before, so n
 
 	/// Check that everyEdge has at least one player
-	console.log('mergedEdges', mergedEdges);
-	console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThings', mergedThings);
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
 	mergedThings.forEach((thing) => {

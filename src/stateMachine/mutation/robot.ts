@@ -10,6 +10,7 @@ import { parseTQLMutation } from './TQL/parse';
 import { addIntermediaryRelationsBQLMutation } from './BQL/intermediary';
 import { parseBQLMutation } from './BQL/parse';
 import { buildTQLMutation } from './TQL/build';
+import { mutationPreQuery } from './BQL/preQuery';
 
 type MachineContext = {
 	bql: {
@@ -34,6 +35,10 @@ type MachineContext = {
 // ============================================================================
 
 const updateBqlReq = (ctx: MachineContext, event: any) => {
+	if (!event.data) {
+		///when preQueries return nothing, that should not affect the ctx
+		return ctx;
+	}
 	return {
 		...ctx,
 		bql: { ...ctx.bql, current: event.data },
@@ -87,6 +92,10 @@ const enrich = async (ctx: MachineContext) => {
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema);
 };
 
+const preQuery = async (ctx: MachineContext) => {
+	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+};
+
 const addIntermediaries = async (ctx: MachineContext) => {
 	return addIntermediaryRelationsBQLMutation(ctx.bql.current, ctx.schema);
 };
@@ -135,7 +144,8 @@ const errorTransition = transition(
 export const machine = createMachine(
 	'enrich',
 	{
-		enrich: invoke(enrich, transition('done', 'addIntermediaries', reduce(updateBqlReq)), errorTransition),
+		enrich: invoke(enrich, transition('done', 'preQuery', reduce(updateBqlReq)), errorTransition),
+		preQuery: invoke(preQuery, transition('done', 'addIntermediaries', reduce(updateBqlReq)), errorTransition),
 		addIntermediaries: invoke(
 			addIntermediaries,
 			transition('done', 'parseBQL', guard(requiresParseBQL), reduce(updateBqlReq)),

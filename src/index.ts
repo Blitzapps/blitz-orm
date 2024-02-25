@@ -186,6 +186,8 @@ class BormClient {
 		});
 		if (errorRes) {
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			console.error(errorRes.error.stack);
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			throw new Error(errorRes.error.message);
 		}
 

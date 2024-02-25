@@ -3,7 +3,7 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { oFilter, getCurrentFields, getCurrentSchema } from '../../../helpers';
+import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
 import type {
 	BQLMutationBlock,
 	BormOperation,
@@ -14,13 +14,13 @@ import type {
 } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
-import { EdgeSchema, EdgeType, ParentBzId } from '../../../types/symbols';
+import { EdgeSchema, EdgeType } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	//console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
+	console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
 	//console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
 
 	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
@@ -105,7 +105,7 @@ export const parseBQLMutation = async (
 			edges.push(edge);
 		};
 
-		const listOp = ({ value: val }: TraversalCallbackContext) => {
+		const listOp = ({ value: val, parent, meta }: TraversalCallbackContext) => {
 			if (!isObject(val)) {
 				return;
 			}
@@ -188,7 +188,10 @@ export const parseBQLMutation = async (
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
-					const parentId = value[ParentBzId];
+					const parentNode = getParentNode(blocks, parent, meta);
+
+					const parentId = parentNode.$bzId;
+
 					if (!parentId) {
 						throw new Error('No parent id found');
 					}
@@ -314,6 +317,7 @@ export const parseBQLMutation = async (
 										if (v.length > 1) {
 											throw new Error(`[Error] Role ${k} is not a MANY relation`);
 										} else {
+											//console.log('v', v, blocks);
 											return [k, v[0].$bzId || v[0]];
 										}
 									}
@@ -528,8 +532,8 @@ export const parseBQLMutation = async (
 		}
 	});
 
-	console.log('mergedThings', mergedThings);
-	console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

@@ -55,7 +55,7 @@ export const enrichBQLMutation = (
 	blocks: BQLMutationBlock | BQLMutationBlock[] | EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
-	console.log('Before enrich', JSON.stringify(blocks, null, 2));
+	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
 
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	const result = produce(rootBlock, (draft) =>
@@ -180,13 +180,7 @@ export const enrichBQLMutation = (
 		}),
 	);
 	//console.log('After enrich', result.$rootWrap.$root);
-	console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
-
-	traverse(result, ({ value }: TraversalCallbackContext) => {
-		if (isObject(value)) {
-			//
-		}
-	});
+	//console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
 
 	if (isArray(result.$rootWrap.$root)) {
 		return result.$rootWrap.$root as EnrichedBQLMutationBlock[];
