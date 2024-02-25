@@ -26,7 +26,7 @@ describe('Mutations: Unsupported', () => {
 				root: {
 					$op: 'link',
 					$id: 'tr10',
-					extra: 'thing2',
+					moreStuff: 'stuff', //this does not even exist in the schema, and thats fine
 				},
 			});
 		} catch (error: any) {

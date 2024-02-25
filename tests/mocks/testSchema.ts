@@ -133,7 +133,6 @@ export const testSchema: BormSchema = {
 				{
 					path: 'stuff',
 					contentType: 'TEXT',
-
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 				},
 			],
@@ -419,7 +418,14 @@ export const testSchema: BormSchema = {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', path: 'ThingRelation' },
 			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
-			dataFields: [{ ...id }],
+			dataFields: [
+				{ ...id },
+				{
+					path: 'moreStuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+				},
+			],
 			roles: {
 				things: {
 					cardinality: 'MANY',

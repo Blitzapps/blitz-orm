@@ -1,5 +1,5 @@
 import { isArray, isObject } from 'radash';
-import { deepCurrent, getCurrentSchema } from '../../../../helpers';
+import { deepCurrent, getCurrentSchema, getSymbols } from '../../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../../types';
 import { doAction } from '../utils';
 
@@ -23,6 +23,7 @@ export const splitMultipleIds = (node: BQLMutationBlock, field: string, schema: 
 							...deepCurrent(subNode), //structured clone generates a weird bug with traverse, so not using it
 							$id: $id,
 							$bzId: `${subNode.$bzId}_${i}`,
+							...getSymbols(subNode),
 						}));
 					}
 				}

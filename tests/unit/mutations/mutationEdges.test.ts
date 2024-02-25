@@ -730,6 +730,23 @@ describe('Mutations: Edges', () => {
 				},
 				{ preQuery: true },
 			);
+
+			await bormClient.mutate({
+				$thing: 'Color',
+				$thingType: 'entity',
+				$id: 'tempYellow',
+				$op: 'delete',
+			});
+
+			const colors = await bormClient.query(
+				{
+					$entity: 'Color',
+					$fields: ['id'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(colors, 'id')).toEqual([{ id: 'blue' }, { id: 'yellow' }]);
 		}
 	});
 

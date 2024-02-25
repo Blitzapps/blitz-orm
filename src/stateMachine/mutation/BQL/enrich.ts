@@ -13,6 +13,7 @@ import { enrichChildren } from './enrichSteps/enrichChildren';
 import { computeFields } from './enrichSteps/computeFields';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { preHookValidations } from './enrichSteps/preHookValidations';
+import { preHookTransformations } from './enrichSteps/preHookTransformations';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {
@@ -216,7 +217,7 @@ export const enrichBQLMutation = (
 
 						// 3.3.8
 						//#region pre-hook transformations
-						//preHookTransformations(node, field, schema);
+						preHookTransformations(node, field, schema);
 						//#endregion pre-hook transformations
 
 						// 3.2.9
