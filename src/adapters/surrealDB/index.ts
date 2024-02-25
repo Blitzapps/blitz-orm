@@ -2,13 +2,10 @@ import type { Pipeline } from '../../types/pipeline/base'
 import type { BaseResponse, EnrichedBormSchema, PipelineOperation } from '../../types'
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { postHooks } from '../../pipeline/postprocess/query/postHooks';
-import { cleanQueryRes } from '../../pipeline/postprocess/query/cleanQueryRes';
+import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, snake, dash } from 'radash'
 import { QueryPath } from '../../types/symbols';
-
-type SurrealDbResponse = {
-
-} & BaseResponse;
+import type { SurrealDbResponse } from './types/base'
 
 const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", thing: string, result: Array<string> = []): Array<string> => {
   const subtypes = Object.values(schema[kind])
@@ -74,6 +71,7 @@ type EnrichedBqlQuery = {
   '$path': string,
   '$thing': string,
   '$thingType': string
+  '$filter'?: { id: string },
   '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity>
 }
 
@@ -92,9 +90,14 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
     return `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
+  const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:${value}`).join(",")}` : ""
+
   const x = `SELECT 
     ${[...attributes.map(convertEntityId), ...entitiesQuery].join(",")}
-  FROM ${thing} FETCH ${entities.map((entity) => entity["$path"]).join(",")} PARALLEL`
+  FROM ${thing} 
+  ${filterExpr}
+  FETCH ${entities.map((entity) => entity["$path"]).join(",")} 
+  PARALLEL`
 
   return x
 }
@@ -147,12 +150,13 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
       return transformed
     }))
   }))
-
+  
   res.bqlRes = results.flat(2)
 }
 
 export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
-  query: [enrichBQLQuery,
+  query: [
+    enrichBQLQuery,
     buildSurrealDbQuery,
     postHooks,
     cleanQueryRes
