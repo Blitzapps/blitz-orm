@@ -441,7 +441,7 @@ export const parseBQLMutation = async (
 		}
 		// For all other cases, throw an error
 		throw new Error(
-			`Unsupported operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
+			`[Wrong format] Wrong operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
 		);
 	}, [] as BQLMutationBlock[]);
 

@@ -190,11 +190,6 @@ export const enrichBQLMutation = (
 						toValidate.forEach((subNode: BQLMutationBlock) => {
 							const subNodeSchema = getCurrentSchema(schema, subNode);
 							const { unidentifiedFields, usedLinkFields } = getCurrentFields(subNodeSchema, subNode);
-							if (subNode.$op === 'create' && subNode.$id) {
-								throw new Error(
-									"[Wrong format] Can't write to computed field $id. Try writing to the id field directly.",
-								);
-							}
 
 							if (unidentifiedFields.length > 0) {
 								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
@@ -209,7 +204,7 @@ export const enrichBQLMutation = (
 									return usedLinkFieldsSchemas.some((lf2, j) => {
 										if (i !== j && lf1.target !== lf2.target && lf1.relation === lf2.relation) {
 											throw new Error(
-												"[Unsupported]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
+												"[Wrong format]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
 											);
 										}
 									});

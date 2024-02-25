@@ -165,7 +165,6 @@ class BormClient {
 		const endTime = performance.now();
 		console.log(`New Mutation took ${endTime - startTime}ms`); */
 
-		const startTime = performance.now();
 		const [errorRes, res] = await tryit(awaitMachine)({
 			bql: {
 				raw: mutation,
@@ -186,14 +185,13 @@ class BormClient {
 		});
 		if (errorRes) {
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
-			console.error(errorRes.error.stack);
+			console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
+
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			throw new Error(errorRes.error.message);
 		}
 
 		const result = res.bql.res;
-		const endTime = performance.now();
-		console.log(`Robot Mutation took ${endTime - startTime}ms`);
 
 		return result as BQLResponseMulti;
 	};

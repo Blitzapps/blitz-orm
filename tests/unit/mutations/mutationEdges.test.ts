@@ -590,7 +590,7 @@ describe('Mutations: Edges', () => {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
 				expect(error.message).toBe(
-					"[Unsupported]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
+					"[Wrong format]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
 				);
 			} else {
 				// If the error is not of type Error, fail the test
@@ -1055,146 +1055,24 @@ describe('Mutations: Edges', () => {
 			$entity: 'Thing',
 			id: 'temp1',
 			root: {
+				$op: 'link',
 				$id: 'tr10',
-				extra: 'thing2',
+				extra: 'thing2', //replace thing1 to thing2 onLink
 			},
 		});
 
-		const res = await bormClient.query({
-			$entity: 'Thing',
-			$id: 'temp1',
-			$fields: [{ $path: 'root', $fields: ['extra'] }],
-		});
+		const res = await bormClient.query(
+			{
+				$entity: 'Thing',
+				$id: 'temp1',
+				$fields: ['id', { $path: 'root', $fields: ['extra'] }],
+			},
+			{ noMetadata: true },
+		);
 
 		expect(res).toEqual({
-			$thing: 'Thing',
-			$thingType: 'entity',
-			$id: 'temp1',
-			root: { $id: 'tr10', extra: 'thing2', $relation: 'ThingRelation' },
-		});
-	});
-
-	it('rep1a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
-		expect(bormClient).toBeDefined();
-
-		/// create
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'tmpUTG',
-			tags: ['tag-1', 'tag-2'],
-		});
-
-		/// the mutation to be tested
-		await bormClient.mutate({
-			$id: 'tmpUTG',
-			$relation: 'UserTagGroup',
-			tags: [
-				{ $op: 'link', $id: 'tag-3' },
-				{ $op: 'unlink', $id: 'tag-1' },
-			],
-		});
-
-		const tmpUTG = await bormClient.query({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$fields: ['tags'],
-		});
-
-		expect(deepSort(tmpUTG)).toEqual({
-			$thing: 'UserTagGroup',
-			$thingType: 'relation',
-			$id: 'tmpUTG',
-			tags: ['tag-2', 'tag-3'],
-		});
-
-		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$op: 'delete',
-		});
-	});
-
-	it('rep1b[replace, unlink, link, many] Replace using unlink + link single role, by IDs. MultiIds', async () => {
-		expect(bormClient).toBeDefined();
-
-		/// create
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'tmpUTG',
-			tags: ['tag-1', 'tag-2', 'tag-3'],
-		});
-
-		/// the mutation to be tested
-		await bormClient.mutate({
-			$id: 'tmpUTG',
-			$relation: 'UserTagGroup',
-			tags: [
-				{ $op: 'link', $id: 'tag-4' },
-				{ $op: 'unlink', $id: ['tag-1', 'tag-2'] },
-			],
-		});
-
-		const tmpUTG = await bormClient.query({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$fields: ['tags'],
-		});
-
-		expect(deepSort(tmpUTG)).toEqual({
-			$thing: 'UserTagGroup',
-			$thingType: 'relation',
-			$id: 'tmpUTG',
-			tags: ['tag-3', 'tag-4'],
-		});
-
-		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$op: 'delete',
-		});
-	});
-
-	it('rep2a[replace, unlink, link, many] Replace using unlink + link , all unlink', async () => {
-		expect(bormClient).toBeDefined();
-
-		/// create
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'tmpUTG',
-			tags: ['tag-1', 'tag-2'],
-			color: 'blue',
-		});
-
-		/// the mutation to be tested
-		await bormClient.mutate({
-			$id: 'tmpUTG',
-			$relation: 'UserTagGroup',
-			tags: [{ $op: 'link', $id: ['tag-4', 'tag-3'] }, { $op: 'unlink' }],
-		});
-
-		const tmpUTG = await bormClient.query({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$fields: ['tags'],
-		});
-
-		expect(deepSort(tmpUTG)).toEqual({
-			$thing: 'UserTagGroup',
-			$thingType: 'relation',
-			$id: 'tmpUTG',
-			tags: ['tag-3', 'tag-4'],
-		});
-
-		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'tmpUTG',
-			$op: 'delete',
+			id: 'temp1',
+			root: { $id: 'tr10', extra: 'thing2' },
 		});
 	});
 
@@ -2743,7 +2621,6 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('rep-del1[delete, replace, ONE] replace on cardinality ONE but deleting existing', async () => {
-		//! todo: this one requires doing match-delete and match-insert
 		expect(bormClient).toBeDefined();
 
 		await bormClient.mutate(
@@ -2773,7 +2650,7 @@ describe('Mutations: Edges', () => {
 			$relation: 'UserTagGroup',
 			$thing: 'UserTagGroup',
 			$id: 'rep-del1-utg1',
-			color: [{ $op: 'delete' }, { id: 'purple' }],
+			color: [{ $op: 'delete' }, { $op: 'create', id: 'purple' }],
 		});
 
 		const colors = await bormClient.query(

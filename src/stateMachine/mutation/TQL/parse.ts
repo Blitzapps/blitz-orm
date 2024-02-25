@@ -13,10 +13,14 @@ export const parseTQLMutation = async (tqlRes: TqlRes, reqThings: any[], reqEdge
 			//! reads all the insertions and gets the first match. This means each id must be unique
 			// @ts-expect-error - TODO description
 			const currentNode = tqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-
 			// console.log('current:', JSON.stringify(x));
 
 			if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
+				/// Creation and links should show an $error. Update on the other hand might not get here as typeDB does not return deleted thibgs.
+				if (!(exp.$op === 'update') && !currentNode && exp.$id) {
+					return { $id: exp.$id, $error: "Does not exist or it's not linked to the parent" }; //todo: Return with $error not found?
+				}
+
 				const dbIdd = currentNode?.asThing().iid;
 				if (config.mutation?.noMetadata) {
 					const filteredObject = Object.entries(exp)

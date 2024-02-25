@@ -385,6 +385,7 @@ type ReturnTypeWithNode = ReturnTypeWithoutNode & {
 	usedFields: string[];
 	usedRoleFields: string[];
 	usedLinkFields: string[];
+	usedDataFields: string[];
 	unidentifiedFields: string[];
 };
 
@@ -471,6 +472,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		usedFields,
 		usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
 		usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
+		usedDataFields: availableDataFields.filter((x) => usedFields.includes(x)),
 		unidentifiedFields,
 		...(localFilterFields.length ? { localFilters } : {}),
 		...(nestedFilterFields.length ? { nestedFilters } : {}),

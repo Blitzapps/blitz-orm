@@ -49,7 +49,7 @@ describe('Mutations: PreHooks', () => {
 		await bormClient.mutate({
 			$entity: 'Hook',
 			$op: 'delete',
-			id: 'hookDF11',
+			$id: 'hookDF11',
 		});
 	});
 
@@ -146,6 +146,7 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'something@test.es',
+				requiredOption: 'a',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);
@@ -167,6 +168,7 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'secretTesthe@test.es',
+				requiredOption: 'a',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);
@@ -190,23 +192,27 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				id: 'hook-c0',
+				requiredOption: 'a',
 				asMainHookOf: {
 					id: 'doesHaveheyYes',
 					hooks: [
 						{
 							id: 'hook-c1',
+							requiredOption: 'a',
 						},
-						{ id: 'hook-c2' },
+						{ id: 'hook-c2', requiredOption: 'a' },
 					],
 					mainHook: {
 						id: 'hook-c3',
+						requiredOption: 'a',
 						asMainHookOf: {
 							id: 'p-7',
 							hooks: [
 								{
 									id: 'hook-c4', //this one is the first one that should fail as its parent does not have 'hey'
+									requiredOption: 'a',
 								},
-								{ id: 'hook-c5' },
+								{ id: 'hook-c5', requiredOption: 'a' },
 							],
 						},
 					},

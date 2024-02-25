@@ -43,7 +43,6 @@ export const testSchema: BormSchema = {
 				{
 					contentType: 'TEXT',
 					path: 'requiredOption',
-					default: { type: 'value', value: 'a' },
 					validations: { required: true, enum: ['a', 'b', 'c'] as string[] },
 				},
 				{

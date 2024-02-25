@@ -437,7 +437,6 @@ describe('Mutations: Init', () => {
 				'user-tags': [{ id: 'ustag1' }],
 			},
 		});
-
 		/// clean user
 		await bormClient.mutate([
 			{

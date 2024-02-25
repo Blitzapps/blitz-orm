@@ -39,13 +39,18 @@ describe('Mutations: Errors', () => {
 
 		const mutation = {
 			$relation: 'UserTagGroup',
-			$id: 'tmp-user-tag-group',
+			$id: 'non-existing-user-tag-group',
 			tags: [{ $op: 'link', $id: 'tag-1' }],
 		};
 
 		const res = await bormClient.mutate(mutation);
 		// console.log('res', res);
-		expect(res).toStrictEqual({});
+		expect(res).toStrictEqual([
+			{
+				$id: 'non-existing-user-tag-group',
+				$error: "Does not exist or it's not linked to the parent",
+			},
+		]);
 	});
 
 	it('e3[create] Check for no $id field on $op create', async () => {
@@ -214,7 +219,7 @@ describe('Mutations: Errors', () => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'Unsupported operation combination for $tempId "utg1". Existing: create. Current: create',
+					'[Wrong format] Wrong operation combination for $tempId "utg1". Existing: create. Current: create',
 				);
 			} else {
 				expect(true).toBe(false);
@@ -475,7 +480,6 @@ describe('Mutations: Errors', () => {
 					$id: 'account3-1',
 					user: {
 						$op: 'link',
-						email: 'theNewEmailOfAnn@gmail.com',
 					},
 				},
 				{ noMetadata: true, preQuery: true },
@@ -504,14 +508,13 @@ describe('Mutations: Errors', () => {
 					$op: 'create',
 					user: {
 						$op: 'delete',
-						email: 'theNewEmailOfAnn@gmail.com',
 					},
 				},
 				{ noMetadata: true, preQuery: true },
 			);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe('Cannot delete under a create');
+				expect(error.message).toBe('[Wrong format] Cannot delete under a create');
 			} else {
 				expect(true).toBe(false);
 			}
@@ -537,7 +540,7 @@ describe('Mutations: Errors', () => {
 			);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe('Cannot unlink under a create');
+				expect(error.message).toBe('[Wrong format] Cannot unlink under a create');
 			} else {
 				expect(true).toBe(false);
 			}
@@ -744,7 +747,7 @@ describe('Mutations: Errors', () => {
 			},
 		]);
 	});
-	it('TODO:e-or2[orphan, relation] Creating a relation without anything that links', async () => {
+	it('e-or2[orphan, relation] Creating a relation without anything that links', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -757,6 +760,30 @@ describe('Mutations: Errors', () => {
 				expect(error.message).toBe(
 					'[Wrong format] Can\'t create a relation without any player. Node: {"id":"ul-many"}',
 				);
+			} else {
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it("f1[format] Can't filter by $id when creating its parent", async () => {
+		expect(bormClient).toBeDefined();
+		try {
+			await bormClient.mutate({
+				$thing: 'Thing',
+				$thingType: 'entity',
+				id: 'temp1',
+				root: {
+					$id: 'tr10',
+					extra: 'thing2',
+				},
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('[Wrong format] Cannot update under a create');
+			} else {
 				expect(true).toBe(false);
 			}
 			return;

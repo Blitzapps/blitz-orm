@@ -24,13 +24,16 @@ export const enrichChildren = (
 		const oppositePlayers = getOppositePlayers(field, fieldSchema);
 		const [player] = oppositePlayers;
 
+		const $op = getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema);
+		const $bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
+
 		return {
 			...subNode,
 			[EdgeSchema]: fieldSchema,
 			$thing: player.thing,
 			$thingType: player.thingType,
-			$op: getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema),
-			$bzId: subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`,
+			$op,
+			$bzId,
 		};
 
 		//#endregion nested nodes

@@ -167,6 +167,130 @@ describe('Mutations: Replaces', () => {
 		});
 	});
 
+	it('r5a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [
+				{ $op: 'link', $id: 'tag-3' },
+				{ $op: 'unlink', $id: 'tag-1' },
+			],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		expect(deepSort(tmpUTG)).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG',
+			tags: ['tag-2', 'tag-3'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('r5b[replace, unlink, link, many] Replace using unlink + link single role, by IDs. MultiIds', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2', 'tag-3'],
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [
+				{ $op: 'link', $id: 'tag-4' },
+				{ $op: 'unlink', $id: ['tag-1', 'tag-2'] },
+			],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		expect(deepSort(tmpUTG)).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG',
+			tags: ['tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
+	it('r6a[replace, unlink, link, many] Replace using unlink + link , all unlink', async () => {
+		expect(bormClient).toBeDefined();
+
+		/// create
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'tmpUTG',
+			tags: ['tag-1', 'tag-2'],
+			color: 'blue',
+		});
+
+		/// the mutation to be tested
+		await bormClient.mutate({
+			$id: 'tmpUTG',
+			$relation: 'UserTagGroup',
+			tags: [{ $op: 'link', $id: ['tag-4', 'tag-3'] }, { $op: 'unlink' }],
+		});
+
+		const tmpUTG = await bormClient.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$fields: ['tags'],
+		});
+
+		expect(deepSort(tmpUTG)).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG',
+			tags: ['tag-3', 'tag-4'],
+		});
+
+		//clean changes by deleting the new tmpUTG
+		await bormClient.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG',
+			$op: 'delete',
+		});
+	});
+
 	it('TODO:ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
 		expect(bormClient).toBeDefined();
 
