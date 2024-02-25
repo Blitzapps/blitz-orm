@@ -526,9 +526,18 @@ export const parseBQLMutation = async (
 					return;
 				}
 				throw new Error(
-					`[Borm] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
+					`[Wrong format] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
 				);
 			}
+		}
+	});
+
+	///Validate that each tempId has at least one creation op:
+	const allThings = [...mergedThings, ...mergedEdges];
+	const tempIds = new Set(allThings.filter((x) => x.$tempId).map((x) => x.$tempId));
+	tempIds.forEach((tempId) => {
+		if (allThings.filter((x) => x.$tempId === tempId && x.$op === 'create').length === 0) {
+			throw new Error("Can't link a $tempId that has not been created in the current mutation.");
 		}
 	});
 

@@ -124,6 +124,7 @@ describe('Mutations: PreHooks', () => {
 				$relation: 'Kind',
 				id: 'kind1',
 				name: 'Tyrannosaurus name',
+				space: 'space-3',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);

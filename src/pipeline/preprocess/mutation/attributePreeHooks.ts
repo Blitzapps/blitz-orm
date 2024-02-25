@@ -79,7 +79,7 @@ export const attributePreHooks: PipelineOperation = async (req) => {
 		);
 	};
 
-	const withDefaultAttrubutes = defaultAttributes(filledBqlRequest);
+	const withDefaultAttributes = defaultAttributes(filledBqlRequest);
 
 	const transformAttributes = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -93,7 +93,7 @@ export const attributePreHooks: PipelineOperation = async (req) => {
 		);
 	};
 
-	const withTransformedAttributes = transformAttributes(withDefaultAttrubutes);
+	const withTransformedAttributes = transformAttributes(withDefaultAttributes);
 
 	if (Array.isArray(withTransformedAttributes)) {
 		req.filledBqlRequest = withTransformedAttributes as FilledBQLMutationBlock[];

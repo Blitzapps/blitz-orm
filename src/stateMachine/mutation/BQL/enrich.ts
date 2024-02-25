@@ -12,6 +12,7 @@ import { splitMultipleIds } from './enrichSteps/splitIds';
 import { enrichChildren } from './enrichSteps/enrichChildren';
 import { computeFields } from './enrichSteps/computeFields';
 import { unlinkAll } from './enrichSteps/unlinkAll';
+import { preHookValidations } from './enrichSteps/preHookValidations';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {
@@ -39,6 +40,8 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 				const tempId = node.$tempId.substring(2);
 				node.$tempId = tempId;
 				node.$bzId = tempId;
+			} else {
+				throw new Error('[Wrong format] TempIds must start with "_:"');
 			}
 		} else {
 			throw new Error('[Internal] TempId already modified');
@@ -59,7 +62,7 @@ export const enrichBQLMutation = (
 
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	const result = produce(rootBlock, (draft) =>
-		traverse(draft, ({ value, parent, key }: TraversalCallbackContext) => {
+		traverse(draft, ({ value, parent, key, meta }: TraversalCallbackContext) => {
 			if (!parent || !key) {
 				return;
 			}
@@ -122,7 +125,42 @@ export const enrichBQLMutation = (
 							setRootMeta(rootNode, schema);
 							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
-						/// 3.2.3 children enrichment
+
+						// 3.2.3 BQL pre-validations => All validations should happen on subNode, if else, leaves are skipped
+						const preValidate = isArray(node[field]) ? node[field] : [node[field]];
+
+						const cleanPath = meta.nodePath?.split('.').slice(1).join('.');
+						preValidate.forEach((subNode: BQLMutationBlock) => {
+							if (!subNode) {
+								return;
+							}
+							/// For cardinality ONE, we need to specify the $op of the children
+							if (
+								fieldSchema?.cardinality === 'ONE' &&
+								!subNode.$op &&
+								!subNode.$id &&
+								!subNode.$filter &&
+								!subNode.$tempId &&
+								node.$op !== 'create'
+							) {
+								throw new Error(`Please specify if it is a create or an update. Path: ${cleanPath}.${field}`);
+							}
+							if (subNode.$tempId) {
+								if (
+									!(
+										subNode.$op === undefined ||
+										subNode.$op === 'link' ||
+										subNode.$op === 'create' ||
+										subNode.$op === 'update'
+									)
+								) {
+									throw new Error(
+										`Invalid op ${subNode.$op} for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.`,
+									);
+								}
+							}
+						});
+						/// 3.2.4 children enrichment
 						//redefining childrenArray as it might have changed
 						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 							if (node[field] === null) {
@@ -132,26 +170,32 @@ export const enrichBQLMutation = (
 							}
 						}
 
-						//3.2.4 splitIds()
+						//3.2.5 splitIds()
 						splitMultipleIds(node, field, schema);
 						//console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						//console.log('After enrichChildren', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
-						/// 3.2.5 Field computes
+						/// 3.2.6 Field computes
 						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 							//console.log('toBeComputed', node, field);
 							computeFields(node, field, schema);
 						}
 						//console.log('After computeFields', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
-						// 3.2.6
-						//#region validations
+						// 3.2.7
+						//#region BQL validations
 						const toValidate = isArray(node[field]) ? node[field] : [node[field]];
 
 						toValidate.forEach((subNode: BQLMutationBlock) => {
 							const subNodeSchema = getCurrentSchema(schema, subNode);
 							const { unidentifiedFields, usedLinkFields } = getCurrentFields(subNodeSchema, subNode);
+							if (subNode.$op === 'create' && subNode.$id) {
+								throw new Error(
+									"[Wrong format] Can't write to computed field $id. Try writing to the id field directly.",
+								);
+							}
+
 							if (unidentifiedFields.length > 0) {
 								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
 							}
@@ -173,7 +217,17 @@ export const enrichBQLMutation = (
 							}
 						});
 
-						//#endregion validations
+						//#endregion BQL validations
+
+						// 3.3.8
+						//#region pre-hook transformations
+						//preHookTransformations(node, field, schema);
+						//#endregion pre-hook transformations
+
+						// 3.2.9
+						//#region pre-hook validations
+						preHookValidations(node, field, schema);
+						//#endregion pre-hook validations
 					}
 				});
 			}

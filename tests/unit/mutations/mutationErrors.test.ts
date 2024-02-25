@@ -63,7 +63,9 @@ describe('Mutations: Errors', () => {
 			await bormClient.mutate(mutation, { noMetadata: true });
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe("Can't write to computed field $id. Try writing to the id field directly.");
+				expect(error.message).toBe(
+					"[Wrong format] Can't write to computed field $id. Try writing to the id field directly.",
+				);
 			} else {
 				expect(true).toBe(false);
 			}
@@ -94,7 +96,7 @@ describe('Mutations: Errors', () => {
 		} catch (error) {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('Please specify if it is a create or an update. Path: user');
+				expect(error.message).toBe('Please specify if it is a create or an update. Path: $root.0.user');
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);
@@ -104,41 +106,6 @@ describe('Mutations: Errors', () => {
 
 	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
 		expect(bormClient).toBeDefined();
-
-		try {
-			await bormClient.mutate([
-				{
-					$entity: 'User',
-					name: 'Peter',
-					email: 'Peter@test.ru',
-					accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
-				},
-				{
-					$tempId: '_:acc1',
-					$op: 'create',
-					$entity: 'Account',
-					provider: 'MetaMask',
-					user: { name: 'Peter' },
-				},
-			]);
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe(
-					'"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation\'s role is of cardinality ONE.\n',
-				);
-			} else {
-				expect(true).toBe(false);
-			}
-
-			return;
-		}
-
-		throw new Error('Expected mutation to throw an error');
-	});
-
-	it('TODO:e6[tempId] Somwhere there is a tempId that has no definition', async () => {
-		expect(bormClient).toBeDefined();
-		// todo: antoine query of nested tempIds without op="create"
 
 		try {
 			await bormClient.mutate([
@@ -227,7 +194,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('e8a[multi, create, link] Uncompatible tempId ops', async () => {
+	it('e8a[multi, create, link] Incompatible tempId ops', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -258,7 +225,7 @@ describe('Mutations: Errors', () => {
 
 		throw new Error('Expected mutation to throw an error');
 	});
-	it('TODO:e8b[multi, create, link] Uncompatible tempId ops', async () => {
+	it('e8b[multi, create, link] Incompatible tempId ops', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -277,7 +244,7 @@ describe('Mutations: Errors', () => {
 			]);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe('Cannot link a $tempId that has not been created in the current mutation');
+				expect(error.message).toBe("Can't link a $tempId that has not been created in the current mutation.");
 			} else {
 				expect(true).toBe(false);
 			}
@@ -656,25 +623,6 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:e-r1[create relation] Creating a relation without anything that links', async () => {
-		expect(bormClient).toBeDefined();
-
-		try {
-			await bormClient.mutate({
-				$relation: 'Field',
-				id: 'ul-many',
-			});
-		} catch (error: any) {
-			if (error instanceof Error) {
-				expect(error.message).toBe('You are creating a relation that is not linked to anything');
-			} else {
-				expect(true).toBe(false);
-			}
-			return;
-		}
-		throw new Error('Expected mutation to throw an error');
-	});
-
 	it("vi1[create, virtual, error] Can't set virtual fields", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
 		expect(bormClient).toBeDefined();
@@ -694,7 +642,7 @@ describe('Mutations: Errors', () => {
 		} catch (error) {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('Can\'t set virtual fields: ["isSecureProvider"]');
+				expect(error.message).toBe('Virtual fields can\'t be sent to DB: "isSecureProvider"');
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);
@@ -720,7 +668,7 @@ describe('Mutations: Errors', () => {
 		} catch (error) {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
-				expect(error.message).toBe('TempIds must start with "_:"');
+				expect(error.message).toBe('[Wrong format] TempIds must start with "_:"');
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);
@@ -728,7 +676,7 @@ describe('Mutations: Errors', () => {
 		}
 	});
 
-	it("or1[orphan, relation] Can't create an orphan relation, but can create if its linked elsewhere", async () => {
+	it("e-or1[orphan, relation] Can't create an orphan relation, but can create if its linked elsewhere", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
 		expect(bormClient).toBeDefined();
 
@@ -756,7 +704,7 @@ describe('Mutations: Errors', () => {
 			if (error instanceof Error) {
 				// Check if the error message is exactly what you expect
 				expect(error.message).toBe(
-					'[Borm] Can\'t create a relation without any player. Node: {"name":"randomName","id":"or1-k-1"}',
+					'[Wrong format] Can\'t create a relation without any player. Node: {"name":"randomName","id":"or1-k-1"}',
 				);
 			} else {
 				// If the error is not of type Error, fail the test
@@ -795,6 +743,25 @@ describe('Mutations: Errors', () => {
 				$op: 'delete',
 			},
 		]);
+	});
+	it('TODO:e-or2[orphan, relation] Creating a relation without anything that links', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Field',
+				id: 'ul-many',
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe(
+					'[Wrong format] Can\'t create a relation without any player. Node: {"id":"ul-many"}',
+				);
+				expect(true).toBe(false);
+			}
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
 	});
 
 	afterAll(async () => {

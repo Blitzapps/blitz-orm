@@ -556,7 +556,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toBeInstanceOf(Object);
 
 		// link the user to the spaces
-		console.log('res3-3', spaceThree.id, spaceFour.id, thirdUser.id);
+		//console.log('res3-3', spaceThree.id, spaceFour.id, thirdUser.id);
 		const res3 = await bormClient.mutate(
 			{
 				$entity: 'User',
@@ -1342,7 +1342,6 @@ describe('Mutations: Init', () => {
 			},
 		]);
 
-		console.log('test u3');
 		/// cardinality MANY
 		await bormClient.mutate(
 			{
