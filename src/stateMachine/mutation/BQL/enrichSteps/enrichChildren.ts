@@ -7,7 +7,7 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 } from '../../../../types';
-import { ParentBzId, EdgeSchema } from '../../../../types/symbols';
+import { EdgeSchema } from '../../../../types/symbols';
 import { getOp } from './shared/getOp';
 import { v4 as uuidv4 } from 'uuid';
 import { getOppositePlayers } from './shared/getOppositePlayers';
@@ -31,7 +31,6 @@ export const enrichChildren = (
 			$thingType: player.thingType,
 			$op: getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema),
 			$bzId: subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`,
-			[ParentBzId]: node.$bzId,
 		};
 
 		//#endregion nested nodes

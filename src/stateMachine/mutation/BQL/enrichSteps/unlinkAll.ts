@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import type { BQLMutationBlock, EnrichedLinkField, EnrichedRoleField } from '../../../../types';
-import { ParentBzId, EdgeSchema } from '../../../../types/symbols';
+import { EdgeSchema } from '../../../../types/symbols';
 import { v4 as uuidv4 } from 'uuid';
 import { getOppositePlayers } from './shared/getOppositePlayers';
 
@@ -17,7 +17,6 @@ export const unlinkAll = (
 		$thingType: player.thingType,
 		$op: 'unlink',
 		$bzId: `U_${uuidv4()}`,
-		[ParentBzId]: node.$bzId,
 		[EdgeSchema]: fieldSchema,
 	};
 };
