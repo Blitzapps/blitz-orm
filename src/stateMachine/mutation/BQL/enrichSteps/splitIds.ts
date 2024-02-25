@@ -18,7 +18,7 @@ export const splitMultipleIds = (node: BQLMutationBlock, field: string, schema: 
 					}
 					// eslint-disable-next-line no-constant-condition
 					if (/*childSchema.dbContext.mutation?.splitArray$Ids*/ true) {
-						console.log('subNode', subNode);
+						//console.log('subNode', subNode);
 						return subNode.$id.map(($id: string, i: number) => ({
 							...deepCurrent(subNode), //structured clone generates a weird bug with traverse, so not using it
 							$id: $id,

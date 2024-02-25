@@ -20,7 +20,7 @@ export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
+	//console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
 	//console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
 
 	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {

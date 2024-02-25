@@ -24,6 +24,7 @@ export const mutationPreQuery = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
+	//console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
 	const getFieldKeys = (block: FilledBQLMutationBlock, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$')) {
@@ -790,7 +791,7 @@ export const mutationPreQuery = async (
 	};
 
 	const final = fillPaths(processedReplaces);
-	//console.log('final', JSON.stringify(final, null, 2));
+	//console.log('post-preQuery', JSON.stringify(final, null, 2));
 
-	return final[0];
+	return final;
 };

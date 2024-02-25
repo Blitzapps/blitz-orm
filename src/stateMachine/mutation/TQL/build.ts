@@ -378,6 +378,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		(x) => !x,
 	);
 
-	console.log('tqlMutation', tqlMutation);
+	//console.log('tqlMutation', tqlMutation);
 	return tqlMutation;
 };
