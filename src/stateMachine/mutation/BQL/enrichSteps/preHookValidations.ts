@@ -1,9 +1,10 @@
 /* eslint-disable no-param-reassign */
-import { isArray } from 'radash';
-import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
-import { getCurrentSchema } from '../../../../helpers';
+import { clone, isArray, isObject } from 'radash';
+import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
+import { deepCurrent, getCurrentSchema } from '../../../../helpers';
+import { getTriggeredActions } from '../../../../pipeline/preprocess/mutation/hooks/utils';
 
-export const preHookValidations = (node: BQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
+export const preHookValidations = (node: EnrichedBQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
 	subNodes.forEach((subNode: EnrichedBQLMutationBlock) => {
 		if ('$thing' in subNode) {
@@ -54,6 +55,38 @@ export const preHookValidations = (node: BQLMutationBlock, field: string, schema
 							}
 						} catch (error: any) {
 							throw new Error(`[Validations:attribute:${field}] ${error.message}`);
+						}
+					}
+				});
+			}
+
+			/// Node validations
+			if (isObject(subNode) && '$thing' in subNode) {
+				const currentThing = subNode.$thing;
+				const value = subNode as EnrichedBQLMutationBlock;
+
+				const parentNode = clone(deepCurrent(node));
+				const currentNode = clone(deepCurrent(value));
+
+				const triggeredActions = getTriggeredActions(value, schema);
+				triggeredActions.forEach((action) => {
+					if (action.type === 'validate') {
+						if (action.severity !== 'error') {
+							return; // in borm we only use the errors
+						}
+
+						try {
+							//! Todo: Sandbox the function in computeFunction()
+							const validationResult = action.fn(currentNode, parentNode);
+
+							if (validationResult === false) {
+								throw new Error(`${action.message}.`);
+							}
+							if (validationResult !== true) {
+								throw new Error("Validation function's output is not a boolean value.");
+							}
+						} catch (error: any) {
+							throw new Error(`[Validations:thing:${currentThing}] ${error.message}`);
 						}
 					}
 				});

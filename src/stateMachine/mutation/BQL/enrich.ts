@@ -79,7 +79,7 @@ export const enrichBQLMutation = (
 					}
 				}
 
-				const node = value as BQLMutationBlock;
+				const node = value as EnrichedBQLMutationBlock;
 
 				Object.keys(node).forEach((field) => {
 					///1. Clean step
