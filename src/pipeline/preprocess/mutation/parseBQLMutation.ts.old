@@ -12,7 +12,7 @@ import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 export const parseBQLMutation: PipelineOperation = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
-	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
+	//console.log('blocks.OLD', JSON.stringify(filledBqlRequest, null, 2));
 
 	const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
 		// todo: make immutable
@@ -151,12 +151,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp(),
 					$bzId: value.$tempId ? value.$tempId : value.$bzId,
-					[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
-					[Symbol.for('path')]: value[Symbol.for('path') as any],
-
-					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
-					[Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -209,7 +203,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 							if (ownRelation) {
 								return 'unlink';
 							} // delete already present in the nodes array
-							return 'delete';
+							return 'delete'; // we will need to transform this to "unlink" later
 						}
 						if (value.$op === 'link' || value.$op === 'create') {
 							if (ownRelation) {
@@ -234,11 +228,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 						// roles
 						...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
 						[value[Symbol.for('oppositeRole') as any]]: parentId,
-
-						[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 						[Symbol.for('edgeType')]: 'linkField',
-						[Symbol.for('info')]: 'normal linkField',
-						[Symbol.for('path')]: value[Symbol.for('path') as any],
 					};
 
 					// const testVal = {};
@@ -255,10 +245,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 							$bzId: linkTempId,
 							$op: 'match',
 							[value[Symbol.for('oppositeRole') as any]]: parentId,
-							[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
 							[Symbol.for('edgeType')]: 'linkField',
-							[Symbol.for('info')]: 'additional ownrelation unlink linkField',
-							[Symbol.for('path')]: value[Symbol.for('path') as any],
 						});
 					}
 				}
@@ -319,9 +306,6 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 								$op: getEdgeOp(),
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
-								[Symbol.for('path')]: value[Symbol.for('path') as any],
-								[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-								[Symbol.for('info')]: 'coming from created or deleted relation',
 								[Symbol.for('edgeType')]: 'roleField on C/D',
 							};
 
@@ -364,12 +348,9 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 									const edgeType3 = {
 										...objWithMetaDataOnly,
 										$relation: value.$relation,
-										$op: op === 'delete' ? 'unlink' : op,
+										$op: op === 'delete' ? 'unlink' : op, //using "match" instead of link would add it also to insert match dependencies. Maybe match-link and match-unlink should be specified, but so far using just link and unlink does it
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
-										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-										[Symbol.for('path')]: value[Symbol.for('path') as any],
-										[Symbol.for('info')]: 'updating roleFields',
 										[Symbol.for('edgeType')]: 'roleField on L/U/R',
 									};
 
@@ -500,8 +481,8 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
 
-	//console.log('mergedThings', mergedThings);
-	//console.log('mergedEdges', mergedEdges);
+	//console.log('mergedThingsOLD', mergedThings);
+	//console.log('mergedEdgesOLD', mergedEdges);
 
 	/// VALIDATIONS
 	/// in the same mutation, we can't link cardinality ONE stuff in multiple places
@@ -637,7 +618,7 @@ export const parseBQLMutation: PipelineOperation = async (req) => {
 	// todo
 	// checkCardinality(); // todo: add mergedEdges and schema as params and import from other parseBQLMutationHelpers
 
-	/// case b: We have repeated the same relation id in two places and we are asigning it one of the roles more than one item
+	/// case b: We have repeated the same relation id in two places and we are assigning it one of the roles more than one item
 
 	/// case c: Before merge, a role with cardinality ONE has an array => This one is already managed before, so n
 

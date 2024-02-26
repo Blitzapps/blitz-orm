@@ -54,7 +54,6 @@ export const postHooks: PipelineOperation = async (req, res) => {
 								}
 							} else {
 								const computedValue = computeField({
-									//@ts-expect-error - todo: make computeField compatible with BQLQueryBlock
 									currentThing: value,
 									fieldSchema: field,
 									mandatoryDependencies: true,

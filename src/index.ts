@@ -4,16 +4,20 @@ import { TypeDB, SessionType } from 'typedb-driver';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { mutationPipeline, queryPipeline } from './pipeline/pipeline';
+import { queryPipeline } from './pipeline/pipeline';
 import type {
+	BQLMutation,
+	BQLResponseMulti,
 	BormConfig,
 	BormSchema,
 	DBHandles,
-	MutateConfig,
+	EnrichedBormSchema,
+	MutationConfig,
 	QueryConfig,
-	RawBQLMutation,
 	RawBQLQuery,
 } from './types';
+import { enableMapSet } from 'immer';
+import { runMutationMachine } from './stateMachine/mutation/machine';
 
 export * from './types';
 
@@ -21,6 +25,10 @@ type BormProps = {
 	schema: BormSchema;
 	config: BormConfig;
 };
+
+/// Global config
+// immer
+enableMapSet();
 
 class BormClient {
 	private schema: BormSchema;
@@ -36,8 +44,7 @@ class BormClient {
 	getDbHandles = () => this.dbHandles;
 
 	init = async () => {
-		const dbHandles = { typeDB: new Map() };
-		const enrichedSchema = enrichSchema(this.schema);
+		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
@@ -85,8 +92,10 @@ class BormClient {
 				}
 			}),
 		);
+		const enrichedSchema = enrichSchema(this.schema, dbHandles);
+
 		// @ts-expect-error - it becomes enrichedSchema here
-		this.schema = enrichedSchema;
+		this.schema = enrichedSchema as EnrichedBormSchema;
 		this.dbHandles = dbHandles;
 	};
 
@@ -120,7 +129,7 @@ class BormClient {
 		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
 	};
 
-	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: MutateConfig) => {
+	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {
 		await this.#enforceConnection();
 		const mConfig = {
 			...this.config,
@@ -130,15 +139,31 @@ class BormClient {
 				...mutationConfig,
 			},
 		};
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
-		return mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
+
+		const [errorRes, res] = await tryit(runMutationMachine)(
+			mutation,
+			this.schema as EnrichedBormSchema,
+			mConfig,
+			this.dbHandles as DBHandles,
+		);
+		if (errorRes) {
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			throw new Error(errorRes.error.message);
+		}
+
+		const result = res.bql.res;
+
+		return result as BQLResponseMulti;
 	};
 
 	close = async () => {
 		if (!this.dbHandles) {
 			return;
 		}
-		this.dbHandles.typeDB.forEach(async ({ client, session }) => {
+		//todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for instance
+		this.dbHandles.typeDB?.forEach(async ({ client, session }) => {
 			if (session.isOpen()) {
 				await session.close();
 			}
