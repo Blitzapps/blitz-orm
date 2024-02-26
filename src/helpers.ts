@@ -143,7 +143,6 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	});
 
 	// * Enrich the schema
-
 	const enrichedSchema = produce(withExtensionsSchema, (draft) =>
 		traverse(draft, ({ value, key, meta }: TraversalCallbackContext) => {
 			// id things
@@ -165,7 +164,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				//@ts-expect-error - TODO
 				const thingDB: DBHandleKey = Object.keys(dbHandles).find((key) =>
 					// @ts-expect-error - TODO
-					dbHandles[key].get(value.defaultDBConnector.id),
+					dbHandles[key]?.get(value.defaultDBConnector.id),
 				);
 				value.db = thingDB as DBHandleKey; //todo
 				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
