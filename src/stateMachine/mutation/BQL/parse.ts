@@ -159,7 +159,7 @@ export const parseBQLMutation = async (
 					...(value.$thingType && { $thingType: value.$thingType }),
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp() as BormOperation,
-					$bzId: value.$tempId ? value.$tempId : value.$bzId,
+					$bzId: value.$bzId,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
