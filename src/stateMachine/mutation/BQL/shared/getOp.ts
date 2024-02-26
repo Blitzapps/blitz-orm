@@ -1,5 +1,5 @@
-import { getCurrentSchema, getCurrentFields } from '../../../../../helpers';
-import type { BQLMutationBlock, EnrichedBormSchema, BormOperation } from '../../../../../types';
+import { getCurrentSchema, getCurrentFields } from '../../../../helpers';
+import type { BQLMutationBlock, EnrichedBormSchema, BormOperation } from '../../../../types';
 import { validateOp } from './validateOp';
 
 export const getOp = (

@@ -3,7 +3,6 @@ import { current, isDraft, produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
-import { doAction } from './utils';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
 import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { replaceToObj } from './enrichSteps/replaces';
@@ -14,6 +13,7 @@ import { computeFields } from './enrichSteps/computeFields';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { preHookValidations } from './enrichSteps/preHookValidations';
 import { preHookTransformations } from './enrichSteps/preHookTransformations';
+import { doAction } from './shared/doActions';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {

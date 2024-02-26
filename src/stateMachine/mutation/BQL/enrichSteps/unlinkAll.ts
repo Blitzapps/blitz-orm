@@ -2,7 +2,7 @@
 import type { BQLMutationBlock, EnrichedLinkField, EnrichedRoleField } from '../../../../types';
 import { EdgeSchema } from '../../../../types/symbols';
 import { v4 as uuidv4 } from 'uuid';
-import { getOppositePlayers } from './shared/getOppositePlayers';
+import { getOppositePlayers } from '../shared/getOppositePlayers';
 
 export const unlinkAll = (
 	node: BQLMutationBlock,

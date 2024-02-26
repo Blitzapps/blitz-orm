@@ -1,5 +1,5 @@
-import { getCurrentSchema, capitalizeFirstLetter } from '../../../../../helpers';
-import type { FilledBQLMutationBlock, EnrichedBormSchema, Hooks, BormTrigger, Action } from '../../../../../types';
+import { getCurrentSchema, capitalizeFirstLetter } from '../../../../helpers';
+import type { FilledBQLMutationBlock, EnrichedBormSchema, Hooks, BormTrigger, Action } from '../../../../types';
 
 export const getTriggeredActions = (node: FilledBQLMutationBlock, schema: EnrichedBormSchema) => {
 	const hooks = getCurrentSchema(schema, node).hooks as Hooks;

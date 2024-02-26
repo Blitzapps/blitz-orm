@@ -2,7 +2,7 @@
 import { clone, isArray } from 'radash';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
 import { deepCurrent, isBQLBlock } from '../../../../helpers';
-import { getTriggeredActions } from './shared/getTriggeredActions';
+import { getTriggeredActions } from '../shared/getTriggeredActions';
 
 export const preHookTransformations = (node: EnrichedBQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
 	const newNodes = (isArray(node[field]) ? node[field] : [node[field]]).map((subNode: EnrichedBQLMutationBlock) => {

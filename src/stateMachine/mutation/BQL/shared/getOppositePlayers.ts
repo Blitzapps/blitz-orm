@@ -1,4 +1,4 @@
-import type { EnrichedLinkField, EnrichedRoleField } from '../../../../../types';
+import type { EnrichedLinkField, EnrichedRoleField } from '../../../../types';
 
 export const getOppositePlayers = (field: string, fieldSchema: EnrichedLinkField | EnrichedRoleField) => {
 	if (fieldSchema.fieldType === 'linkField') {

@@ -8,9 +8,9 @@ import type {
 	EnrichedRoleField,
 } from '../../../../types';
 import { EdgeSchema } from '../../../../types/symbols';
-import { getOp } from './shared/getOp';
+import { getOp } from '../shared/getOp';
 import { v4 as uuidv4 } from 'uuid';
-import { getOppositePlayers } from './shared/getOppositePlayers';
+import { getOppositePlayers } from '../shared/getOppositePlayers';
 
 export const enrichChildren = (
 	node: BQLMutationBlock,

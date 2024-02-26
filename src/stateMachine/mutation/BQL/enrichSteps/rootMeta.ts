@@ -1,6 +1,6 @@
 import { isArray } from 'radash';
 import type { BQLMutationBlock, EnrichedBormSchema } from '../../../../types';
-import { getOp } from './shared/getOp';
+import { getOp } from '../shared/getOp';
 import { v4 as uuidv4 } from 'uuid';
 import { getThingType } from '../../../../helpers';
 

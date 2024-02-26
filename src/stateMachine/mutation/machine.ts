@@ -1,4 +1,4 @@
-import { createMachine, interpret, invoke, state, transition, reduce } from 'robot3';
+import { createMachine, interpret, invoke, transition, reduce, state as final, guard } from 'robot3';
 import type {
 	BQLMutation,
 	BQLMutationBlock,
@@ -118,6 +118,9 @@ const parseMutation = async (ctx: MachineContext) => {
 
 // Guards
 // ============================================================================
+const requiresPreQuery = () => {
+	return true;
+};
 
 /*const requiresParseBQL = (ctx: MachineContext) => {
 	//this would be more complicated than this, like count the entities requiring this, not just the root
@@ -144,20 +147,19 @@ const errorTransition = transition(
 export const machine = createMachine(
 	'enrich',
 	{
-		enrich: invoke(enrich, transition('done', 'preQuery', reduce(updateBqlReq)), errorTransition),
-		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
-		/*addIntermediaries: invoke(
-			addIntermediaries,
-			transition('done', 'parseBQL', guard(requiresParseBQL), reduce(updateBqlReq)),
-			transition('done', 'success', reduce(updateBqlReq)),
+		enrich: invoke(
+			enrich,
+			transition('done', 'preQuery', guard(requiresPreQuery), reduce(updateBqlReq)),
+			transition('done', 'parseBQL', reduce(updateBqlReq)),
 			errorTransition,
-		),*/
+		),
+		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
 		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
 		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),
 		runMutation: invoke(runMutation, transition('done', 'parseMutation', reduce(updateTQLRes)), errorTransition),
 		parseMutation: invoke(parseMutation, transition('done', 'success', reduce(updateBqlRes)), errorTransition),
-		success: state(),
-		error: state(),
+		success: final(),
+		error: final(),
 	},
 	(ctx: MachineContext) => ctx,
 );

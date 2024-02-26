@@ -1,6 +1,6 @@
 import { isArray } from 'radash';
 import type { BQLMutationBlock, EnrichedLinkField, EnrichedRoleField } from '../../../../types';
-import { getOppositePlayers } from './shared/getOppositePlayers';
+import { getOppositePlayers } from '../shared/getOppositePlayers';
 import { v4 as uuidv4 } from 'uuid';
 
 export const replaceToObj = (
