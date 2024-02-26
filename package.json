@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.9.1",
+	"version": "0.9.7",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -49,7 +49,6 @@
 		"immer": "9.0.21",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
-		"robot3": "^0.4.1",
 		"typedb-driver": "2.26.6-rc1",
 		"uuid": "^9.0.1"
 	},
