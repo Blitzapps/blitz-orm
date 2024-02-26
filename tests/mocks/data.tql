@@ -11,17 +11,17 @@ $user-8 isa User, has id "user8", has name "Bob", has User·email "bob@test.com"
 $user-9 isa User, has id "user9", has name "Alice", has User·email "alice@test.com";
 $user-10 isa User, has id "user10", has name "Charlie", has User·email "charlie@test.com";
 
-$thing1 isa Thing, has id "thing1", has stuff "A";
-$thing2 isa Thing, has id "thing2", has stuff "B";
-$thing3 isa Thing, has id "thing3", has stuff "C";
-$thing4 isa Thing, has id "thing4", has stuff "D";
-$thing5 isa Thing, has id "thing5", has stuff "E";
-$subthing-one-1 isa SubthingOne, has id "subthingone1", has stuff "F";
-$subthing-one-2 isa SubthingOne, has id "subthingone2", has stuff "G";
-$subthing-one-3 isa SubthingOne, has id "subthingone3", has stuff "H";
-$subthing-two-1 isa SubthingTwo, has id "subthingtwo1", has stuff "I";
-$subthing-two-2 isa SubthingTwo, has id "subthingtwo2", has stuff "J";
-$subthing-two-3 isa SubthingTwo, has id "subthingtwo3", has stuff "K";
+$thing1 isa Thing, has id "thing1", has Thing·stuff "A";
+$thing2 isa Thing, has id "thing2", has Thing·stuff "B";
+$thing3 isa Thing, has id "thing3", has Thing·stuff "C";
+$thing4 isa Thing, has id "thing4", has Thing·stuff "D";
+$thing5 isa Thing, has id "thing5", has Thing·stuff "E";
+$subthing-one-1 isa SubthingOne, has id "subthingone1", has Thing·stuff "F";
+$subthing-one-2 isa SubthingOne, has id "subthingone2", has Thing·stuff "G";
+$subthing-one-3 isa SubthingOne, has id "subthingone3", has Thing·stuff "H";
+$subthing-two-1 isa SubthingTwo, has id "subthingtwo1", has Thing·stuff "I";
+$subthing-two-2 isa SubthingTwo, has id "subthingtwo2", has Thing·stuff "J";
+$subthing-two-3 isa SubthingTwo, has id "subthingtwo3", has Thing·stuff "K";
 
 
 

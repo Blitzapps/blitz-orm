@@ -7,8 +7,8 @@ email sub attribute, abstract, value string, regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(
 description sub attribute, value string;
 
 
-stuff sub attribute, value string;
 Thing·stuff sub attribute, value string;
+ThingRelation·moreStuff sub attribute, value string;
 
 
 # User
@@ -69,7 +69,7 @@ Space sub entity,
 
 Thing sub entity,
     owns id@key,
-    owns stuff,
+    owns Thing·stuff,
     plays ThingRelation:root,
     plays ThingRelation:extra,
     plays ThingRelation:things;
@@ -80,6 +80,7 @@ SubthingTwo sub Thing;
 
 ThingRelation sub relation,
     owns id @key,
+		owns ThingRelation·moreStuff,
     relates root,
     relates extra,
     relates things;

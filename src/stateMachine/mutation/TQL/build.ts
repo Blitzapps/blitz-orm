@@ -1,22 +1,13 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
 
 import { getCurrentSchema, isBQLBlock } from '../../../helpers';
-import type { BQLMutationBlock } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
+import { EdgeType } from '../../../types/symbols';
 
-export const buildTQLMutation: PipelineOperation = async (req) => {
-	const { bqlRequest, schema } = req;
-	if (!bqlRequest) {
-		throw new Error('BQL request not parsed');
-	}
-	const { mutation } = bqlRequest;
-	if (!mutation) {
-		throw new Error('BQL request is not a mutation');
-	}
-
+export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
 	// todo: Split attributes and edges
 	const nodeToTypeQL = (
-		node: BQLMutationBlock,
+		node: EnrichedBQLMutationBlock,
 	): {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
@@ -30,13 +21,14 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		const currentSchema = getCurrentSchema(schema, node);
 		const { idFields, defaultDBConnector } = currentSchema;
 
-		const thingDbPath = defaultDBConnector?.path || node.$entity || node.$relation;
+		const thingDbPath = defaultDBConnector?.path || node.$thing;
 
 		const idValue = node.$id;
 
 		// todo: composite ids
 		const idField = idFields?.[0];
 
+		//@ts-expect-error - TODO
 		const attributes = listify(node, (k, v) => {
 			// @ts-expect-error - TODO description
 			if (k.startsWith('$') || k === idField || v === undefined || v === null) {
@@ -73,6 +65,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		const attributesVar = `${bzId}-atts`;
 
+		//@ts-expect-error - TODO
 		const matchAttributes = listify(node, (k) => {
 			// @ts-expect-error - TODO description
 			if (k.startsWith('$') || k === idField) {
@@ -92,14 +85,11 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 			return `{${attributesVar} isa ${dbField};}`;
 		}).filter((x) => x);
 
-		const isLocalId: boolean = node[Symbol.for('isLocalId') as any]; /// this are local ids that are ony used to define links between stuff but that are not in the db (the "all-xxx" ids)
-
 		const idValueTQL = isArray(idValue) ? `like '${idValue.join('|')}'` : `'${idValue}'`;
-		const idAttributes =
-			!isLocalId && idValue // it must have id values, and they must be realDBIds
-				? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
-					[`has ${idField} ${idValueTQL}`]
-				: [];
+		const idAttributes = idValue // it must have id values, and they must be realDBIds
+			? // if it is a relation, add only the id fields in the lines where we add the roles also so it does not get defined twice
+				[`has ${idField} ${idValueTQL}`]
+			: [];
 
 		const allAttributes = [...idAttributes, ...attributes].filter((x) => x).join(',');
 
@@ -152,7 +142,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 	};
 
 	const edgeToTypeQL = (
-		node: BQLMutationBlock,
+		node: EnrichedBQLMutationBlock,
 	): {
 		preDeletionBatch?: any[];
 		deletionMatch?: string;
@@ -166,18 +156,19 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		const bzId = `$${node.$bzId}`;
 		const idValue = node.$id;
 
-		const relationDbPath = currentSchema.defaultDBConnector?.path || node.$relation;
+		const relationDbPath = currentSchema.defaultDBConnector?.path || node.$thing;
 
 		const roleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
 
 		const roleDbPaths =
-			node.$relation &&
-			'roles' in currentSchema &&
-			mapEntries(currentSchema.roles, (k, v) => [k, v.dbConnector?.path || k]);
+			'roles' in currentSchema
+				? mapEntries(currentSchema.roles, (k, v) => [k, v.dbConnector?.path || k])
+				: ({} as { [k: string]: string });
 
 		// roles can be specified in three ways, either they are a roleField in the node, they are the children of something, or they have a default/computed link
 		// 1) roleFields
 
+		//@ts-expect-error - TODO
 		const fromRoleFields = listify(node, (k: string, v) => {
 			if (!roleFields.includes(k)) {
 				return null;
@@ -196,9 +187,11 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		/// if one of the roles's id is undefined it means it applies to every object of that thingType so we need to create an id for it
 		const fromRoleFieldsTql = fromRoleFields.map((x) => {
+			//@ts-expect-error - TODO
 			if (!x?.path) {
 				throw new Error('Object without path');
 			}
+			//@ts-expect-error - TODO
 			return `${x.path}: $${x.id}`;
 		});
 
@@ -206,7 +199,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 		// console.log('roles', roles);
 
-		const edgeType = node[Symbol.for('edgeType') as any];
+		const edgeType = node[EdgeType];
 		if (!edgeType) {
 			throw new Error('[internal error] Symbol edgeType not defined');
 		}
@@ -263,6 +256,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 				/// this got commented as the match brings what is needed but will probably need a refacto
 				/// this is coded as generating a match block in [parseBQLmutation.ts], toEdges(edgeType1)
 				// return `${bzId} ${roles} isa ${relationDbPath};`;
+				//return `${relationTql};`; //!this fixes rep-del1 but breaks other tests, ideally should be added
 			}
 			if (op === 'match') {
 				return `${relationTql};`;
@@ -312,7 +306,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 	};
 
 	const toTypeQL = (
-		nodes: BQLMutationBlock[] | BQLMutationBlock,
+		nodes: EnrichedBQLMutationBlock[] | EnrichedBQLMutationBlock,
 		mode?: 'nodes' | 'edges',
 	):
 		| {
@@ -344,21 +338,15 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		return shake({ preDeletionBatch, insertionMatch, deletionMatch, insertion, deletion }, (z) => !z); /// ! WARNING: falsy values are removed (0, "", etc)
 	};
 
-	// const thingStreams = thingsWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies]));
-	// const edgeStreams = edgesWithOps.map((x) => toTypeQL([...x.thingDependencies, ...x.edgeDependencies], 'edges'));
-
-	// console.log('thingStreams', JSON.stringify(thingStreams, null, 3));
-	// console.log('edgeStreams', edgeStreams);
-
-	const nodeOperations = toTypeQL(mutation.things);
+	const nodeOperations = toTypeQL(things);
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
-	const edgeOperations = toTypeQL(mutation.edges, 'edges');
+	const edgeOperations = toTypeQL(edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	// console.log('nodeOperations', nodeOperations);
-	// console.log('edgeOperations', edgeOperations);
+	//console.log('nodeOperations', nodeOperations);
+	//console.log('edgeOperations', edgeOperations);
 
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
-	// console.log('allOperations', allOperations);
+	//console.log('allOperations', allOperations);
 
 	// todo: split BQL mutation in N DBstreams per DB
 	// todo: then pack them per DB,
@@ -366,7 +354,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 
 	// const creations = [];
 
-	const tqlRequest = shake(
+	const tqlMutation = shake(
 		{
 			// preDeletionBatch: allOperations.flatMap((x) => x.preDeletionBatch).filter((y) => y !== undefined),
 			insertionMatches: allOperations
@@ -389,5 +377,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		},
 		(x) => !x,
 	);
-	req.tqlRequest = tqlRequest;
+
+	//console.log('tqlMutation', tqlMutation);
+	return tqlMutation;
 };

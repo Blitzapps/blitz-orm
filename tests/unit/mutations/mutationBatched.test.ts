@@ -153,7 +153,6 @@ describe('Mutations: batched and tempId', () => {
 		expect(res?.length).toBe(8);
 		const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
 		const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
-		// console.log('res', res);
 
 		const user = await bormClient.query(
 			{
@@ -323,7 +322,7 @@ describe('Mutations: batched and tempId', () => {
 
 	it('c5[multi, create, link] tempIds in extended relation', async () => {
 		expect(bormClient).toBeDefined();
-		const res1 = await bormClient.mutate([
+		const [res1] = await bormClient.mutate([
 			{
 				$entity: 'Space',
 				$tempId: '_:Personal',
@@ -332,7 +331,7 @@ describe('Mutations: batched and tempId', () => {
 			},
 		]);
 
-		const spaceId = (res1 as any)?.id as string;
+		const spaceId = res1?.id as string;
 
 		await bormClient.mutate([
 			{

@@ -7,7 +7,7 @@ export type QueryConfig = {
 	debugger?: boolean;
 };
 
-export type MutateConfig = {
+export type MutationConfig = {
 	noMetadata?: boolean;
 	preQuery?: boolean;
 	ignoreNonexistingThings?: boolean;
@@ -19,7 +19,7 @@ export type BormConfig = {
 	};
 	// queryDefaults
 	query?: QueryConfig;
-	mutation?: MutateConfig;
+	mutation?: MutationConfig;
 	dbConnectors: [ProviderObject, ...ProviderObject[]]; // minimum one
 };
 
@@ -41,6 +41,12 @@ export type DBConnector = {
 	as?: string;
 };
 
-export type DBHandles = {
+type AllDbHandles = {
 	typeDB: TypeDBHandles;
+	surrealDB: any;
 };
+type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U];
+
+export type DBHandles = AtLeastOne<AllDbHandles>;
+
+export type DBHandleKey = keyof DBHandles;

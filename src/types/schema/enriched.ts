@@ -1,4 +1,5 @@
-import type { LinkedFieldWithThing, Filter, BormEntity, BormRelation } from '..';
+import type { LinkedFieldWithThing, Filter, BormEntity, BormRelation, DBHandleKey } from '..';
+import type { AdapterContext } from '../../adapters';
 import type { RoleField, DataField, BormField } from './fields';
 
 export type EnrichedBormSchema = {
@@ -15,6 +16,8 @@ type SharedEnrichedProps = {
 	fnValidatedFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
+	db: DBHandleKey;
+	dbContext: AdapterContext;
 };
 
 export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
@@ -32,6 +35,7 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 export type EnrichedRoleField = RoleField & {
 	playedBy?: LinkedFieldWithThing[]; // computed variable.
 	name: string;
+	fieldType: 'roleField';
 };
 
 export type EnrichedDataField = DataField & {
@@ -42,6 +46,7 @@ export type EnrichedLinkField = BormField & {
 	name: string; // same as the key it has
 	relation: string;
 	plays: string;
+	fieldType: 'linkField';
 } & (
 		| {
 				target: 'role';
