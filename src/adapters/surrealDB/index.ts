@@ -133,7 +133,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
     const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
 
-    return await Promise.all(subtypes.map(async (subtype) => {
+    const payload = await Promise.all(subtypes.map(async (subtype) => {
       const queryRes: Array<Record<string, unknown> & {
         id: string
       }> = await client.query(buildQuery(subtype, query))
@@ -149,9 +149,15 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
       return transformed
     }))
+
+    return payload.flat()
   }))
+
+  if(req.enrichedBqlQuery.length > 1){
+    throw new Error('batch query unimplemented')
+  }
   
-  res.bqlRes = results.flat(2)
+  res.bqlRes = req.enrichedBqlQuery[0]?.$filter?.id ? results[0][0] : results[0]
 }
 
 export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {

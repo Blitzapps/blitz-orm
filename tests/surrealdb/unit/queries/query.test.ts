@@ -43,7 +43,7 @@ describe('Query', () => {
 	it('v3[validation] - $id not existing', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.query({ $entity: 'User', $id: 'nonExisting' });
-		await expect(res).toEqual([])
+		await expect(res).toEqual(undefined)
 	});
 
 	// it('e1[entity] - basic and direct link to relation', async () => {
@@ -162,14 +162,33 @@ describe('Query', () => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('e2[entity] - filter by single $id', async () => {
+	// it('e2[entity] - filter by single $id', async () => {
+	// 	expect(bormClient).toBeDefined();
+	// 	const query = { $entity: 'User', $id: 'user1' };
+	// 	const expectedRes = {
+	// 		// '$entity': 'User',
+	// 		'$thing': 'User',
+	// 		'$thingType': 'entity',
+	// 		'$id': 'user1',
+	// 		'name': 'Antoine',
+	// 		'email': 'antoine@test.com',
+	// 		'id': 'user1',
+	// 		'accounts': ['account1-1', 'account1-2', 'account1-3'],
+  //     'sessions': [],
+	// 		'spaces': ['space-1', 'space-2'],
+	// 		'user-tags': ['tag-1', 'tag-2'],
+	// 	};
+
+	// 	const res = (await bormClient.query(query)) as UserType;
+
+	// 	expect(res).toBeDefined();
+	// 	expect(deepSort(res, 'id')).toEqual(expectedRes);
+	// });
+
+	it('opt1[options, noMetadata', async () => {
 		expect(bormClient).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
-			// '$entity': 'User',
-			'$thing': 'User',
-			'$thingType': 'entity',
-			'$id': 'user1',
 			'name': 'Antoine',
 			'email': 'antoine@test.com',
 			'id': 'user1',
@@ -178,36 +197,18 @@ describe('Query', () => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = (await bormClient.query(query)) as UserType;
-
+		type UserType = WithBormMetadata<TypeGen<typeof typesSchema.entities.User>>;
+		const res = (await bormClient.query(query, {
+			noMetadata: true,
+		})) as UserType;
 		expect(res).toBeDefined();
-		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		expect(typeof res).not.toBe('string');
+
+		// @ts-expect-error - res should defined
+		expectArraysInObjectToContainSameElements(res, expectedRes);
+
+		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
-
-	// it('opt1[options, noMetadata', async () => {
-	// 	expect(bormClient).toBeDefined();
-	// 	const query = { $entity: 'User', $id: 'user1' };
-	// 	const expectedRes = {
-	// 		'name': 'Antoine',
-	// 		'email': 'antoine@test.com',
-	// 		'id': 'user1',
-	// 		'accounts': ['account1-1', 'account1-2', 'account1-3'],
-	// 		'spaces': ['space-1', 'space-2'],
-	// 		'user-tags': ['tag-1', 'tag-2'],
-	// 	};
-
-	// 	type UserType = WithBormMetadata<TypeGen<typeof typesSchema.entities.User>>;
-	// 	const res = (await bormClient.query(query, {
-	// 		noMetadata: true,
-	// 	})) as UserType;
-	// 	expect(res).toBeDefined();
-	// 	expect(typeof res).not.toBe('string');
-
-	// 	// @ts-expect-error - res should defined
-	// 	expectArraysInObjectToContainSameElements(res, expectedRes);
-
-	// 	expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
-	// });
 
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);

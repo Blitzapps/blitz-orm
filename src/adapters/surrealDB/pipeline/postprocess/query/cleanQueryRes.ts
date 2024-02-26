@@ -34,7 +34,7 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
         mutateItem(config, item)
       }
     } else {
-      mutateItem(config, bqlRes)
+      mutateItem(config, payload)
     }
   })
 
