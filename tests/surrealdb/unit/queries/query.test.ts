@@ -11,9 +11,6 @@ import type BormClient from '../../../../src/index';
 
 import 'jest';
 
-// import type BormClient from '../../../../src/index';
-// import { cleanup, init } from '../../helpers/lifecycle';
-
 describe('Query', () => {
 	let dbName: string;
 	let bormClient: BormClient;

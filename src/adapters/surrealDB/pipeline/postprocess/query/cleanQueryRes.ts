@@ -1,7 +1,7 @@
 import { isObject } from 'radash';
 import type { PipelineOperation, BQLResponseSingle, BormConfig } from '../../../../../types';
 import { produce } from 'immer';
-import type { SurrealDbResponse } from '../../../types/base'
+import type { SurrealDbResponse, EnrichedBqlQuery, EnrichedBqlQueryRelation, EnrichedBqlQueryEntity, EnrichedBqlQueryAttribute } from '../../../types/base'
 
 const processNull = (config: BormConfig, obj: Record<string, unknown>) => {
   for (const key in obj) {
@@ -13,7 +13,7 @@ const processNull = (config: BormConfig, obj: Record<string, unknown>) => {
         continue
       }
     } else {
-      if(value === null){
+      if (value === null) {
         delete obj[key]
         continue
       }
@@ -26,7 +26,10 @@ const processNull = (config: BormConfig, obj: Record<string, unknown>) => {
   }
 }
 
-const mutateItem = (config: BormConfig, item: BQLResponseSingle) => {
+const cleanUpObj = ({ config, item, query }: {
+  query: EnrichedBqlQuery,
+  config: BormConfig, item: BQLResponseSingle
+}) => {
   processNull(config, item)
 
   // INTERNAL SYMBOLS
@@ -43,23 +46,40 @@ const mutateItem = (config: BormConfig, item: BQLResponseSingle) => {
       }
     });
   }
+
+  // filter out id
+  if (query.$idNotIncluded) {
+    delete item["id"]
+  }
 }
 
 export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-  const { config } = req;
+  const { config, enrichedBqlQuery } = req;
   const { bqlRes } = res;
 
   if (!bqlRes) {
     return;
   }
 
+  const querySet = enrichedBqlQuery as Array<EnrichedBqlQuery>
+
+  if (querySet.length > 1) {
+    throw new Error('unimplemented')
+  }
+
+  const query = enrichedBqlQuery[0]
+
   const cleanedMetadata = produce(bqlRes, (payload) => {
     if (Array.isArray(payload)) {
       for (const item of payload) {
-        mutateItem(config, item)
+        cleanUpObj({
+          config, item, query
+        })
       }
     } else {
-      mutateItem(config, payload)
+      cleanUpObj({
+        config, item: payload, query
+      })
     }
   })
 

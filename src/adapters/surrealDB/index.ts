@@ -5,7 +5,7 @@ import { postHooks } from '../../pipeline/postprocess/query/postHooks';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, snake, dash } from 'radash'
 import { QueryPath } from '../../types/symbols';
-import type { SurrealDbResponse } from './types/base'
+import type { SurrealDbResponse, EnrichedBqlQuery, EnrichedBqlQueryRelation, EnrichedBqlQueryEntity, EnrichedBqlQueryAttribute } from './types/base'
 
 const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", thing: string, result: Array<string> = []): Array<string> => {
   const subtypes = Object.values(schema[kind])
@@ -20,89 +20,6 @@ const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", 
   }
 
   return result
-}
-
-type EnrichedBqlQueryRelation = {
-  '$thingType': 'relation',
-  '$plays': string,
-  '$playedBy': {
-    path: string,
-    cardinality: string,
-    relation: string,
-    plays: string,
-    target: string,
-    thing: string,
-    thingType: string,
-  },
-  '$path': string,
-  '$dbPath': undefined,
-  '$as': string,
-  '$var': string,
-  '$thing': string,
-  '$fields': Array<any>
-  '$excludedFields': undefined,
-  '$fieldType': string,
-  '$target': string,
-  '$intermediary': string,
-  '$justId': boolean
-  '$id': undefined,
-  '$filter': {},
-  '$idNotIncluded': boolean,
-  '$filterByUnique': boolean,
-  '$filterProcessed': boolean
-}
-
-type EnrichedBqlQueryEntity = {
-  '$thingType': 'entity',
-  '$plays': string,
-  '$playedBy': {
-    path: string,
-    cardinality: string,
-    relation: string,
-    plays: string,
-    target: string,
-    thing: string,
-    thingType: string,
-  },
-  '$path': string,
-  '$dbPath': undefined,
-  '$as': string,
-  '$var': string,
-  '$thing': string,
-  '$fields': Array<any>
-  '$excludedFields': undefined,
-  '$fieldType': string,
-  '$target': string,
-  '$intermediary': string,
-  '$justId': boolean
-  '$id': undefined,
-  '$filter': {},
-  '$idNotIncluded': boolean,
-  '$filterByUnique': boolean,
-  '$filterProcessed': boolean
-}
-
-type EnrichedBqlQueryAttribute = {
-  '$path': string,
-  '$dbPath': string,
-  '$thingType': 'attribute'
-  '$as': string,
-  '$var': string,
-  '$fieldType': 'data',
-  '$excludedFields': undefined,
-  '$justId': boolean,
-  '$id': undefined,
-  '$filter': undefined,
-  '$isVirtual': undefined,
-  '$filterProcessed': boolean,
-}
-
-type EnrichedBqlQuery = {
-  '$path': string,
-  '$thing': string,
-  '$thingType': string
-  '$filter'?: { id: string },
-  '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity | EnrichedBqlQueryRelation>
 }
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
@@ -127,14 +44,14 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
 
   const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:${value}`).join(",")}` : ""
 
-  const x = `SELECT 
+  const result = `SELECT 
     ${[...attributes.map(convertEntityId), ...entitiesQuery, ...relationsQuery].join(",")}
   FROM ${thing} 
   ${filterExpr}
   FETCH ${entities.map((entity) => entity["$path"]).join(",")} 
   PARALLEL`
 
-  return x
+  return result
 }
 
 const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
