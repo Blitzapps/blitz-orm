@@ -46,10 +46,13 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
+    "change-case": "^5.4.3",
     "immer": "9.0.21",
+    "nanoid": "3",
     "object-traversal": "^1.0.1",
     "radash": "^11.0.0",
     "robot3": "^0.4.1",
+    "surrealdb.node": "^0.3.0",
     "typedb-driver": "2.26.6-rc1",
     "uuid": "^9.0.1"
   },
