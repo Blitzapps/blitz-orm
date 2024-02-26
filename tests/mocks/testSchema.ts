@@ -238,6 +238,27 @@ export const testSchema: BormSchema = {
 					target: 'relation',
 				},
 			],
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+						},
+						//condition: () => true,
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ name, spaces }) =>
+									name === 'cheatCode' && !spaces
+										? {
+												spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+											}
+										: {},
+							},
+						],
+					},
+				],
+			},
 		},
 		SuperUser: {
 			extends: 'User',

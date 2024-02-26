@@ -6,21 +6,18 @@ import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import { queryPipeline } from './pipeline/pipeline';
 import type {
+	BQLMutation,
 	BQLResponseMulti,
 	BormConfig,
 	BormSchema,
 	DBHandles,
-	EnrichedBQLMutationBlock,
 	EnrichedBormSchema,
-	MutateConfig,
+	MutationConfig,
 	QueryConfig,
-	RawBQLMutation,
 	RawBQLQuery,
 } from './types';
 import { enableMapSet } from 'immer';
-import type { TqlRes } from './stateMachine/mutation/TQL/parse';
-import type { TqlMutation } from './stateMachine/mutation/TQL/run';
-import { awaitMachine } from './stateMachine/mutation/robot';
+import { runMutationMachine } from './stateMachine/mutation/machine';
 
 export * from './types';
 
@@ -98,7 +95,7 @@ class BormClient {
 		const enrichedSchema = enrichSchema(this.schema, dbHandles);
 
 		// @ts-expect-error - it becomes enrichedSchema here
-		this.schema = enrichedSchema;
+		this.schema = enrichedSchema as EnrichedBormSchema;
 		this.dbHandles = dbHandles;
 	};
 
@@ -132,7 +129,7 @@ class BormClient {
 		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
 	};
 
-	mutate = async (mutation: RawBQLMutation | RawBQLMutation[], mutationConfig?: MutateConfig) => {
+	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {
 		await this.#enforceConnection();
 		const mConfig = {
 			...this.config,
@@ -142,51 +139,16 @@ class BormClient {
 				...mutationConfig,
 			},
 		};
-		/*
-		const startTime2 = performance.now();
-		//@t s-expect-error - enforceConnection ensures dbHandles is defined
-		const result = await mutationPipeline(mutation, mConfig, this.schema, this.dbHandles);
-		const endTime2 = performance.now();
-		console.log(`Old Mutation took ${endTime2 - startTime2}ms`);
-		*/
-		/*
-		const startTime = performance.now();
-		const runMutation = createActor(mutationActor, {
-			input: {
-				raw: mutation,
-				config: mConfig,
-				schema: this.schema,
-				handles: this.dbHandles,
-				deepLevel: 0, //this is the root
-			},
-		});
-		runMutation.start();
-		const result = await (await waitFor(runMutation, (state) => state.status === 'done')).context.bql.res;
-		const endTime = performance.now();
-		console.log(`New Mutation took ${endTime - startTime}ms`); */
 
-		const [errorRes, res] = await tryit(awaitMachine)({
-			bql: {
-				raw: mutation,
-				current: {} as EnrichedBQLMutationBlock,
-				things: [],
-				edges: [],
-				res: [],
-			},
-			typeDB: {
-				tqlMutation: {} as TqlMutation,
-				tqlRes: {} as TqlRes,
-			},
-			schema: this.schema as EnrichedBormSchema,
-			config: mConfig,
-			handles: this.dbHandles,
-			depthLevel: 0,
-			error: null,
-		});
+		const [errorRes, res] = await tryit(runMutationMachine)(
+			mutation,
+			this.schema as EnrichedBormSchema,
+			mConfig,
+			this.dbHandles as DBHandles,
+		);
 		if (errorRes) {
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
-
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			throw new Error(errorRes.error.message);
 		}

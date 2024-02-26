@@ -168,7 +168,7 @@ export const buildTQLMutation: PipelineOperation = async (req) => {
 		const roleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k) => k) : [];
 
 		const roleDbPaths =
-			node.$relation &&
+			node.$relation |  &&
 			'roles' in currentSchema &&
 			mapEntries(currentSchema.roles, (k, v) => [k, v.dbConnector?.path || k]);
 

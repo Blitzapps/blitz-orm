@@ -2,7 +2,7 @@
 import { clone, isArray, isObject } from 'radash';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
 import { deepCurrent, getCurrentSchema } from '../../../../helpers';
-import { getTriggeredActions } from '../../../../pipeline/preprocess/mutation/hooks/utils';
+import { getTriggeredActions } from './shared/getTriggeredActions';
 
 export const preHookValidations = (node: EnrichedBQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];

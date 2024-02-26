@@ -51,8 +51,7 @@
 		"radash": "^11.0.0",
 		"robot3": "^0.4.1",
 		"typedb-driver": "2.26.6-rc1",
-		"uuid": "^9.0.1",
-		"xstate": "^5.6.2"
+		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
 		"@blitznocode/eslint-config": "^1.1.0",

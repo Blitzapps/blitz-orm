@@ -21,6 +21,7 @@ import type {
 	FilledBQLMutationBlock,
 	DBHandles,
 	DBHandleKey,
+	ThingType,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
@@ -346,6 +347,23 @@ export const getCurrentSchema = (
 		return schema.relations[node.$relation] as EnrichedBormRelation;
 	}
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
+};
+
+export const getThingType = (rootNode: BQLMutationBlock, schema: EnrichedBormSchema): ThingType => {
+	const thing = rootNode.$thing || rootNode.$entity || rootNode.$relation;
+	if (!thing) {
+		throw new Error('[Internal] No thing found');
+	}
+	if (rootNode.$entity) {
+		return 'entity';
+	} else if (rootNode.$relation) {
+		return 'relation';
+	} else if (schema.entities[thing]) {
+		return 'entity';
+	} else if (schema.relations[thing]) {
+		return 'relation';
+	}
+	throw new Error('No thing found');
 };
 
 export const getFieldSchema = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>, field: string) => {

@@ -13,14 +13,29 @@ type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 type WithRequired<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & RequiredKey<T, K>;
 
+export type BQLMutation = RootBQLMutationBlock | RootBQLMutationBlock[];
+
+export type RootBQLMutationBlock = {
+	[key: string]: any;
+	$id?: string | string[];
+	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
+	$tempId?: string;
+	$op?: string;
+} & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType?: 'entity' | 'relation' }); // | { $attribute: string });
+
 export type BQLMutationBlock = {
 	[key: string]: any;
 	$id?: string | string[];
 	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
 	$tempId?: string;
 	$op?: string;
-} & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' }); // | { $attribute: string });
+	$entity?: string;
+	$relation?: string;
+	$thing?: string;
+	$thingType?: 'entity' | 'relation';
+};
 
+//!old
 export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$op'> & {
 	$entity?: string;
 	$relation?: string;

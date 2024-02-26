@@ -1,20 +1,24 @@
-import { createMachine, guard, interpret, invoke, state, transition, reduce } from 'robot3';
-import type { EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../types';
+import { createMachine, interpret, invoke, state, transition, reduce } from 'robot3';
+import type {
+	BQLMutation,
+	BQLMutationBlock,
+	BormConfig,
+	DBHandles,
+	EnrichedBQLMutationBlock,
+	EnrichedBormSchema,
+} from '../../types';
 import { enrichBQLMutation } from './BQL/enrich';
-import { isArray } from 'radash';
-import { getCurrentSchema } from '../../helpers';
 import type { TqlMutation } from './TQL/run';
 import { runTQLMutation } from './TQL/run';
 import type { TqlRes } from './TQL/parse';
 import { parseTQLMutation } from './TQL/parse';
-import { addIntermediaryRelationsBQLMutation } from './BQL/intermediary';
 import { parseBQLMutation } from './BQL/parse';
 import { buildTQLMutation } from './TQL/build';
 import { mutationPreQuery } from './BQL/preQuery';
 
 type MachineContext = {
 	bql: {
-		raw: any;
+		raw: BQLMutationBlock | BQLMutationBlock[];
 		current: EnrichedBQLMutationBlock;
 		things: any[];
 		edges: any[];
@@ -25,8 +29,8 @@ type MachineContext = {
 		tqlRes: TqlRes;
 	};
 	schema: EnrichedBormSchema;
-	config: any;
-	handles: any;
+	config: BormConfig;
+	handles: DBHandles;
 	depthLevel: number;
 	error: string | null;
 };
@@ -96,10 +100,6 @@ const preQuery = async (ctx: MachineContext) => {
 	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
 };
 
-const addIntermediaries = async (ctx: MachineContext) => {
-	return addIntermediaryRelationsBQLMutation(ctx.bql.current, ctx.schema);
-};
-
 const parseBQL = async (ctx: MachineContext) => {
 	return parseBQLMutation(ctx.bql.current, ctx.schema);
 };
@@ -119,13 +119,13 @@ const parseMutation = async (ctx: MachineContext) => {
 // Guards
 // ============================================================================
 
-const requiresParseBQL = (ctx: MachineContext) => {
+/*const requiresParseBQL = (ctx: MachineContext) => {
 	//this would be more complicated than this, like count the entities requiring this, not just the root
 	const root = ctx.bql.current;
 	const rootBase = isArray(root) ? root[0] : root;
 	const { requiresParseBQL } = getCurrentSchema(ctx.schema, rootBase).dbContext.mutation;
 	return requiresParseBQL;
-};
+};*/
 
 // Transitions
 // ============================================================================
@@ -145,13 +145,13 @@ export const machine = createMachine(
 	'enrich',
 	{
 		enrich: invoke(enrich, transition('done', 'preQuery', reduce(updateBqlReq)), errorTransition),
-		preQuery: invoke(preQuery, transition('done', 'addIntermediaries', reduce(updateBqlReq)), errorTransition),
-		addIntermediaries: invoke(
+		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
+		/*addIntermediaries: invoke(
 			addIntermediaries,
 			transition('done', 'parseBQL', guard(requiresParseBQL), reduce(updateBqlReq)),
 			transition('done', 'success', reduce(updateBqlReq)),
 			errorTransition,
-		),
+		),*/
 		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
 		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),
 		runMutation: invoke(runMutation, transition('done', 'parseMutation', reduce(updateTQLRes)), errorTransition),
@@ -176,5 +176,31 @@ export const awaitMachine = async (context: MachineContext) => {
 			},
 			context,
 		);
+	});
+};
+
+export const runMutationMachine = async (
+	mutation: BQLMutation,
+	schema: EnrichedBormSchema,
+	config: BormConfig,
+	handles: DBHandles,
+) => {
+	return awaitMachine({
+		bql: {
+			raw: mutation,
+			current: {} as EnrichedBQLMutationBlock,
+			things: [],
+			edges: [],
+			res: [],
+		},
+		typeDB: {
+			tqlMutation: {} as TqlMutation,
+			tqlRes: {} as TqlRes,
+		},
+		schema: schema as EnrichedBormSchema,
+		config: config,
+		handles: handles,
+		depthLevel: 0,
+		error: null,
 	});
 };

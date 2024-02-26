@@ -279,6 +279,45 @@ describe('Mutations: PreHooks', () => {
 		]);
 	});
 
+	it('tn2[transform, children] Append children to node', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$thing: 'User',
+					id: 'tn2-u1',
+					name: 'cheatCode',
+				},
+				{ noMetadata: true },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'tn2-u1',
+					$fields: ['id', 'name', { $path: 'spaces', $fields: ['id', 'name'] }],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(res, 'id')).toEqual({
+				id: 'tn2-u1',
+				name: 'cheatCode',
+				spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'tn2-u1',
+			});
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});
