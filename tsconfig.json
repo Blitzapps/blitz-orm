@@ -5,11 +5,12 @@
 		"strict": true,
 		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 		"declaration": true,
 		"skipLibCheck": true,
 		"rootDir": ".",
-		"outDir": "dist"
+		"outDir": "dist",
 	},
 	"include": ["src", "tests"],
-	"exclude": ["dist", "coverage", "jest.config.js"]
+	"exclude": ["dist", "coverage", "jest.config.js"],
 }
