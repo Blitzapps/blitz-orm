@@ -233,6 +233,50 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('vfla5[validation, functions, nested, things] Check nested array', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Kind',
+				id: 'kind1',
+				fields: [{ name: 'forbiddenName' }],
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe("[Validations:thing:Kind] You can't have a field named 'forbiddenName'");
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
+	it('TODO:vfla6[validation, functions, nested, things] Check nested array, card ONE', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'HookATag',
+				id: 'vfla6-1-hey',
+				hookTypeA: { requiredOption: 'a' },
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe("[Validations:thing:Kind] You can't have a field named 'forbiddenName'");
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
 	it('tn1[transform, node] Transform node depending on attribute', async () => {
 		expect(bormClient).toBeDefined();
 
