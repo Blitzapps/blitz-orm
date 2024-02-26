@@ -195,26 +195,26 @@ describe('Query', () => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	// it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
-	// 	expect(bormClient).toBeDefined();
-	// 	const query = {
-	// 		$entity: 'User',
-	// 		$id: 'user4',
-	// 		$fields: ['spaces', 'email', 'user-tags'],
-	// 	};
-	// 	const expectedRes = {
-	// 		'$thing': 'User',
-	// 		'$thingType': 'entity',
-	// 		'email': null, //Example field
-	// 		'$id': 'user4',
-	// 		'spaces': null, //example linkfield from intermediary relation
-	// 		'user-tags': null, //example linkfield from direct relation
-	// 	};
-	// 	const res = await bormClient.query(query, { returnNulls: true });
-	// 	expect(res).toBeDefined();
-	// 	expect(res).not.toBeInstanceOf(String);
-	// 	expect(deepSort(res, 'id')).toEqual(expectedRes);
-	// });
+	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
+		expect(bormClient).toBeDefined();
+		const query = {
+			$entity: 'User',
+			$id: 'user4',
+			$fields: ['spaces', 'email', 'user-tags'],
+		};
+		const expectedRes = {
+			'$thing': 'User',
+			'$thingType': 'entity',
+			'email': null, //Example field
+			'$id': 'user4',
+			'spaces': null, //example linkfield from intermediary relation
+			'user-tags': null, //example linkfield from direct relation
+		};
+		const res = await bormClient.query(query, { returnNulls: true });
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+	});
 
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
