@@ -1,4 +1,4 @@
-export type ThingType = 'entity' | 'relation' | 'attribute';
+export type ThingType = 'entity' | 'relation'; /*| 'attribute';*/
 
 export type BormMetadata = {
 	$id: string;

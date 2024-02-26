@@ -1,231 +1,208 @@
-import { setup, fromPromise, assign } from 'xstate';
+import { createMachine, interpret, invoke, transition, reduce, state as final, guard } from 'robot3';
 import type {
+	BQLMutation,
 	BQLMutationBlock,
+	BormConfig,
+	DBHandles,
 	EnrichedBQLMutationBlock,
 	EnrichedBormSchema,
-	FilledBQLMutationBlock,
 } from '../../types';
-import { splitIdsBQLMutation } from './BQL/split';
 import { enrichBQLMutation } from './BQL/enrich';
-import { getCurrentSchema } from '../../helpers';
-import { isArray } from 'radash';
+import type { TqlMutation } from './TQL/run';
+import { runTQLMutation } from './TQL/run';
+import type { TqlRes } from './TQL/parse';
+import { parseTQLMutation } from './TQL/parse';
 import { parseBQLMutation } from './BQL/parse';
+import { buildTQLMutation } from './TQL/build';
+import { mutationPreQuery } from './BQL/preQuery';
 
-type mutationContext = {
-	current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
-	raw: BQLMutationBlock;
+type MachineContext = {
+	bql: {
+		raw: BQLMutationBlock | BQLMutationBlock[];
+		current: EnrichedBQLMutationBlock;
+		things: any[];
+		edges: any[];
+		res: any[];
+	};
+	typeDB: {
+		tqlMutation: TqlMutation;
+		tqlRes: TqlRes;
+	};
 	schema: EnrichedBormSchema;
+	config: BormConfig;
+	handles: DBHandles;
+	depthLevel: number;
+	error: string | null;
 };
-export const mutationActor = setup({
-	actions: {
-		updateBql: assign({
-			bql: ({ context, event }: any) => {
-				return { ...context.bql, current: event.output };
-			},
-		}),
-	},
-	guards: {
-		requiresSplitIds: ({ context, event }, params) => {
-			return true;
-		},
-		requiresPrequery: ({ context, event }, params) => {
-			return false;
-		},
-		requiresParseBQL: ({ context }) => {
-			//this would be more complicated than this, like count the entities requiring this, not just the root
-			const root = context.bql.current;
-			console.log('root', root);
-			const rootBase = isArray(root) ? root[0] : root;
-			return getCurrentSchema(context.schema, rootBase).dbContext.mutation.requiresParseBQL;
-		},
-	},
-	actors: {
-		enrich: fromPromise(async ({ input }: { input: mutationContext }) => {
-			console.log('Before enrich', input.current, input.raw);
-			const result = Object.keys(input.current).length
-				? enrichBQLMutation(input.current, input.schema)
-				: enrichBQLMutation(input.raw, input.schema);
-			console.log('After enrich', result);
-			return result;
-		}),
-		split_ids: fromPromise(async ({ input }: { input: mutationContext }) => {
-			console.log('bedore split', input.current, input.raw);
-			const result = Object.keys(input.current).length
-				? splitIdsBQLMutation(input.current, input.schema)
-				: splitIdsBQLMutation(input.raw, input.schema);
-			console.log('after split', result);
-			return result;
-		}),
-		parseBQL: fromPromise(
-			async ({
-				input,
-			}: {
-				input: { current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]; schema: EnrichedBormSchema };
-			}) => {
-				console.log('Before parseBQL', input.current);
-				const result = parseBQLMutation(input.current, input.schema);
-				console.log('After parseBQL', result);
-				return result;
-			},
-		),
-		preQuery: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
-		}),
-		attributesPrehook: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
-		}),
-		runTypeDBMutation: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
-		}),
-		runSurrealDBMutation: fromPromise(async ({ input }) => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return input as FilledBQLMutationBlock;
-		}),
-	},
-}).createMachine({
-	context: ({ input }: any) => ({
+
+// Reducer
+// ============================================================================
+
+const updateBqlReq = (ctx: MachineContext, event: any) => {
+	if (!event.data) {
+		///when preQueries return nothing, that should not affect the ctx
+		return ctx;
+	}
+	return {
+		...ctx,
+		bql: { ...ctx.bql, current: event.data },
+	};
+};
+
+const updateBqlRes = (ctx: MachineContext, event: any) => {
+	return {
+		...ctx,
+		bql: { ...ctx.bql, res: event.data },
+	};
+};
+
+const updateThingsEdges = (ctx: MachineContext, event: any) => {
+	return {
+		...ctx,
 		bql: {
-			raw: input.raw,
-			current: {} as FilledBQLMutationBlock,
+			...ctx.bql,
+			things: event.data.mergedThings,
+			edges: event.data.mergedEdges,
+		},
+	};
+};
+
+const updateTQLMutation = (ctx: MachineContext, event: any) => {
+	return {
+		...ctx,
+		typeDB: {
+			...ctx.typeDB,
+			tqlMutation: event.data,
+		},
+	};
+};
+
+const updateTQLRes = (ctx: MachineContext, event: any) => {
+	return {
+		...ctx,
+		typeDB: {
+			...ctx.typeDB,
+			tqlRes: event.data,
+		},
+	};
+};
+
+// Actors
+// ============================================================================
+
+const enrich = async (ctx: MachineContext) => {
+	return Object.keys(ctx.bql.current).length
+		? enrichBQLMutation(ctx.bql.current, ctx.schema)
+		: enrichBQLMutation(ctx.bql.raw, ctx.schema);
+};
+
+const preQuery = async (ctx: MachineContext) => {
+	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+};
+
+const parseBQL = async (ctx: MachineContext) => {
+	return parseBQLMutation(ctx.bql.current, ctx.schema);
+};
+
+const buildMutation = async (ctx: MachineContext) => {
+	return buildTQLMutation(ctx.bql.things, ctx.bql.edges, ctx.schema);
+};
+
+const runMutation = async (ctx: MachineContext) => {
+	return runTQLMutation(ctx.typeDB.tqlMutation, ctx.handles, ctx.config);
+};
+
+const parseMutation = async (ctx: MachineContext) => {
+	return parseTQLMutation(ctx.typeDB.tqlRes, ctx.bql.things, ctx.bql.edges, ctx.config);
+};
+
+// Guards
+// ============================================================================
+const requiresPreQuery = () => {
+	return true;
+};
+
+/*const requiresParseBQL = (ctx: MachineContext) => {
+	//this would be more complicated than this, like count the entities requiring this, not just the root
+	const root = ctx.bql.current;
+	const rootBase = isArray(root) ? root[0] : root;
+	const { requiresParseBQL } = getCurrentSchema(ctx.schema, rootBase).dbContext.mutation;
+	return requiresParseBQL;
+};*/
+
+// Transitions
+// ============================================================================
+
+const errorTransition = transition(
+	'error',
+	'error',
+	reduce((ctx: MachineContext, event: any) => {
+		return {
+			...ctx,
+			error: event.error,
+		};
+	}),
+);
+
+export const machine = createMachine(
+	'enrich',
+	{
+		enrich: invoke(
+			enrich,
+			transition('done', 'preQuery', guard(requiresPreQuery), reduce(updateBqlReq)),
+			transition('done', 'parseBQL', reduce(updateBqlReq)),
+			errorTransition,
+		),
+		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
+		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
+		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),
+		runMutation: invoke(runMutation, transition('done', 'parseMutation', reduce(updateTQLRes)), errorTransition),
+		parseMutation: invoke(parseMutation, transition('done', 'success', reduce(updateBqlRes)), errorTransition),
+		success: final(),
+		error: final(),
+	},
+	(ctx: MachineContext) => ctx,
+);
+
+export const awaitMachine = async (context: MachineContext) => {
+	return new Promise<MachineContext>((resolve, reject) => {
+		interpret(
+			machine,
+			(service) => {
+				if (service.machine.state.name === 'success') {
+					resolve(service.context);
+				}
+				if (service.machine.state.name === 'error') {
+					reject(service.context);
+				}
+			},
+			context,
+		);
+	});
+};
+
+export const runMutationMachine = async (
+	mutation: BQLMutation,
+	schema: EnrichedBormSchema,
+	config: BormConfig,
+	handles: DBHandles,
+) => {
+	return awaitMachine({
+		bql: {
+			raw: mutation,
+			current: {} as EnrichedBQLMutationBlock,
 			things: [],
 			edges: [],
+			res: [],
 		},
-		schema: input.schema,
-		config: input.config,
-		handles: input.handles,
-		deepLevel: input.deepLevel, //root = 0
-	}),
-	id: 'mutationPipeline',
-	initial: 'ENRICH',
-	states: {
-		ENRICH: {
-			invoke: {
-				input: ({ context }) => ({ current: context.bql.current, raw: context.bql.raw, schema: context.schema }),
-				src: 'enrich',
-				onDone: [
-					{
-						target: 'SPLIT_IDS',
-						guard: 'requiresSplitIds',
-						actions: 'updateBql',
-					},
-					{
-						target: 'PARSE_BQL',
-						guard: 'requiresParseBQL',
-						actions: 'updateBql',
-					},
-				],
-				onError: [
-					{
-						target: 'ERROR',
-					},
-				],
-			},
+		typeDB: {
+			tqlMutation: {} as TqlMutation,
+			tqlRes: {} as TqlRes,
 		},
-		SPLIT_IDS: {
-			invoke: {
-				src: 'split_ids',
-				input: ({ context }) => ({ current: context.bql.current, raw: context.bql.raw, schema: context.schema }),
-				onDone: [
-					{
-						target: 'PARSE_BQL',
-						guard: 'requiresParseBQL',
-						actions: 'updateBql',
-					},
-					{
-						target: 'SUCCESS',
-						actions: 'updateBql',
-					},
-				],
-			},
-		},
-		PRE_QUERY: {
-			invoke: {
-				input: {},
-				src: 'preQuery',
-				onDone: [
-					{
-						target: 'ATTRIBUTES_PREHOOK',
-					},
-				],
-				onError: [
-					{
-						target: 'ERROR',
-					},
-				],
-			},
-		},
-		PARSE_BQL: {
-			invoke: {
-				input: ({ context }) => ({ current: context.bql.current, schema: context.schema }),
-				src: 'parseBQL',
-				onDone: [
-					{
-						target: 'SUCCESS',
-						actions: assign({
-							bql: ({ context, event }: any) => {
-								return { ...context.bql, things: event.output.mergedThings, edges: event.output.mergedEdges };
-							},
-						}),
-					},
-				],
-				onError: [
-					{
-						target: 'ERROR',
-					},
-				],
-			},
-		},
-		ATTRIBUTES_PREHOOK: {
-			invoke: {
-				input: {},
-				src: 'attributesPrehook',
-				onDone: [
-					{
-						target: 'MUTATIONS',
-					},
-				],
-				onError: [
-					{
-						target: 'ERROR',
-					},
-				],
-			},
-		},
-		MUTATIONS: {
-			states: {
-				runTypeDBMutation: {
-					invoke: {
-						input: {},
-						src: 'runTypeDBMutation',
-						//cond: (context, event) => true,
-					},
-				},
-				runSurrealDBMutation: {
-					invoke: {
-						input: {},
-						src: 'runSurrealDBMutation',
-					},
-				},
-			},
-			onDone: {
-				target: '#mutationPipeline.SUCCESS',
-			},
-			/*onError: {
-				target: '#mutationPipeline.ERROR',
-			},*/
-			type: 'parallel',
-		},
-		SUCCESS: {
-			type: 'final',
-		},
-		ERROR: {
-			type: 'final',
-		},
-		FAIL: {
-			type: 'final',
-		},
-	},
-});
+		schema: schema as EnrichedBormSchema,
+		config: config,
+		handles: handles,
+		depthLevel: 0,
+		error: null,
+	});
+};

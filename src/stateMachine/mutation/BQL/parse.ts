@@ -4,17 +4,26 @@ import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { oFilter, getCurrentFields, getCurrentSchema, getParentNode } from '../../../helpers';
-import type { BQLMutationBlock, EnrichedBormSchema, FilledBQLMutationBlock } from '../../../types';
+import type {
+	BQLMutationBlock,
+	BormOperation,
+	EnrichedBQLMutationBlock,
+	EnrichedBormRelation,
+	EnrichedBormSchema,
+	EnrichedLinkField,
+} from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
+import { EdgeSchema, EdgeType } from '../../../types/symbols';
 
-export const parseBQLMutation = (
-	blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+export const parseBQLMutation = async (
+	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));
+	//console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
+	//console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
 
-	const listNodes = (blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[]) => {
+	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
 		// todo: make immutable
 
 		const nodes: BQLMutationBlock[] = [];
@@ -26,7 +35,7 @@ export const parseBQLMutation = (
       return ids.length === 1 ? ids[0] : ids;
     } */
 
-		const getIdValue = (node: BQLMutationBlock) => {
+		const getIdValue = (node: EnrichedBQLMutationBlock) => {
 			if (node.$id) {
 				return node.$id;
 			}
@@ -59,7 +68,7 @@ export const parseBQLMutation = (
 			return idValue;
 		};
 
-		const toNodes = (node: BQLMutationBlock) => {
+		const toNodes = (node: EnrichedBQLMutationBlock) => {
 			if (node.$op === 'create') {
 				const idValue = getIdValue(node);
 
@@ -80,7 +89,7 @@ export const parseBQLMutation = (
 			nodes.push(node);
 		};
 
-		const toEdges = (edge: BQLMutationBlock) => {
+		const toEdges = (edge: EnrichedBQLMutationBlock) => {
 			if (edge.$op === 'create') {
 				const idValue = getIdValue(edge);
 
@@ -96,14 +105,14 @@ export const parseBQLMutation = (
 			edges.push(edge);
 		};
 
-		const listOp = ({ value: val, meta, parent }: TraversalCallbackContext) => {
+		const listOp = ({ value: val, parent, meta }: TraversalCallbackContext) => {
 			if (!isObject(val)) {
 				return;
 			}
-			const value = val as BQLMutationBlock;
+			const value = val as EnrichedBQLMutationBlock;
 
 			/// no idea why this is needed lol, but sometimes is indeed undefined 🤷‍♀️
-			if (value.$entity || value.$relation) {
+			if (value.$thing) {
 				if (!value.$op) {
 					throw new Error(`Operation should be defined at this step ${JSON.stringify(value)}`);
 				}
@@ -143,20 +152,14 @@ export const parseBQLMutation = (
 				};
 
 				const dataObj = {
-					...(value.$entity && { $entity: value.$entity }),
-					...(value.$relation && { $relation: value.$relation }),
 					...(value.$id && { $id: value.$id }),
 					...(value.$tempId && { $tempId: value.$tempId }),
 					...(value.$filter && { $filter: value.$filter }),
+					...{ $thing: value.$thing },
+					...(value.$thingType && { $thingType: value.$thingType }),
 					...shake(pick(value, dataFieldPaths || [''])),
-					$op: getChildOp(),
+					$op: getChildOp() as BormOperation,
 					$bzId: value.$tempId ? value.$tempId : value.$bzId,
-					[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-					// [Symbol.for('dependencies')]: value[Symbol.for('dependencies')],
-					[Symbol.for('path')]: value[Symbol.for('path') as any],
-
-					[Symbol.for('isRoot')]: value[Symbol.for('isRoot') as any],
-					[Symbol.for('isLocalId')]: value[Symbol.for('isLocalId') as any] || false,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -165,11 +168,9 @@ export const parseBQLMutation = (
 				// console.log('value', isDraft(value) ? current(value) : value);
 
 				// CASE 1: HAVE A PARENT THROUGH LINKFIELDS
-				if (
-					value[Symbol.for('relation') as any] &&
-					value[Symbol.for('edgeType') as any] === 'linkField'
-					// value[Symbol.for('relation')] !== '$self'
-				) {
+				const edgeSchema = value[EdgeSchema] as EnrichedLinkField;
+
+				if (edgeSchema?.fieldType === 'linkField') {
 					if (value.$op === 'link' || value.$op === 'unlink') {
 						if (value.$id || value.$filter) {
 							if (value.$tempId) {
@@ -183,13 +184,14 @@ export const parseBQLMutation = (
 					// this linkObj comes from nesting, which means it has no properties and no ID
 					// relations explicitely created are not impacted by this, and they get the $id from it's actual current value
 
-					const ownRelation = value[Symbol.for('relation') as any] === value.$relation;
+					const ownRelation = edgeSchema.relation === value.$thing;
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
 					const parentNode = getParentNode(blocks, parent, meta);
 
 					const parentId = parentNode.$bzId;
+
 					if (!parentId) {
 						throw new Error('No parent id found');
 					}
@@ -226,50 +228,51 @@ export const parseBQLMutation = (
 					};
 
 					const edgeType1 = {
-						$relation: value[Symbol.for('relation') as any],
 						$bzId: linkTempId,
+						$thing: edgeSchema.relation,
+						$thingType: 'relation' as const,
 						...(value.$tempId ? { $tempId: value.$tempId } : {}),
 						$op: getLinkObjOp(),
 
 						// roles
-						...(!ownRelation ? { [value[Symbol.for('role') as any]]: value.$bzId } : {}),
-						[value[Symbol.for('oppositeRole') as any]]: parentId,
+						...(!ownRelation ? { [edgeSchema.path]: value.$bzId } : {}),
+						[edgeSchema.plays]: parentId,
 
-						[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
-						[Symbol.for('edgeType')]: 'linkField',
-						[Symbol.for('info')]: 'normal linkField',
-						[Symbol.for('path')]: value[Symbol.for('path') as any],
+						//Metadata
+						[EdgeSchema]: edgeSchema,
+						[EdgeType]: 'linkField',
 					};
 
 					// const testVal = {};
 
 					// todo: stuff 😂
+					//@ts-expect-error - TODO
 					toEdges(edgeType1);
 
-					/// when it has a parent through a linkfield, we need to add an additional node (its dependency), as well as a match
+					/// when it has a parent through a linkField, we need to add an additional node (its dependency), as well as a match
 					/// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as match and deletions as unlink (or dependencies would be also added)
 					/// this is only for relations that are not $self, as other relations will be deleted and don't need a match
 					if ((value.$op === 'unlink' || getLinkObjOp() === 'unlink') && ownRelation) {
 						toEdges({
-							$relation: value[Symbol.for('relation') as any],
+							$thing: edgeSchema.relation,
+							$thingType: 'relation' as const,
 							$bzId: linkTempId,
 							$op: 'match',
-							[value[Symbol.for('oppositeRole') as any]]: parentId,
-							[Symbol.for('dbId')]: schema.relations[value[Symbol.for('relation') as any]].defaultDBConnector.id,
-							[Symbol.for('edgeType')]: 'linkField',
-							[Symbol.for('info')]: 'additional ownrelation unlink linkField',
-							[Symbol.for('path')]: value[Symbol.for('path') as any],
+							[edgeSchema.plays]: parentId,
+							[EdgeSchema]: edgeSchema,
+							[EdgeType]: 'linkField',
 						});
 					}
 				}
 
 				// CASE 2: IS RELATION AND HAS THINGS IN THEIR ROLES
-				if (value.$relation) {
+				if (value.$thingType === 'relation') {
 					const rolesObjFiltered = oFilter(value, (k: string, _v) => roleFieldPaths.includes(k));
 
 					/// we don't manage cardinality MANY for now, its managed differently if we are on a create/delete op or nested link/unlink op
 					// todo: this is super weird, remove
-					const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k, v) => {
+					//@ts-expect-error - TODO
+					const rolesObjOnlyIds = mapEntries(rolesObjFiltered, (k: string, v) => {
 						if (isArray(v)) {
 							return [k, v];
 						}
@@ -288,10 +291,10 @@ export const parseBQLMutation = (
 					});
 
 					if (Object.keys(rolesObjFiltered).filter((x) => !x.startsWith('$')).length > 0) {
-						// #region 2.1) relations on creation/deletion
+						// 2.1 EDGE TYPE 2
 						if (value.$op === 'create' || value.$op === 'delete') {
 							/// if the relation is being created, then all objects in the roles are actually add
-							const getEdgeOp = () => {
+							const getEdgeOp = (): BormOperation => {
 								if (value.$op === 'create') {
 									return 'link';
 								}
@@ -301,12 +304,27 @@ export const parseBQLMutation = (
 								throw new Error('Unsupported parent of edge op');
 							};
 
+							const currentRoles = (getCurrentSchema(schema, value) as EnrichedBormRelation).roles;
 							/// group ids when cardinality MANY
-							const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k, v) => {
+							const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k: string, v) => {
+								const currentRoleCardinality = currentRoles[k]?.cardinality;
+								if (!currentRoleCardinality) {
+									throw new Error(`Role ${k} not found in schema`);
+								}
+
 								if (Array.isArray(v)) {
+									if (currentRoleCardinality === 'ONE') {
+										if (v.length > 1) {
+											throw new Error(`[Error] Role ${k} is not a MANY relation`);
+										} else {
+											//console.log('v', v, blocks);
+											return [k, v[0].$bzId || v[0]];
+										}
+									}
 									/// Replace the array of objects with an array of ids
 									return [k, v.map((vNested: any) => vNested.$bzId || vNested)];
 								}
+								//@ts-expect-error - TODO
 								return [k, v.$bzId || v];
 							});
 							// console.log('rolesObjOnlyIdsGrouped', rolesObjOnlyIdsGrouped);
@@ -315,29 +333,26 @@ export const parseBQLMutation = (
 							/// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
 							const edgeType2 = {
 								...objWithMetaDataOnly,
-								$relation: value.$relation,
+								$thing: value.$thing,
+								$thingType: 'relation' as const,
 								$op: getEdgeOp(),
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
-								[Symbol.for('path')]: value[Symbol.for('path') as any],
-								[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-								[Symbol.for('info')]: 'coming from created or deleted relation',
-								[Symbol.for('edgeType')]: 'roleField on C/D',
+								[EdgeType]: 'roleField' as const,
 							};
 
 							toEdges(edgeType2);
 							return;
 						}
 						// #endregion
-						// region 2.2 relations on nested stuff
-						// todo: probably remove the match here
+						// 2.2 EDGE TYPE 3
 						if (value.$op === 'match' || (value.$op === 'update' && Object.keys(rolesObjFiltered).length > 0)) {
 							let totalUnlinks = 0;
 
 							Object.entries(rolesObjFiltered).forEach(([role, operations]) => {
 								const operationsArray = isArray(operations) ? operations : [operations];
 
-								const getOp = (childOp: string) => {
+								const getOp = (childOp: BormOperation): BormOperation => {
 									if (childOp === 'create' || childOp === 'replace') {
 										// if the children is being created, the edge is a link
 										return 'link';
@@ -361,16 +376,15 @@ export const parseBQLMutation = (
 										);
 									}
 
+									/// Edges can only be link or unlink. When its match for deletion or creation we need to know which one of those, so its either unlink or link!
 									const edgeType3 = {
 										...objWithMetaDataOnly,
-										$relation: value.$relation,
+										$thing: value.$thing,
+										$thingType: 'relation' as const,
 										$op: op === 'delete' ? 'unlink' : op,
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
-										[Symbol.for('dbId')]: currentThingSchema.defaultDBConnector.id,
-										[Symbol.for('path')]: value[Symbol.for('path') as any],
-										[Symbol.for('info')]: 'updating roleFields',
-										[Symbol.for('edgeType')]: 'roleField on L/U/R',
+										[EdgeType]: 'roleField' as const,
 									};
 
 									toEdges(edgeType3);
@@ -383,7 +397,6 @@ export const parseBQLMutation = (
 								});
 							});
 						}
-						// #endregion
 						// throw new Error('Unsupported direct relation operation');
 					}
 				}
@@ -428,7 +441,7 @@ export const parseBQLMutation = (
 		}
 		// For all other cases, throw an error
 		throw new Error(
-			`Unsupported operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
+			`[Wrong format] Wrong operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
 		);
 	}, [] as BQLMutationBlock[]);
 
@@ -438,7 +451,7 @@ export const parseBQLMutation = (
 		const existingEdge = acc.find(
 			(r) =>
 				((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
-				r.$relation === curr.$relation &&
+				r.$thing === curr.$thing &&
 				r.$op === curr.$op,
 		);
 
@@ -466,7 +479,7 @@ export const parseBQLMutation = (
 						newRelation[key] = currVal;
 					}
 				}
-				///the curent one is but hte new one it is not
+				///the current one is but the new one it is not
 				else if (Array.isArray(existingVal) && !Array.isArray(currVal)) {
 					if (currVal !== undefined) {
 						// Avoid merging with undefined values.
@@ -485,7 +498,7 @@ export const parseBQLMutation = (
 				(r) =>
 					!(
 						((r.$id && r.$id === curr.$id) || (r.$bzId && r.$bzId === curr.$bzId)) &&
-						r.$relation === curr.$relation &&
+						r.$thing === curr.$thing &&
 						r.$op === curr.$op
 					),
 			);
@@ -503,7 +516,7 @@ export const parseBQLMutation = (
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
 	mergedThings.forEach((thing) => {
-		if ('$relation' in thing) {
+		if (thing.$thingType === 'relation' || 'relation' in thing) {
 			//if it is a relation, we need at lease one edge defined for it
 			if (
 				mergedEdges.filter((edge) => edge.$bzId === thing.$bzId || (edge.$tempId && edge.$tempId === thing.$tempId))
@@ -513,12 +526,23 @@ export const parseBQLMutation = (
 					return;
 				}
 				throw new Error(
-					`[Borm] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
+					`[Wrong format] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
 				);
 			}
 		}
 	});
 
+	///Validate that each tempId has at least one creation op:
+	const allThings = [...mergedThings, ...mergedEdges];
+	const tempIds = new Set(allThings.filter((x) => x.$tempId).map((x) => x.$tempId));
+	tempIds.forEach((tempId) => {
+		if (allThings.filter((x) => x.$tempId === tempId && x.$op === 'create').length === 0) {
+			throw new Error("Can't link a $tempId that has not been created in the current mutation.");
+		}
+	});
+
+	//console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

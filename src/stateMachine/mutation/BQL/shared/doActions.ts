@@ -1,5 +1,5 @@
 import { isSet } from 'util/types';
-import { StepPrint } from '../../../types/symbols';
+import { StepPrint } from '../../../../types/symbols';
 
 export const doAction = (stepName: string, block: Record<string | symbol | number, any>) => {
 	const current = block[StepPrint];

@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
-import { produce } from 'immer';
+import type { Draft } from 'immer';
+import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify } from 'radash';
@@ -20,6 +21,7 @@ import type {
 	FilledBQLMutationBlock,
 	DBHandles,
 	DBHandleKey,
+	ThingType,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
@@ -303,6 +305,9 @@ export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 ): EnrichedBormEntity | EnrichedBormRelation => {
+	if (!node) {
+		throw new Error('[Internal] No node for getCurrentSchema');
+	}
 	if (node.$thing) {
 		if (node.$thingType === 'entity') {
 			if (!(node.$thing in schema.entities)) {
@@ -344,6 +349,23 @@ export const getCurrentSchema = (
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
+export const getThingType = (rootNode: BQLMutationBlock, schema: EnrichedBormSchema): ThingType => {
+	const thing = rootNode.$thing || rootNode.$entity || rootNode.$relation;
+	if (!thing) {
+		throw new Error('[Internal] No thing found');
+	}
+	if (rootNode.$entity) {
+		return 'entity';
+	} else if (rootNode.$relation) {
+		return 'relation';
+	} else if (schema.entities[thing]) {
+		return 'entity';
+	} else if (schema.relations[thing]) {
+		return 'relation';
+	}
+	throw new Error('No thing found');
+};
+
 export const getFieldSchema = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>, field: string) => {
 	const currentSchema = getCurrentSchema(schema, node);
 	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
@@ -381,6 +403,7 @@ type ReturnTypeWithNode = ReturnTypeWithoutNode & {
 	usedFields: string[];
 	usedRoleFields: string[];
 	usedLinkFields: string[];
+	usedDataFields: string[];
 	unidentifiedFields: string[];
 };
 
@@ -406,10 +429,12 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		'$tempId',
 		'$bzId',
 		'$relation',
-		'$parentKey',
+		'$parentKey', //todo: this is not a valid one, to delete!
 		'$filter',
 		'$fields',
 		'$excludedFields',
+		'$thing',
+		'$thingType',
 	];
 
 	const allowedFields = [...reservedRootFields, ...availableFields];
@@ -425,6 +450,9 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 	const usedFields = node.$fields
 		? (node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
+					if (x.startsWith('$')) {
+						return;
+					}
 					return x;
 				}
 				if ('$path' in x && typeof x.$path === 'string') {
@@ -432,7 +460,9 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 				}
 				throw new Error(' Wrongly structured query');
 			}) as string[])
-		: listify<any, string, string>(node, (k: string) => k);
+		: (listify<any, string, any>(node, (k: string) => (k.startsWith('$') ? undefined : k)).filter(
+				(x) => x !== undefined,
+			) as string[]);
 
 	const localFilterFields = !node.$filter
 		? []
@@ -460,6 +490,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		usedFields,
 		usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
 		usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
+		usedDataFields: availableDataFields.filter((x) => usedFields.includes(x)),
 		unidentifiedFields,
 		...(localFilterFields.length ? { localFilters } : {}),
 		...(nestedFilterFields.length ? { nestedFilters } : {}),
@@ -539,4 +570,30 @@ export const normalPropsCount = (obj: Record<string, any>) => {
 
 export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
 	return isObject(block) && ('$entity' in block || '$relation' in block || '$thing' in block);
+};
+
+type Drafted<T> = T | Draft<T>;
+
+// Recursively define the type to handle nested structures
+type DeepCurrent<T> =
+	T extends Array<infer U> ? Array<DeepCurrent<U>> : T extends object ? { [K in keyof T]: DeepCurrent<T[K]> } : T;
+
+export const deepCurrent = <T>(obj: Drafted<T>): any => {
+	if (Array.isArray(obj)) {
+		// Explicitly cast the return type for arrays
+		return obj.map((item) => deepCurrent(item)) as DeepCurrent<T>;
+	} else if (obj && typeof obj === 'object') {
+		// Handle non-null objects
+		const plainObject = isDraft(obj) ? current(obj) : obj;
+		const result: any = {};
+		Object.entries(plainObject).forEach(([key, value]) => {
+			// Use the key to dynamically assign the converted value
+			result[key] = deepCurrent(value);
+		});
+		// Explicitly cast the return type for objects
+		return result as DeepCurrent<T>;
+	} else {
+		// Return the value directly for non-objects and non-arrays
+		return obj as DeepCurrent<T>;
+	}
 };

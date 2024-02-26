@@ -49,7 +49,7 @@ describe('Mutations: PreHooks', () => {
 		await bormClient.mutate({
 			$entity: 'Hook',
 			$op: 'delete',
-			id: 'hookDF11',
+			$id: 'hookDF11',
 		});
 	});
 
@@ -124,6 +124,7 @@ describe('Mutations: PreHooks', () => {
 				$relation: 'Kind',
 				id: 'kind1',
 				name: 'Tyrannosaurus name',
+				space: 'space-3',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);
@@ -145,6 +146,7 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'something@test.es',
+				requiredOption: 'a',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);
@@ -166,6 +168,7 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'secretTesthe@test.es',
+				requiredOption: 'a',
 			});
 			// If the code doesn't throw an error, fail the test
 			expect(true).toBe(false);
@@ -189,23 +192,27 @@ describe('Mutations: PreHooks', () => {
 			await bormClient.mutate({
 				$entity: 'Hook',
 				id: 'hook-c0',
+				requiredOption: 'a',
 				asMainHookOf: {
 					id: 'doesHaveheyYes',
 					hooks: [
 						{
 							id: 'hook-c1',
+							requiredOption: 'a',
 						},
-						{ id: 'hook-c2' },
+						{ id: 'hook-c2', requiredOption: 'a' },
 					],
 					mainHook: {
 						id: 'hook-c3',
+						requiredOption: 'a',
 						asMainHookOf: {
 							id: 'p-7',
 							hooks: [
 								{
 									id: 'hook-c4', //this one is the first one that should fail as its parent does not have 'hey'
+									requiredOption: 'a',
 								},
-								{ id: 'hook-c5' },
+								{ id: 'hook-c5', requiredOption: 'a' },
 							],
 						},
 					},
@@ -219,6 +226,50 @@ describe('Mutations: PreHooks', () => {
 				expect(error.message).toBe(
 					'[Validations:thing:Hook] The parent of "hook-c4" does not have \'hey\' in its id ("p-7").',
 				);
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
+	it('vfla5[validation, functions, nested, things] Check nested array', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'Kind',
+				id: 'kind1',
+				fields: [{ name: 'forbiddenName' }],
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe("[Validations:thing:Kind] You can't have a field named 'forbiddenName'");
+			} else {
+				// If the error is not of type Error, fail the test
+				expect(true).toBe(false);
+			}
+		}
+	});
+
+	it('TODO:vfla6[validation, functions, nested, things] Check nested array, card ONE', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate({
+				$relation: 'HookATag',
+				id: 'vfla6-1-hey',
+				hookTypeA: { requiredOption: 'a' },
+			});
+			// If the code doesn't throw an error, fail the test
+			expect(true).toBe(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				// Check if the error message is exactly what you expect
+				expect(error.message).toBe("[Validations:thing:Kind] You can't have a field named 'forbiddenName'");
 			} else {
 				// If the error is not of type Error, fail the test
 				expect(true).toBe(false);
@@ -270,6 +321,45 @@ describe('Mutations: PreHooks', () => {
 				name: 'Not a secret',
 			},
 		]);
+	});
+
+	it('tn2[transform, children] Append children to node', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$thing: 'User',
+					id: 'tn2-u1',
+					name: 'cheatCode',
+				},
+				{ noMetadata: true },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'tn2-u1',
+					$fields: ['id', 'name', { $path: 'spaces', $fields: ['id', 'name'] }],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(res, 'id')).toEqual({
+				id: 'tn2-u1',
+				name: 'cheatCode',
+				spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'tn2-u1',
+			});
+		}
 	});
 
 	afterAll(async () => {

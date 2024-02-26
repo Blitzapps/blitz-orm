@@ -29,11 +29,15 @@ const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], c
 			if (value.$bzId) {
 				delete value.$bzId;
 			}
+			if (value.$entity || value.$relation) {
+				value.$thing = value.$entity || value.$relation;
+			}
 
 			if (config.query?.noMetadata && (value.$entity || value.$relation)) {
 				delete value.$entity;
 				delete value.$relation;
 				delete value.$id;
+				delete value.$thing;
 			}
 
 			const symbols = Object.getOwnPropertySymbols(value);

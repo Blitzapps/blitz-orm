@@ -1,11 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import type { ConceptMap, ConceptMapGroup } from 'typedb-driver';
 
-import { buildBQLTree, parseTQLMutation } from './postprocess';
-import { buildTQLMutation } from './preprocess/mutation/buildTQLMutation';
-import { enrichBQLMutation } from './preprocess/mutation/enrichBQLMutation';
-import { parseBQLMutation } from './preprocess/mutation/parseBQLMutation';
-import { runTQLMutation } from './transaction/runTQLMutation';
 import type {
 	BormConfig,
 	BQLResponse,
@@ -25,10 +20,6 @@ import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
 import { runTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/query/parseTQLQuery';
-import { preQuery } from './preprocess/mutation/preQuery';
-import { attributePreHooks } from './preprocess/mutation/attributePreeHooks';
-import { nodePreHooks } from './preprocess/mutation/nodePreeHooks';
-import { validationHooks } from './preprocess/mutation/validationHooks';
 import { postHooks } from './postprocess/query/postHooks';
 import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
 import { SurrealDbPipelines } from '../adapters/surrealDB'
@@ -69,7 +60,7 @@ export type TypeDbResponse = {
 
 const Pipelines: Record<string, Pipeline<TypeDbResponse>> = {
 	query: [enrichBQLQuery, buildTQLQuery, runTQLQuery, parseTQLQuery, postHooks, cleanQueryRes],
-	mutation: [
+	/*mutation: [
 		enrichBQLMutation,
 		preQuery,
 		attributePreHooks,
@@ -80,7 +71,7 @@ const Pipelines: Record<string, Pipeline<TypeDbResponse>> = {
 		runTQLMutation,
 		parseTQLMutation,
 		buildBQLTree,
-	],
+	],*/
 };
 
 // const finalPipeline = [buildBQLTree, processFieldsOperator, processIdOperator];

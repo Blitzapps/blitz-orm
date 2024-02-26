@@ -1,10 +1,27 @@
-import type { EnrichedBormEntity, EnrichedBormRelation } from '../schema/enriched';
-import type { Schema } from '../symbols';
+import type { BormOperation } from '../schema/base';
+import type {
+	EnrichedBormEntity,
+	EnrichedBormRelation,
+	EnrichedDataField,
+	EnrichedLinkField,
+	EnrichedRoleField,
+} from '../schema/enriched';
+import type { EdgeSchema, EdgeType, Schema } from '../symbols';
 import type { Filter } from './filters';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 type WithRequired<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & RequiredKey<T, K>;
+
+export type BQLMutation = RootBQLMutationBlock | RootBQLMutationBlock[];
+
+export type RootBQLMutationBlock = {
+	[key: string]: any;
+	$id?: string | string[];
+	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
+	$tempId?: string;
+	$op?: string;
+} & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType?: 'entity' | 'relation' }); // | { $attribute: string });
 
 export type BQLMutationBlock = {
 	[key: string]: any;
@@ -12,15 +29,30 @@ export type BQLMutationBlock = {
 	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
 	$tempId?: string;
 	$op?: string;
-} & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' }); // | { $attribute: string });
-export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'> & {
 	$entity?: string;
-	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
+	$relation?: string;
+	$thing?: string;
+	$thingType?: 'entity' | 'relation';
 };
 
-export type EnrichedBQLMutationBlock = WithRequired<BQLMutationBlock, '$tempId' | '$op'> & {
+//!old
+export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$op'> & {
+	$entity?: string;
+	$relation?: string;
+	[Schema]?: EnrichedBormEntity | EnrichedBormRelation;
+	[EdgeType]?: 'linkField' | 'roleField';
+};
+
+export type EnrichedBQLMutationBlock = {
+	[key: string]: any;
+	$id?: string | string[];
+	$filter?: Filter | Filter[];
+	$tempId?: string;
+	$op: BormOperation;
 	$thing: string;
-	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
+	$thingType: 'entity' | 'relation';
+	[EdgeSchema]?: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
+	[EdgeType]?: 'linkField' | 'roleField';
 };
 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (

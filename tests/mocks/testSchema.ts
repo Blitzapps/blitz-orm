@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
+import { isArray } from 'radash';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -43,7 +44,6 @@ export const testSchema: BormSchema = {
 				{
 					contentType: 'TEXT',
 					path: 'requiredOption',
-					default: { type: 'value', value: 'a' },
 					validations: { required: true, enum: ['a', 'b', 'c'] as string[] },
 				},
 				{
@@ -134,7 +134,6 @@ export const testSchema: BormSchema = {
 				{
 					path: 'stuff',
 					contentType: 'TEXT',
-
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 				},
 			],
@@ -240,6 +239,27 @@ export const testSchema: BormSchema = {
 					target: 'relation',
 				},
 			],
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+						},
+						//condition: () => true,
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ name, spaces }) =>
+									name === 'cheatCode' && !spaces
+										? {
+												spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+											}
+										: {},
+							},
+						],
+					},
+				],
+			},
 		},
 		SuperUser: {
 			extends: 'User',
@@ -420,7 +440,14 @@ export const testSchema: BormSchema = {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', path: 'ThingRelation' },
 			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
-			dataFields: [{ ...id }],
+			dataFields: [
+				{ ...id },
+				{
+					path: 'moreStuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+				},
+			],
 			roles: {
 				things: {
 					cardinality: 'MANY',
@@ -549,6 +576,18 @@ export const testSchema: BormSchema = {
 								message: 'Name must not exist, or be less than 15 characters',
 							},
 							{
+								type: 'validate',
+								fn: ({ fields }) => {
+									if (!fields) {
+										return true;
+									}
+									fields.some((f: any) => f.name === 'forbiddenName');
+									throw new Error("You can't have a field named 'forbiddenName'");
+								}, //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
+								severity: 'error',
+								message: 'Name must not exist, or be less than 15 characters',
+							},
+							{
 								type: 'transform',
 								fn: ({ name }) =>
 									name === 'secretName'
@@ -648,6 +687,26 @@ export const testSchema: BormSchema = {
 			dataFields: [{ ...id }],
 			roles: {
 				hookTypeA: { cardinality: 'ONE' },
+			},
+			hooks: {
+				pre: [
+					{
+						triggers: {
+							onCreate: () => true,
+							onUpdate: () => true,
+						},
+						actions: [
+							{
+								type: 'validate',
+								fn: ({ hookTypeA }) => {
+									return !isArray(hookTypeA);
+								},
+								severity: 'error',
+								message: "Can't be an array",
+							},
+						],
+					},
+				],
 			},
 		},
 	},

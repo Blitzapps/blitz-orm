@@ -8,7 +8,7 @@ export type QueryConfig = {
 	debugger?: boolean;
 };
 
-export type MutateConfig = {
+export type MutationConfig = {
 	noMetadata?: boolean;
 	preQuery?: boolean;
 	ignoreNonexistingThings?: boolean;
@@ -20,7 +20,7 @@ export type BormConfig = {
 	};
 	// queryDefaults
 	query?: QueryConfig;
-	mutation?: MutateConfig;
+	mutation?: MutationConfig;
 	dbConnectors: [ProviderObject, ...ProviderObject[]]; // minimum one
 };
 

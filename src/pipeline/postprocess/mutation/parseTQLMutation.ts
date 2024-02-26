@@ -7,6 +7,7 @@ import type { PipelineOperation } from '../../../types';
 export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { bqlRequest, config, tqlRequest } = req;
 	const { rawTqlRes } = res;
+
 	if (!bqlRequest) {
 		throw new Error('BQL request not parsed');
 	} else if (!rawTqlRes) {
@@ -61,6 +62,7 @@ export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, r
 
 		// todo
 		res.bqlRes = result;
+		//console.log('ParseTQLResultOld', result);
 		return;
 	}
 };
