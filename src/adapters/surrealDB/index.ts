@@ -22,6 +22,36 @@ const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", 
   return result
 }
 
+type EnrichedBqlQueryRelation = {
+  '$thingType': 'relation',
+  '$plays': string,
+  '$playedBy': {
+    path: string,
+    cardinality: string,
+    relation: string,
+    plays: string,
+    target: string,
+    thing: string,
+    thingType: string,
+  },
+  '$path': string,
+  '$dbPath': undefined,
+  '$as': string,
+  '$var': string,
+  '$thing': string,
+  '$fields': Array<any>
+  '$excludedFields': undefined,
+  '$fieldType': string,
+  '$target': string,
+  '$intermediary': string,
+  '$justId': boolean
+  '$id': undefined,
+  '$filter': {},
+  '$idNotIncluded': boolean,
+  '$filterByUnique': boolean,
+  '$filterProcessed': boolean
+}
+
 type EnrichedBqlQueryEntity = {
   '$thingType': 'entity',
   '$plays': string,
@@ -72,7 +102,7 @@ type EnrichedBqlQuery = {
   '$thing': string,
   '$thingType': string
   '$filter'?: { id: string },
-  '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity>
+  '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity | EnrichedBqlQueryRelation>
 }
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
@@ -83,6 +113,11 @@ const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
 const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
   const attributes = query["$fields"].filter((q): q is EnrichedBqlQueryAttribute => q["$thingType"] === "attribute")
   const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
+  const relations = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "relation")
+
+  const relationsQuery = relations.map((relation) => {
+    return `(SELECT VALUE meta::id(id) as id FROM <-${relation.$thing}_${relation.$plays}<-${relation.$thing}) as \`${relation.$as}\``
+  })
 
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
@@ -93,7 +128,7 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
   const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:${value}`).join(",")}` : ""
 
   const x = `SELECT 
-    ${[...attributes.map(convertEntityId), ...entitiesQuery].join(",")}
+    ${[...attributes.map(convertEntityId), ...entitiesQuery, ...relationsQuery].join(",")}
   FROM ${thing} 
   ${filterExpr}
   FETCH ${entities.map((entity) => entity["$path"]).join(",")} 
@@ -153,10 +188,10 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
     return payload.flat()
   }))
 
-  if(req.enrichedBqlQuery.length > 1){
+  if (req.enrichedBqlQuery.length > 1) {
     throw new Error('batch query unimplemented')
   }
-  
+
   res.bqlRes = req.enrichedBqlQuery[0]?.$filter?.id ? results[0][0] : results[0]
 }
 

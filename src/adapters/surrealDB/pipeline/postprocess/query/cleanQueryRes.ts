@@ -3,7 +3,29 @@ import type { PipelineOperation, BQLResponseSingle, BormConfig } from '../../../
 import { produce } from 'immer';
 import type { SurrealDbResponse } from '../../../types/base'
 
+const dropNull = (obj: Record<string, unknown>) => {
+  for (const key in obj) {
+    const value = obj[key]
+
+    if(value === null){
+      delete obj[key]
+      continue
+    }
+
+    if(Array.isArray(value)){
+      if(value.length === 0){
+        delete obj[key]
+      }
+      continue
+    }
+  }
+}
+
 const mutateItem = (config: BormConfig, item: BQLResponseSingle) => {
+  if(!config.query?.returnNulls){
+    dropNull(item)
+  }
+
   // INTERNAL SYMBOLS
   Object.getOwnPropertySymbols(item).forEach((symbol) => {
     delete item[symbol];
