@@ -2,7 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.9.0(2023-02-16)
+## 0.9.1(2023-02-26)
+
+- Fix: Issue with module exports (robot3)
+
+## 0.9.0(2023-02-26)
 
 - Feat: Non linear pipeline
 - Feat: Can add children nodes on transformations
