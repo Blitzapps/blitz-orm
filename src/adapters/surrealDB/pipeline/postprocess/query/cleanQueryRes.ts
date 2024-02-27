@@ -58,7 +58,7 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
   const { bqlRes } = res;
 
   if (!bqlRes) {
-    return;
+    return
   }
 
   const querySet = enrichedBqlQuery as Array<EnrichedBqlQuery>

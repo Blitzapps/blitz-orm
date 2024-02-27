@@ -81,7 +81,7 @@ export type EnrichedBqlQueryAttribute = {
 export type EnrichedBqlQuery = {
   '$path': string,
   '$thing': string,
-  '$thingType': string
+  '$thingType': "entity" | "relation"
   '$filter'?: { id: string },
   '$fields': Array<EnrichedBqlQueryAttribute | EnrichedBqlQueryEntity | EnrichedBqlQueryRelation>,
   '$idNotIncluded'?: boolean,

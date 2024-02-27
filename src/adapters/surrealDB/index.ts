@@ -28,19 +28,25 @@ const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
   return attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`
 }
 
-const handleCardinality = (query: EnrichedBqlQuery) => (obj: Record<string, unknown>) => {
-  const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
+const handleCardinality = (schema: EnrichedBormSchema, query: EnrichedBqlQuery) => (obj: Record<string, unknown>) => {
+  const thingType = query.$thingType
+
+  if (thingType === "entity") {
+    return obj
+  }
+
+  const entitySchema = schema["relations"][query.$thing]
 
   return produce(obj, (payload) => {
-      for(const playedBy of entities.map(({ $playedBy }) => $playedBy)){
-        const value = payload[playedBy.path]
+    for (const [key, role] of Object.entries(entitySchema.roles)) {
+      const value = payload[key]
 
-        if(playedBy.cardinality === "ONE" && Array.isArray(value)){
-          payload[playedBy.path] = value[0]
-        }
+      if (role.cardinality === "ONE" && Array.isArray(value)) {
+        payload[key] = value[0]
       }
+    }
   })
-} 
+}
 
 const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
   const attributes = query["$fields"].filter((q): q is EnrichedBqlQueryAttribute => q["$thingType"] === "attribute")
@@ -57,7 +63,7 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
     return query.$thingType === 'relation' ? `(SELECT VALUE meta::id(id) as id FROM ->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}` : `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
-  const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:${value}`).join(",")}` : ""
+  const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:\`${value}\``).join(",")}` : ""
 
   const result = `SELECT 
     ${[...attributes.map(convertEntityId), ...entitiesQuery, ...relationsQuery].join(",")}
@@ -139,7 +145,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
       throw new Error('empty query result')
     }
 
-    return queryResult.map(handleCardinality(query))
+    return queryResult.map(handleCardinality(schema, query))
   }))
 
   if (req.enrichedBqlQuery.length > 1) {
