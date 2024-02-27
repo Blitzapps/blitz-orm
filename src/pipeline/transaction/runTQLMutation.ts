@@ -1,6 +1,6 @@
 import { TransactionType } from 'typedb-driver';
 
-import type { TypeDbResponse } from '../pipeline'
+import type { TypeDbResponse } from '../pipeline';
 import type { PipelineOperation } from '../../types';
 import { getSessionOrOpenNewOne } from './helpers';
 

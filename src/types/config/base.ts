@@ -1,5 +1,5 @@
 import type { TypeDBProviderObject, TypeDBClusterProviderObject, TypeDBHandles } from './typedb';
-import type { SurrealDBProviderObject, SurrealDBHandles} from './surrealdb'
+import type { SurrealDBProviderObject, SurrealDBHandles } from './surrealdb';
 
 export type QueryConfig = {
 	noMetadata?: boolean;
@@ -27,14 +27,14 @@ export type BormConfig = {
 export type ProviderObject =
 	| (TypeDBProviderObject & CommonProperties)
 	| (TypeDBClusterProviderObject & CommonProperties)
-  | (SurrealDBProviderObject & CommonProperties);
+	| (SurrealDBProviderObject & CommonProperties);
 
 export interface CommonProperties {
 	id: string;
 	dbName: string;
 }
 
-export type Provider = 'typeDB' | 'typeDBCluster' | "surrealDB";
+export type Provider = 'typeDB' | 'typeDBCluster' | 'surrealDB';
 
 export type DBConnector = {
 	id: string;

@@ -1,5 +1,5 @@
 import { isObject } from 'radash';
-import type { TypeDbResponse } from '../../pipeline'
+import type { TypeDbResponse } from '../../pipeline';
 import type { PipelineOperation } from '../../../types';
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';

@@ -8,7 +8,6 @@ import type {
 	RawBQLQuery as RawBQLRequest,
 	TQLRequest,
 	FilledBQLMutationBlock,
-	BQLResponseMulti,
 } from '../../types';
 
 export type Request = {
@@ -24,15 +23,18 @@ export type Request = {
 };
 
 export type BaseResponse = {
-  bqlRes?: BQLResponse | null;
+	bqlRes?: BQLResponse | null;
 };
 
 type NextPipeline<Res extends BaseResponse> = {
 	req: Request;
-	res: Res,
-	pipeline: Pipeline<Res>
+	res: Res;
+	pipeline: Pipeline<Res>;
 };
 
-export type PipelineOperation<Res extends BaseResponse> = (req: Request, res: Res) => Promise<void | NextPipeline<Res>[]>;
+export type PipelineOperation<Res extends BaseResponse> = (
+	req: Request,
+	res: Res,
+) => Promise<void | NextPipeline<Res>[]>;
 
 export type Pipeline<Res extends BaseResponse> = PipelineOperation<Res>[];

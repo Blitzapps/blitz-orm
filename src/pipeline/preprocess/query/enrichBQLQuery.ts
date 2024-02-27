@@ -1,10 +1,14 @@
 import { produce } from 'immer';
-import type { TypeDbResponse } from '../../pipeline'
-import type { PipelineOperation } from '../../../types';
+import type {
+	PipelineOperation,
+	BQLMutationBlock,
+	EnrichedBormEntity,
+	EnrichedBormRelation,
+	BaseResponse,
+} from '../../../types';
 import { traverse } from 'object-traversal';
 import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
-import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation, BaseResponse } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
 
 //todo: use getCurrentFields instead

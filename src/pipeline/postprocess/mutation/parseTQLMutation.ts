@@ -1,8 +1,7 @@
 import { mapEntries } from 'radash';
 
-import type { BQLMutationBlock } from '../../../types';
-import type { TypeDbResponse } from '../../pipeline'
-import type { PipelineOperation } from '../../../types';
+import type { BQLMutationBlock, PipelineOperation } from '../../../types';
+import type { TypeDbResponse } from '../../pipeline';
 
 export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { bqlRequest, config, tqlRequest } = req;

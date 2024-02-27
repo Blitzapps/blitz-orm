@@ -3,9 +3,8 @@ import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 
-import type { BormConfig, BQLMutationBlock, RawBQLQuery } from '../../../types';
-import type { TypeDbResponse } from '../../pipeline'
-import type { PipelineOperation } from '../../../types';
+import type { BormConfig, BQLMutationBlock, RawBQLQuery, PipelineOperation } from '../../../types';
+import type { TypeDbResponse } from '../../pipeline';
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
 	produce(obj, (draft) =>

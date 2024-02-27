@@ -6,15 +6,11 @@ import type {
 	BQLResponse,
 	DBHandles,
 	EnrichedBormSchema,
-	ParsedBQLMutation as BQLMutation,
-	ParsedBQLQuery as BQLQuery,
 	RawBQLQuery as RawBQLRequest,
-	TQLRequest,
-	FilledBQLMutationBlock,
 	BQLResponseMulti,
-  Pipeline,
-  Request,
-  BaseResponse
+	Pipeline,
+	Request,
+	BaseResponse,
 } from '../types';
 import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
 import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
@@ -22,7 +18,7 @@ import { runTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/query/parseTQLQuery';
 import { postHooks } from './postprocess/query/postHooks';
 import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
-import { SurrealDbPipelines } from '../adapters/surrealDB'
+import { SurrealDbPipelines } from '../adapters/surrealDB';
 
 export type RelationName = string;
 export type EntityName = string;
@@ -120,32 +116,32 @@ export const queryPipeline = (
 	bormSchema: EnrichedBormSchema,
 	dbHandles: DBHandles,
 ) => {
-  if(dbHandles.typeDB && dbHandles.typeDB.size > 0){
-    return runPipeline(
-      Pipelines.query,
-      {
-        config: bormConfig,
-        schema: bormSchema,
-        rawBqlRequest: bqlRequest,
-        dbHandles,
-      },
-      {},
-    );
-  } else if (dbHandles.surrealDB && dbHandles.surrealDB.size > 0) {
-    return runPipeline(
-      SurrealDbPipelines.query,
-      {
-        config: bormConfig,
-        schema: bormSchema,
-        rawBqlRequest: bqlRequest,
-        dbHandles,
-      },
-      {},
-    );
-  } else {
-    throw new Error("no pipeline defined")
-  }
-}
+	if (dbHandles.typeDB && dbHandles.typeDB.size > 0) {
+		return runPipeline(
+			Pipelines.query,
+			{
+				config: bormConfig,
+				schema: bormSchema,
+				rawBqlRequest: bqlRequest,
+				dbHandles,
+			},
+			{},
+		);
+	} else if (dbHandles.surrealDB && dbHandles.surrealDB.size > 0) {
+		return runPipeline(
+			SurrealDbPipelines.query,
+			{
+				config: bormConfig,
+				schema: bormSchema,
+				rawBqlRequest: bqlRequest,
+				dbHandles,
+			},
+			{},
+		);
+	} else {
+		throw new Error('no pipeline defined');
+	}
+};
 
 export const mutationPipeline = (
 	bqlRequest: RawBQLRequest,
