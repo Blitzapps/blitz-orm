@@ -362,6 +362,45 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('ctx1[transform, context] Use context', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$thing: 'User',
+					id: 'ctx1-u1',
+					name: 'cheatCode2',
+				},
+				{ noMetadata: true, context: { spaceId: 'mySpace' } },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'ctx1-u1',
+					$fields: ['id', 'name', { $path: 'spaces', $fields: ['id', 'name'] }],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(res, 'id')).toEqual({
+				id: 'ctx1-u1',
+				name: 'cheatCode2',
+				spaces: [{ id: 'mySpace' }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'tn2-u1',
+			});
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

@@ -251,14 +251,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 			// role fields
 			if (typeof value === 'object' && 'playedBy' in value) {
 				// if (value.playedBy.length > 1) {
-				if ([...new Set(value.playedBy?.map((x: LinkedFieldWithThing) => x.thing))].length > 1) {
+				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
+				if (playedBySet.length > 1) {
 					throw new Error(
-						`Unsupported: roleFields can be only played by one thing. Role: ${key} path:${meta.nodePath}`,
+						`[Schema] roleFields can be only played by one thing. Role: ${key}, path:${meta.nodePath}, played by: ${playedBySet.join(', ')}`,
 					);
 				}
 				if (value.playedBy.length === 0) {
 					throw new Error(
-						`Unsupported: roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
+						`[Schema] roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
 					);
 				}
 			}

@@ -248,11 +248,23 @@ export const testSchema: BormSchema = {
 						//condition: () => true,
 						actions: [
 							{
+								name: 'Add children',
 								type: 'transform',
 								fn: ({ name, spaces }) =>
 									name === 'cheatCode' && !spaces
 										? {
 												spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+											}
+										: {},
+							},
+							{
+								name: 'from context',
+								description: 'Add space from context',
+								type: 'transform',
+								fn: ({ name, spaces }, _, { spaceId }) =>
+									name === 'cheatCode2' && !spaces
+										? {
+												spaces: [{ id: spaceId }],
 											}
 										: {},
 							},

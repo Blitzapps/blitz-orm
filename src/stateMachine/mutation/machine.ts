@@ -94,8 +94,8 @@ const updateTQLRes = (ctx: MachineContext, event: any) => {
 
 const enrich = async (ctx: MachineContext) => {
 	return Object.keys(ctx.bql.current).length
-		? enrichBQLMutation(ctx.bql.current, ctx.schema)
-		: enrichBQLMutation(ctx.bql.raw, ctx.schema);
+		? enrichBQLMutation(ctx.bql.current, ctx.schema, ctx.config)
+		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
 };
 
 const preQuery = async (ctx: MachineContext) => {

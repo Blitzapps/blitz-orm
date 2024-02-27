@@ -1,10 +1,15 @@
 /* eslint-disable no-param-reassign */
 import { clone, isArray } from 'radash';
-import type { EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
+import type { BormConfig, EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
 import { deepCurrent, isBQLBlock } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
 
-export const preHookTransformations = (node: EnrichedBQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
+export const preHookTransformations = (
+	node: EnrichedBQLMutationBlock,
+	field: string,
+	schema: EnrichedBormSchema,
+	config: BormConfig,
+) => {
 	const newNodes = (isArray(node[field]) ? node[field] : [node[field]]).map((subNode: EnrichedBQLMutationBlock) => {
 		// Step 1: Default node attributes
 		//todo
@@ -15,12 +20,13 @@ export const preHookTransformations = (node: EnrichedBQLMutationBlock, field: st
 				(action) => action.type === 'transform',
 			) as TransFormAction[];
 
-			const parentNode = clone(deepCurrent(node));
-			const currentNode = clone(deepCurrent(subNode));
+			const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
+			const currentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
+			const userContext = (config.mutation?.context || {}) as Record<string, any>;
 
 			triggeredActions.forEach((action) => {
 				//! Todo: Sandbox the function in computeFunction()
-				const newProps = action.fn(currentNode, parentNode);
+				const newProps = action.fn(currentNode, parentNode, userContext);
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}
