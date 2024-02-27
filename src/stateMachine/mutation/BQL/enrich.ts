@@ -4,7 +4,7 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
-import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type { BQLMutationBlock, BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 import { replaceToObj } from './enrichSteps/replaces';
 import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
@@ -58,6 +58,7 @@ const dataFieldStep = (node: BQLMutationBlock, field: string) => {
 export const enrichBQLMutation = (
 	blocks: BQLMutationBlock | BQLMutationBlock[] | EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
+	config: BormConfig,
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
 	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
 
@@ -227,12 +228,12 @@ export const enrichBQLMutation = (
 
 						// 3.3.8
 						//#region pre-hook transformations
-						preHookTransformations(node, field, schema);
+						preHookTransformations(node, field, schema, config);
 						//#endregion pre-hook transformations
 
 						// 3.2.9
 						//#region pre-hook validations
-						preHookValidations(node, field, schema);
+						preHookValidations(node, field, schema, config);
 						//#endregion pre-hook validations
 					}
 				});

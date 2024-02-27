@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.10(2023-02-27)
+
+- Feat: Actions can use user provided context in the mutation config
+- Feat: Actions can have name and descriptions
+
 ## 0.9.9(2023-02-27)
 
 - Feat: Catch some extra schema errors
