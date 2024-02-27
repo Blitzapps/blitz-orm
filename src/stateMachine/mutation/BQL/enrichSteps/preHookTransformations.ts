@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { clone, isArray } from 'radash';
 import type { BormConfig, EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
-import { deepCurrent, isBQLBlock } from '../../../../helpers';
+import { deepCurrent, getSymbols, isBQLBlock } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
 
 export const preHookTransformations = (
@@ -31,7 +31,7 @@ export const preHookTransformations = (
 					return;
 				}
 				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps };
+				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode) };
 			});
 
 			return subNode;

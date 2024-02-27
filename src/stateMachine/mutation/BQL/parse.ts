@@ -196,10 +196,6 @@ export const parseBQLMutation = async (
 						throw new Error('No parent id found');
 					}
 
-					if (value[Symbol.for('relation') as any] === '$self') {
-						return;
-					}
-
 					const getLinkObjOp = () => {
 						if (value.$op === 'delete') {
 							if (ownRelation) {
