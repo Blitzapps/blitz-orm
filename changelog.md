@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.11(2023-02-27)
+
+- Fix: Issue that did not spread symbols on children creation
+
 ## 0.9.10(2023-02-27)
 
 - Feat: Actions can use user provided context in the mutation config

@@ -27,6 +27,9 @@ export const enrichChildren = (
 		const $op = getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema);
 		const $bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
 
+		if (!fieldSchema) {
+			throw new Error(`[Internal] No fieldSchema found in ${JSON.stringify(fieldSchema)}`);
+		}
 		return {
 			...subNode,
 			[EdgeSchema]: fieldSchema,
