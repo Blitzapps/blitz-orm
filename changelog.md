@@ -2,9 +2,26 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.9.1(2023-02-26)
+## 0.9.11(2023-02-27)
 
-- Fix: Issue with module exports (robot3)
+- Fix: Issue that did not spread symbols on children creation
+
+## 0.9.10(2023-02-27)
+
+- Feat: Actions can use user provided context in the mutation config
+- Feat: Actions can have name and descriptions
+
+## 0.9.9(2023-02-27)
+
+- Feat: Catch some extra schema errors
+
+## 0.9.8(2023-02-26)
+
+- Fix: Issue that was splitting things assigning them two different $vars ($tempId and $bzId generated in pre-queries)
+
+## 0.9.1-7(2023-02-26)
+
+- Fix: Fixing issue with module exports (robot3)
 
 ## 0.9.0(2023-02-26)
 

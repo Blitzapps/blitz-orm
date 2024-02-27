@@ -163,11 +163,11 @@ export const testSchema: BormSchema = {
 		},
 		SubthingOne: {
 			extends: 'Thing',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'Thing', path: 'SubthingOne' },
 		},
 		SubthingTwo: {
 			extends: 'Thing',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'Thing', path: 'SubthingTwo' },
 		},
 		Account: {
 			idFields: ['id'], // could be a composite key
@@ -248,11 +248,23 @@ export const testSchema: BormSchema = {
 						//condition: () => true,
 						actions: [
 							{
+								name: 'Add children',
 								type: 'transform',
 								fn: ({ name, spaces }) =>
 									name === 'cheatCode' && !spaces
 										? {
 												spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+											}
+										: {},
+							},
+							{
+								name: 'from context',
+								description: 'Add space from context',
+								type: 'transform',
+								fn: ({ name, spaces }, _, { spaceId }) =>
+									name === 'cheatCode2' && !spaces
+										? {
+												spaces: [{ id: spaceId }],
 											}
 										: {},
 							},
@@ -263,7 +275,7 @@ export const testSchema: BormSchema = {
 		},
 		SuperUser: {
 			extends: 'User',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'User', path: 'SuperUser' },
 			dataFields: [
 				{
 					path: 'power',
@@ -273,7 +285,7 @@ export const testSchema: BormSchema = {
 		},
 		God: {
 			extends: 'SuperUser',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'SuperUser', path: 'God' },
 			dataFields: [
 				{
 					path: 'isEvil',

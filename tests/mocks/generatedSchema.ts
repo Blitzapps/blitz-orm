@@ -26,10 +26,6 @@ export const typesSchema = {
 				{
 					contentType: 'TEXT',
 					path: 'requiredOption',
-					default: {
-						type: 'value',
-						value: 'a',
-					},
 					validations: {
 						required: true,
 						enum: ['a', 'b', 'c'],
@@ -70,6 +66,7 @@ export const typesSchema = {
 					relation: 'HookParent',
 					plays: 'hooks',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'hookParent',
@@ -84,18 +81,71 @@ export const typesSchema = {
 					relation: 'HookParent',
 					plays: 'mainHook',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
-							plays: 'asMainHook',
+							plays: 'asMainHookOf',
 							thing: 'HookParent',
 							thingType: 'relation',
 						},
 					],
 				},
+				{
+					path: 'otherTags',
+					cardinality: 'MANY',
+					relation: 'HookATag',
+					plays: 'hookTypeA',
+					target: 'role',
+					fieldType: 'linkField',
+					oppositeLinkFieldsPlayedBy: [
+						{
+							path: 'tagA',
+							cardinality: 'MANY',
+							relation: 'HookATag',
+							plays: 'otherHooks',
+							target: 'role',
+							thing: 'Hook',
+							thingType: 'entity',
+						},
+					],
+				},
+				{
+					path: 'tagA',
+					cardinality: 'MANY',
+					relation: 'HookATag',
+					plays: 'otherHooks',
+					target: 'role',
+					fieldType: 'linkField',
+					oppositeLinkFieldsPlayedBy: [
+						{
+							path: 'otherTags',
+							cardinality: 'MANY',
+							relation: 'HookATag',
+							plays: 'hookTypeA',
+							target: 'role',
+							thing: 'Hook',
+							thingType: 'entity',
+						},
+					],
+				},
 			],
+			hooks: {
+				pre: [
+					{
+						triggers: {},
+						actions: [
+							{
+								type: 'validate',
+								severity: 'error',
+								message: 'Default message',
+							},
+						],
+					},
+				],
+			},
 			name: 'Hook',
 			thingType: 'entity',
-			computedFields: ['id', 'requiredOption', 'timestamp'],
+			computedFields: ['id', 'timestamp'],
 			virtualFields: [],
 			requiredFields: ['id', 'requiredOption'],
 			enumFields: ['requiredOption', 'manyOptions'],
@@ -138,6 +188,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'things',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'things',
@@ -152,6 +203,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'root',
@@ -166,6 +218,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'extra',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'extra',
@@ -221,6 +274,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'things',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'things',
@@ -235,6 +289,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'root',
@@ -249,6 +304,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'extra',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'extra',
@@ -304,6 +360,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'things',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'things',
@@ -318,6 +375,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'root',
@@ -332,6 +390,7 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'extra',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'extra',
@@ -378,6 +437,13 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					dbPath: 'Account·provider',
 				},
+				{
+					path: 'isSecureProvider',
+					contentType: 'BOOLEAN',
+					isVirtual: true,
+					cardinality: 'ONE',
+					dbPath: 'Account·isSecureProvider',
+				},
 			],
 			linkFields: [
 				{
@@ -386,6 +452,7 @@ export const typesSchema = {
 					relation: 'User-Accounts',
 					plays: 'accounts',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'accounts',
@@ -402,7 +469,7 @@ export const typesSchema = {
 			name: 'Account',
 			thingType: 'entity',
 			computedFields: ['id'],
-			virtualFields: [],
+			virtualFields: ['isSecureProvider'],
 			requiredFields: ['id'],
 			enumFields: [],
 			fnValidatedFields: [],
@@ -454,6 +521,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -472,6 +540,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -490,6 +559,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'users',
@@ -508,6 +578,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -517,6 +588,18 @@ export const typesSchema = {
 					],
 				},
 			],
+			hooks: {
+				pre: [
+					{
+						triggers: {},
+						actions: [
+							{
+								type: 'transform',
+							},
+						],
+					},
+				],
+			},
 			name: 'User',
 			thingType: 'entity',
 			computedFields: ['id'],
@@ -580,6 +663,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -598,6 +682,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -616,6 +701,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'users',
@@ -634,6 +720,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -712,6 +799,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -730,6 +818,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user',
@@ -748,6 +837,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'users',
@@ -766,6 +856,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -820,6 +911,7 @@ export const typesSchema = {
 					relation: 'Space-User',
 					plays: 'spaces',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'spaces',
@@ -838,6 +930,7 @@ export const typesSchema = {
 					relation: 'SpaceObj',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'objects',
@@ -852,6 +945,7 @@ export const typesSchema = {
 					relation: 'SpaceDef',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'definitions',
@@ -866,6 +960,7 @@ export const typesSchema = {
 					relation: 'Kind',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'kinds',
@@ -880,6 +975,7 @@ export const typesSchema = {
 					relation: 'Field',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'fields',
@@ -894,6 +990,7 @@ export const typesSchema = {
 					relation: 'DataField',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'dataFields',
@@ -908,6 +1005,7 @@ export const typesSchema = {
 					relation: 'Self',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'selfs',
@@ -922,6 +1020,7 @@ export const typesSchema = {
 					relation: 'UserTagGroup',
 					plays: 'space',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'userTagGroups',
@@ -988,6 +1087,7 @@ export const typesSchema = {
 					relation: 'UserTagGroup',
 					plays: 'color',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'color',
@@ -1006,6 +1106,7 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					plays: 'color',
 					relation: 'UserTagGroup',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'group',
@@ -1059,6 +1160,7 @@ export const typesSchema = {
 					relation: 'Space-User',
 					plays: 'power',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'space-user',
@@ -1120,6 +1222,7 @@ export const typesSchema = {
 					relation: 'User-Sessions',
 					plays: 'sessions',
 					target: 'role',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'sessions',
@@ -1216,10 +1319,18 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
+				{
+					path: 'moreStuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					cardinality: 'ONE',
+					dbPath: 'ThingRelation·moreStuff',
+				},
 			],
 			roles: {
 				things: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'things',
@@ -1235,6 +1346,7 @@ export const typesSchema = {
 				},
 				root: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'root',
@@ -1250,6 +1362,7 @@ export const typesSchema = {
 				},
 				extra: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'extra',
@@ -1298,6 +1411,7 @@ export const typesSchema = {
 			roles: {
 				accounts: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'user',
@@ -1313,6 +1427,7 @@ export const typesSchema = {
 				},
 				user: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'accounts',
@@ -1361,6 +1476,7 @@ export const typesSchema = {
 			roles: {
 				user: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'sessions',
@@ -1376,6 +1492,7 @@ export const typesSchema = {
 				},
 				sessions: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'user',
@@ -1424,6 +1541,7 @@ export const typesSchema = {
 			roles: {
 				spaces: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'users',
@@ -1439,6 +1557,7 @@ export const typesSchema = {
 				},
 				users: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'spaces',
@@ -1454,6 +1573,7 @@ export const typesSchema = {
 				},
 				power: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'space-user',
@@ -1509,6 +1629,7 @@ export const typesSchema = {
 			roles: {
 				users: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'user-tags',
@@ -1530,6 +1651,7 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					plays: 'tags',
 					relation: 'UserTagGroup',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							path: 'user-tags',
@@ -1548,6 +1670,7 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					plays: 'tags',
 					relation: 'UserTagGroup',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'group',
@@ -1591,6 +1714,7 @@ export const typesSchema = {
 			roles: {
 				tags: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'color',
@@ -1615,6 +1739,7 @@ export const typesSchema = {
 				},
 				color: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'user-tags',
@@ -1639,6 +1764,7 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'userTagGroups',
@@ -1687,6 +1813,7 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'objects',
@@ -1745,6 +1872,7 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'definitions',
@@ -1807,6 +1935,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'kinds',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'fields',
@@ -1821,6 +1950,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'kinds',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'dataFields',
@@ -1846,6 +1976,11 @@ export const typesSchema = {
 								message: 'Name must not exist, or be less than 15 characters',
 							},
 							{
+								type: 'validate',
+								severity: 'error',
+								message: 'Name must not exist, or be less than 15 characters',
+							},
+							{
 								type: 'transform',
 							},
 						],
@@ -1857,6 +1992,7 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'kinds',
@@ -1920,6 +2056,7 @@ export const typesSchema = {
 			roles: {
 				kinds: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'fields',
@@ -1935,6 +2072,7 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'fields',
@@ -2021,6 +2159,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'dataField',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'values',
@@ -2035,6 +2174,7 @@ export const typesSchema = {
 					cardinality: 'ONE',
 					plays: 'dataField',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'expression',
@@ -2054,6 +2194,7 @@ export const typesSchema = {
 			roles: {
 				kinds: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'dataFields',
@@ -2069,6 +2210,7 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'dataFields',
@@ -2125,6 +2267,7 @@ export const typesSchema = {
 			roles: {
 				dataField: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'expression',
@@ -2175,6 +2318,7 @@ export const typesSchema = {
 			roles: {
 				dataField: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'values',
@@ -2212,6 +2356,7 @@ export const typesSchema = {
 			roles: {
 				owner: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'owned',
@@ -2227,6 +2372,7 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'selfs',
@@ -2248,6 +2394,7 @@ export const typesSchema = {
 					relation: 'Self',
 					plays: 'owner',
 					target: 'relation',
+					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'owned',
@@ -2309,6 +2456,7 @@ export const typesSchema = {
 			roles: {
 				hooks: {
 					cardinality: 'MANY',
+					fieldType: 'roleField',
 					playedBy: [
 						{
 							path: 'hookParent',
@@ -2324,9 +2472,10 @@ export const typesSchema = {
 				},
 				mainHook: {
 					cardinality: 'ONE',
+					fieldType: 'roleField',
 					playedBy: [
 						{
-							path: 'asMainHook',
+							path: 'asMainHookOf',
 							cardinality: 'ONE',
 							relation: 'HookParent',
 							plays: 'mainHook',
@@ -2339,6 +2488,69 @@ export const typesSchema = {
 				},
 			},
 			name: 'HookParent',
+			thingType: 'relation',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		'HookATag': {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'HookATag',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+			],
+			roles: {
+				hookTypeA: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'otherTags',
+							cardinality: 'MANY',
+							relation: 'HookATag',
+							plays: 'hookTypeA',
+							target: 'role',
+							thing: 'Hook',
+							thingType: 'entity',
+						},
+					],
+					name: 'hookTypeA',
+				},
+			},
+			hooks: {
+				pre: [
+					{
+						triggers: {},
+						actions: [
+							{
+								type: 'validate',
+								severity: 'error',
+								message: "Can't be an array",
+							},
+						],
+					},
+				],
+			},
+			name: 'HookATag',
 			thingType: 'relation',
 			computedFields: ['id'],
 			virtualFields: [],

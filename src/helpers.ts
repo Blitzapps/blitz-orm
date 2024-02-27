@@ -65,6 +65,12 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					}));
 				}
 				if (value.extends) {
+					if (!value.defaultDBConnector.as) {
+						//todo: CCheck if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
+						throw new Error(
+							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
+						);
+					}
 					const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
 					/// find out all the thingTypes this thingType is extending
 					// @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
@@ -143,7 +149,6 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	});
 
 	// * Enrich the schema
-
 	const enrichedSchema = produce(withExtensionsSchema, (draft) =>
 		traverse(draft, ({ value, key, meta }: TraversalCallbackContext) => {
 			// id things
@@ -165,7 +170,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				//@ts-expect-error - TODO
 				const thingDB: DBHandleKey = Object.keys(dbHandles).find((key) =>
 					// @ts-expect-error - TODO
-					dbHandles[key].get(value.defaultDBConnector.id),
+					dbHandles[key]?.get(value.defaultDBConnector.id),
 				);
 				value.db = thingDB as DBHandleKey; //todo
 				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
@@ -246,14 +251,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 			// role fields
 			if (typeof value === 'object' && 'playedBy' in value) {
 				// if (value.playedBy.length > 1) {
-				if ([...new Set(value.playedBy?.map((x: LinkedFieldWithThing) => x.thing))].length > 1) {
+				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
+				if (playedBySet.length > 1) {
 					throw new Error(
-						`Unsupported: roleFields can be only played by one thing. Role: ${key} path:${meta.nodePath}`,
+						`[Schema] roleFields can be only played by one thing. Role: ${key}, path:${meta.nodePath}, played by: ${playedBySet.join(', ')}`,
 					);
 				}
 				if (value.playedBy.length === 0) {
 					throw new Error(
-						`Unsupported: roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
+						`[Schema] roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
 					);
 				}
 			}
@@ -448,21 +454,32 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		} as ReturnTypeWithNode;
 	}
 	const usedFields = node.$fields
-		? (node.$fields.map((x: string | { $path: string }) => {
+		? //queries
+			(node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
 					if (x.startsWith('$')) {
-						return;
+						return undefined;
+					}
+					if (!availableFields.includes(x)) {
+						throw new Error(`Field ${x} not found in the schema`);
 					}
 					return x;
 				}
 				if ('$path' in x && typeof x.$path === 'string') {
 					return x.$path;
 				}
-				throw new Error(' Wrongly structured query');
+				throw new Error('[Wrong format] Wrongly structured query');
 			}) as string[])
-		: (listify<any, string, any>(node, (k: string) => (k.startsWith('$') ? undefined : k)).filter(
-				(x) => x !== undefined,
-			) as string[]);
+		: //mutations
+			(listify<any, string, any>(node, (k: string) => {
+				if (k.startsWith('$')) {
+					return undefined;
+				}
+				if (!availableFields.includes(k)) {
+					throw new Error(`[Schema] Field ${k} not found in the schema`);
+				}
+				return k;
+			}).filter((x) => x !== undefined) as string[]);
 
 	const localFilterFields = !node.$filter
 		? []
