@@ -213,6 +213,70 @@ describe('Query', () => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
+  it('r1[relation] - basic', async () => {
+		expect(bormClient).toBeDefined();
+		const query = { $relation: 'User-Accounts' };
+		const expectedRes = [
+			{
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
+				$id: 'ua1-1',
+				id: 'ua1-1',
+				user: 'user1',
+				accounts: ['account1-1'],
+			},
+			{
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
+				$id: 'ua1-2',
+				id: 'ua1-2',
+				user: 'user1',
+				accounts: ['account1-2'],
+			},
+			{
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
+				$id: 'ua1-3',
+				id: 'ua1-3',
+				user: 'user1',
+				accounts: ['account1-3'],
+			},
+			{
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
+				$id: 'ua2-1',
+				id: 'ua2-1',
+				user: 'user2',
+				accounts: ['account2-1'],
+			},
+			{
+				// $relation: 'User-Accounts',
+				$thing: 'User-Accounts',
+				$thingType: 'relation',
+				$id: 'ua3-1',
+				id: 'ua3-1',
+				user: 'user3',
+				accounts: ['account3-1'],
+			},
+		];
+		const res = await bormClient.query(query);
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		const resWithoutMetadata = await bormClient.query(query, {
+			noMetadata: true,
+		});
+
+		expect(deepSort(resWithoutMetadata, 'id')).toEqual(
+			expectedRes.map(({ $id: _id, $thing: _thing, $thingType: _thingType, ...rest }) => rest),
+		);
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

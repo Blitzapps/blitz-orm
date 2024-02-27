@@ -1,3 +1,4 @@
+import { trainCase } from 'case-anything'
 import type { Pipeline } from '../../types/pipeline/base'
 import type { BaseResponse, EnrichedBormSchema, PipelineOperation } from '../../types'
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
@@ -26,8 +27,7 @@ const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
   return attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`
 }
 
-// any now, wait for type from enrichedBqlQuery
-const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
+const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
   const attributes = query["$fields"].filter((q): q is EnrichedBqlQueryAttribute => q["$thingType"] === "attribute")
   const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
   const relations = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "relation")
@@ -38,8 +38,8 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery, generated = "") => {
 
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
-
-    return `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
+    
+    return query.$thingType === 'relation' ? `(SELECT VALUE meta::id(id) as id FROM ->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}` : `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
   const filterExpr = query['$filter'] ? `WHERE ${Object.entries(query['$filter']).map(([key, value]) => `${key} = ${query['$thing']}:${value}`).join(",")}` : ""
@@ -80,7 +80,25 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
   const results = await Promise.all((req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query, idx) => {
     if (query["$thingType"] !== "entity") {
-      throw new Error('unimplemented')
+      // NOTE relations from testSchema contains hyphen at the moment. Remove case transformation, once we use camelcase for all tables
+      const thing = pascal(query.$thing);
+
+      const generatedQuery = buildQuery(thing, query);
+
+      const queryRes: Array<Record<string, unknown> & {
+        id: string
+      }> = await client.query(generatedQuery)
+
+      const transformed = queryRes.map((item) => ({
+        "$id": item.id,
+        "$thing": trainCase(thing),
+        "$thingType": "relation",
+        ...item,
+        id: item.id,
+        [QueryPath]: enrichedBqlQuery[0][QueryPath]
+      }));
+
+      return transformed
     }
 
     const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
@@ -116,7 +134,6 @@ export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
   query: [
     enrichBQLQuery,
     buildSurrealDbQuery,
-    postHooks,
     cleanQueryRes
   ],
   mutation: [

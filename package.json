@@ -46,7 +46,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "change-case": "^5.4.3",
+    "case-anything": "^2.1.13",
     "immer": "9.0.21",
     "nanoid": "3",
     "object-traversal": "^1.0.1",

@@ -99,23 +99,23 @@ INSERT INTO Post [
 ];
 
 INSERT INTO UserAccounts [
-  { id: "ua11" },
-  { id: "ua12" },
-  { id: "ua13" },
-  { id: "ua21" },
-  { id: "ua31" }
+  { id: "ua1-1" },
+  { id: "ua1-2" },
+  { id: "ua1-3" },
+  { id: "ua2-1" },
+  { id: "ua3-1" }
 ];
 
-RELATE UserAccounts:ua11 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua11 -> UserAccounts_accounts -> Account:`account1-1`;
-RELATE UserAccounts:ua12 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua12 -> UserAccounts_accounts -> Account:`account1-2`;
-RELATE UserAccounts:ua13 -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:ua13 -> UserAccounts_accounts -> Account:`account1-3`;
-RELATE UserAccounts:ua21 -> UserAccounts_user -> User:user2;
-RELATE UserAccounts:ua21 -> UserAccounts_accounts -> Account:`account2-1`;
-RELATE UserAccounts:ua31 -> UserAccounts_user -> User:user3;
-RELATE UserAccounts:ua31 -> UserAccounts_accounts -> Account:`account3-1`;
+RELATE UserAccounts:`ua1-1` -> UserAccounts_user -> User:user1;
+RELATE UserAccounts:`ua1-1` -> UserAccounts_accounts -> Account:`account1-1`;
+RELATE UserAccounts:`ua1-2` -> UserAccounts_user -> User:user1;
+RELATE UserAccounts:`ua1-2` -> UserAccounts_accounts -> Account:`account1-2`;
+RELATE UserAccounts:`ua1-3` -> UserAccounts_user -> User:user1;
+RELATE UserAccounts:`ua1-3` -> UserAccounts_accounts -> Account:`account1-3`;
+RELATE UserAccounts:`ua2-1` -> UserAccounts_user -> User:user2;
+RELATE UserAccounts:`ua2-1` -> UserAccounts_accounts -> Account:`account2-1`;
+RELATE UserAccounts:`ua3-1` -> UserAccounts_user -> User:user3;
+RELATE UserAccounts:`ua3-1` -> UserAccounts_accounts -> Account:`account3-1`;
 
 INSERT INTO Power [
   { id: "power1", description: "useless power" }
