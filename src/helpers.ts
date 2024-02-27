@@ -65,6 +65,12 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					}));
 				}
 				if (value.extends) {
+					if (!value.defaultDBConnector.as) {
+						//todo: CCheck if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
+						throw new Error(
+							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
+						);
+					}
 					const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
 					/// find out all the thingTypes this thingType is extending
 					// @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
@@ -447,21 +453,32 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		} as ReturnTypeWithNode;
 	}
 	const usedFields = node.$fields
-		? (node.$fields.map((x: string | { $path: string }) => {
+		? //queries
+			(node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
 					if (x.startsWith('$')) {
-						return;
+						return undefined;
+					}
+					if (!availableFields.includes(x)) {
+						throw new Error(`Field ${x} not found in the schema`);
 					}
 					return x;
 				}
 				if ('$path' in x && typeof x.$path === 'string') {
 					return x.$path;
 				}
-				throw new Error(' Wrongly structured query');
+				throw new Error('[Wrong format] Wrongly structured query');
 			}) as string[])
-		: (listify<any, string, any>(node, (k: string) => (k.startsWith('$') ? undefined : k)).filter(
-				(x) => x !== undefined,
-			) as string[]);
+		: //mutations
+			(listify<any, string, any>(node, (k: string) => {
+				if (k.startsWith('$')) {
+					return undefined;
+				}
+				if (!availableFields.includes(k)) {
+					throw new Error(`[Schema] Field ${k} not found in the schema`);
+				}
+				return k;
+			}).filter((x) => x !== undefined) as string[]);
 
 	const localFilterFields = !node.$filter
 		? []

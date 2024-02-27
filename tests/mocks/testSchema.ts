@@ -163,11 +163,11 @@ export const testSchema: BormSchema = {
 		},
 		SubthingOne: {
 			extends: 'Thing',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'Thing', path: 'SubthingOne' },
 		},
 		SubthingTwo: {
 			extends: 'Thing',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'Thing', path: 'SubthingTwo' },
 		},
 		Account: {
 			idFields: ['id'], // could be a composite key
@@ -263,7 +263,7 @@ export const testSchema: BormSchema = {
 		},
 		SuperUser: {
 			extends: 'User',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'User', path: 'SuperUser' },
 			dataFields: [
 				{
 					path: 'power',
@@ -273,7 +273,7 @@ export const testSchema: BormSchema = {
 		},
 		God: {
 			extends: 'SuperUser',
-			defaultDBConnector: { id: 'default' },
+			defaultDBConnector: { id: 'default', as: 'SuperUser', path: 'God' },
 			dataFields: [
 				{
 					path: 'isEvil',
