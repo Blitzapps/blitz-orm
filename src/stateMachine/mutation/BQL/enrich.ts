@@ -190,7 +190,17 @@ export const enrichBQLMutation = (
 
 						toValidate.forEach((subNode: BQLMutationBlock) => {
 							const subNodeSchema = getCurrentSchema(schema, subNode);
-							const { unidentifiedFields, usedLinkFields } = getCurrentFields(subNodeSchema, subNode);
+							const { unidentifiedFields, usedLinkFields, usedFields, fields } = getCurrentFields(
+								subNodeSchema,
+								subNode,
+							);
+
+							//Check that every used field is in the fields array
+							usedFields.forEach((uf) => {
+								if (!fields.includes(uf)) {
+									throw new Error(`[Schema] Field ${uf} not found in the schema`);
+								}
+							});
 
 							if (unidentifiedFields.length > 0) {
 								throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);

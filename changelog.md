@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.9(2023-02-27)
+
+- Feat: Catch some extra schema errors
+
 ## 0.9.8(2023-02-26)
 
 - Fix: Issue that was splitting things assigning them two different $vars ($tempId and $bzId generated in pre-queries)

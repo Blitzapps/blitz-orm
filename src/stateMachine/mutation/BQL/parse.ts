@@ -226,6 +226,17 @@ export const parseBQLMutation = async (
 						}
 						return 'match';
 					};
+					//validate that field is an actual role from the relation
+					const relationSchema = getCurrentSchema(schema, {
+						$thing: edgeSchema.relation,
+						$thingType: 'relation',
+					}) as EnrichedBormRelation;
+					const roles = Object.keys(relationSchema.roles);
+					if (!roles.includes(edgeSchema.plays)) {
+						throw new Error(
+							`[Wrong format] Field ${edgeSchema.plays} is not a role of relation ${edgeSchema.relation}`,
+						);
+					}
 
 					const edgeType1 = {
 						$bzId: linkTempId,
