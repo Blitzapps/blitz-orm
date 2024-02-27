@@ -6,6 +6,7 @@ import { postHooks } from '../../pipeline/postprocess/query/postHooks';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, snake, dash } from 'radash'
 import { QueryPath } from '../../types/symbols';
+import { produce } from 'immer';
 import type { SurrealDbResponse, EnrichedBqlQuery, EnrichedBqlQueryRelation, EnrichedBqlQueryEntity, EnrichedBqlQueryAttribute } from './types/base'
 
 const getSubtype = (schema: EnrichedBormSchema, kind: "entities" | "relations", thing: string, result: Array<string> = []): Array<string> => {
@@ -27,6 +28,20 @@ const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
   return attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`
 }
 
+const handleCardinality = (query: EnrichedBqlQuery) => (obj: Record<string, unknown>) => {
+  const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
+
+  return produce(obj, (payload) => {
+      for(const playedBy of entities.map(({ $playedBy }) => $playedBy)){
+        const value = payload[playedBy.path]
+
+        if(playedBy.cardinality === "ONE" && Array.isArray(value)){
+          payload[playedBy.path] = value[0]
+        }
+      }
+  })
+} 
+
 const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
   const attributes = query["$fields"].filter((q): q is EnrichedBqlQueryAttribute => q["$thingType"] === "attribute")
   const entities = query["$fields"].filter((q): q is EnrichedBqlQueryEntity => q["$thingType"] === "entity")
@@ -38,7 +53,7 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
 
   const entitiesQuery = entities.map((entity) => {
     const role = pascal(entity["$playedBy"].relation)
-    
+
     return query.$thingType === 'relation' ? `(SELECT VALUE meta::id(id) as id FROM ->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}` : `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
   })
 
@@ -79,6 +94,8 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
   const { client } = mapItem
 
   const results = await Promise.all((req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query, idx) => {
+    let queryResult: Array<Record<string, unknown>> | undefined
+
     if (query["$thingType"] !== "entity") {
       // NOTE relations from testSchema contains hyphen at the moment. Remove case transformation, once we use camelcase for all tables
       const thing = pascal(query.$thing);
@@ -89,7 +106,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
         id: string
       }> = await client.query(generatedQuery)
 
-      const transformed = queryRes.map((item) => ({
+      queryResult = queryRes.map((item) => ({
         "$id": item.id,
         "$thing": trainCase(thing),
         "$thingType": "relation",
@@ -97,30 +114,32 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
         id: item.id,
         [QueryPath]: enrichedBqlQuery[0][QueryPath]
       }));
+    } else {
+      const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
 
-      return transformed
+      const payload = await Promise.all(subtypes.map(async (subtype) => {
+        const queryRes: Array<Record<string, unknown> & {
+          id: string
+        }> = await client.query(buildQuery(subtype, query))
+
+        return queryRes.map((item) => ({
+          "$id": dash(item.id),
+          "$thing": subtype,
+          "$thingType": "entity",
+          ...item,
+          id: dash(item.id),
+          [QueryPath]: enrichedBqlQuery[0][QueryPath]
+        }));
+      }))
+
+      queryResult = payload.flat()
     }
 
-    const subtypes = [query['$thing'], ...getSubtype(req.schema, query["$thingType"] === "entity" ? "entities" : "relations", query['$thing'])]
+    if (!queryResult) {
+      throw new Error('empty query result')
+    }
 
-    const payload = await Promise.all(subtypes.map(async (subtype) => {
-      const queryRes: Array<Record<string, unknown> & {
-        id: string
-      }> = await client.query(buildQuery(subtype, query))
-
-      const transformed = queryRes.map((item) => ({
-        "$id": dash(item.id),
-        "$thing": subtype,
-        "$thingType": "entity",
-        ...item,
-        id: dash(item.id),
-        [QueryPath]: enrichedBqlQuery[0][QueryPath]
-      }));
-
-      return transformed
-    }))
-
-    return payload.flat()
+    return queryResult.map(handleCardinality(query))
   }))
 
   if (req.enrichedBqlQuery.length > 1) {

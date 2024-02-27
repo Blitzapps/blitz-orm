@@ -9,7 +9,6 @@ export type EnrichedBqlQueryRelation = {
   '$plays': string,
   '$playedBy': {
     path: string,
-    cardinality: string,
     relation: string,
     plays: string,
     target: string,
@@ -39,7 +38,7 @@ export type EnrichedBqlQueryEntity = {
   '$plays': string,
   '$playedBy': {
     path: string,
-    cardinality: string,
+    cardinality: "ONE" | "MANY",
     relation: string,
     plays: string,
     target: string,
