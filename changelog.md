@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.15(2023-02-04)
+
+- Fix: removed console.log
+
 ## 0.9.14(2023-02-03)
 
 - Feat: triggers are optional, if none is created, then all are triggered (the $op can be used instead)

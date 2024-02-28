@@ -366,7 +366,7 @@ describe('Mutations: PreHooks', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
-			const mutRes = await bormClient.mutate(
+			await bormClient.mutate(
 				{
 					$thing: 'Kind',
 					id: 'secret-kind-tn3',
@@ -374,8 +374,6 @@ describe('Mutations: PreHooks', () => {
 				},
 				{ noMetadata: true },
 			);
-
-			console.log('mutRes', mutRes);
 
 			const res = await bormClient.query(
 				{
