@@ -3,7 +3,7 @@ import type { Pipeline } from '../../types/pipeline/base';
 import type { EnrichedBormSchema, PipelineOperation } from '../../types';
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
-import { pascal, dash } from 'radash';
+import { pascal, dash, mapEntries } from 'radash';
 import { QueryPath } from '../../types/symbols';
 import { produce } from 'immer';
 import type {
@@ -14,25 +14,23 @@ import type {
 } from './types/base';
 
 const getSubtype = (
-	schema: EnrichedBormSchema,
-	kind: 'entities' | 'relations',
-	thing: string,
-	result: Array<string> = [],
+  schema: EnrichedBormSchema,
+  kind: 'entities' | 'relations',
+  thing: string,
+  result: Array<string> = [],
 ): Array<string> => {
-	const subtypes = Object.values(schema[kind])
-		.filter((itemSchema) => itemSchema.extends === thing)
-		.map((itemSchema) => itemSchema.name);
+  const subtypes = Object.values(schema[kind])
+    .filter((itemSchema) => itemSchema.extends === thing)
+    .map((itemSchema) => itemSchema.name);
 
-	if (subtypes.length === 0) {
-		return result;
-	}
+  if (subtypes.length === 0) {
+    return [...result];
+  }
 
-	for (const subtype of subtypes) {
-		result.push(subtype);
-		getSubtype(schema, kind, subtype, result);
-	}
-
-	return result;
+  return subtypes.reduce(
+    (acc, subtype) => [...acc, subtype, ...getSubtype(schema, kind, subtype, acc)],
+    result
+  );
 };
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
