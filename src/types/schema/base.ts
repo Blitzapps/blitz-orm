@@ -36,7 +36,7 @@ export type Hooks = {
 };
 
 export type PreHook = {
-	triggers: {
+	triggers?: {
 		[K in BormTrigger]?: () => boolean;
 	};
 	actions: readonly Action[];

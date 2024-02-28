@@ -546,6 +546,32 @@ export const testSchema: BormSchema = {
 			roles: {
 				space: { cardinality: 'ONE' },
 			},
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op, id }) => {
+									if ($op !== 'create') {
+										return {};
+									}
+									if (!id) {
+										throw new Error('id is required');
+									}
+									if (id.startsWith('secret')) {
+										return {
+											id: `${id}-YES!`,
+										};
+									} else {
+										return {};
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 		},
 		'SpaceDef': {
 			extends: 'SpaceObj',
