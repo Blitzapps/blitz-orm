@@ -1,80 +1,62 @@
 import type { BaseResponse } from '../../../types';
 
-export type SurrealDbResponse = {} & BaseResponse;
+export type SurrealDbResponse = BaseResponse;
+
+type EnrichedBQLQueryThingProps = {
+	$thing: string;
+	$thingType: string;
+	$as: string;
+	$fields: Array<any>;
+	$excludedFields?: Array<any>;
+	$id?: string;
+
+	// other common props
+	$path: string;
+	$dbPath: string;
+	$var: string;
+	$fieldType: string;
+	$filter?: Record<string, string>;
+	$filterProcessed: boolean;
+};
+
+type EnrichedBqlQueryRelationOrEntityProps = {
+	$plays: string;
+	$target: string;
+	$intermediary: string;
+	$justId: boolean;
+	$idNotIncluded: boolean;
+	$filterByUnique: boolean;
+};
+
+type EnrichedBqlQueryPlayedBy = {
+	path: string;
+	relation: string;
+	plays: string;
+	target: string;
+	thing: string;
+	thingType: string;
+};
 
 export type EnrichedBqlQueryRelation = {
 	$thingType: 'relation';
-	$plays: string;
-	$playedBy: {
-		path: string;
-		relation: string;
-		plays: string;
-		target: string;
-		thing: string;
-		thingType: string;
-	};
-	$path: string;
-	$dbPath: undefined;
-	$as: string;
-	$var: string;
-	$thing: string;
-	$fields: Array<any>;
-	$excludedFields: undefined;
-	$fieldType: string;
-	$target: string;
-	$intermediary: string;
-	$justId: boolean;
-	$id: undefined;
-	$filter: {};
-	$idNotIncluded: boolean;
-	$filterByUnique: boolean;
-	$filterProcessed: boolean;
-};
+	$playedBy: EnrichedBqlQueryPlayedBy;
+} & EnrichedBqlQueryRelationOrEntityProps &
+	EnrichedBQLQueryThingProps;
 
 export type EnrichedBqlQueryEntity = {
 	$thingType: 'entity';
-	$plays: string;
 	$playedBy: {
-		path: string;
 		cardinality: 'ONE' | 'MANY';
-		relation: string;
-		plays: string;
-		target: string;
-		thing: string;
-		thingType: string;
-	};
-	$path: string;
-	$dbPath: undefined;
-	$as: string;
-	$var: string;
-	$thing: string;
-	$fields: Array<any>;
-	$excludedFields: undefined;
-	$fieldType: string;
-	$target: string;
-	$intermediary: string;
-	$justId: boolean;
-	$id: undefined;
-	$filter: {};
-	$idNotIncluded: boolean;
-	$filterByUnique: boolean;
-	$filterProcessed: boolean;
-};
+	} & EnrichedBqlQueryPlayedBy;
+} & EnrichedBqlQueryRelationOrEntityProps &
+	EnrichedBQLQueryThingProps;
 
 export type EnrichedBqlQueryAttribute = {
-	$path: string;
-	$dbPath: string;
 	$thingType: 'attribute';
-	$as: string;
-	$var: string;
 	$fieldType: 'data';
-	$excludedFields: undefined;
 	$justId: boolean;
-	$id: undefined;
-	$filter: undefined;
 	$isVirtual: undefined;
-	$filterProcessed: boolean;
-};
+} & EnrichedBQLQueryThingProps;
 
 export type EnrichedBqlQuery = {
 	$path: string;
