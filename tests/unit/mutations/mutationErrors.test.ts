@@ -249,7 +249,7 @@ describe('Mutations: Errors', () => {
 			]);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe("Can't link a $tempId that has not been created in the current mutation.");
+				expect(error.message).toBe("Can't link a $tempId that has not been created in the current mutation: utg1");
 			} else {
 				expect(true).toBe(false);
 			}

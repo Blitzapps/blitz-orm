@@ -38,7 +38,7 @@ export const replaceToObj = (
 		};
 	} else {
 		throw new Error(
-			`[Mutation Error] Replace can only be used with a single id or an array of ids. Field: ${field}. Nodes: ${JSON.stringify(subNodes)}`,
+			`[Mutation Error] Replace can only be used with a single id or an array of ids. (Field: ${field} Nodes: ${JSON.stringify(subNodes)} Parent: ${JSON.stringify(node, null, 2)})`,
 		);
 	}
 };

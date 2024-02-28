@@ -55,6 +55,7 @@ describe('Mutations: batched and tempId', () => {
 		const res = await bormClient.mutate([
 			{
 				$relation: 'UserTagGroup',
+				$op: 'create',
 				$tempId: '_:utg1',
 			},
 			{

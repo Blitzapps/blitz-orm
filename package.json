@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.9.12",
+	"version": "0.9.13",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",

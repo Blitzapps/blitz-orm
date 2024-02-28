@@ -22,6 +22,14 @@ export const getOp = (
 				validateOp(parentNode, { ...node, $op: 'link' }, schema);
 				return 'link';
 			}
+		} else if (node.$tempId) {
+			if (usedFields.length > 0) {
+				validateOp(parentNode, { ...node, $op: 'create' }, schema);
+				return 'create'; //only difference is $id + stuff means update, while $tempids are usually for creation and recovering it later from the res
+			} else {
+				validateOp(parentNode, { ...node, $op: 'create' }, schema);
+				return 'link';
+			}
 		} else {
 			validateOp(parentNode, { ...node, $op: 'create' }, schema);
 			return 'create';
