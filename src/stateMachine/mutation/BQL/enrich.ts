@@ -10,10 +10,10 @@ import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
 import { enrichChildren } from './enrichSteps/enrichChildren';
 import { computeFields } from './enrichSteps/computeFields';
-import { unlinkAll } from './enrichSteps/unlinkAll';
 import { preHookValidations } from './enrichSteps/preHookValidations';
 import { preHookTransformations } from './enrichSteps/preHookTransformations';
 import { doAction } from './shared/doActions';
+import { unlinkAll } from './enrichSteps/unlinkAll';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {
@@ -114,7 +114,11 @@ export const enrichBQLMutation = (
 						/// 3.2.1 replaces
 						//console.log('Before replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							replaceToObj(node, field, fieldSchema);
+							if (node[field] === null) {
+								unlinkAll(node, field, fieldSchema);
+							} else {
+								replaceToObj(node, field, fieldSchema);
+							}
 						}
 						//console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
@@ -165,11 +169,7 @@ export const enrichBQLMutation = (
 						/// 3.2.4 children enrichment
 						//redefining childrenArray as it might have changed
 						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							if (node[field] === null) {
-								unlinkAll(node, field, fieldSchema);
-							} else {
-								enrichChildren(node, field, fieldSchema, schema);
-							}
+							enrichChildren(node, field, fieldSchema, schema);
 						}
 
 						//3.2.5 splitIds()

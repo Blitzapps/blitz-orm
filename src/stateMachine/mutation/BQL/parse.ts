@@ -542,11 +542,15 @@ export const parseBQLMutation = async (
 	///Validate that each tempId has at least one creation op:
 	const allThings = [...mergedThings, ...mergedEdges];
 	const tempIds = new Set(allThings.filter((x) => x.$tempId).map((x) => x.$tempId));
-	tempIds.forEach((tempId) => {
-		if (allThings.filter((x) => x.$tempId === tempId && x.$op === 'create').length === 0) {
-			throw new Error("Can't link a $tempId that has not been created in the current mutation.");
-		}
-	});
+	const orphanTempIds = Array.from(tempIds).filter(
+		(tempId) => !allThings.some((x) => x.$tempId === tempId && x.$op === 'create'),
+	);
+
+	if (orphanTempIds.length > 0) {
+		throw new Error(
+			`Can't link a $tempId that has not been created in the current mutation: ${orphanTempIds.join(', ')}`,
+		);
+	}
 
 	//console.log('mergedThings', mergedThings);
 	//console.log('mergedEdges', mergedEdges);

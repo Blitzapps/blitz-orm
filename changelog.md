@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.13(2023-02-28)
+
+- Breaking change: $tempId without attributes mean link. $tempId with attribute means create
+- Fix: Fixed issue with nulls additions on hooks
+
 ## 0.9.12(2023-02-28)
 
 - UX: Better replace issue message
