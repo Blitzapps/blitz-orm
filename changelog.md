@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.0.13(2023-02-03)
+
+- Feat: triggers are optional, if none is created, then all are triggered (the $op can be used instead)
+- Fix: Extended objects inherit as well the prehooks. Actions are still unsafe
+
 ## 0.9.13(2023-02-28)
 
 - Breaking change: $tempId without attributes mean link. $tempId with attribute means create

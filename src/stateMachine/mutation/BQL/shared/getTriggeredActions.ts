@@ -5,7 +5,7 @@ export const getTriggeredActions = (node: FilledBQLMutationBlock, schema: Enrich
 	const hooks = getCurrentSchema(schema, node).hooks as Hooks;
 	if (hooks?.pre) {
 		const currentEvent = `on${capitalizeFirstLetter(node.$op)}` as BormTrigger;
-		const currentHooks = hooks.pre.filter((hook) => hook.triggers[currentEvent]?.());
+		const currentHooks = hooks.pre.filter((hook) => !hook.triggers || hook.triggers[currentEvent]?.()); //No triggers triggers everything
 		const actions = currentHooks.flatMap((hook) => hook.actions);
 		return actions;
 	}

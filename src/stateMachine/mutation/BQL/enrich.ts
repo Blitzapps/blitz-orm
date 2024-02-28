@@ -240,7 +240,7 @@ export const enrichBQLMutation = (
 			}
 		}),
 	);
-	//console.log('After enrich', result.$rootWrap.$root);
+	console.log('After enrich', result.$rootWrap.$root);
 	//console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
 
 	if (isArray(result.$rootWrap.$root)) {
