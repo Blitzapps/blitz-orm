@@ -3,9 +3,8 @@ import type { Pipeline } from '../../types/pipeline/base';
 import type { EnrichedBormSchema, PipelineOperation } from '../../types';
 import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
-import { pascal, dash, mapEntries } from 'radash';
+import { pascal, dash } from 'radash';
 import { QueryPath } from '../../types/symbols';
-import { produce } from 'immer';
 import type {
 	SurrealDbResponse,
 	EnrichedBqlQuery,
@@ -46,15 +45,15 @@ const handleCardinality = (schema: EnrichedBormSchema, query: EnrichedBqlQuery) 
 
 	const entitySchema = schema['relations'][query.$thing];
 
-	return produce(obj, (payload) => {
-		for (const [key, role] of Object.entries(entitySchema.roles)) {
-			const value = payload[key];
+  return Object.entries(entitySchema.roles).reduce((acc, [key, role]) => {
+    const value = acc[key];
 
-			if (role.cardinality === 'ONE' && Array.isArray(value)) {
-				payload[key] = value[0];
-			}
-		}
-	});
+    if (role.cardinality === 'ONE' && Array.isArray(value)) {
+      return { ...acc, [key]: value[0] };
+    }
+
+    return acc;
+  }, obj);
 };
 
 const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
