@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.12(2023-02-28)
+
+- UX: Better replace issue message
+
 ## 0.9.11(2023-02-27)
 
 - Fix: Issue that did not spread symbols on children creation
