@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 
 import { cleanup, init } from '../../helpers/lifecycle';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
-import type { typesSchema } from '../../mocks/generatedSchema';
+import type { typesSchema } from '../../../mocks/generatedSchema';
 import type { TypeGen } from '../../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../../src/index';
 import type { UserType } from '../../types/testTypes';

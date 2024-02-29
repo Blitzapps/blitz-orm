@@ -7,7 +7,7 @@ import type { Provider } from '../../../src/index';
 import BormClient from '../../../src/index';
 // import { cloudConfig } from '../mocks/cloudConfig';
 import { testConfig } from '../mocks/testConfig';
-import { testSchema } from '../mocks/testSchema';
+import { testSchema } from '../../mocks/testSchema';
 import { Surreal } from 'surrealdb.node'
 import { customAlphabet } from 'nanoid'
 
