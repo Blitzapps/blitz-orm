@@ -1,10 +1,15 @@
 /* eslint-disable no-param-reassign */
 import { clone, isArray, isObject } from 'radash';
-import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
+import type { BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../../types';
 import { deepCurrent, getCurrentSchema } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
 
-export const preHookValidations = (node: EnrichedBQLMutationBlock, field: string, schema: EnrichedBormSchema) => {
+export const preHookValidations = (
+	node: EnrichedBQLMutationBlock,
+	field: string,
+	schema: EnrichedBormSchema,
+	config: BormConfig,
+) => {
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
 	subNodes.forEach((subNode: EnrichedBQLMutationBlock) => {
 		if ('$thing' in subNode) {
@@ -67,6 +72,7 @@ export const preHookValidations = (node: EnrichedBQLMutationBlock, field: string
 
 				const parentNode = clone(deepCurrent(node));
 				const currentNode = clone(deepCurrent(value));
+				const userContext = (config.mutation?.context || {}) as Record<string, any>;
 
 				const triggeredActions = getTriggeredActions(value, schema);
 				triggeredActions.forEach((action) => {
@@ -76,8 +82,8 @@ export const preHookValidations = (node: EnrichedBQLMutationBlock, field: string
 						}
 
 						try {
-							//! Todo: Sandbox the function in computeFunction()
-							const validationResult = action.fn(currentNode, parentNode);
+							//! Todo: Sandbox the function in nodeCompute() instead of the existing fieldCompute()
+							const validationResult = action.fn(currentNode, parentNode, userContext);
 
 							if (validationResult === false) {
 								throw new Error(`${action.message}.`);

@@ -1,4 +1,4 @@
-import type { DBConnector, DataField, FilledBQLMutationBlock, LinkField, RoleField } from '..';
+import type { DBConnector, DataField, LinkField, RoleField, EnrichedBQLMutationBlock } from '..';
 
 export type BormSchema = {
 	entities: { [s: string]: BormEntity };
@@ -36,7 +36,7 @@ export type Hooks = {
 };
 
 export type PreHook = {
-	triggers: {
+	triggers?: {
 		[K in BormTrigger]?: () => boolean;
 	};
 	actions: readonly Action[];
@@ -44,16 +44,22 @@ export type PreHook = {
 
 //export type PostHook = any;
 
-export type Action = TransFormAction | ValidateAction;
+export type Action = { name?: string; description?: string } & (TransFormAction | ValidateAction);
+
+export type NodeFunctionParams = [
+	currentNode: EnrichedBQLMutationBlock,
+	parentNode: EnrichedBQLMutationBlock,
+	context: Record<string, any>,
+];
 
 export type TransFormAction = {
 	type: 'transform';
-	fn: (currentNode: FilledBQLMutationBlock, parentNode?: FilledBQLMutationBlock) => Partial<FilledBQLMutationBlock>;
+	fn: (...args: NodeFunctionParams) => Partial<EnrichedBQLMutationBlock>;
 };
 
 export type ValidateAction = {
 	type: 'validate';
-	fn: (currentNode: FilledBQLMutationBlock, parentNode: FilledBQLMutationBlock) => boolean;
+	fn: (...args: NodeFunctionParams) => boolean;
 	severity: 'error' | 'warning' | 'info';
 	message: string;
 };

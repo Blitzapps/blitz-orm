@@ -362,6 +362,81 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('tn3[transform, inherited] Append children to node', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$thing: 'Kind',
+					id: 'secret-kind-tn3',
+					space: 'space-1',
+				},
+				{ noMetadata: true },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'Kind',
+					$thingType: 'relation',
+					$id: 'secret-kind-tn3-YES!',
+				},
+				{ noMetadata: true },
+			);
+			expect(res).toEqual({
+				id: 'secret-kind-tn3-YES!',
+				space: 'space-1',
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'Kind',
+				$thingType: 'relation',
+				$op: 'delete',
+				$ids: ['secret-kind-tn3', 'secret-kind-tn3-YES!'],
+			});
+		}
+	});
+
+	it('ctx1[transform, context] Use context', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					$thing: 'User',
+					id: 'ctx1-u1',
+					name: 'cheatCode2',
+				},
+				{ noMetadata: true, context: { spaceId: 'mySpace' } },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'ctx1-u1',
+					$fields: ['id', 'name', { $path: 'spaces', $fields: ['id', 'name'] }],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(res, 'id')).toEqual({
+				id: 'ctx1-u1',
+				name: 'cheatCode2',
+				spaces: [{ id: 'mySpace' }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'tn2-u1',
+			});
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

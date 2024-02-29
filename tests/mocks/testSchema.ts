@@ -248,11 +248,23 @@ export const testSchema: BormSchema = {
 						//condition: () => true,
 						actions: [
 							{
+								name: 'Add children',
 								type: 'transform',
 								fn: ({ name, spaces }) =>
 									name === 'cheatCode' && !spaces
 										? {
 												spaces: [{ id: 'secret', name: 'TheSecretSpace' }],
+											}
+										: {},
+							},
+							{
+								name: 'from context',
+								description: 'Add space from context',
+								type: 'transform',
+								fn: ({ name, spaces }, _, { spaceId }) =>
+									name === 'cheatCode2' && !spaces
+										? {
+												spaces: [{ id: spaceId }],
 											}
 										: {},
 							},
@@ -533,6 +545,32 @@ export const testSchema: BormSchema = {
 			dataFields: [id],
 			roles: {
 				space: { cardinality: 'ONE' },
+			},
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op, id }) => {
+									if ($op !== 'create') {
+										return {};
+									}
+									if (!id) {
+										throw new Error('id is required');
+									}
+									if (id.startsWith('secret')) {
+										return {
+											id: `${id}-YES!`,
+										};
+									} else {
+										return {};
+									}
+								},
+							},
+						],
+					},
+				],
 			},
 		},
 		'SpaceDef': {

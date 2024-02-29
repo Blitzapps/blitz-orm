@@ -2,6 +2,33 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.15(2023-02-04)
+
+- Fix: removed console.log
+
+## 0.9.14(2023-02-03)
+
+- Feat: triggers are optional, if none is created, then all are triggered (the $op can be used instead)
+- Fix: Extended objects inherit as well the prehooks. Actions are still unsafe
+
+## 0.9.13(2023-02-28)
+
+- Breaking change: $tempId without attributes mean link. $tempId with attribute means create
+- Fix: Fixed issue with nulls additions on hooks
+
+## 0.9.12(2023-02-28)
+
+- UX: Better replace issue message
+
+## 0.9.11(2023-02-27)
+
+- Fix: Issue that did not spread symbols on children creation
+
+## 0.9.10(2023-02-27)
+
+- Feat: Actions can use user provided context in the mutation config
+- Feat: Actions can have name and descriptions
+
 ## 0.9.9(2023-02-27)
 
 - Feat: Catch some extra schema errors

@@ -71,6 +71,8 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
 						);
 					}
+
+					/// IMPORT THE EXTENDED SCHEMA
 					const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
 					/// find out all the thingTypes this thingType is extending
 					// @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
@@ -80,6 +82,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					value.idFields = extendedSchema.idFields
 						? (value.idFields || []).concat(extendedSchema.idFields)
 						: value.idFields;
+
 					value.dataFields = extendedSchema.dataFields
 						? (value.dataFields || []).concat(
 								extendedSchema.dataFields.map((df: DataField) => {
@@ -97,6 +100,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 								}),
 							)
 						: value.dataFields;
+
 					value.linkFields = extendedSchema.linkFields
 						? (value.linkFields || []).concat(extendedSchema.linkFields)
 						: value.linkFields;
@@ -112,6 +116,13 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						if (Object.keys(val.roles).length === 0) {
 							val.roles = {};
 						}
+					}
+
+					//todo: Do some checks, and potentially simplify the hooks structure
+					if (extendedSchema?.hooks?.pre) {
+						value.hooks = value.hooks || {};
+						value.hooks.pre = value.hooks.pre || [];
+						value.hooks.pre = [...(extendedSchema?.hooks?.pre || []), ...(value?.hooks?.pre || [])];
 					}
 				}
 			},
@@ -251,14 +262,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 			// role fields
 			if (typeof value === 'object' && 'playedBy' in value) {
 				// if (value.playedBy.length > 1) {
-				if ([...new Set(value.playedBy?.map((x: LinkedFieldWithThing) => x.thing))].length > 1) {
+				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
+				if (playedBySet.length > 1) {
 					throw new Error(
-						`Unsupported: roleFields can be only played by one thing. Role: ${key} path:${meta.nodePath}`,
+						`[Schema] roleFields can be only played by one thing. Role: ${key}, path:${meta.nodePath}, played by: ${playedBySet.join(', ')}`,
 					);
 				}
 				if (value.playedBy.length === 0) {
 					throw new Error(
-						`Unsupported: roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
+						`[Schema] roleFields should be played at least by one thing. Role: ${key}, path:${meta.nodePath}`,
 					);
 				}
 			}

@@ -147,10 +147,12 @@ class BormClient {
 			this.dbHandles as DBHandles,
 		);
 		if (errorRes) {
+			//console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
-			console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
+			const error = new Error(errorRes.error.message);
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
-			throw new Error(errorRes.error.message);
+			error.stack = errorRes.error.stack;
+			throw error;
 		}
 
 		const result = res.bql.res;
