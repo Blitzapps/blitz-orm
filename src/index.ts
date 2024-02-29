@@ -1,5 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-driver';
+import { Surreal } from 'surrealdb.node';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -47,6 +48,20 @@ class BormClient {
 		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
+				if (dbc.provider === 'surrealDB') {
+					const db = new Surreal();
+
+					await db.connect(dbc.url);
+
+					await db.signin({
+						namespace: dbc.namespace,
+						database: dbc.dbName,
+						username: dbc.username,
+						password: dbc.password,
+					});
+
+					dbHandles.surrealDB.set(dbc.id, { client: db });
+				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
@@ -120,13 +135,20 @@ class BormClient {
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
 	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
+		const handles = this.dbHandles;
+		if (!handles) {
+			throw new Error('dbHandles undefined');
+		}
+
 		await this.#enforceConnection();
+
 		const qConfig = {
 			...this.config,
 			query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
 		};
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
-		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
+
+		// @ts-expect-error type of Query is incorrect
+		return queryPipeline(query, qConfig, this.schema, handles);
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {

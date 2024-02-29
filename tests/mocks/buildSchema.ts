@@ -4,6 +4,7 @@ import { enrichSchema } from '../../src/helpers';
 import { testSchema } from './testSchema';
 import fs from 'fs';
 
+//@ts-expect-error - Exceptionally ok, used for types only
 const enrichedSchema = enrichSchema(testSchema, { typeDB: undefined, surrealDB: undefined });
 
 const generatedCode = `//* File auto generated with buildSchema.ts

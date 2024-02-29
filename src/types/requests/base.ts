@@ -20,7 +20,7 @@ type WithBormMetadataObject<T> = {
 	[K in keyof T]: WithBormMetadata<T[K]>;
 } & BormMetadata;
 
-export type BQLResponseSingle = Record<string, any>;
+export type BQLResponseSingle = Record<string | symbol, any>;
 
 export type BQLResponseMulti = BQLResponseSingle[];
 

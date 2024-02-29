@@ -48,3 +48,7 @@ coverage
 
 #compiled js
 tests/mocks/buildSchema.js
+
+#surrealdb
+**/database.db
+
