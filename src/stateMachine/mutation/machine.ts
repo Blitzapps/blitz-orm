@@ -9,10 +9,13 @@ import type {
 import { enrichBQLMutation } from './BQL/enrich';
 import type { TqlMutation } from './TQL/run';
 import { runTQLMutation } from './TQL/run';
+import { runSUQLMutation } from './SUQL/run';
 import type { TqlRes } from './TQL/parse';
+import { parseSUQLMutation } from './SUQL/parse';
 import { parseTQLMutation } from './TQL/parse';
 import { parseBQLMutation } from './BQL/parse';
 import { buildTQLMutation } from './TQL/build';
+import { buildSUQLMutation } from './SUQL/build';
 import { mutationPreQuery } from './BQL/preQuery';
 
 import { createMachine, invoke, transition, reduce, guard, interpret, state } from './robot3-wrapper';
