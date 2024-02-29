@@ -33,21 +33,16 @@ export const init = async () => {
   // await db.use({ database: dbName })
   const dbName = "test"
 
-  const db = new Surreal();
-
-  if(connector.provider !== "surrealDB"){
-    throw new Error("incorrect provder")
-  }
-
-  await db.connect(connector.url)
-  await db.signin({
-    namespace: connector.namespace,
-    database: connector.dbName,
-    username: connector.username,
-    password: connector.password,
-  })
+  // const db = new Surreal();
 
 	try {
+    // await db.connect(connector.url)
+    // await db.signin({
+    //   namespace: connector.namespace,
+    //   database: connector.dbName,
+    //   username: connector.username,
+    //   password: connector.password,
+    // })
     // FIXME cannot add schema in runtime due to this issue. Wait for it to be fixed, https://github.com/surrealdb/surrealdb/issues/3541
     // await db.query(surqlSchema)
 

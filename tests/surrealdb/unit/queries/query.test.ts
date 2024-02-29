@@ -1,15 +1,13 @@
 import 'jest';
-import { v4 as uuidv4 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 import { cleanup, init } from '../../helpers/lifecycle';
-import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { TypeGen } from '../../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../../src/index';
 import type { UserType } from '../../types/testTypes';
 import type BormClient from '../../../../src/index';
-
-import 'jest';
 
 describe('Query', () => {
 	let dbName: string;
@@ -40,7 +38,7 @@ describe('Query', () => {
 	it('v3[validation] - $id not existing', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.query({ $entity: 'User', $id: 'nonExisting' });
-		await expect(res).toEqual(undefined)
+		await expect(res).toEqual(undefined);
 	});
 
 	it('e1[entity] - basic and direct link to relation', async () => {
@@ -213,7 +211,7 @@ describe('Query', () => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-  it('r1[relation] - basic', async () => {
+	it('r1[relation] - basic', async () => {
 		expect(bormClient).toBeDefined();
 		const query = { $relation: 'User-Accounts' };
 		const expectedRes = [
@@ -326,7 +324,7 @@ describe('Query', () => {
 
 	it('ef1[entity] - $id single', async () => {
 		expect(bormClient).toBeDefined();
-		const wrongRes = await bormClient.query({ $entity: 'User', $id: uuidv4() });
+		const wrongRes = await bormClient.query({ $entity: 'User', $id: nanoid() });
 		expect(wrongRes).toEqual(undefined);
 		const validRes = await bormClient.query({
 			$entity: 'User',

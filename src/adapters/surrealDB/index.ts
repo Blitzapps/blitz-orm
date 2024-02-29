@@ -5,7 +5,6 @@ import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, dash } from 'radash';
 import { QueryPath } from '../../types/symbols';
-import { produce } from 'immer';
 import type {
 	SurrealDbResponse,
 	EnrichedBqlQuery,
@@ -24,15 +23,10 @@ const getSubtype = (
 		.map((itemSchema) => itemSchema.name);
 
 	if (subtypes.length === 0) {
-		return result;
+		return [...result];
 	}
 
-	for (const subtype of subtypes) {
-		result.push(subtype);
-		getSubtype(schema, kind, subtype, result);
-	}
-
-	return result;
+	return subtypes.reduce((acc, subtype) => [...acc, subtype, ...getSubtype(schema, kind, subtype, acc)], result);
 };
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
@@ -48,15 +42,15 @@ const handleCardinality = (schema: EnrichedBormSchema, query: EnrichedBqlQuery) 
 
 	const entitySchema = schema['relations'][query.$thing];
 
-	return produce(obj, (payload) => {
-		for (const [key, role] of Object.entries(entitySchema.roles)) {
-			const value = payload[key];
+	return Object.entries(entitySchema.roles).reduce((acc, [key, role]) => {
+		const value = acc[key];
 
-			if (role.cardinality === 'ONE' && Array.isArray(value)) {
-				payload[key] = value[0];
-			}
+		if (role.cardinality === 'ONE' && Array.isArray(value)) {
+			return { ...acc, [key]: value[0] };
 		}
-	});
+
+		return acc;
+	}, obj);
 };
 
 const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
@@ -117,7 +111,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 	const { client } = mapItem;
 
 	const results = await Promise.all(
-		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query, idx) => {
+		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query) => {
 			let queryResult: Array<Record<string, unknown>> | undefined;
 
 			if (query['$thingType'] !== 'entity') {

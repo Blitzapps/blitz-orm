@@ -1,7 +1,9 @@
-import type { PipelineOperation, BQLResponseSingle, BormConfig } from '../../../../../types';
+import type { PipelineOperation, BQLResponseSingle, BormConfig, Request } from '../../../../../types';
 import { produce } from 'immer';
 import type { SurrealDbResponse, EnrichedBqlQuery } from '../../../types/base';
 
+// expecting mutation, therefore disable reassign rule here
+/* eslint-disable no-param-reassign */
 const processNull = (config: BormConfig, obj: Record<string, unknown>) => {
 	for (const key in obj) {
 		const value = obj[key];
@@ -29,11 +31,15 @@ const cleanUpObj = ({
 	config,
 	item,
 	query,
+	schema,
 }: {
+	schema: Request['schema'];
 	query: EnrichedBqlQuery;
 	config: BormConfig;
 	item: BQLResponseSingle;
 }) => {
+	const thingSchema = schema[query.$thingType === 'entity' ? 'entities' : 'relations'][query['$thing']];
+
 	processNull(config, item);
 
 	// INTERNAL SYMBOLS
@@ -53,12 +59,14 @@ const cleanUpObj = ({
 
 	// filter out id
 	if (query.$idNotIncluded) {
-		delete item['id'];
+		const idField = thingSchema.idFields?.[0];
+		delete item[idField ?? 'id'];
 	}
 };
+/* eslint-enable no-param-reassign */
 
 export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-	const { config, enrichedBqlQuery } = req;
+	const { config, enrichedBqlQuery, schema } = req;
 	const { bqlRes } = res;
 
 	if (!bqlRes) {
@@ -71,7 +79,7 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
 		throw new Error('unimplemented');
 	}
 
-	const query = enrichedBqlQuery[0];
+	const [query] = enrichedBqlQuery;
 
 	const cleanedMetadata = produce(bqlRes, (payload) => {
 		if (Array.isArray(payload)) {
@@ -80,6 +88,7 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
 					config,
 					item,
 					query,
+					schema,
 				});
 			}
 		} else {
@@ -87,6 +96,7 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
 				config,
 				item: payload,
 				query,
+				schema,
 			});
 		}
 	});
