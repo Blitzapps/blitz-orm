@@ -13,23 +13,20 @@ import type {
 } from './types/base';
 
 const getSubtype = (
-  schema: EnrichedBormSchema,
-  kind: 'entities' | 'relations',
-  thing: string,
-  result: Array<string> = [],
+	schema: EnrichedBormSchema,
+	kind: 'entities' | 'relations',
+	thing: string,
+	result: Array<string> = [],
 ): Array<string> => {
-  const subtypes = Object.values(schema[kind])
-    .filter((itemSchema) => itemSchema.extends === thing)
-    .map((itemSchema) => itemSchema.name);
+	const subtypes = Object.values(schema[kind])
+		.filter((itemSchema) => itemSchema.extends === thing)
+		.map((itemSchema) => itemSchema.name);
 
-  if (subtypes.length === 0) {
-    return [...result];
-  }
+	if (subtypes.length === 0) {
+		return [...result];
+	}
 
-  return subtypes.reduce(
-    (acc, subtype) => [...acc, subtype, ...getSubtype(schema, kind, subtype, acc)],
-    result
-  );
+	return subtypes.reduce((acc, subtype) => [...acc, subtype, ...getSubtype(schema, kind, subtype, acc)], result);
 };
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
@@ -45,15 +42,15 @@ const handleCardinality = (schema: EnrichedBormSchema, query: EnrichedBqlQuery) 
 
 	const entitySchema = schema['relations'][query.$thing];
 
-  return Object.entries(entitySchema.roles).reduce((acc, [key, role]) => {
-    const value = acc[key];
+	return Object.entries(entitySchema.roles).reduce((acc, [key, role]) => {
+		const value = acc[key];
 
-    if (role.cardinality === 'ONE' && Array.isArray(value)) {
-      return { ...acc, [key]: value[0] };
-    }
+		if (role.cardinality === 'ONE' && Array.isArray(value)) {
+			return { ...acc, [key]: value[0] };
+		}
 
-    return acc;
-  }, obj);
+		return acc;
+	}, obj);
 };
 
 const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
@@ -114,7 +111,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 	const { client } = mapItem;
 
 	const results = await Promise.all(
-		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query, idx) => {
+		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query) => {
 			let queryResult: Array<Record<string, unknown>> | undefined;
 
 			if (query['$thingType'] !== 'entity') {
