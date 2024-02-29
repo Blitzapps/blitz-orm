@@ -1,4 +1,4 @@
-import { produce } from 'immer';
+import { current, isDraft, produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
@@ -89,7 +89,8 @@ export const validationHooks: PipelineOperation = async (req) => {
 					const currentThing = '$entity' in val ? val.$entity : val.$relation;
 					const value = val as FilledBQLMutationBlock;
 
-					const parentNode = getParentNode(blocks, parent, meta);
+					const parentNode = structuredClone(getParentNode(blocks, parent, meta));
+					const currentNode = structuredClone(isDraft(value) ? current(value) : value);
 
 					const triggeredActions = getTriggeredActions(value, schema);
 					triggeredActions.forEach((action) => {
@@ -100,7 +101,7 @@ export const validationHooks: PipelineOperation = async (req) => {
 
 							try {
 								//! Todo: Sandbox the function in computeFunction()
-								const validationResult = action.fn(value, parentNode);
+								const validationResult = action.fn(currentNode, parentNode);
 
 								if (validationResult === false) {
 									throw new Error(`${action.message}.`);

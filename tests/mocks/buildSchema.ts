@@ -4,7 +4,7 @@ import { enrichSchema } from '../../src/helpers';
 import { testSchema } from './testSchema';
 import fs from 'fs';
 
-const enrichedSchema = enrichSchema(testSchema);
+const enrichedSchema = enrichSchema(testSchema, { typeDB: undefined, surrealDB: undefined });
 
 const generatedCode = `//* File auto generated with buildSchema.ts
 export const typesSchema = ${JSON.stringify(enrichedSchema, null, 2)} as const;

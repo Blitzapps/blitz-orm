@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
-import { produce } from 'immer';
+import type { Draft } from 'immer';
+import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify } from 'radash';
@@ -18,7 +19,12 @@ import type {
 	DataField,
 	BormEntity,
 	FilledBQLMutationBlock,
+	DBHandles,
+	DBHandleKey,
+	ThingType,
 } from './types';
+import type { AdapterContext } from './adapters';
+import { adapterContext } from './adapters';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
 	shared ? attribute : `${thing}·${attribute}`;
@@ -39,7 +45,7 @@ export const oFilter = <K extends string | number | symbol, T extends Record<K, 
 	fn: (k: K, v: any) => boolean,
 ): Partial<T> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k as K, v))) as Partial<T>;
 
-export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
+export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): EnrichedBormSchema => {
 	const allLinkedFields: LinkedFieldWithThing[] = [];
 	// #region 1)
 
@@ -59,6 +65,12 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					}));
 				}
 				if (value.extends) {
+					if (!value.defaultDBConnector.as) {
+						//todo: CCheck if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
+						throw new Error(
+							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
+						);
+					}
 					const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
 					/// find out all the thingTypes this thingType is extending
 					// @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
@@ -137,7 +149,6 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 	});
 
 	// * Enrich the schema
-
 	const enrichedSchema = produce(withExtensionsSchema, (draft) =>
 		traverse(draft, ({ value, key, meta }: TraversalCallbackContext) => {
 			// id things
@@ -155,6 +166,14 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					throw new Error('Unsupported node attributes');
 				};
 				value.thingType = thingType();
+				/// We identify the database assigned to this thing
+				//@ts-expect-error - TODO
+				const thingDB: DBHandleKey = Object.keys(dbHandles).find((key) =>
+					// @ts-expect-error - TODO
+					dbHandles[key]?.get(value.defaultDBConnector.id),
+				);
+				value.db = thingDB as DBHandleKey; //todo
+				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
 
 				// init the arrays
 				value.computedFields = [];
@@ -169,6 +188,7 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 
 					Object.entries(val.roles).forEach(([roleKey, role]) => {
 						// eslint-disable-next-line no-param-reassign
+						role.fieldType = 'roleField';
 						role.playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
 						role.name = roleKey;
 					});
@@ -177,6 +197,8 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 					const val = value as EnrichedBormRelation;
 
 					val.linkFields?.forEach((linkField) => {
+						linkField.fieldType = 'linkField';
+
 						if (linkField.target === 'relation') {
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
@@ -284,36 +306,14 @@ export const enrichSchema = (schema: BormSchema): EnrichedBormSchema => {
 	return enrichedSchema;
 };
 
-export const getCardinality = (
-	schema: BormSchema | EnrichedBormSchema,
-	node: Partial<BQLMutationBlock>,
-	field: string,
-): 'ONE' | 'MANY' | 'INTERVAL' | undefined => {
-	const currentSchema = getCurrentSchema(schema, node);
-	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
-	if (foundLinkField) {
-		return foundLinkField.cardinality;
-	}
-	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
-	if (foundDataField) {
-		return foundDataField.cardinality;
-	}
-	// @ts-expect-error todo
-	const foundRoleField = currentSchema.roles[field];
-	if (foundRoleField) {
-		return foundRoleField.cardinality;
-	}
-};
-
 export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 ): EnrichedBormEntity | EnrichedBormRelation => {
-	/// New $thing notation
+	if (!node) {
+		throw new Error('[Internal] No node for getCurrentSchema');
+	}
 	if (node.$thing) {
-		if (!node.$thingType) {
-			throw new Error('Missing $thingType in node$: {JSON.stringify(node, null, 2)');
-		}
 		if (node.$thingType === 'entity') {
 			if (!(node.$thing in schema.entities)) {
 				throw new Error(`Missing entity '${node.$thing}' in the schema`);
@@ -324,6 +324,15 @@ export const getCurrentSchema = (
 			if (!(node.$thing in schema.relations)) {
 				throw new Error(`Missing relation '${node.$thing}' in the schema`);
 			}
+			return schema.relations[node.$thing] as EnrichedBormRelation;
+		}
+		if (node.$thing in schema.entities && node.$thing in schema.relations) {
+			throw new Error(`Ambiguous $thing ${node.$thing}`);
+		}
+		if (node.$thing in schema.entities) {
+			return schema.entities[node.$thing] as EnrichedBormEntity;
+		}
+		if (node.$thing in schema.relations) {
 			return schema.relations[node.$thing] as EnrichedBormRelation;
 		}
 		throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
@@ -345,6 +354,49 @@ export const getCurrentSchema = (
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
+export const getThingType = (rootNode: BQLMutationBlock, schema: EnrichedBormSchema): ThingType => {
+	const thing = rootNode.$thing || rootNode.$entity || rootNode.$relation;
+	if (!thing) {
+		throw new Error('[Internal] No thing found');
+	}
+	if (rootNode.$entity) {
+		return 'entity';
+	} else if (rootNode.$relation) {
+		return 'relation';
+	} else if (schema.entities[thing]) {
+		return 'entity';
+	} else if (schema.relations[thing]) {
+		return 'relation';
+	}
+	throw new Error('No thing found');
+};
+
+export const getFieldSchema = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>, field: string) => {
+	const currentSchema = getCurrentSchema(schema, node);
+	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
+	if (foundLinkField) {
+		return foundLinkField;
+	}
+	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
+	if (foundDataField) {
+		return foundDataField;
+	}
+	const foundRoleField = 'roles' in currentSchema ? currentSchema.roles?.[field] : undefined;
+	if (foundRoleField) {
+		return foundRoleField;
+	}
+	return undefined;
+};
+
+export const getCardinality = (
+	schema: EnrichedBormSchema,
+	node: Partial<BQLMutationBlock>,
+	field: string,
+): 'ONE' | 'MANY' | 'INTERVAL' | undefined => {
+	const currentFieldSchema = getFieldSchema(schema, node, field);
+	return currentFieldSchema?.cardinality;
+};
+
 type ReturnTypeWithoutNode = {
 	fields: string[];
 	dataFields: string[];
@@ -356,6 +408,7 @@ type ReturnTypeWithNode = ReturnTypeWithoutNode & {
 	usedFields: string[];
 	usedRoleFields: string[];
 	usedLinkFields: string[];
+	usedDataFields: string[];
 	unidentifiedFields: string[];
 };
 
@@ -381,10 +434,12 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		'$tempId',
 		'$bzId',
 		'$relation',
-		'$parentKey',
+		'$parentKey', //todo: this is not a valid one, to delete!
 		'$filter',
 		'$fields',
 		'$excludedFields',
+		'$thing',
+		'$thingType',
 	];
 
 	const allowedFields = [...reservedRootFields, ...availableFields];
@@ -398,16 +453,32 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		} as ReturnTypeWithNode;
 	}
 	const usedFields = node.$fields
-		? (node.$fields.map((x: string | { $path: string }) => {
+		? //queries
+			(node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
+					if (x.startsWith('$')) {
+						return undefined;
+					}
+					if (!availableFields.includes(x)) {
+						throw new Error(`Field ${x} not found in the schema`);
+					}
 					return x;
 				}
 				if ('$path' in x && typeof x.$path === 'string') {
 					return x.$path;
 				}
-				throw new Error(' Wrongly structured query');
+				throw new Error('[Wrong format] Wrongly structured query');
 			}) as string[])
-		: listify<any, string, string>(node, (k: string) => k);
+		: //mutations
+			(listify<any, string, any>(node, (k: string) => {
+				if (k.startsWith('$')) {
+					return undefined;
+				}
+				if (!availableFields.includes(k)) {
+					throw new Error(`[Schema] Field ${k} not found in the schema`);
+				}
+				return k;
+			}).filter((x) => x !== undefined) as string[]);
 
 	const localFilterFields = !node.$filter
 		? []
@@ -435,6 +506,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		usedFields,
 		usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
 		usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
+		usedDataFields: availableDataFields.filter((x) => usedFields.includes(x)),
 		unidentifiedFields,
 		...(localFilterFields.length ? { localFilters } : {}),
 		...(nestedFilterFields.length ? { nestedFilters } : {}),
@@ -514,4 +586,30 @@ export const normalPropsCount = (obj: Record<string, any>) => {
 
 export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
 	return isObject(block) && ('$entity' in block || '$relation' in block || '$thing' in block);
+};
+
+type Drafted<T> = T | Draft<T>;
+
+// Recursively define the type to handle nested structures
+type DeepCurrent<T> =
+	T extends Array<infer U> ? Array<DeepCurrent<U>> : T extends object ? { [K in keyof T]: DeepCurrent<T[K]> } : T;
+
+export const deepCurrent = <T>(obj: Drafted<T>): any => {
+	if (Array.isArray(obj)) {
+		// Explicitly cast the return type for arrays
+		return obj.map((item) => deepCurrent(item)) as DeepCurrent<T>;
+	} else if (obj && typeof obj === 'object') {
+		// Handle non-null objects
+		const plainObject = isDraft(obj) ? current(obj) : obj;
+		const result: any = {};
+		Object.entries(plainObject).forEach(([key, value]) => {
+			// Use the key to dynamically assign the converted value
+			result[key] = deepCurrent(value);
+		});
+		// Explicitly cast the return type for objects
+		return result as DeepCurrent<T>;
+	} else {
+		// Return the value directly for non-objects and non-arrays
+		return obj as DeepCurrent<T>;
+	}
 };

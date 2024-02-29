@@ -51,7 +51,7 @@ const sanitizeTempId = (id: string): string => {
 };
 
 export const enrichBQLMutation: PipelineOperation = async (req) => {
-	const { rawBqlRequest, schema } = req;
+	const { rawBqlRequest, filledBqlRequest, schema } = req;
 
 	/// STEP 1, remove undefined stuff, sanitize tempIds and split arrays of $ids
 	const shakeBqlRequest = (blocks: BQLMutationBlock | BQLMutationBlock[]): BQLMutationBlock | BQLMutationBlock[] => {
@@ -93,7 +93,7 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 		);
 	};
 
-	const shakedBqlRequest = shakeBqlRequest(rawBqlRequest);
+	const shakedBqlRequest = shakeBqlRequest(filledBqlRequest ? filledBqlRequest : rawBqlRequest);
 
 	//console.log('shakedBqlRequest', JSON.stringify(shakedBqlRequest, null, 3));
 
@@ -290,7 +290,13 @@ export const enrichBQLMutation: PipelineOperation = async (req) => {
 
 						if (currentFieldSchema.cardinality === 'ONE') {
 							if (Array.isArray(currentValue)) {
-								throw new Error("Can't have an array in a cardinality === ONE link field");
+								if (
+									currentValue.some((x) => typeof x === 'string') ||
+									currentValue.filter((x) => x.$op === 'link').length > 1 ||
+									currentValue.some((x) => isArray(x.$id))
+								) {
+									throw new Error("Can't have an array in a cardinality === ONE link field");
+								}
 							}
 							// if is only one object, current is not a create, and the object has no op, throw error
 						}

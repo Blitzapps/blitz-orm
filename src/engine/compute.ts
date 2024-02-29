@@ -32,6 +32,9 @@ export const computeField = ({
 			throw new Error(`Virtual field: Missing arguments ${missingArgs.join(', ')}`);
 		}
 	}
+	if (!fieldSchema.default.fn) {
+		throw new Error('[Schema] No fn in default field schema');
+	}
 	const computedValue = 'default' in fieldSchema ? fieldSchema.default?.fn(currentThing) : undefined;
 	return computedValue;
 };
