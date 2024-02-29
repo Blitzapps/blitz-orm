@@ -2,12 +2,12 @@ import 'jest';
 import { v4 as uuidv4 } from 'uuid';
 
 import { cleanup, init } from '../../helpers/lifecycle';
-import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
-import type { typesSchema } from '../../mocks/generatedSchema';
-import type { TypeGen } from '../../../src/types/typeGen';
-import type { WithBormMetadata } from '../../../src/index';
+import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
+import type { typesSchema } from '../../../mocks/generatedSchema';
+import type { TypeGen } from '../../../../src/types/typeGen';
+import type { WithBormMetadata } from '../../../../src/index';
 import type { UserType } from '../../types/testTypes';
-import type BormClient from '../../../src/index';
+import type BormClient from '../../../../src/index';
 
 describe('Query', () => {
 	let dbName: string;

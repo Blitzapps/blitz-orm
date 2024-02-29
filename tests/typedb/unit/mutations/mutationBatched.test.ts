@@ -1,8 +1,8 @@
 import 'jest';
 
-import type BormClient from '../../../src/index';
+import type BormClient from '../../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
-import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
 
 describe('Mutations: batched and tempId', () => {
 	let dbName: string;

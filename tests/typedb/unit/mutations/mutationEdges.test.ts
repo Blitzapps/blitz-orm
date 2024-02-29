@@ -1,8 +1,8 @@
 import 'jest';
 
-import type BormClient from '../../../src/index';
+import type BormClient from '../../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort } from '../../helpers/matchers';
+import { deepSort } from '../../../helpers/matchers';
 import type { KindType } from '../../types/testTypes';
 
 describe('Mutations: Edges', () => {

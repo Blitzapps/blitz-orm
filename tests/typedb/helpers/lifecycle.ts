@@ -3,11 +3,11 @@ import { readFileSync } from 'fs';
 import { SessionType, TransactionType, TypeDB } from 'typedb-driver';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Provider } from '../../src/index';
-import BormClient from '../../src/index';
+import type { Provider } from '../../../src/index';
+import BormClient from '../../../src/index';
 // import { cloudConfig } from '../mocks/cloudConfig';
 import { testConfig } from '../mocks/testConfig';
-import { testSchema } from '../mocks/testSchema';
+import { testSchema } from '../../mocks/testSchema';
 
 // to replace by the provider being tested. In the future, test every provider
 // const provider: Provider = 'typeDBCluster';
@@ -30,8 +30,8 @@ const createClient = async (connector: any) => {
 
 export const init = async () => {
 	const [connector] = providerConfig[provider].dbConnectors;
-	const tqlSchema = readFileSync('./tests/mocks/schema.tql', 'utf8');
-	const tqlData = readFileSync('./tests/mocks/data.tql', 'utf8');
+	const tqlSchema = readFileSync('./tests/typedb/mocks/schema.tql', 'utf8');
+	const tqlData = readFileSync('./tests/typedb/mocks/data.tql', 'utf8');
 	const dbName = `${connector.dbName}_${uuidv4()}`;
 	const client = await createClient(connector);
 	await client.databases.create(dbName);

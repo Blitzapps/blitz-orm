@@ -1,4 +1,4 @@
-import type { BormConfig } from '../../src/index';
+import type { BormConfig } from '../../../src/index';
 
 export const testConfig: BormConfig = {
 	server: {

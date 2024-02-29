@@ -1,6 +1,6 @@
 import 'jest';
 
-import type BormClient from '../../../src/index';
+import type BormClient from '../../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
 
 describe('Mutations: Unsupported', () => {

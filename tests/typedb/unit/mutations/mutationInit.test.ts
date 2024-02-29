@@ -1,8 +1,8 @@
 import 'jest';
 
-import type BormClient from '../../../src/index';
+import type BormClient from '../../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
 
 // some random issues forced a let here
 let firstUser = {
