@@ -75,8 +75,9 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
 
 	const querySet = enrichedBqlQuery as Array<EnrichedBqlQuery>;
 
+	// TODO handle batch queries
 	if (querySet.length > 1) {
-		throw new Error('unimplemented');
+		throw new Error('batch query unimplemented');
 	}
 
 	const [query] = enrichedBqlQuery;

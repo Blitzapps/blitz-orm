@@ -114,7 +114,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query) => {
 			let queryResult: Array<Record<string, unknown>> | undefined;
 
-			if (query['$thingType'] !== 'entity') {
+			if (query['$thingType'] === 'relation') {
 				// NOTE relations from testSchema contains hyphen at the moment. Remove case transformation, once we use camelcase for all tables
 				const thing = pascal(query.$thing);
 
@@ -135,10 +135,8 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 					[QueryPath]: enrichedBqlQuery[0][QueryPath],
 				}));
 			} else {
-				const subtypes = [
-					query['$thing'],
-					...getSubtype(req.schema, query['$thingType'] === 'entity' ? 'entities' : 'relations', query['$thing']),
-				];
+				// retrieve all subtype entities, and we query them one by one. At the end we flatten the result.
+				const subtypes = [query['$thing'], ...getSubtype(req.schema, 'entities', query['$thing'])];
 
 				const payload = await Promise.all(
 					subtypes.map(async (subtype) => {
