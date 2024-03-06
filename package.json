@@ -46,6 +46,7 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
+		"acorn": "^8.11.3",
 		"immer": "9.0.21",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
