@@ -176,7 +176,7 @@ describe('Mutations: Edges', () => {
 		);
 	});
 
-	it.only('l3ent[unlink, multiple, entity] unlink multiple linkFields (not roleFields)', async () => {
+	it('l3ent[unlink, multiple, entity] unlink multiple linkFields (not roleFields)', async () => {
 		// todo 4 cases
 		// case 1: Unlink a simple a-b relation (Edge = delete)
 		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)
@@ -680,7 +680,6 @@ describe('Mutations: Edges', () => {
 
 		try {
 			// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
-
 			/// This test requires pre-queries to work in typeDB
 			await bormClient.mutate(
 				{
@@ -695,6 +694,7 @@ describe('Mutations: Edges', () => {
 				},
 				{ preQuery: true },
 			);
+
 			await bormClient.mutate(
 				{
 					$relation: 'UserTagGroup',
@@ -2149,7 +2149,7 @@ describe('Mutations: Edges', () => {
 				id: 'delete-test',
 				spaces: [
 					{
-						id: 'd-space-1',
+						id: 'd-space-2',
 						dataFields: [
 							{
 								id: 'd-dataField-1',
@@ -2175,7 +2175,7 @@ describe('Mutations: Edges', () => {
 			$id: 'delete-test',
 			spaces: [
 				{
-					$id: 'd-space-1',
+					$id: 'd-space-2',
 					dataFields: [
 						{
 							$op: 'delete',
@@ -2215,8 +2215,8 @@ describe('Mutations: Edges', () => {
 		expect(deepSort(deleted, 'id')).toEqual({
 			spaces: [
 				{
-					$id: 'd-space-1',
-					id: 'd-space-1',
+					$id: 'd-space-2',
+					id: 'd-space-2',
 					$thing: 'Space',
 					$thingType: 'entity',
 					dataFields: [
