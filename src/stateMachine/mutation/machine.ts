@@ -16,12 +16,13 @@ import { buildTQLMutation } from './TQL/build';
 import { mutationPreQuery } from './BQL/preQuery';
 
 import { createMachine, invoke, transition, reduce, guard, interpret, state } from './robot3-wrapper';
+import { stringify } from './BQL/stringify';
 
 const final = state;
 type MachineContext = {
 	bql: {
 		raw: BQLMutationBlock | BQLMutationBlock[];
-		current: EnrichedBQLMutationBlock;
+		current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
 		things: any[];
 		edges: any[];
 		res: any[];
@@ -115,7 +116,7 @@ const runMutation = async (ctx: MachineContext) => {
 };
 
 const parseMutation = async (ctx: MachineContext) => {
-	return parseTQLMutation(ctx.typeDB.tqlRes, ctx.bql.things, ctx.bql.edges, ctx.config);
+	return parseTQLMutation(ctx.typeDB.tqlRes, ctx.bql.things, ctx.bql.edges, ctx.schema, ctx.config);
 };
 
 // Guards
@@ -147,8 +148,13 @@ const errorTransition = transition(
 );
 
 export const machine = createMachine(
-	'enrich',
+	'stringify',
 	{
+    stringify: invoke(
+      async (ctx: MachineContext) => stringify(ctx.bql.raw, ctx.schema),
+			transition('done', 'enrich', reduce(updateBqlReq)),
+      errorTransition,
+    ),
 		enrich: invoke(
 			enrich,
 			transition('done', 'preQuery', guard(requiresPreQuery), reduce(updateBqlReq)),

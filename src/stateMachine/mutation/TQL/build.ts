@@ -45,7 +45,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 			}
 			const dbField = currentDataField.dbPath;
 
-			if (['TEXT', 'ID', 'EMAIL'].includes(currentDataField.contentType)) {
+			if (['TEXT', 'ID', 'EMAIL', 'JSON'].includes(currentDataField.contentType)) {
 				return `has ${dbField} '${v}'`;
 			}
 			if (['NUMBER', 'BOOLEAN'].includes(currentDataField.contentType)) {

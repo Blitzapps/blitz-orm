@@ -90,7 +90,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 
 		// Process the main data fields
 		const mainDataFields = Object.entries(dataFields)
-			.filter(([key]) => key !== 'type' && !key.includes('$'))
+			.filter(([key]) => key !== 'type' && !key.startsWith('$'))
 			.map(([key, value]) => {
 				const field = currentSchema.dataFields?.find((f) => f.path === key || f.dbPath === key);
 				const isIdField = key === 'id';
@@ -103,7 +103,9 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 					/// date fields need to be converted to ISO format including the timezone
 					if (field.contentType === 'DATE') {
 						fieldValue = fieldValue ? `${fieldValue}Z` : fieldValue;
-					}
+					} else if (field.contentType === 'JSON') {
+            fieldValue = fieldValue && JSON.parse(fieldValue);
+          }
 					if (isIdField) {
 						return [
 							[$asKey, fieldValue],
@@ -121,7 +123,11 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						fieldValue = value.map((o) => {
 							return `${o.value}Z`;
 						});
-					} else {
+					} else if (field.contentType === 'JSON') {
+						fieldValue = value.map((o) => {
+							return o.value && JSON.parse(o.value);
+						});
+          } else {
 						fieldValue = value.map((o) => {
 							return o.value;
 						});

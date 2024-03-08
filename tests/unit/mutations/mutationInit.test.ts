@@ -1,4 +1,5 @@
 import 'jest';
+import { v4 as uuidv4 } from 'uuid';
 
 import type BormClient from '../../../src/index';
 import { cleanup, init } from '../../helpers/lifecycle';
@@ -68,7 +69,7 @@ describe('Mutations: Init', () => {
 		bormClient = configBormClient;
 	}, 25000);
 
-	it('b1[create] Basic', async () => {
+	it('b1a[create] Basic', async () => {
 		expect(bormClient).toBeDefined();
 
 		const res = await bormClient.mutate(firstUser, { noMetadata: true });
@@ -83,6 +84,80 @@ describe('Mutations: Init', () => {
 		// @ts-expect-error - TODO description
 		expectArraysInObjectToContainSameElements(user, expectedUnit);
 		firstUser = { ...firstUser, id: user.id };
+	});
+
+	it.only('b1b[create, update] Create a thing with an empty JSON attribute, then update it', async () => {
+    const account = {
+      $thing: 'Account',
+      id: uuidv4(),
+    };
+		const createRes = await bormClient.mutate(account);
+    expect(createRes).toMatchObject([account]);
+
+    const updated = {
+      ...account,
+      $id: account.id,
+      profile: { hobby: ['Running'] },
+    };
+    const updateRes = await bormClient.mutate(updated);
+    expect(updateRes).toMatchObject([updated]);
+	});
+
+	it.only('b1b[create, update] Create a thing with a JSON attribute, then update it', async () => {
+    const account = {
+      $thing: 'Account',
+      id: uuidv4(),
+      profile: { hobby: ['Running'] },
+    };
+		const createRes = await bormClient.mutate(account);
+    expect(createRes).toMatchObject([account]);
+
+    const updated = {
+      ...account,
+      $id: account.id,
+      profile: { hobby: ['Running', 'Hiking'] },
+    };
+    const updateRes = await bormClient.mutate(updated);
+    expect(updateRes).toMatchObject([updated]);
+	});
+
+	it.only('b1b[create] Create a nested thing with a JSON attribute', async () => {
+    const user = {
+      $thing: 'User',
+      id: uuidv4(),
+      accounts: [
+        {
+          $thing: 'Account',
+          id: uuidv4(),
+          profile: { hobby: ['Running'] },
+        },
+      ],
+    };
+		const res = await bormClient.mutate(user);
+    expect(res).toMatchObject([
+      {
+        $thing: 'User',
+        $op: 'create',
+        id: user.id,
+      },
+      {
+        $thing: 'Account',
+        $thingType: 'entity',
+        $op: 'create',
+        id: user.accounts[0].id,
+        profile: {
+            hobby: [
+                'Running'
+            ]
+        },
+      },
+      {
+        $thing: 'User-Accounts',
+        $op: "create",
+        accounts: user.accounts[0].id,
+        user: user.id,
+      }
+    ]);
 	});
 
 	it('b2a[update] Basic', async () => {

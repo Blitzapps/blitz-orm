@@ -184,6 +184,10 @@ export const testSchema: BormSchema = {
 					contentType: 'BOOLEAN',
 					isVirtual: true,
 				},
+				{
+					path: 'profile',
+					contentType: 'JSON',
+				},
 			],
 			linkFields: [
 				{

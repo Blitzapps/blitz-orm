@@ -318,6 +318,19 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	return enrichedSchema;
 };
 
+export const getThing = (
+	schema: BormSchema | EnrichedBormSchema,
+	$thing: string,
+): EnrichedBormEntity | EnrichedBormRelation => {
+  if ($thing in schema.entities) {
+    return schema.entities[$thing] as EnrichedBormEntity;
+  }
+  if ($thing in schema.relations) {
+    return schema.relations[$thing] as EnrichedBormRelation;
+  }
+  throw new Error(`${$thing} is not defined in the schema`);
+};
+
 export const getCurrentSchema = (
 	schema: BormSchema | EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
@@ -338,6 +351,7 @@ export const getCurrentSchema = (
 			}
 			return schema.relations[node.$thing] as EnrichedBormRelation;
 		}
+    // TODO: This should be validated during the initialization
 		if (node.$thing in schema.entities && node.$thing in schema.relations) {
 			throw new Error(`Ambiguous $thing ${node.$thing}`);
 		}
