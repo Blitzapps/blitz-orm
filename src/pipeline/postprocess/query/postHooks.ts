@@ -22,8 +22,8 @@ export const postHooks: PipelineOperation = async (req, res) => {
 					const value = val as Record<string, any>;
 
 					if (!value.$thing) {
-            // JSON object.
-            return;
+						// JSON object.
+						return;
 					}
 					if (value.$thing) {
 						const currentSchema = getCurrentSchema(schema, value);

@@ -150,11 +150,11 @@ const errorTransition = transition(
 export const machine = createMachine(
 	'stringify',
 	{
-    stringify: invoke(
-      async (ctx: MachineContext) => stringify(ctx.bql.raw, ctx.schema),
+		stringify: invoke(
+			async (ctx: MachineContext) => stringify(ctx.bql.raw, ctx.schema),
 			transition('done', 'enrich', reduce(updateBqlReq)),
-      errorTransition,
-    ),
+			errorTransition,
+		),
 		enrich: invoke(
 			enrich,
 			transition('done', 'preQuery', guard(requiresPreQuery), reduce(updateBqlReq)),

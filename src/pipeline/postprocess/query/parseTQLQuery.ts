@@ -104,8 +104,8 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 					if (field.contentType === 'DATE') {
 						fieldValue = fieldValue ? `${fieldValue}Z` : fieldValue;
 					} else if (field.contentType === 'JSON') {
-            fieldValue = fieldValue && JSON.parse(fieldValue);
-          }
+						fieldValue = fieldValue && JSON.parse(fieldValue);
+					}
 					if (isIdField) {
 						return [
 							[$asKey, fieldValue],
@@ -127,7 +127,7 @@ export const parseTQLQuery: PipelineOperation = async (req, res) => {
 						fieldValue = value.map((o) => {
 							return o.value && JSON.parse(o.value);
 						});
-          } else {
+					} else {
 						fieldValue = value.map((o) => {
 							return o.value;
 						});
