@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.16(2023-02-04)
+
+- Feat: dependency checker
+
 ## 0.9.15(2023-02-04)
 
 - Fix: removed console.log
