@@ -47,7 +47,7 @@
 	},
 	"dependencies": {
 		"acorn": "^8.11.3",
-		"immer": "9.0.21",
+		"immer": "10.0.4",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
 		"typedb-driver": "2.26.6-rc1",
