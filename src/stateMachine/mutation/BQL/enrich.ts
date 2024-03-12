@@ -87,7 +87,7 @@ export const enrichBQLMutation = (
 					///1. Clean step
 					cleanStep(node, field);
 
-					if (field !== '$root' && field.startsWith('$')) {
+					if (field !== '$root' && (field.startsWith('$') || field.startsWith('%'))) {
 						return;
 					}
 

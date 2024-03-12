@@ -270,6 +270,15 @@ export const testSchema: BormSchema = {
 							},
 						],
 					},
+					{
+						actions: [
+							{
+								description: 'Use %var to replace name',
+								type: 'transform',
+								fn: ({ $op, '%name': varName }) => ($op === 'create' && varName ? { name: `secret-${varName}` } : {}),
+							},
+						],
+					},
 				],
 			},
 		},
