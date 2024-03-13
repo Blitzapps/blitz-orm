@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.18(2023-03-13)
+
+- Fix: Fix false duplicate $id error
+
 ## 0.9.17(2023-03-13)
 
 - Feat: %vars can be used to be consumed in pre-hooks
