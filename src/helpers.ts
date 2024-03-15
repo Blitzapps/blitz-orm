@@ -482,7 +482,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		? //queries
 			(node.$fields.map((x: string | { $path: string }) => {
 				if (typeof x === 'string') {
-					if (x.startsWith('$')) {
+					if (x.startsWith('$') || x.startsWith('%')) {
 						return undefined;
 					}
 					if (!availableFields.includes(x)) {
@@ -497,7 +497,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 			}) as string[])
 		: //mutations
 			(listify<any, string, any>(node, (k: string) => {
-				if (k.startsWith('$')) {
+				if (k.startsWith('$') || k.startsWith('%')) {
 					return undefined;
 				}
 				if (!availableFields.includes(k)) {
@@ -518,6 +518,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 			);
 
 	const unidentifiedFields = [...usedFields, ...localFilterFields]
+		.filter((x) => !x?.startsWith('%'))
 		// @ts-expect-error - TODO description
 		.filter((x) => !allowedFields.includes(x))
 		.filter((x) => x) as string[]; // todo 🤔
@@ -623,14 +624,14 @@ type DeepCurrent<T> =
 export const deepCurrent = <T>(obj: Drafted<T>): any => {
 	if (Array.isArray(obj)) {
 		// Explicitly cast the return type for arrays
-		return obj.map((item) => deepCurrent(item)) as DeepCurrent<T>;
+		return obj.map((item) => current(item)) as DeepCurrent<T>;
 	} else if (obj && typeof obj === 'object') {
 		// Handle non-null objects
 		const plainObject = isDraft(obj) ? current(obj) : obj;
 		const result: any = {};
 		Object.entries(plainObject).forEach(([key, value]) => {
 			// Use the key to dynamically assign the converted value
-			result[key] = deepCurrent(value);
+			result[key] = isDraft(value) ? current(value) : value;
 		});
 		// Explicitly cast the return type for objects
 		return result as DeepCurrent<T>;

@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.9.15",
+	"version": "0.9.18",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -46,7 +46,8 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
-		"immer": "9.0.21",
+		"acorn": "^8.11.3",
+		"immer": "10.0.4",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
 		"typedb-driver": "2.26.6-rc1",

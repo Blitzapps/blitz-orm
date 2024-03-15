@@ -31,7 +31,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		//@ts-expect-error - TODO
 		const attributes = listify(node, (k, v) => {
 			// @ts-expect-error - TODO description
-			if (k.startsWith('$') || k === idField || v === undefined || v === null) {
+			if (k.startsWith('$') || k.startsWith('%') || k === idField || v === undefined || v === null) {
 				return '';
 			}
 			// if (k.startsWith('$') || !v) return '';
@@ -68,7 +68,7 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		//@ts-expect-error - TODO
 		const matchAttributes = listify(node, (k) => {
 			// @ts-expect-error - TODO description
-			if (k.startsWith('$') || k === idField) {
+			if (k.startsWith('$') || k.startsWith('%') || k === idField) {
 				return '';
 			}
 			// if (k.startsWith('$') || !v) return '';
