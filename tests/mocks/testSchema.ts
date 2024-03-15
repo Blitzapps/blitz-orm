@@ -72,7 +72,7 @@ export const testSchema: BormSchema = {
 					path: 'timestamp',
 					default: {
 						type: 'fn',
-						fn: () => new Date().toISOString().replace('Z', ''),
+						fn: () =>  new Date().toISOString(),
 					},
 				},
 			],

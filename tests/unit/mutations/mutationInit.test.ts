@@ -86,7 +86,7 @@ describe('Mutations: Init', () => {
 		firstUser = { ...firstUser, id: user.id };
 	});
 
-	it.only('b1b[create, update] Create a thing with an empty JSON attribute, then update it', async () => {
+	it('b1b[create, update] Create a thing with an empty JSON attribute, then update it', async () => {
     const account = {
       $thing: 'Account',
       id: uuidv4(),
@@ -101,9 +101,21 @@ describe('Mutations: Init', () => {
     };
     const updateRes = await bormClient.mutate(updated);
     expect(updateRes).toMatchObject([updated]);
+    const deleteRes = await bormClient.mutate({
+      $thing: 'Account',
+      $op: 'delete',
+      $id: account.id,
+    });
+    expect(deleteRes).toMatchObject([
+      {
+        $op: 'delete',
+        $thing: 'Account',
+        $id: account.id,
+      },
+    ]);
 	});
 
-	it.only('b1b[create, update] Create a thing with a JSON attribute, then update it', async () => {
+	it('b1b[create, update] Create a thing with a JSON attribute, then update it', async () => {
     const account = {
       $thing: 'Account',
       id: uuidv4(),
@@ -119,9 +131,21 @@ describe('Mutations: Init', () => {
     };
     const updateRes = await bormClient.mutate(updated);
     expect(updateRes).toMatchObject([updated]);
+    const deleteRes = await bormClient.mutate({
+      $thing: 'Account',
+      $op: 'delete',
+      $id: account.id,
+    });
+    expect(deleteRes).toMatchObject([
+      {
+        $op: 'delete',
+        $thing: 'Account',
+        $id: account.id,
+      },
+    ]);
 	});
 
-	it.only('b1b[create] Create a nested thing with a JSON attribute', async () => {
+	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
     const user = {
       $thing: 'User',
       id: uuidv4(),
@@ -157,6 +181,27 @@ describe('Mutations: Init', () => {
         accounts: user.accounts[0].id,
         user: user.id,
       }
+    ]);
+    const deleteRes = await bormClient.mutate({
+      $thing: 'User',
+      $op: 'delete',
+      $id: user.id,
+      accounts: [{ $op: 'delete' }],
+    });
+    expect(deleteRes).toMatchObject([
+      {
+        $op: 'delete',
+        $thing: 'User',
+        $id: user.id,
+      },
+      {
+        $op: 'delete',
+        $thing: 'Account',
+      },
+      {
+        $op: 'delete',
+        $thing: 'User-Accounts',
+      },
     ]);
 	});
 
