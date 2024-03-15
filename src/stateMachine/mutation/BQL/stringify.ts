@@ -8,7 +8,7 @@ import type {
 	EnrichedLinkField,
 	LinkedFieldWithThing,
 } from '../../../types';
-import produce from 'immer';
+import { produce } from 'immer';
 
 /**
  * Convert JSON attributes into strings.
