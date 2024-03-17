@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.19(2023-03-17)
+
+- Feat: JSON storage
+
 ## 0.9.18(2023-03-13)
 
 - Fix: Fix false duplicate $id error
