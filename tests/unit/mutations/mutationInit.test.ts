@@ -87,122 +87,120 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b1b[create, update] Create a thing with an empty JSON attribute, then update it', async () => {
-    const account = {
-      $thing: 'Account',
-      id: uuidv4(),
-    };
+		const account = {
+			$thing: 'Account',
+			id: uuidv4(),
+		};
 		const createRes = await bormClient.mutate(account);
-    expect(createRes).toMatchObject([account]);
+		expect(createRes).toMatchObject([account]);
 
-    const updated = {
-      ...account,
-      $id: account.id,
-      profile: { hobby: ['Running'] },
-    };
-    const updateRes = await bormClient.mutate(updated);
-    expect(updateRes).toMatchObject([updated]);
-    const deleteRes = await bormClient.mutate({
-      $thing: 'Account',
-      $op: 'delete',
-      $id: account.id,
-    });
-    expect(deleteRes).toMatchObject([
-      {
-        $op: 'delete',
-        $thing: 'Account',
-        $id: account.id,
-      },
-    ]);
+		const updated = {
+			...account,
+			$id: account.id,
+			profile: { hobby: ['Running'] },
+		};
+		const updateRes = await bormClient.mutate(updated);
+		expect(updateRes).toMatchObject([updated]);
+		const deleteRes = await bormClient.mutate({
+			$thing: 'Account',
+			$op: 'delete',
+			$id: account.id,
+		});
+		expect(deleteRes).toMatchObject([
+			{
+				$op: 'delete',
+				$thing: 'Account',
+				$id: account.id,
+			},
+		]);
 	});
 
 	it('b1b[create, update] Create a thing with a JSON attribute, then update it', async () => {
-    const account = {
-      $thing: 'Account',
-      id: uuidv4(),
-      profile: { hobby: ['Running'] },
-    };
+		const account = {
+			$thing: 'Account',
+			id: uuidv4(),
+			profile: { hobby: ['Running'] },
+		};
 		const createRes = await bormClient.mutate(account);
-    expect(createRes).toMatchObject([account]);
+		expect(createRes).toMatchObject([account]);
 
-    const updated = {
-      ...account,
-      $id: account.id,
-      profile: { hobby: ['Running', 'Hiking'] },
-    };
-    const updateRes = await bormClient.mutate(updated);
-    expect(updateRes).toMatchObject([updated]);
-    const deleteRes = await bormClient.mutate({
-      $thing: 'Account',
-      $op: 'delete',
-      $id: account.id,
-    });
-    expect(deleteRes).toMatchObject([
-      {
-        $op: 'delete',
-        $thing: 'Account',
-        $id: account.id,
-      },
-    ]);
+		const updated = {
+			...account,
+			$id: account.id,
+			profile: { hobby: ['Running', 'Hiking'] },
+		};
+		const updateRes = await bormClient.mutate(updated);
+		expect(updateRes).toMatchObject([updated]);
+		const deleteRes = await bormClient.mutate({
+			$thing: 'Account',
+			$op: 'delete',
+			$id: account.id,
+		});
+		expect(deleteRes).toMatchObject([
+			{
+				$op: 'delete',
+				$thing: 'Account',
+				$id: account.id,
+			},
+		]);
 	});
 
 	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
-    const user = {
-      $thing: 'User',
-      id: uuidv4(),
-      accounts: [
-        {
-          $thing: 'Account',
-          id: uuidv4(),
-          profile: { hobby: ['Running'] },
-        },
-      ],
-    };
+		const user = {
+			$thing: 'User',
+			id: uuidv4(),
+			accounts: [
+				{
+					$thing: 'Account',
+					id: uuidv4(),
+					profile: { hobby: ['Running'] },
+				},
+			],
+		};
 		const res = await bormClient.mutate(user);
-    expect(res).toMatchObject([
-      {
-        $thing: 'User',
-        $op: 'create',
-        id: user.id,
-      },
-      {
-        $thing: 'Account',
-        $thingType: 'entity',
-        $op: 'create',
-        id: user.accounts[0].id,
-        profile: {
-            hobby: [
-                'Running'
-            ]
-        },
-      },
-      {
-        $thing: 'User-Accounts',
-        $op: "create",
-        accounts: user.accounts[0].id,
-        user: user.id,
-      }
-    ]);
-    const deleteRes = await bormClient.mutate({
-      $thing: 'User',
-      $op: 'delete',
-      $id: user.id,
-      accounts: [{ $op: 'delete' }],
-    });
-    expect(deleteRes).toMatchObject([
-      {
-        $op: 'delete',
-        $thing: 'User',
-        $id: user.id,
-      },
-      {
-        $op: 'delete',
-        $thing: 'Account',
-      },
-      {
-        $op: 'delete',
-        $thing: 'User-Accounts',
-      },
-    ]);
+		expect(res).toMatchObject([
+			{
+				$thing: 'User',
+				$op: 'create',
+				id: user.id,
+			},
+			{
+				$thing: 'Account',
+				$thingType: 'entity',
+				$op: 'create',
+				id: user.accounts[0].id,
+				profile: {
+					hobby: ['Running'],
+				},
+			},
+			{
+				$thing: 'User-Accounts',
+				$op: 'create',
+				accounts: user.accounts[0].id,
+				user: user.id,
+			},
+		]);
+		const deleteRes = await bormClient.mutate({
+			$thing: 'User',
+			$op: 'delete',
+			$id: user.id,
+			accounts: [{ $op: 'delete' }],
+		});
+		expect(deleteRes).toMatchObject([
+			{
+				$op: 'delete',
+				$thing: 'User',
+				$id: user.id,
+			},
+			{
+				$op: 'delete',
+				$thing: 'Account',
+			},
+			{
+				$op: 'delete',
+				$thing: 'User-Accounts',
+			},
+		]);
 	});
 
 	it('b2a[update] Basic', async () => {

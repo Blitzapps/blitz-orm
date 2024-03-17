@@ -63,7 +63,7 @@
 - Feat: Can add children nodes on transformations
 - Feat: Replace is now a valid operation
 - Breaking change: Should use $thing instead of $entity and $relation;
-- Breaking change: Mutation result are always array (even if nothing is nested) 
+- Breaking change: Mutation result are always array (even if nothing is nested)
 - Refacto: Preparing for multiple DBs
 - Chore: Immer downgraded to 9.0.21 (until <https://github.com/immerjs/immer/issues/1087> is fixed)
 - Fix: lot of fixes
@@ -71,7 +71,6 @@
 ## 0.8.11(2023-02-15)
 
 - Tests: Added nested object validation test
-
 
 ## 0.8.10(2023-02-14)
 
