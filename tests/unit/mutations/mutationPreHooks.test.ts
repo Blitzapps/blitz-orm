@@ -42,8 +42,8 @@ describe('Mutations: PreHooks', () => {
 		const currentTime = new Date();
 		const twoMinutesAgo = new Date(currentTime.getTime() - 62 * 60 * 1000); //62 minutes ago because there is a bug that reduces -1 hours in local machine
 
-		expect(timestamp instanceof Date).toBe(true);
-		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBe(true);
+		expect(timestamp instanceof Date).toBeTruthy();
+		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBeTruthy();
 
 		//cleanup
 		await bormClient.mutate({

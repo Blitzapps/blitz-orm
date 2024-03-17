@@ -1923,6 +1923,26 @@ describe('Query', () => {
 		expect(res).toEqual(expectedRes);
 	});
 
+  it.only('j1[json] Query a thing with a JSON attribute', async () => {
+    const entity = await bormClient.query({
+      $entity: 'Account',
+      $id: 'account1-1',
+      $fields: ['profile'],
+    });
+    expect(entity).toMatchObject({
+      profile: { hobby: ['Running'] },
+    });
+  });
+
+  it.only('j1[json] Query a thing with an empty JSON attribute', async () => {
+    const entity = await bormClient.query({
+      $entity: 'Account',
+      $id: 'account1-2',
+      $fields: ['profile'],
+    });
+    expect((entity as any).profile).toBeUndefined();
+  });
+
 	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
 		expect(bormClient).toBeDefined();
 

@@ -104,11 +104,13 @@ God sub SuperUser,
 # Account
 Account·provider sub attribute, value string;
 Account·isSecureProvider sub attribute, value boolean;
+Account·profile sub attribute, value string;
 
 Account sub entity,
     owns id @key,
     owns Account·provider,
 		owns Account·isSecureProvider,
+    owns Account·profile,
     plays User-Accounts:accounts;
 
 # Post

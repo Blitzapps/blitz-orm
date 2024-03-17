@@ -48,7 +48,8 @@ type StringField = BormField & {
 		| 'PASSWORD'
 		| 'LANGUAGE_TEXT'
 		| 'RICH_TEXT'
-		| 'TEXT';
+		| 'TEXT'
+		| 'JSON';
 	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => string } | { type: 'value'; value: string };
 	validations?: {
 		enum?: string[];
@@ -101,7 +102,7 @@ export type ContentType = keyof ContentTypeMapping;
 
 export type ContentTypeMapping = {
 	ID: string;
-	JSON: unknown;
+	JSON: string;
 	COLOR: string;
 	BOOLEAN: boolean;
 	POINT: { x: number; y: number };
