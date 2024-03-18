@@ -1321,6 +1321,56 @@ describe('Query', () => {
 		expect(true).toEqual(false);
 	});
 
+  it.only('TODO: lf[$filter] Filter by a link field with cardinality ONE', async () => {
+    const res = await bormClient.query(
+      {
+        $relation: 'User-Accounts',
+        $filter: { id: 'ua1-1' },
+        // $filter: { user: 'user1' },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toMatchObject([
+      { id: 'ua1-1'},
+      { id: 'ua1-2'},
+      { id: 'ua1-3'},
+    ]);
+  });
+
+  it('TODO: lf[$filter] Filter by a link field with cardinality MANY', async () => {
+    const res = await bormClient.query(
+      {
+        $entity: 'User',
+        $filter: { spaces: ['space-1'] },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toMatchObject([
+      { id: 'user1'},
+      { id: 'user5'},
+    ]);
+  });
+
+  it('TODO: slo1[$sort, $limit, $offset] Sort', async () => {
+    const res = await bormClient.query(
+      {
+        $entity: 'User',
+        // @ts-expect-error Unsupported features
+        $sort: ['name'],
+        $offset: 1,
+        $limit: 2,
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toMatchObject([
+      { id: 'user1'},
+      { id: 'user5'},
+    ]);
+  });
+
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
 		expect(bormClient).toBeDefined();
 		const res = await bormClient.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
