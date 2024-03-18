@@ -72,7 +72,7 @@ export const testSchema: BormSchema = {
 					path: 'timestamp',
 					default: {
 						type: 'fn',
-						fn: () => new Date().toISOString().replace('Z', ''),
+						fn: () => new Date().toISOString(),
 					},
 				},
 			],
@@ -183,6 +183,10 @@ export const testSchema: BormSchema = {
 					path: 'isSecureProvider',
 					contentType: 'BOOLEAN',
 					isVirtual: true,
+				},
+				{
+					path: 'profile',
+					contentType: 'JSON',
 				},
 			],
 			linkFields: [
