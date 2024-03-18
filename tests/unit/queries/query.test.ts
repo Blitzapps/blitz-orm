@@ -1321,12 +1321,11 @@ describe('Query', () => {
 		expect(true).toEqual(false);
 	});
 
-  it.only('TODO: lf[$filter] Filter by a link field with cardinality ONE', async () => {
+  it.only('lf[$filter] Filter by a link field with cardinality ONE', async () => {
     const res = await bormClient.query(
       {
         $relation: 'User-Accounts',
-        $filter: { id: 'ua1-1' },
-        // $filter: { user: 'user1' },
+        $filter: { user: 'user1' },
         $fields: ['id'],
       },
       { noMetadata: true },
@@ -1338,7 +1337,24 @@ describe('Query', () => {
     ]);
   });
 
-  it('TODO: lf[$filter] Filter by a link field with cardinality MANY', async () => {
+  it.only('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+    const res = await bormClient.query(
+      {
+        $relation: 'User-Accounts',
+        $filter: {
+          $not: { user: ['user1', 'user2'] },
+        },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toMatchObject([
+      { id: 'ua2-1'},
+      { id: 'ua3-1'},
+    ]);
+  });
+
+  it.only('lf[$filter] Filter by a link field with cardinality MANY', async () => {
     const res = await bormClient.query(
       {
         $entity: 'User',
@@ -1973,7 +1989,7 @@ describe('Query', () => {
 		expect(res).toEqual(expectedRes);
 	});
 
-	it.only('j1[json] Query a thing with a JSON attribute', async () => {
+	it('j1[json] Query a thing with a JSON attribute', async () => {
 		const entity = await bormClient.query({
 			$entity: 'Account',
 			$id: 'account1-1',
@@ -1984,7 +2000,7 @@ describe('Query', () => {
 		});
 	});
 
-	it.only('j1[json] Query a thing with an empty JSON attribute', async () => {
+	it('j1[json] Query a thing with an empty JSON attribute', async () => {
 		const entity = await bormClient.query({
 			$entity: 'Account',
 			$id: 'account1-2',

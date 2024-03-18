@@ -1,8 +1,189 @@
+import { getThing } from '../../../helpers';
+import { EnrichedBormSchema } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
 import type { PipelineOperation } from '../../pipeline';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
+
+type FilterValue = string | string[] | number | number[] | boolean | boolean[] | Date | Date[] | null;
+
+type Filter = {
+  $not?: Record<string, FilterValue>;
+} & Record<string, FilterValue>;
+
+const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: EnrichedBormSchema) => {
+  const { $not, ...rest } = $filter;
+
+  const thing = getThing(schema, $thing);
+  const matches: string[] = [];
+
+  Object.entries($not || {}).forEach(([key, value]) => {
+    const df = thing.dataFields?.find((df) => df.path === key);
+    if (df) {
+      if (value === null) {
+        matches.push(`$${$var} has ${key} $${key}_${uuidv4()};`);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => {
+          matches.push(`not { $${$var} has ${key} ${serializeValue(v)}; };`);
+        });
+      } else {
+        matches.push(`not { $${$var} has ${key} ${serializeValue(value)}; };`);
+      }
+      return;
+    }
+
+    const lf = thing.linkFields?.find((lf) => lf.path === key);
+    if (lf) {
+      const [oppositeThing] = lf.oppositeLinkFieldsPlayedBy;
+      if (lf.target === 'relation') {
+        if (value === null) {
+          matches.push(`(${lf.plays}: $${$var}) isa ${lf.relation};`);
+        } else if (Array.isArray(value)) {
+          value.forEach((v) => {
+            // todo: replace id with the actual id attribute
+            matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(v)}; };`);
+          });
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(value)}; };`);
+        }
+      } else {
+        const oppVar = `${oppositeThing.thing}_${uuidv4()}`;
+        if (value === null) {
+          matches.push(`$${oppVar} isa ${oppositeThing.thing}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+        } else if (Array.isArray(value)) {
+          value.forEach((v) => {
+            // todo: replace id with the actual id attribute
+            matches.push(`not { $${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(v)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+          });
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`not { $${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(value)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+        }
+      }
+      return;
+    }
+
+    if (thing.thingType === 'relation') {
+      const role = thing.roles[key];
+      if (role) {
+        const [player] = role.playedBy || [];
+        const playerVar = `${player.thing}_${uuidv4()}`;
+        if (value === null) {
+          matches.push(`$${$var} (${player.plays}: ${playerVar});`);
+        } else if (Array.isArray(value)) {
+          value.forEach((v) => {
+            // todo: replace id with the actual id attribute
+            matches.push(`not { $${playerVar} isa ${player.thing}, has id ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`);
+          });
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`not { $${playerVar} isa ${player.thing}, has id ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`);
+        }
+        return;
+      }
+    }
+  });
+
+  Object.entries(rest).forEach(([key, value]) => {
+    const df = thing.dataFields?.find((df) => df.path === key);
+    if (df) {
+      if (value === null) {
+        matches.push(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`);
+      } else if (Array.isArray(value)) {
+        const alt = value.map((v) => `$${$var} has ${key} ${serializeValue(v)};`);
+        const match = joinAlt(alt);
+        if (match) {
+          matches.push(match);
+        }
+      } else {
+        matches.push(`$${$var} has ${key} ${serializeValue(value)};`);
+      }
+      return;
+    }
+
+    const lf = thing.linkFields?.find((lf) => lf.path === key);
+    if (lf) {
+      const [oppositeThing] = lf.oppositeLinkFieldsPlayedBy;
+      if (lf.target === 'relation') {
+        if (value === null) {
+          matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`);
+        } else if (Array.isArray(value)) {
+          // todo: replace id with the actual id attribute
+          const alt = value.map((v) => `(${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(v)};`);
+          const match = joinAlt(alt);
+          if (match) {
+            matches.push(match);
+          }
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`(${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(value)};`);
+        }
+      } else {
+        const oppVar = `${oppositeThing.thing}_${uuidv4()}`;
+        if (value === null) {
+          matches.push(`not { $${oppVar} isa ${oppositeThing.thing}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+        } else if (Array.isArray(value)) {
+          // todo: replace id with the actual id attribute
+          const alt = value.map((v) => `$${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(v)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+          const match = joinAlt(alt);
+          if (match) {
+            matches.push(match);
+          }
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`$${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(value)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+        }
+      }
+      return;
+    }
+
+    if (thing.thingType === 'relation') {
+      const role = thing.roles[key];
+      if (role) {
+        const [player] = role.playedBy || [];
+        const playerVar = `${player.thing}_${uuidv4()}`;
+        if (value === null) {
+          matches.push(`not { $${$var} (${player.plays}: ${playerVar}); };`);
+        } else if (Array.isArray(value)) {
+          // todo: replace id with the actual id attribute
+          const alt = value.map((v) => `$${playerVar} isa ${player.thing}, has id ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar});`);
+          const match = joinAlt(alt);
+          if (match) {
+            matches.push(match);
+          }
+        } else {
+          // todo: replace id with the actual id attribute
+          matches.push(`$${playerVar} isa ${player.thing}, has id ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`);
+        }
+        return;
+      }
+    }
+
+    throw new Error(`"${$thing}" does not have property "${key}"`);
+  });
+
+  return matches.join('\n');
+};
+
+const joinAlt = (alt: string[]): string | undefined => {
+  if (alt.length > 1) {
+    return `{ ${alt.join(' } or { ')} };`;
+  }
+  const [match] = alt;
+  return match;
+};
+
+const serializeValue = (value: string | number | boolean | Date) => {
+  if (typeof value === 'string') {
+    return `'${value}'`;
+  }
+  if (value instanceof Date) {
+    return `'${value.toISOString().replace('Z', '')}'`;
+  }
+  return `${value}`;
+};
 
 export const buildTQLQuery: PipelineOperation = async (req) => {
 	const { enrichedBqlQuery } = req;
@@ -117,8 +298,10 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += `"${dotPath}.${$metaData}.${roleField.$var}":{ \n`;
 			tqlStr += '\tmatch \n';
 			if (roleField.$filter) {
-				tqlStr += ` $${$path}${separator}${roleField.$var} isa ${roleField.$thing}`;
-				processFilters(roleField.$filter, `${$path}${separator}${roleField.$var}`);
+				tqlStr += ` $${$path}${separator}${roleField.$var} isa ${roleField.$thing};`;
+				// processFilters(roleField.$filter, `${$path}${separator}${roleField.$var}`);
+        const $var = `${$path}${separator}${roleField.$var}`;
+        tqlStr += `\n${buildFilter(roleField.$filter as any, $var, roleField.$thing, req.schema)}`;
 			}
 			tqlStr += `\t$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary}; \n`;
 
@@ -181,8 +364,10 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 			tqlStr += `"${dotPath}.${$metaData}.${linkField.$var}":{ \n`;
 			tqlStr += '\tmatch \n';
 			if (linkField.$filter) {
-				tqlStr += ` $${$path}${separator}${linkField.$var} isa ${linkField.$thing}`;
-				processFilters(linkField.$filter, `${$path}${separator}${linkField.$var}`);
+				tqlStr += ` $${$path}${separator}${linkField.$var} isa ${linkField.$thing};`;
+				// processFilters(linkField.$filter, `${$path}${separator}${linkField.$var}`);
+        const $var = `${$path}${separator}${linkField.$var}`;
+        tqlStr += `\n${buildFilter(linkField.$filter as any, $var, linkField.$thing, req.schema)}`;
 			}
 			// a. intermediary
 			if (linkField.$target === 'role') {
@@ -231,11 +416,12 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 					throw new Error('Path is not defined');
 				}
 				const queryPath = query[QueryPath];
-				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				tqlStr += `match \n \t $${$path} isa ${$thing};`;
 				if ($filter) {
-					processFilters($filter, $path);
-				} else {
-					tqlStr += '; ';
+					// processFilters($filter, $path);
+          tqlStr += `\n${buildFilter($filter as any, $path, $thing, req.schema)}`;
+				// } else {
+				// 	tqlStr += '; ';
 				}
 
 				const randomId = `M_${uuidv4()}`;
@@ -274,11 +460,12 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 				}
 				const queryPath = query[QueryPath];
 
-				tqlStr += `match \n \t $${$path} isa ${$thing} `;
+				tqlStr += `match \n \t $${$path} isa ${$thing};`;
 				if ($filter) {
-					processFilters($filter, $path);
-				} else {
-					tqlStr += '; ';
+					// processFilters($filter, $path);
+          tqlStr += `\n${buildFilter($filter as any, $path, $thing, req.schema)}`;
+				// } else {
+				// 	tqlStr += '; ';
 				}
 
 				tqlStr += `?queryPath = "${queryPath}";\n`;
