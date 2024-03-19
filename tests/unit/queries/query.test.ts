@@ -1369,22 +1369,52 @@ describe('Query', () => {
     ]);
   });
 
-  it('TODO: slo1[$sort, $limit, $offset] Sort', async () => {
+  it('slo1[$sort, $limit, $offset] root', async () => {
     const res = await bormClient.query(
       {
-        $entity: 'User',
-        // @ts-expect-error Unsupported features
-        $sort: ['name'],
+        $entity: 'Account',
+        $sort: [{ field: 'provider', desc: false }, 'id'],
         $offset: 1,
         $limit: 2,
         $fields: ['id'],
       },
       { noMetadata: true },
     );
-    expect(deepSort(res, 'id')).toMatchObject([
-      { id: 'user1'},
-      { id: 'user5'},
+    expect(res).toMatchObject([
+      // { id: 'account1-2'},
+      { id: 'account3-1'},
+      { id: 'account1-3'},
+      // { id: 'account1-1'},
+      // { id: 'account2-1'},
     ]);
+  });
+
+  it('slo1[$sort, $limit, $offset] sub level', async () => {
+    const res = await bormClient.query(
+      {
+        $entity: 'User',
+        $id: 'user1',
+        $fields: [
+          'id',
+          {
+            $path: 'accounts',
+            $fields: ['id'],
+            $sort: ['provider'],
+            $offset: 1,
+            $limit: 1,
+          },
+        ],
+      },
+      { noMetadata: true },
+    );
+    expect(res).toMatchObject({
+      accounts: [
+        // { id: 'account1-2' },
+        { id: 'account1-3' },
+        // { id: 'account1-1' },
+      ],
+      id: 'user1',
+    });
   });
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {

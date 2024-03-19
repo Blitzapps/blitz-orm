@@ -1,10 +1,15 @@
 import type { BQLField, EnrichedBormEntity, EnrichedBormRelation } from '..';
 
+export type Sorter = { field: string; desc?: boolean } | string;
+
 export type RawBQLQuery = {
 	$id?: string | string[];
 	$filter?: Record<string, any>; // todo
 	$fields?: BQLField[]; // nested don't need it, is specified by the parent. Todo: enrich queries and mutations so nested do show their types
 	$excludedFields?: BQLField[];
+	$sort?: Sorter[];
+	$offset?: number;
+	$limit?: number;
 } & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' });
 
 export type ParsedBQLQuery = Omit<RawBQLQuery, '$entity' | '$relation' | '$thing' | '$thingType'> & {
