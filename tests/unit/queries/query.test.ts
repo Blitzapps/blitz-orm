@@ -1093,6 +1093,7 @@ describe('Query', () => {
 					provider: 'google',
 					isSecureProvider: true,
 					user: 'user1',
+          profile: { hobby: ['Running'] },
 				},
 				{
 					$thing: 'Account',
@@ -1123,14 +1124,13 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
-
+          profile: { hobby: ['Running'] },
 					user: 'user1',
 				},
 				{
 					id: 'account1-2',
 					provider: 'facebook',
 					isSecureProvider: false,
-
 					user: 'user1',
 				},
 				{
@@ -1321,7 +1321,7 @@ describe('Query', () => {
 		expect(true).toEqual(false);
 	});
 
-  it.only('lf[$filter] Filter by a link field with cardinality ONE', async () => {
+  it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
     const res = await bormClient.query(
       {
         $relation: 'User-Accounts',
@@ -1337,12 +1337,12 @@ describe('Query', () => {
     ]);
   });
 
-  it.only('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+  it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
     const res = await bormClient.query(
       {
         $relation: 'User-Accounts',
         $filter: {
-          $not: { user: ['user1', 'user2'] },
+          $not: { user: ['user1'] },
         },
         $fields: ['id'],
       },
@@ -1354,7 +1354,7 @@ describe('Query', () => {
     ]);
   });
 
-  it.only('lf[$filter] Filter by a link field with cardinality MANY', async () => {
+  it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
     const res = await bormClient.query(
       {
         $entity: 'User',

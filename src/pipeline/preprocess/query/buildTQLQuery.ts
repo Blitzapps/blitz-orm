@@ -19,7 +19,7 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
   const matches: string[] = [];
 
   Object.entries($not || {}).forEach(([key, value]) => {
-    const df = thing.dataFields?.find((df) => df.path === key);
+    const df = thing.dataFields?.find((df) => df.dbPath === key);
     if (df) {
       if (value === null) {
         matches.push(`$${$var} has ${key} $${key}_${uuidv4()};`);
@@ -35,31 +35,32 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
 
     const lf = thing.linkFields?.find((lf) => lf.path === key);
     if (lf) {
-      const [oppositeThing] = lf.oppositeLinkFieldsPlayedBy;
+      const [opposite] = lf.oppositeLinkFieldsPlayedBy;
+      const oppositeThing = getThing(schema, opposite.thing);
+      const oppositeIdField = oppositeThing.idFields?.[0];
+      if (!oppositeIdField) {
+        throw new Error(`"${opposite.thing}" does not have an id field`);
+      }
       if (lf.target === 'relation') {
         if (value === null) {
           matches.push(`(${lf.plays}: $${$var}) isa ${lf.relation};`);
         } else if (Array.isArray(value)) {
           value.forEach((v) => {
-            // todo: replace id with the actual id attribute
-            matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(v)}; };`);
+            matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)}; };`);
           });
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(value)}; };`);
+          matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)}; };`);
         }
       } else {
-        const oppVar = `${oppositeThing.thing}_${uuidv4()}`;
+        const oppVar = `${opposite.thing}_${uuidv4()}`;
         if (value === null) {
-          matches.push(`$${oppVar} isa ${oppositeThing.thing}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+          matches.push(`$${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`);
         } else if (Array.isArray(value)) {
           value.forEach((v) => {
-            // todo: replace id with the actual id attribute
-            matches.push(`not { $${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(v)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+            matches.push(`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(v)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`);
           });
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`not { $${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(value)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+          matches.push(`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`);
         }
       }
       return;
@@ -69,17 +70,20 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
       const role = thing.roles[key];
       if (role) {
         const [player] = role.playedBy || [];
+        const playerThing = getThing(schema, player.thing);
+        const playerIdField = playerThing.idFields?.[0];
+        if (!playerIdField) {
+          throw new Error(`"${player.thing}" does not have an id field`);
+        }
         const playerVar = `${player.thing}_${uuidv4()}`;
         if (value === null) {
           matches.push(`$${$var} (${player.plays}: ${playerVar});`);
         } else if (Array.isArray(value)) {
           value.forEach((v) => {
-            // todo: replace id with the actual id attribute
-            matches.push(`not { $${playerVar} isa ${player.thing}, has id ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`);
+            matches.push(`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`);
           });
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`not { $${playerVar} isa ${player.thing}, has id ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`);
+          matches.push(`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`);
         }
         return;
       }
@@ -87,7 +91,7 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
   });
 
   Object.entries(rest).forEach(([key, value]) => {
-    const df = thing.dataFields?.find((df) => df.path === key);
+    const df = thing.dataFields?.find((df) => df.dbPath === key);
     if (df) {
       if (value === null) {
         matches.push(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`);
@@ -105,35 +109,36 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
 
     const lf = thing.linkFields?.find((lf) => lf.path === key);
     if (lf) {
-      const [oppositeThing] = lf.oppositeLinkFieldsPlayedBy;
+      const [opposite] = lf.oppositeLinkFieldsPlayedBy;
+      const oppositeThing = getThing(schema, opposite.thing);
+      const oppositeIdField = oppositeThing.idFields?.[0];
+      if (!oppositeIdField) {
+        throw new Error(`"${opposite.thing}" does not have an id field`);
+      }
       if (lf.target === 'relation') {
         if (value === null) {
           matches.push(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`);
         } else if (Array.isArray(value)) {
-          // todo: replace id with the actual id attribute
-          const alt = value.map((v) => `(${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(v)};`);
+          const alt = value.map((v) => `(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)};`);
           const match = joinAlt(alt);
           if (match) {
             matches.push(match);
           }
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`(${lf.plays}: $${$var}) isa ${lf.relation}, has id ${serializeValue(value)};`);
+          matches.push(`(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)};`);
         }
       } else {
-        const oppVar = `${oppositeThing.thing}_${uuidv4()}`;
+        const oppVar = `${opposite.thing}_${uuidv4()}`;
         if (value === null) {
-          matches.push(`not { $${oppVar} isa ${oppositeThing.thing}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation}; };`);
+          matches.push(`not { $${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`);
         } else if (Array.isArray(value)) {
-          // todo: replace id with the actual id attribute
-          const alt = value.map((v) => `$${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(v)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+          const alt = value.map((v) => `$${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(v)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`);
           const match = joinAlt(alt);
           if (match) {
             matches.push(match);
           }
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`$${oppVar} isa ${oppositeThing.thing}, has id ${serializeValue(value)}; (${lf.plays}: $${$var}, ${oppositeThing.plays}: $${oppVar}) isa ${lf.relation};`);
+          matches.push(`$${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`);
         }
       }
       return;
@@ -143,19 +148,22 @@ const buildFilter = ($filter: Filter, $var: string, $thing: string, schema: Enri
       const role = thing.roles[key];
       if (role) {
         const [player] = role.playedBy || [];
+        const playerThing = getThing(schema, player.thing);
+        const playerIdField = playerThing.idFields?.[0];
+        if (!playerIdField) {
+          throw new Error(`"${player.thing}" does not have an id field`);
+        }
         const playerVar = `${player.thing}_${uuidv4()}`;
         if (value === null) {
           matches.push(`not { $${$var} (${player.plays}: ${playerVar}); };`);
         } else if (Array.isArray(value)) {
-          // todo: replace id with the actual id attribute
-          const alt = value.map((v) => `$${playerVar} isa ${player.thing}, has id ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar});`);
+          const alt = value.map((v) => `$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar});`);
           const match = joinAlt(alt);
           if (match) {
             matches.push(match);
           }
         } else {
-          // todo: replace id with the actual id attribute
-          matches.push(`$${playerVar} isa ${player.thing}, has id ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`);
+          matches.push(`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`);
         }
         return;
       }
@@ -203,31 +211,6 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 		$filter?: object;
 		$fieldType?: 'data' | 'role' | 'link';
 		[QueryPath]?: string;
-	};
-
-	const processFilters = ($filter: object, $var: string) => {
-		let simpleHas = '';
-		let orHas = '';
-
-		for (const key in $filter) {
-			// @ts-expect-error todo
-			const filterKey = $filter[key];
-			if (Array.isArray(filterKey)) {
-				for (let i = 0; i < filterKey.length; i++) {
-					orHas += `{$${$var} has ${key} "${filterKey[i]}";}`;
-					if (i < filterKey.length - 1) {
-						orHas += 'or';
-					} else {
-						orHas += ';';
-					}
-				}
-			} else {
-				simpleHas += `, has ${key} "${filterKey}"`;
-			}
-		}
-		simpleHas += '; \n';
-		tqlStr += simpleHas;
-		tqlStr += orHas;
 	};
 
 	const processDataFields = (
