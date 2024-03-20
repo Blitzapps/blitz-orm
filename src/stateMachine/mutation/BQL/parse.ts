@@ -72,11 +72,11 @@ export const parseBQLMutation = async (
 			if (node.$op === 'create') {
 				const idValue = getIdValue(node);
 
-				if (nodes.find((x) => x.$id === idValue)) {
+				if (nodes.find((x) => x.$id === idValue && x.$op === 'create')) {
 					throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
 				}
 				if (edges.find((x) => x.$bzId === node.$bzId)) {
-					throw new Error(`Duplicate $bzid ${node.$bzId} for node ${JSON.stringify(node)}`);
+					throw new Error(`Duplicate $bzId ${node.$bzId} for node ${JSON.stringify(node)}`);
 				}
 				nodes.push({ ...node, $id: idValue });
 				return;

@@ -72,7 +72,7 @@ export const testSchema: BormSchema = {
 					path: 'timestamp',
 					default: {
 						type: 'fn',
-						fn: () => new Date().toISOString().replace('Z', ''),
+						fn: () => new Date().toISOString(),
 					},
 				},
 			],
@@ -184,6 +184,10 @@ export const testSchema: BormSchema = {
 					contentType: 'BOOLEAN',
 					isVirtual: true,
 				},
+				{
+					path: 'profile',
+					contentType: 'JSON',
+				},
 			],
 			linkFields: [
 				{
@@ -267,6 +271,15 @@ export const testSchema: BormSchema = {
 												spaces: [{ id: spaceId }],
 											}
 										: {},
+							},
+						],
+					},
+					{
+						actions: [
+							{
+								description: 'Use %var to replace name',
+								type: 'transform',
+								fn: ({ $op, '%name': varName }) => ($op === 'create' && varName ? { name: `secret-${varName}` } : {}),
 							},
 						],
 					},

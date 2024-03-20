@@ -42,8 +42,8 @@ describe('Mutations: PreHooks', () => {
 		const currentTime = new Date();
 		const twoMinutesAgo = new Date(currentTime.getTime() - 62 * 60 * 1000); //62 minutes ago because there is a bug that reduces -1 hours in local machine
 
-		expect(timestamp instanceof Date).toBe(true);
-		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBe(true);
+		expect(timestamp instanceof Date).toBeTruthy();
+		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBeTruthy();
 
 		//cleanup
 		await bormClient.mutate({
@@ -116,7 +116,7 @@ describe('Mutations: PreHooks', () => {
 
 	// node level
 
-	it('vfla1[validation, functions, local, thing] Basic', async () => {
+	it('vfl1[validation, functions, local, thing] Basic', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -139,7 +139,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('vfla2[validation, functions, local, attribute] Function', async () => {
+	it('vfl2[validation, functions, local, attribute] Function', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -161,7 +161,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('vfla3[validation, functions, local, attribute] FUnction with custom error', async () => {
+	it('vfl3[validation, functions, local, attribute] FUnction with custom error', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -185,7 +185,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('vfla4[validation, functions, remote, parent] Validate considering the parent', async () => {
+	it('vfr1[validation, functions, remote, parent] Validate considering the parent', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -233,7 +233,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('vfla5[validation, functions, nested, things] Check nested array', async () => {
+	it('vflr2[validation, functions, remote, things] Check nested array', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -255,7 +255,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('TODO:vfla6[validation, functions, nested, things] Check nested array, card ONE', async () => {
+	it('TODO:vflr3[validation, functions, nested, things] Check nested array, card ONE', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -394,6 +394,42 @@ describe('Mutations: PreHooks', () => {
 				$thingType: 'relation',
 				$op: 'delete',
 				$ids: ['secret-kind-tn3', 'secret-kind-tn3-YES!'],
+			});
+		}
+	});
+
+	it('tt1[transform, temp props] Transform using %vars', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate(
+				{
+					'$thing': 'User',
+					'id': 'tt1-u1',
+					'%name': 'Sinatra',
+				},
+				{ noMetadata: true },
+			);
+
+			const res = await bormClient.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'tt1-u1',
+				},
+				{ noMetadata: true },
+			);
+			expect(res).toEqual({
+				id: 'tt1-u1',
+				name: 'secret-Sinatra',
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$id: 'tt1-u1',
+				$op: 'delete',
 			});
 		}
 	});
