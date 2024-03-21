@@ -295,7 +295,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 				const sorter = buildSorter({ schema, $thing, $var: $path, $sort, depth: 0 });
 
 				if (sorter) {
-					tqlStr += `\n${sorter.match}`;
+					tqlStr += sorter.match;
 				}
 
 				const randomId = `M_${uuidv4()}`;
@@ -325,7 +325,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 				}
 
 				if (sorter) {
-					tqlStr += `\n${sorter.sort}`;
+					tqlStr += sorter.sort;
 				}
 
 				if (typeof $offset === 'number') {
@@ -356,7 +356,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 				const sorter = buildSorter({ schema, $thing, $var: $path, $sort, depth: 0 });
 
 				if (sorter) {
-					tqlStr += `\n${sorter.match}`;
+					tqlStr += sorter.match;
 				}
 
 				tqlStr += `\n?queryPath = "${queryPath}";`;
@@ -384,7 +384,7 @@ export const buildTQLQuery: PipelineOperation = async (req) => {
 				}
 
 				if (sorter) {
-					tqlStr += `\n${sorter.sort}`;
+					tqlStr += sorter.sort;
 				}
 
 				if (typeof $offset === 'number') {
@@ -690,10 +690,23 @@ const buildSorter = (props: {
 		if (!df) {
 			throw new Error(`"${$thing}" does not have data field "${s.field}"`);
 		}
-		const fieldPath = `${s.field}_${uuidv4()}`;
-		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${fieldPath};`, depth));
+		const attrVar = `${s.field}_${uuidv4()}`;
+    sortMatch.push(indent(`{`, depth));
+    sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
+    sortMatch.push(indent(`not {`, depth + 1));
+    sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
+    sortMatch.push(indent(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
+    sortMatch.push(indent(`};`, depth + 1));
+    sortMatch.push(indent(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
+    sortMatch.push(indent(`} or {`, depth));
+    sortMatch.push(indent(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
+    // TODO: This is a workaround to put things with undefined attribute at the end.
+    // "~" is the last non-control char (DEC 126) in ASCII.
+    sortMatch.push(indent(`?${attrVar}_ = "~";`, depth + 1));
+    sortMatch.push(indent(`};`, depth));
+    sortMatch.push(indent(`?${attrVar} = ?${attrVar}_;`, depth));
 		const order = s.desc ? 'desc' : 'asc';
-		sorter.push(`$${fieldPath} ${order}`);
+		sorter.push(`?${attrVar} ${order}`);
 	});
 
 	if (sortMatch.length === 0) {
@@ -701,7 +714,7 @@ const buildSorter = (props: {
 	}
 
 	return {
-		match: sortMatch.join('\n'),
+		match: sortMatch.join(''),
 		sort: indent(`sort ${sorter.join(', ')};`, depth),
 	};
 };
@@ -711,6 +724,5 @@ const indent = (line: string, depth: number) => {
 	for (let i = 0; i < depth; i++) {
 		_indent += '  ';
 	}
-	console.log(`indent${_indent}end${depth}`);
 	return `\n${_indent}${line}`;
 };

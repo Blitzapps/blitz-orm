@@ -312,31 +312,31 @@ describe('Query', () => {
 			'$debugger': {
 				tqlRequest: {
 					entity:
-						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; get; group $User;',
+						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id user1; get; group $User;',
 					relations: [
 						{
 							entity: 'User',
 							relation: 'User-Accounts',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
+								'match $user isa User , has id $user_id; $user_id user1;  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'User-Sessions',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
+								'match $user isa User , has id $user_id; $user_id user1;  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'Space-User',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
+								'match $users isa User , has id $users_id; $users_id user1;  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
 						},
 						{
 							entity: 'User',
 							relation: 'UserTag',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
+								'match $users isa User , has id $users_id; $users_id user1; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
 						},
 					],
 				},
@@ -1017,7 +1017,7 @@ describe('Query', () => {
 			$filter: { name: 'Antoine' },
 			$fields: ['name'],
 		});
-		// notice now it is an array. Multiple users could be called "Antoine"
+		// notice now it is an array. Multiple users could be called Antoine
 		expect(res).toEqual([{ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' }]);
 	});
 
@@ -1415,6 +1415,46 @@ describe('Query', () => {
       ],
       id: 'user1',
     });
+  });
+
+  it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
+    const res = await bormClient.query(
+      {
+        $entity: 'User',
+        $fields: ['id', 'email'],
+        $sort: ['email'],
+      },
+      { noMetadata: true },
+    );
+    expect(res).toMatchObject([
+      {
+        email: 'afx@rephlex.com',
+        id: 'god1',
+      },
+      {
+        email: 'ann@test.com',
+        id: 'user3',
+      },
+      {
+        email: 'antoine@test.com',
+        id: 'user1',
+      },
+      {
+        email: 'black.mamba@deadly-viper.com',
+        id: 'superuser1',
+      },
+      {
+        email: 'charlize@test.com',
+        id: 'user5',
+      },
+      {
+        email: 'loic@test.com',
+        id: 'user2',
+      },
+      {
+        id: 'user4',
+      },
+  ]);
   });
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
