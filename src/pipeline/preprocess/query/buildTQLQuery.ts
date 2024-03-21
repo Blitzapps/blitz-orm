@@ -691,20 +691,20 @@ const buildSorter = (props: {
 			throw new Error(`"${$thing}" does not have data field "${s.field}"`);
 		}
 		const attrVar = `${s.field}_${uuidv4()}`;
-    sortMatch.push(indent(`{`, depth));
-    sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
-    sortMatch.push(indent(`not {`, depth + 1));
-    sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
-    sortMatch.push(indent(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
-    sortMatch.push(indent(`};`, depth + 1));
-    sortMatch.push(indent(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
-    sortMatch.push(indent(`} or {`, depth));
-    sortMatch.push(indent(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
-    // TODO: This is a workaround to put things with undefined attribute at the end.
-    // "~" is the last non-control char (DEC 126) in ASCII.
-    sortMatch.push(indent(`?${attrVar}_ = "~";`, depth + 1));
-    sortMatch.push(indent(`};`, depth));
-    sortMatch.push(indent(`?${attrVar} = ?${attrVar}_;`, depth));
+		sortMatch.push(indent('{', depth));
+		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
+		sortMatch.push(indent('not {', depth + 1));
+		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
+		sortMatch.push(indent(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
+		sortMatch.push(indent('};', depth + 1));
+		sortMatch.push(indent(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
+		sortMatch.push(indent('} or {', depth));
+		sortMatch.push(indent(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
+		// TODO: This is a workaround to put things with undefined attribute at the end.
+		// "~" is the last non-control char (DEC 126) in ASCII.
+		sortMatch.push(indent(`?${attrVar}_ = "~";`, depth + 1));
+		sortMatch.push(indent('};', depth));
+		sortMatch.push(indent(`?${attrVar} = ?${attrVar}_;`, depth));
 		const order = s.desc ? 'desc' : 'asc';
 		sorter.push(`?${attrVar} ${order}`);
 	});
