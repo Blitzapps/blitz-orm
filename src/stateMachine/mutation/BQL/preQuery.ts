@@ -24,7 +24,7 @@ export const mutationPreQuery = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
-	//console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
+	// console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
 	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$') && block[key] !== undefined) {
@@ -160,7 +160,7 @@ export const mutationPreQuery = async (
 
 	// @ts-expect-error todo
 	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
-	// console.log('preQueryRes', JSON.stringify(preQueryRes, null, 2));
+	// console.log('preQueryRes', JSON.stringify(preQueryRes));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -381,7 +381,7 @@ export const mutationPreQuery = async (
 							operationWithoutMultiples.push(opBlock);
 						}
 					} else {
-						otherOps.push({ ...opBlock, $bzId: `T_${uuidv4()}` });
+						otherOps.push({ ...opBlock, $bzId: opBlock.$tempId || `T_${uuidv4()}` });
 					}
 				});
 				return { operationWithMultiples, operationWithoutMultiples, otherOps };
@@ -455,15 +455,24 @@ export const mutationPreQuery = async (
 						keys.forEach((key) => {
 							const childKey = `${cacheKey.includes('undefined') ? 'root' : cacheKey}.${combinationBlock.$id}${preQueryPathSeparator}${key}`;
 							const cacheFound = cache[childKey];
-							if (cacheFound) {
-								foundKeys.push({ key, ids: cacheFound.$ids });
+							const hasRemove =
+								combinationBlock[key].filter(
+									(subBlock: FilledBQLMutationBlock) =>
+										subBlock.$op === 'unlink' || subBlock.$op === 'delete' || subBlock.$op === 'update',
+								).length > 0;
+							if (hasRemove) {
+								if (cacheFound) {
+									foundKeys.push({ key, ids: cacheFound.$ids });
+								}
+							} else {
+								foundKeys.push({ key, ids: [''] });
 							}
 						});
 						if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === combinationBlock.$id)) {
 							combinationsToKeep.push(combinationBlock);
 						} else {
 							// only prune the child batched operation
-							const newBlock = { ...combinationBlock, $bzId: `T4_${uuidv4()}` };
+							const newBlock = { ...combinationBlock, $bzId: combinationBlock.$tempId || `T4_${uuidv4()}` };
 							keys.forEach((key) => {
 								// keeping ops that aren't batched (non-multiples)
 								const newOps = combinationBlock[key].filter((op: FilledBQLMutationBlock) => op.$id);
@@ -504,14 +513,14 @@ export const mutationPreQuery = async (
 									combinationsToKeep.push({
 										...combinationBlock,
 										$id: id,
-										$bzId: `T_${uuidv4()}`,
+										$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
 									});
 								});
 							} else if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === id)) {
 								combinationsToKeep.push({
 									...combinationBlock,
 									$id: id,
-									$bzId: `T_${uuidv4()}`,
+									$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
 								});
 							}
 						});
@@ -629,7 +638,7 @@ export const mutationPreQuery = async (
 						...replaceBlock,
 						$op: 'unlink',
 						$id: unlinkIds,
-						$bzId: `T4_${uuidv4()}`,
+						$bzId: replaceBlock.$tempId || `T4_${uuidv4()}`,
 						id: undefined,
 						...symbols,
 					});
@@ -640,7 +649,7 @@ export const mutationPreQuery = async (
 							...replaceBlock,
 							$op: 'link',
 							$id: id,
-							$bzId: `T5_${uuidv4()}`,
+							$bzId: replaceBlock.$tempId || `T5_${uuidv4()}`,
 							...symbols,
 						});
 					});
@@ -651,7 +660,7 @@ export const mutationPreQuery = async (
 							...replaceBlock,
 							$op: 'create',
 							id,
-							$bzId: `T6_${uuidv4()}`,
+							$bzId: replaceBlock.$tempId || `T6_${uuidv4()}`,
 							...symbols,
 						});
 					});
@@ -779,7 +788,17 @@ export const mutationPreQuery = async (
 	};
 
 	const final = fillPaths(processedReplaces);
-	//console.log('post-preQuery', JSON.stringify(final, null, 2));
+	const finalArray = Array.isArray(final) ? final : [final];
+	const copy = [...finalArray];
+	const sortedArray = copy.sort((a: FilledBQLMutationBlock, b: FilledBQLMutationBlock) => {
+		if (a.$op === 'create' && b.$op !== 'create') {
+			return -1; // Move 'a' to an index lower than 'b' (to the top of the array)
+		} else if (a.$op !== 'create' && b.$op === 'create') {
+			return 1; // Move 'b' to an index lower than 'a'
+		}
+		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
+	});
+	// console.log('post-preQuery', JSON.stringify(final, null, 2));
 
-	return final;
+	return sortedArray;
 };
