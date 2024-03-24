@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.20(2023-03-20)
+
+- Refacto: Pre-queries refactoring
+
 ## 0.9.19(2023-03-17)
 
 - Feat: JSON storage
@@ -18,7 +22,7 @@
 
 - Feat: dependency checker
 
-## 0.9.15(2023-03-04)
+## 0.9.15(2023-02-04)
 
 - Fix: removed console.log
 

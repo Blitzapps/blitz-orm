@@ -1092,8 +1092,10 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
+					profile: {
+						hobby: ['Running'],
+					},
 					user: 'user1',
-          profile: { hobby: ['Running'] },
 				},
 				{
 					$thing: 'Account',
@@ -1124,7 +1126,7 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
-          profile: { hobby: ['Running'] },
+					profile: { hobby: ['Running'] },
 					user: 'user1',
 				},
 				{
@@ -1321,141 +1323,131 @@ describe('Query', () => {
 		expect(true).toEqual(false);
 	});
 
-  it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
-    const res = await bormClient.query(
-      {
-        $relation: 'User-Accounts',
-        $filter: { user: 'user1' },
-        $fields: ['id'],
-      },
-      { noMetadata: true },
-    );
-    expect(deepSort(res, 'id')).toMatchObject([
-      { id: 'ua1-1'},
-      { id: 'ua1-2'},
-      { id: 'ua1-3'},
-    ]);
-  });
+	it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
+		const res = await bormClient.query(
+			{
+				$relation: 'User-Accounts',
+				$filter: { user: 'user1' },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua1-1' }, { id: 'ua1-2' }, { id: 'ua1-3' }]);
+	});
 
-  it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
-    const res = await bormClient.query(
-      {
-        $relation: 'User-Accounts',
-        $filter: {
-          $not: { user: ['user1'] },
-        },
-        $fields: ['id'],
-      },
-      { noMetadata: true },
-    );
-    expect(deepSort(res, 'id')).toMatchObject([
-      { id: 'ua2-1'},
-      { id: 'ua3-1'},
-    ]);
-  });
+	it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+		const res = await bormClient.query(
+			{
+				$relation: 'User-Accounts',
+				$filter: {
+					$not: { user: ['user1'] },
+				},
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua2-1' }, { id: 'ua3-1' }]);
+	});
 
-  it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
-    const res = await bormClient.query(
-      {
-        $entity: 'User',
-        $filter: { spaces: ['space-1'] },
-        $fields: ['id'],
-      },
-      { noMetadata: true },
-    );
-    expect(deepSort(res, 'id')).toMatchObject([
-      { id: 'user1'},
-      { id: 'user5'},
-    ]);
-  });
+	it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$filter: { spaces: ['space-1'] },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
+	});
 
-  it('slo1[$sort, $limit, $offset] root', async () => {
-    const res = await bormClient.query(
-      {
-        $entity: 'Account',
-        $sort: [{ field: 'provider', desc: false }, 'id'],
-        $offset: 1,
-        $limit: 2,
-        $fields: ['id'],
-      },
-      { noMetadata: true },
-    );
-    expect(res).toMatchObject([
-      // { id: 'account1-2'},
-      { id: 'account3-1'},
-      { id: 'account1-3'},
-      // { id: 'account1-1'},
-      // { id: 'account2-1'},
-    ]);
-  });
+	it('slo1[$sort, $limit, $offset] root', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'Account',
+				$sort: [{ field: 'provider', desc: false }, 'id'],
+				$offset: 1,
+				$limit: 2,
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject([
+			// { id: 'account1-2'},
+			{ id: 'account3-1' },
+			{ id: 'account1-3' },
+			// { id: 'account1-1'},
+			// { id: 'account2-1'},
+		]);
+	});
 
-  it('slo1[$sort, $limit, $offset] sub level', async () => {
-    const res = await bormClient.query(
-      {
-        $entity: 'User',
-        $id: 'user1',
-        $fields: [
-          'id',
-          {
-            $path: 'accounts',
-            $fields: ['id'],
-            $sort: ['provider'],
-            $offset: 1,
-            $limit: 1,
-          },
-        ],
-      },
-      { noMetadata: true },
-    );
-    expect(res).toMatchObject({
-      accounts: [
-        // { id: 'account1-2' },
-        { id: 'account1-3' },
-        // { id: 'account1-1' },
-      ],
-      id: 'user1',
-    });
-  });
+	it('slo1[$sort, $limit, $offset] sub level', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'user1',
+				$fields: [
+					'id',
+					{
+						$path: 'accounts',
+						$fields: ['id'],
+						$sort: ['provider'],
+						$offset: 1,
+						$limit: 1,
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject({
+			accounts: [
+				// { id: 'account1-2' },
+				{ id: 'account1-3' },
+				// { id: 'account1-1' },
+			],
+			id: 'user1',
+		});
+	});
 
-  it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
-    const res = await bormClient.query(
-      {
-        $entity: 'User',
-        $fields: ['id', 'email'],
-        $sort: ['email'],
-      },
-      { noMetadata: true },
-    );
-    expect(res).toMatchObject([
-      {
-        email: 'afx@rephlex.com',
-        id: 'god1',
-      },
-      {
-        email: 'ann@test.com',
-        id: 'user3',
-      },
-      {
-        email: 'antoine@test.com',
-        id: 'user1',
-      },
-      {
-        email: 'black.mamba@deadly-viper.com',
-        id: 'superuser1',
-      },
-      {
-        email: 'charlize@test.com',
-        id: 'user5',
-      },
-      {
-        email: 'loic@test.com',
-        id: 'user2',
-      },
-      {
-        id: 'user4',
-      },
-  ]);
-  });
+	it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$fields: ['id', 'email'],
+				$sort: ['email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject([
+			{
+				email: 'afx@rephlex.com',
+				id: 'god1',
+			},
+			{
+				email: 'ann@test.com',
+				id: 'user3',
+			},
+			{
+				email: 'antoine@test.com',
+				id: 'user1',
+			},
+			{
+				email: 'black.mamba@deadly-viper.com',
+				id: 'superuser1',
+			},
+			{
+				email: 'charlize@test.com',
+				id: 'user5',
+			},
+			{
+				email: 'loic@test.com',
+				id: 'user2',
+			},
+			{
+				id: 'user4',
+			},
+		]);
+	});
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
 		expect(bormClient).toBeDefined();
@@ -2070,7 +2062,7 @@ describe('Query', () => {
 		});
 	});
 
-	it('j1[json] Query a thing with an empty JSON attribute', async () => {
+	it('j2[json] Query a thing with an empty JSON attribute', async () => {
 		const entity = await bormClient.query({
 			$entity: 'Account',
 			$id: 'account1-2',
