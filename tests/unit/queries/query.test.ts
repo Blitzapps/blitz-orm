@@ -1092,6 +1092,9 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
+					profile: {
+						hobby: ['Running'],
+					},
 					user: 'user1',
 				},
 				{
@@ -1123,7 +1126,9 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
-
+					profile: {
+						hobby: ['Running'],
+					},
 					user: 'user1',
 				},
 				{
@@ -1923,7 +1928,7 @@ describe('Query', () => {
 		expect(res).toEqual(expectedRes);
 	});
 
-	it.only('j1[json] Query a thing with a JSON attribute', async () => {
+	it('j1[json] Query a thing with a JSON attribute', async () => {
 		const entity = await bormClient.query({
 			$entity: 'Account',
 			$id: 'account1-1',
@@ -1934,7 +1939,7 @@ describe('Query', () => {
 		});
 	});
 
-	it.only('j1[json] Query a thing with an empty JSON attribute', async () => {
+	it('j2[json] Query a thing with an empty JSON attribute', async () => {
 		const entity = await bormClient.query({
 			$entity: 'Account',
 			$id: 'account1-2',
