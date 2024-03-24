@@ -148,6 +148,9 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$idNotIncluded: idNotIncluded,
 				$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 				$filterProcessed: true,
+				$sort: field.$sort,
+				$offset: field.$offset,
+				$limit: field.$limit,
 			};
 		});
 	};
@@ -204,6 +207,9 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 				$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 				$playedBy: playedBy,
 				$filterProcessed: true,
+				$sort: field.$sort,
+				$offset: field.$offset,
+				$limit: field.$limit,
 			};
 		});
 	};
