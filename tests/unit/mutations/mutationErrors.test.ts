@@ -715,18 +715,21 @@ describe('Mutations: Errors', () => {
 			}
 		}
 
-		await bormClient.mutate([
-			{
-				$relation: 'Kind',
-				$tempId: '_:or1-k-2',
-				id: 'or1-k-2',
-			},
-			{
-				$entity: 'Space',
-				$id: 'space-3',
-				kinds: [{ $op: 'link', $tempId: '_:or1-k-2' }],
-			},
-		]);
+		await bormClient.mutate(
+			[
+				{
+					$relation: 'Kind',
+					$tempId: '_:or1-k-2',
+					id: 'or1-k-2',
+				},
+				{
+					$entity: 'Space',
+					$id: 'space-3',
+					kinds: [{ $op: 'link', $tempId: '_:or1-k-2' }],
+				},
+			],
+			{ preQuery: true },
+		);
 
 		const res = await bormClient.query(
 			{
