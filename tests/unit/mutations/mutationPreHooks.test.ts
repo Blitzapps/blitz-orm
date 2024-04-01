@@ -602,6 +602,35 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('tf3[transform, fields] Use $fields', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$thing: 'Color',
+					$fields: ['id'],
+					id: 'gold',
+				},
+			]);
+
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$id: 'mf1-user',
+			// 	name: 'Jack',
+			// 	$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+			// });
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'Color',
+				$thingType: 'entity',
+				$id: 'gold',
+				$op: 'delete',
+			});
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

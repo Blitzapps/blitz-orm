@@ -83,7 +83,7 @@ export const preHookValidations = (
 
 						try {
 							//! Todo: Sandbox the function in nodeCompute() instead of the existing fieldCompute()
-							const validationResult = action.fn(currentNode, parentNode, userContext);
+							const validationResult = action.fn(currentNode, parentNode, userContext, currentNode.$dbNode);
 
 							if (validationResult === false) {
 								throw new Error(`${action.message}.`);

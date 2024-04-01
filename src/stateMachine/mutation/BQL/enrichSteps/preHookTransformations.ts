@@ -26,7 +26,7 @@ export const preHookTransformations = (
 
 			triggeredActions.forEach((action) => {
 				//! Todo: Sandbox the function in computeFunction()
-				const newProps = action.fn(currentNode, parentNode, userContext);
+				const newProps = action.fn(currentNode, parentNode, userContext, currentNode.$dbNode);
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}

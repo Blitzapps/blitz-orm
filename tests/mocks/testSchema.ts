@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
 import { isArray } from 'radash';
+import { d } from '../../src/stateMachine/mutation/robot3-wrapper';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -416,6 +417,21 @@ export const testSchema: BormSchema = {
 					relation: 'UserTagGroup',
 				},
 			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: (a, b, c, dbNode: any) => {
+									console.log('transform', 'currentNode', a, 'dbNode', d);
+									return {};
+								},
+							},
+						],
+					},
+				],
+			},
 		},
 		Power: {
 			idFields: ['id'],
