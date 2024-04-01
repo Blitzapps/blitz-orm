@@ -693,7 +693,11 @@ export const testSchema: BormSchema = {
 		'Expression': {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', as: 'Expression', path: 'Expression' },
-			dataFields: [id, { contentType: 'TEXT', path: 'value', rights: ['CREATE', 'UPDATE'] }],
+			dataFields: [
+				id,
+				{ contentType: 'TEXT', path: 'value', rights: ['CREATE', 'UPDATE'] },
+				{ contentType: 'TEXT', path: 'type' },
+			],
 			roles: {
 				dataField: { cardinality: 'ONE' },
 			},

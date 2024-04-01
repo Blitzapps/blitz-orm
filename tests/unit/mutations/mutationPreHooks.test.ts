@@ -473,6 +473,135 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
+	it('tf1[transform, fields] Use $fields', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					id: 'mf1-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf1-space',
+							dataFields: [
+								{
+									id: 'mf1-dataField-1',
+									values: [
+										{
+											id: 'mf1-dataValue',
+										},
+									],
+									expression: { $op: 'create', id: 'mf1-expression-1' },
+								},
+								{
+									id: 'mf1-dataField-2',
+									values: [{ id: 'mf1-dataValue-2' }],
+								},
+								{
+									id: 'mf1-dataField-3',
+									expression: { $op: 'create', id: 'mf1-expression-2' },
+								},
+								{
+									id: 'mf1-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			await bormClient.mutate({
+				$thing: 'User',
+				$id: 'mf1-user',
+				name: 'Jack',
+				$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'mf1-user',
+			});
+		}
+	});
+
+	it('tf2[transform, fields] Use $fields nested', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					id: 'mf2-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf2-space',
+							dataFields: [
+								{
+									id: 'mf2-dataField-1',
+									values: [
+										{
+											id: 'mf2-dataValue',
+										},
+									],
+									expression: { $op: 'create', id: 'mf2-expression-1' },
+								},
+								{
+									id: 'mf2-dataField-2',
+									values: [{ id: 'mf2-dataValue-2' }],
+								},
+								{
+									id: 'mf2-dataField-3',
+									expression: { $op: 'create', id: 'mf2-expression-2' },
+								},
+								{
+									id: 'mf2-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			await bormClient.mutate({
+				$thing: 'User',
+				$id: 'mf2-user',
+				name: 'Jack',
+				spaces: [
+					{
+						dataFields: [
+							{
+								values: [{ $fields: ['id'], type: 'test-type', $op: 'update' }],
+								expression: { $fields: ['id'], type: 'test-type', $op: 'update' },
+								$fields: ['values', 'expression'],
+								type: 'test-type',
+								$op: 'update',
+							},
+						],
+						$fields: ['dataFields'],
+						$op: 'update',
+					},
+				],
+				$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+			});
+		} finally {
+			//clean
+			await bormClient.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'mf2-user',
+			});
+		}
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

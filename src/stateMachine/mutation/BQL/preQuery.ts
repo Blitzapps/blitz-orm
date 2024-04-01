@@ -3,6 +3,7 @@ import { produce } from 'immer';
 import { traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import type {
+	BQLField,
 	BormConfig,
 	DBHandles,
 	EnrichedBQLMutationBlock,
@@ -59,6 +60,7 @@ export const mutationPreQuery = async (
 
 	// 2. Check operations to make sure they include: Delete, Unlink, Link, Replace, Updater
 	const ops: string[] = [];
+	let has$Fields = false;
 
 	traverse(blocks, ({ parent, key, value }) => {
 		// if (key === '$op') {
@@ -71,6 +73,10 @@ export const mutationPreQuery = async (
 			// @ts-expect-error todo
 			values.forEach((val) => {
 				if (isObject(val)) {
+					// @ts-expect-error todo
+					if (val.$fields) {
+						has$Fields = true;
+					}
 					if (parent.$op !== 'create') {
 						// @ts-expect-error todo
 						if (!ops.includes(val.$op)) {
@@ -92,6 +98,10 @@ export const mutationPreQuery = async (
 				// @ts-expect-error todo
 				ops.push(value.$op);
 			}
+			// @ts-expect-error todo
+			if (value.$fields) {
+				has$Fields = true;
+			}
 		}
 	});
 
@@ -100,14 +110,15 @@ export const mutationPreQuery = async (
 		!ops.includes('unlink') &&
 		!ops.includes('replace') &&
 		!ops.includes('update') &&
-		!ops.includes('link')
+		!ops.includes('link') &&
+		!has$Fields
 	) {
 		return;
 	}
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
-		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
-			const $fields: any[] = [];
+		const processBlock = (block: FilledBQLMutationBlock, transformation?: boolean, root?: boolean) => {
+			let $fields: any[] = transformation ? block.$fields || [] : [];
 			const filteredBlock = {};
 			const toRemoveFromRoot = ['$op', '$bzId', '$parentKey'];
 			const toRemove = ['$relation', '$entity', '$id', ...toRemoveFromRoot];
@@ -122,23 +133,19 @@ export const mutationPreQuery = async (
 					const v = block[k];
 					if (Array.isArray(v) && v.length > 0) {
 						v.forEach((opBlock) => {
-							// const includedKeys = Object.keys(opBlock)
-							// 	.filter((o) => !o.startsWith('$'))
-							// 	.join('__');
-
-							$fields.push({
+							const newField = {
 								$path: k,
-								...processBlock(opBlock),
-								// $as: opBlock.$bzId,
-								// $as: `${k}_${includedKeys}`,
-							});
+								...processBlock(opBlock, transformation),
+							};
+							$fields = [...$fields, ...[newField]];
+							// $fields.push(newField);
 						});
 					} else {
-						$fields.push({
+						const newField = {
 							$path: k,
-							...processBlock(v),
-							// $as: v.$bzId,
-						});
+							...processBlock(v, transformation),
+						};
+						$fields = [...$fields, ...[newField]];
 					}
 				} else {
 					// @ts-expect-error todo
@@ -148,19 +155,24 @@ export const mutationPreQuery = async (
 			return {
 				...filteredBlock,
 				$fields,
-				// $as: block.$bzId,
 			};
 		};
-		return blocks.map((block) => processBlock(block, true));
+		return {
+			preQueryReq: blocks.map((block) => processBlock(block, false, true)),
+			transformationPreQueryReq: blocks.map((block) => processBlock(block, true, true)),
+		};
 	};
 
-	const preQueryReq = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
+	const { preQueryReq, transformationPreQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
-	// console.log('preQueryReq', JSON.stringify(preQueSryReq, null, 2));
+	// console.log('preQueryReq', JSON.stringify({ preQueryReq, transformationPreQueryReq }, null, 2));
 
 	// @ts-expect-error todo
 	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
-	// console.log('preQueryRes', JSON.stringify(preQueryRes));
+	// @ts-expect-error todo
+	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
+
+	// console.log('preQueryRes', JSON.stringify({ preQueryRes, transformationPreQueryRes }, null, 2));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -266,7 +278,59 @@ export const mutationPreQuery = async (
 	//@ts-expect-error - todo
 	cachePaths(preQueryRes || {});
 
-	// console.log('cache', JSON.stringify(cache, null, 2));
+	const tCache: Cache<string> = {};
+	const tCachePaths = (
+		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
+	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
+		return produce(blocks, (draft) =>
+			traverse(draft, (context) => {
+				const { key, parent } = context;
+
+				if (parent && key && parent.$id && !key.includes('$')) {
+					const newObjPath = getObjectPath(parent, key);
+					const cacheKey = objectPathToKey(newObjPath);
+					if (Array.isArray(parent[key])) {
+						// @ts-expect-error todo
+						const cacheArray = [];
+						// @ts-expect-error todo
+						parent[key].forEach((val) => {
+							if (isObject(val)) {
+								// @ts-expect-error todo
+								// eslint-disable-next-line no-param-reassign
+								val.$objectPath = newObjPath;
+								// @ts-expect-error todo
+								cacheArray.push(val.$id.toString());
+							} else if (val) {
+								cacheArray.push(val.toString());
+							}
+						});
+
+						// @ts-expect-error todo
+						// tCache[cacheKey] = { $objectPath: newObjPath, $ids: cacheArray };
+						tCache[cacheKey] = cacheArray;
+					} else {
+						const val = parent[key];
+						tCache[cacheKey] = val;
+						// if (isObject(val)) {
+						// 	// @ts-expect-error todo
+						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.$id.toString()] };
+
+						// 	// @ts-expect-error todo
+						// 	// eslint-disable-next-line no-param-reassign
+						// 	val.$objectPath = newObjPath;
+						// } else if (val) {
+						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.toString()] };
+						// }
+					}
+				}
+			}),
+		);
+	};
+	//@ts-expect-error - todo
+	tCachePaths(transformationPreQueryRes || {});
+
+	// console.log('tCache', JSON.stringify(tCache, null, 2));
+	// console.log('tCache', tCache);
 
 	const fillObjectPaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -798,7 +862,83 @@ export const mutationPreQuery = async (
 		}
 		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
 	});
+
+	const fillDbNodes = (blocks: FilledBQLMutationBlock[], parentPath?: string) => {
+		const processBlock = (block: FilledBQLMutationBlock) => {
+			const $dbNode = {};
+			if (block.$fields) {
+				block.$fields.forEach((field: BQLField) => {
+					// @ts-expect-error todo
+					const fieldKey = field.$path || field;
+					const cacheKey = !block.$objectPath
+						? `${parentPath ? parentPath : 'root'}.${block.$id}${preQueryPathSeparator}${fieldKey}`
+						: `${parentPath ? parentPath : block.$objectPath}.${block.$id}${preQueryPathSeparator}${fieldKey}`;
+					// console.log(
+					// 	'cache stuff: ',
+					// 	JSON.stringify({ fieldKey, cacheKey, parentPath, BO: block.$objectPath }, null, 2),
+					// );
+					const cacheFound = tCache[cacheKey];
+					if (cacheFound) {
+						// todo: based on cardinality, change to single value instead of array
+						// @ts-expect-error todo
+						if (!field.$path) {
+							// @ts-expect-error todo
+							$dbNode[fieldKey] = cacheFound;
+						} else {
+							if (Array.isArray(cacheFound)) {
+								const items = cacheFound.map((b) => {
+									// @ts-expect-error todo
+									return processBlock({
+										$id: b,
+										// @ts-expect-error todo
+										$fields: block.$fields.find((f: BQLField) => f.$path === fieldKey).$fields,
+										// $id: id,
+										$objectPath: cacheKey,
+									});
+								});
+								// @ts-expect-error todo
+								$dbNode[fieldKey] = items;
+							} else {
+								// @ts-expect-error todo
+								$dbNode[fieldKey] = processBlock({
+									// ...cacheFound,
+									// @ts-expect-error todo
+									$id: cacheFound,
+
+									// @ts-expect-error todo
+									$fields: block.$fields.find((f: BQLField) => f.$path === fieldKey).$fields,
+									$objectPath: cacheKey,
+								});
+							}
+						}
+					}
+				});
+			}
+			const newBlock = { ...block, $dbNode, $fields: undefined, $objectPath: undefined };
+
+			return newBlock;
+		};
+		const newBlocks = blocks.map((block) => processBlock(block));
+		const finalBlocks = newBlocks.map((block) => {
+			const newBlock = { ...block };
+			getFieldKeys(newBlock, true).forEach((key) => {
+				const _parentPath = `${parentPath ? parentPath : 'root'}.${block.$id}${preQueryPathSeparator}${key}`;
+				// @ts-expect-error todo
+				const subBlocks = Array.isArray(newBlock[key]) ? newBlock[key] : [newBlock[key]];
+				const newSubBlocks = fillDbNodes(subBlocks, _parentPath);
+				// @ts-expect-error todo
+				newBlock[key] = newSubBlocks;
+			});
+			return newBlock;
+		});
+		return finalBlocks;
+	};
+
+	const filledDbNodes = fillDbNodes(sortedArray);
+
+	// console.log('filledDbNodes', JSON.stringify(filledDbNodes, null, 2));
+
 	// console.log('post-preQuery', JSON.stringify(final, null, 2));
 
-	return sortedArray;
+	return filledDbNodes;
 };

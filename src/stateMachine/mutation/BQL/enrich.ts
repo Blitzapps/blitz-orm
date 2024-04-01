@@ -72,9 +72,12 @@ export const enrichBQLMutation = (
 				if ('$root' in value) {
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
+					const paths: string[] = meta.nodePath?.split('.') || [];
+					const lastPath = paths[paths.length - 1];
+					const secondToLastPath = paths[paths.length - 2];
 					if (key === '$root') {
 						throw new Error('Root things must specify $entity or $relation');
-					} else {
+					} else if (lastPath !== '$fields' && secondToLastPath !== '$fields') {
 						throw new Error(
 							`[Internal] This object has not been initiated with a $thing: ${JSON.stringify(isDraft(value) ? current(value) : value)}`,
 						);

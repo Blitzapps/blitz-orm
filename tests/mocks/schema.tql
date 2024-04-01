@@ -44,6 +44,9 @@ Session·sessionToken sub attribute,
 Expression·value sub attribute,
     value string;
 
+Expression·type sub attribute,
+    value string;
+
 Hook·timestamp sub attribute,
 		value datetime;
 
@@ -178,6 +181,8 @@ DataField sub Field,
 
 Expression sub relation,
     owns Expression·value,
+    owns Expression·type,
+
     owns id @key,
     relates dataField;
     
