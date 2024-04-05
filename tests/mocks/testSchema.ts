@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { BormSchema, DataField } from '../../src/index';
 import { isArray } from 'radash';
-import { d } from '../../src/stateMachine/mutation/robot3-wrapper';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -400,6 +399,7 @@ export const testSchema: BormSchema = {
 						fn: ({ ['user-tags']: userTags }) => (userTags ? userTags.length : 0),
 					},
 				},
+				{ path: 'value', contentType: 'TEXT' },
 			],
 			linkFields: [
 				{
@@ -423,8 +423,18 @@ export const testSchema: BormSchema = {
 						actions: [
 							{
 								type: 'transform',
-								fn: (a, b, c, dbNode: any) => {
-									console.log('transform', 'currentNode', a, 'dbNode', d);
+								fn: (params) => {
+									console.log('testSchema.TRANSFORMATION PARAMS:', params);
+									if (params.$dbNode) {
+										if (params.$dbNode.value === 'gold') {
+											console.log('it be gold');
+										} else if (params.$dbNode.value === 'silver') {
+											console.log('it be silver');
+										}
+									} else {
+										console.log("i didn't get the dbnode");
+									}
+									// console.log('transform', 'currentNode', a, dbNode, d);
 									return {};
 								},
 							},

@@ -14,6 +14,7 @@ ThingRelation·moreStuff sub attribute, value string;
 # User
 User·email sub email;
 Color·name sub attribute, value string;
+Color·value sub attribute, value string;
 
 # SuperUser
 SuperUser·power sub attribute, value string;
@@ -155,6 +156,7 @@ UserTagGroup sub relation,
 Color sub entity,
   #owns Color·name @key,
   owns id @key,
+  owns Color·value,
   plays UserTagGroup:color;
 
 SpaceObj sub relation,

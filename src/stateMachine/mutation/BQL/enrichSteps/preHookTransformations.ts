@@ -3,6 +3,7 @@ import { clone, isArray } from 'radash';
 import type { BormConfig, EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
 import { deepCurrent, getSymbols, isBQLBlock } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
+import { DBNode } from '../../../../types/symbols';
 
 export const preHookTransformations = (
 	node: EnrichedBQLMutationBlock,
@@ -12,7 +13,6 @@ export const preHookTransformations = (
 ) => {
 	const newNodes = (isArray(node[field]) ? node[field] : [node[field]]).map((subNode: EnrichedBQLMutationBlock) => {
 		// Step 1: Default node attributes
-		//todo
 
 		// Step 2: Transform nodes
 		if (isBQLBlock(subNode)) {
@@ -26,12 +26,15 @@ export const preHookTransformations = (
 
 			triggeredActions.forEach((action) => {
 				//! Todo: Sandbox the function in computeFunction()
-				const newProps = action.fn(currentNode, parentNode, userContext, currentNode.$dbNode);
+				// @ts-expect-error todo
+				const $dbNode = subNode[DBNode];
+				// console.log('preHookTransformations.$dbNode: ', JSON.stringify($dbNode, null, 2));
+				const newProps = action.fn(currentNode, parentNode, userContext, $dbNode);
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}
 				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode) };
+				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), $dbNode };
 			});
 
 			return subNode;

@@ -602,15 +602,26 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('tf3[transform, fields] Use $fields', async () => {
+	it.only('tf3[transform, fields] Use $fields', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
 			await bormClient.mutate([
 				{
 					$thing: 'Color',
-					$fields: ['id'],
-					id: 'gold',
+					$fields: ['id', 'value'],
+					id: 'color-test',
+					value: 'gold',
+				},
+			]);
+
+			await bormClient.mutate([
+				{
+					$thing: 'Color',
+					$fields: ['id', 'value'],
+
+					$id: 'color-test',
+					value: 'silver',
 				},
 			]);
 
