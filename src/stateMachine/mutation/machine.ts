@@ -106,7 +106,7 @@ const preQuery = async (ctx: MachineContext) => {
 	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
 };
 
-const dependencies = async (ctx: MachineContext) => {
+const preQueryDependencies = async (ctx: MachineContext) => {
 	return preHookDependencies(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
 };
 
@@ -175,7 +175,11 @@ export const machine = createMachine(
 			transition('done', 'parseBQL', reduce(updateBqlReq)),
 			errorTransition,
 		),
-		preHookDependencies: invoke(dependencies, transition('done', 'enrich', reduce(updateBqlReq)), errorTransition),
+		preHookDependencies: invoke(
+			preQueryDependencies,
+			transition('done', 'enrich', reduce(updateBqlReq)),
+			errorTransition,
+		),
 		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
 		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
 		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),

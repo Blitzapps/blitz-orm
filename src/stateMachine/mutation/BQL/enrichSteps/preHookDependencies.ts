@@ -101,7 +101,7 @@ export const preHookDependencies = async (
 	// @ts-expect-error todo
 	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
 
-	// console.log('preQueryRes', JSON.stringify({ transformationPreQueryRes }, null, 2));
+	//console.log('preQueryRes', JSON.stringify({ transformationPreQueryRes }, null, 2));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -289,7 +289,7 @@ export const preHookDependencies = async (
 	// @ts-expect-error todo
 	const filledDbNodes = fillDbNodes(blocks);
 
-	// console.log('filledDbNode', filledDbNodes);
+	//console.log('filledDbNode', filledDbNodes);
 
 	return filledDbNodes;
 };

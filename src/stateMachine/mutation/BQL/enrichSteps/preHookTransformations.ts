@@ -16,6 +16,11 @@ export const preHookTransformations = (
 
 		// Step 2: Transform nodes
 		if (isBQLBlock(subNode)) {
+			if (subNode.$fields) {
+				///change machine context so we are sun we run preQueryDeps before coming back to here
+				return subNode;
+			}
+
 			const triggeredActions = getTriggeredActions(subNode, schema).filter(
 				(action) => action.type === 'transform',
 			) as TransFormAction[];
@@ -23,18 +28,19 @@ export const preHookTransformations = (
 			const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
 			const currentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
 			const userContext = (config.mutation?.context || {}) as Record<string, any>;
+			const dbNode = clone(deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || {})) as
+				| EnrichedBQLMutationBlock
+				| Record<string, never>;
 
 			triggeredActions.forEach((action) => {
 				//! Todo: Sandbox the function in computeFunction()
-				// @ts-expect-error todo
-				const $dbNode = subNode[DBNode];
 				// console.log('preHookTransformations.$dbNode: ', JSON.stringify($dbNode, null, 2));
-				const newProps = action.fn(currentNode, parentNode, userContext, $dbNode);
+				const newProps = action.fn(currentNode, parentNode, userContext, dbNode);
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}
 				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), $dbNode };
+				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode) };
 			});
 
 			return subNode;

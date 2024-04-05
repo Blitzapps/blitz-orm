@@ -513,6 +513,7 @@ describe('Mutations: PreHooks', () => {
 				},
 			]);
 
+			/// This test throws an error if failed, it happens inside the transformation itself
 			await bormClient.mutate({
 				$thing: 'User',
 				$id: 'mf1-user',
@@ -602,7 +603,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it.only('tf3[transform, fields] Use $fields', async () => {
+	it('tf3[transform, fields] Use $fields', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -615,15 +616,44 @@ describe('Mutations: PreHooks', () => {
 				},
 			]);
 
+			const res1 = await bormClient.query(
+				{
+					$thing: 'Color',
+					$thingType: 'entity',
+					$id: 'color-test',
+					$fields: ['id', 'value'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(res1).toEqual({
+				id: 'color-test',
+				value: 'gold',
+			});
+
 			await bormClient.mutate([
 				{
 					$thing: 'Color',
 					$fields: ['id', 'value'],
-
 					$id: 'color-test',
-					value: 'silver',
+					value: 'gold',
 				},
 			]);
+
+			const res2 = await bormClient.query(
+				{
+					$thing: 'Color',
+					$thingType: 'entity',
+					$id: 'color-test',
+					$fields: ['id', 'value'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(res2).toEqual({
+				id: 'color-test',
+				value: 'bronze',
+			});
 
 			// await bormClient.mutate({
 			// 	$thing: 'User',

@@ -248,9 +248,41 @@ export const testSchema: BormSchema = {
 					{
 						triggers: {
 							onCreate: () => true,
+							onUpdate: () => true,
 						},
 						//condition: () => true,
 						actions: [
+							{
+								name: 'Validate tf1 test',
+								type: 'validate',
+								message: 'Failed test tf1',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, { email: dbEmail, spaces: dbSpaces }) => {
+									if ($op === 'update' && $id === 'mf1-user') {
+										if (dbEmail !== 'john@email.com') {
+											throw new Error(
+												'The email of the test tf1 should be recovered here from the db and be john@email.com',
+											);
+										}
+										if (
+											!(
+												dbSpaces.length === 1 &&
+												dbSpaces[0].dataFields?.length === 4 &&
+												dbSpaces[0].dataFields.find((df: any) => df.$id === 'mf1-dataField-1').expression ===
+													'mf1-expression-1'
+											)
+										) {
+											throw new Error(
+												'The user should have one space and 4 datafields. Datafield 1 should have expression mf1-expression already in db',
+											);
+										}
+										return false;
+									} else {
+										console.log('$op', $op);
+										return true;
+									}
+								},
+							},
 							{
 								name: 'Add children',
 								type: 'transform',
@@ -265,8 +297,8 @@ export const testSchema: BormSchema = {
 								name: 'from context',
 								description: 'Add space from context',
 								type: 'transform',
-								fn: ({ name, spaces }, _, { spaceId }) =>
-									name === 'cheatCode2' && !spaces
+								fn: ({ $op, name, spaces }, _, { spaceId }) =>
+									$op === 'create' && name === 'cheatCode2' && !spaces
 										? {
 												spaces: [{ id: spaceId }],
 											}
@@ -423,19 +455,12 @@ export const testSchema: BormSchema = {
 						actions: [
 							{
 								type: 'transform',
-								fn: (params) => {
-									console.log('testSchema.TRANSFORMATION PARAMS:', params);
-									if (params.$dbNode) {
-										if (params.$dbNode.value === 'gold') {
-											console.log('it be gold');
-										} else if (params.$dbNode.value === 'silver') {
-											console.log('it be silver');
-										}
+								fn: ({ $op, value }, b, c, { value: dbValue }) => {
+									if ($op === 'update' && value === dbValue && value === 'gold') {
+										return { value: 'bronze' };
 									} else {
-										console.log("i didn't get the dbnode");
+										return {};
 									}
-									// console.log('transform', 'currentNode', a, dbNode, d);
-									return {};
 								},
 							},
 						],
