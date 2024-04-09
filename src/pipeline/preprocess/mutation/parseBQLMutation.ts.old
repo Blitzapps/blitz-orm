@@ -503,7 +503,7 @@ export const parseBQLMutation: PipelineOperation<TypeDbResponse> = async (req) =
   
       // Now, we want to keep only the edges which include these dangerous roles
       const filteredEdges = mergedEdges.filter(edge => edge.$relation === relation && dangerousRoles.some(role => edge.hasOwnProperty(role)));
-      console.log('filteredEdges', filteredEdges)
+      //console.log('filteredEdges', filteredEdges)
   
       // For each dangerous role, check if any violations of the cardinality rule occur
       dangerousRoles.forEach((role) => {

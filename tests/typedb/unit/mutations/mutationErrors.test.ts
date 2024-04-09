@@ -249,7 +249,7 @@ describe('Mutations: Errors', () => {
 			]);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe("Can't link a $tempId that has not been created in the current mutation.");
+				expect(error.message).toBe("Can't link a $tempId that has not been created in the current mutation: utg1");
 			} else {
 				expect(true).toBe(false);
 			}
@@ -715,18 +715,21 @@ describe('Mutations: Errors', () => {
 			}
 		}
 
-		await bormClient.mutate([
-			{
-				$relation: 'Kind',
-				$tempId: '_:or1-k-2',
-				id: 'or1-k-2',
-			},
-			{
-				$entity: 'Space',
-				$id: 'space-3',
-				kinds: [{ $op: 'link', $tempId: '_:or1-k-2' }],
-			},
-		]);
+		await bormClient.mutate(
+			[
+				{
+					$relation: 'Kind',
+					$tempId: '_:or1-k-2',
+					id: 'or1-k-2',
+				},
+				{
+					$entity: 'Space',
+					$id: 'space-3',
+					kinds: [{ $op: 'link', $tempId: '_:or1-k-2' }],
+				},
+			],
+			{ preQuery: true },
+		);
 
 		const res = await bormClient.query(
 			{

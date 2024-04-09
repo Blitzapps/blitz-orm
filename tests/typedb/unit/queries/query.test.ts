@@ -312,31 +312,31 @@ describe('Query', () => {
 			'$debugger': {
 				tqlRequest: {
 					entity:
-						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id "user1"; get; group $User;',
+						'match $User  isa User, has attribute $attribute  , has id $User_id; $User_id user1; get; group $User;',
 					relations: [
 						{
 							entity: 'User',
 							relation: 'User-Accounts',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
+								'match $user isa User , has id $user_id; $user_id user1;  (user: $user,accounts: $accounts ) isa User-Accounts; $accounts isa Account, has id $accounts_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'User-Sessions',
 							request:
-								'match $user isa User , has id $user_id; $user_id "user1";  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
+								'match $user isa User , has id $user_id; $user_id user1;  (user: $user,sessions: $sessions ) isa User-Sessions; $sessions isa Session, has id $sessions_id; get; group $user;',
 						},
 						{
 							entity: 'User',
 							relation: 'Space-User',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1";  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
+								'match $users isa User , has id $users_id; $users_id user1;  (users: $users,spaces: $spaces ) isa Space-User; $spaces isa Space, has id $spaces_id; get; group $users;',
 						},
 						{
 							entity: 'User',
 							relation: 'UserTag',
 							request:
-								'match $users isa User , has id $users_id; $users_id "user1"; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
+								'match $users isa User , has id $users_id; $users_id user1; $UserTag (users: $users ) isa UserTag; $UserTag isa UserTag, has id $UserTag_id; get; group $users;',
 						},
 					],
 				},
@@ -1017,7 +1017,7 @@ describe('Query', () => {
 			$filter: { name: 'Antoine' },
 			$fields: ['name'],
 		});
-		// notice now it is an array. Multiple users could be called "Antoine"
+		// notice now it is an array. Multiple users could be called Antoine
 		expect(res).toEqual([{ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' }]);
 	});
 
@@ -1092,6 +1092,9 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
+					profile: {
+						hobby: ['Running'],
+					},
 					user: 'user1',
 				},
 				{
@@ -1123,14 +1126,13 @@ describe('Query', () => {
 					id: 'account1-1',
 					provider: 'google',
 					isSecureProvider: true,
-
+					profile: { hobby: ['Running'] },
 					user: 'user1',
 				},
 				{
 					id: 'account1-2',
 					provider: 'facebook',
 					isSecureProvider: false,
-
 					user: 'user1',
 				},
 				{
@@ -1319,6 +1321,132 @@ describe('Query', () => {
 
 	it('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
 		expect(true).toEqual(false);
+	});
+
+	it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
+		const res = await bormClient.query(
+			{
+				$relation: 'User-Accounts',
+				$filter: { user: 'user1' },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua1-1' }, { id: 'ua1-2' }, { id: 'ua1-3' }]);
+	});
+
+	it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+		const res = await bormClient.query(
+			{
+				$relation: 'User-Accounts',
+				$filter: {
+					$not: { user: ['user1'] },
+				},
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua2-1' }, { id: 'ua3-1' }]);
+	});
+
+	it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$filter: { spaces: ['space-1'] },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
+	});
+
+	it('slo1[$sort, $limit, $offset] root', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'Account',
+				$sort: [{ field: 'provider', desc: false }, 'id'],
+				$offset: 1,
+				$limit: 2,
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject([
+			// { id: 'account1-2'},
+			{ id: 'account3-1' },
+			{ id: 'account1-3' },
+			// { id: 'account1-1'},
+			// { id: 'account2-1'},
+		]);
+	});
+
+	it('slo1[$sort, $limit, $offset] sub level', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$id: 'user1',
+				$fields: [
+					'id',
+					{
+						$path: 'accounts',
+						$fields: ['id'],
+						$sort: ['provider'],
+						$offset: 1,
+						$limit: 1,
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject({
+			accounts: [
+				// { id: 'account1-2' },
+				{ id: 'account1-3' },
+				// { id: 'account1-1' },
+			],
+			id: 'user1',
+		});
+	});
+
+	it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
+		const res = await bormClient.query(
+			{
+				$entity: 'User',
+				$fields: ['id', 'email'],
+				$sort: ['email'],
+			},
+			{ noMetadata: true },
+		);
+		expect(res).toMatchObject([
+			{
+				email: 'afx@rephlex.com',
+				id: 'god1',
+			},
+			{
+				email: 'ann@test.com',
+				id: 'user3',
+			},
+			{
+				email: 'antoine@test.com',
+				id: 'user1',
+			},
+			{
+				email: 'black.mamba@deadly-viper.com',
+				id: 'superuser1',
+			},
+			{
+				email: 'charlize@test.com',
+				id: 'user5',
+			},
+			{
+				email: 'loic@test.com',
+				id: 'user2',
+			},
+			{
+				id: 'user4',
+			},
+		]);
 	});
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
@@ -1921,6 +2049,26 @@ describe('Query', () => {
 
 		expect(res).toBeDefined();
 		expect(res).toEqual(expectedRes);
+	});
+
+	it('j1[json] Query a thing with a JSON attribute', async () => {
+		const entity = await bormClient.query({
+			$entity: 'Account',
+			$id: 'account1-1',
+			$fields: ['profile'],
+		});
+		expect(entity).toMatchObject({
+			profile: { hobby: ['Running'] },
+		});
+	});
+
+	it('j2[json] Query a thing with an empty JSON attribute', async () => {
+		const entity = await bormClient.query({
+			$entity: 'Account',
+			$id: 'account1-2',
+			$fields: ['profile'],
+		});
+		expect((entity as any).profile).toBeUndefined();
 	});
 
 	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {

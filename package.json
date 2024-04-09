@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.9.11",
+	"version": "0.9.20",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -24,6 +24,7 @@
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
 		"test": "jest --coverage",
+		"test:query": "jest query.test.ts",
 		"test:ignoreTodo": "jest -t \"^(?!.*TODO:).*\" --detectOpenHandles",
 		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "jest --watch",
@@ -46,8 +47,9 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"dependencies": {
+		"acorn": "^8.11.3",
 		"case-anything": "^2.1.13",
-		"immer": "9.0.21",
+		"immer": "10.0.4",
 		"nanoid": "3",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",

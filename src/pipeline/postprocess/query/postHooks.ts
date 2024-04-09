@@ -23,7 +23,8 @@ export const postHooks: PipelineOperation<TypeDbResponse> = async (req, res) => 
 					const value = val as Record<string, any>;
 
 					if (!value.$thing) {
-						throw new Error('[Internal] Thing is missing');
+						// JSON object.
+						return;
 					}
 					if (value.$thing) {
 						const currentSchema = getCurrentSchema(schema, value);

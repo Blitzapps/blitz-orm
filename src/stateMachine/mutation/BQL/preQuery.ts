@@ -24,16 +24,17 @@ export const mutationPreQuery = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
-	//console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
-	const getFieldKeys = (block: FilledBQLMutationBlock, noDataFields?: boolean) => {
+	// console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
+	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
-			if (!key.startsWith('$')) {
+			if (!key.startsWith('$') && block[key] !== undefined) {
 				if (noDataFields) {
 					const currentSchema = getCurrentSchema(schema, block);
-					if (!currentSchema.dataFields?.find((field) => field.path === key)) {
-						return true;
-					} else {
+					if (currentSchema.dataFields?.find((field) => field.path === key)) {
+						// console.log('key is df', key);
 						return false;
+					} else {
+						return true;
 					}
 				} else {
 					return true;
@@ -159,7 +160,7 @@ export const mutationPreQuery = async (
 
 	// @ts-expect-error todo
 	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
-	// console.log('preQueryRes', JSON.stringify(preQueryRes, null, 2));
+	// console.log('preQueryRes', JSON.stringify(preQueryRes));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -309,277 +310,272 @@ export const mutationPreQuery = async (
 
 	const bqlWithObjectPaths = fillObjectPaths(blocks);
 
-	const splitBzIds = (blocks: FilledBQLMutationBlock[]) => {
-		const processBlocks = (
-			operationBlocks: FilledBQLMutationBlock[],
-			parentOperationBlock?: FilledBQLMutationBlock,
-		) => {
-			let processIds: FilledBQLMutationBlock[] = [];
-			operationBlocks
-				.filter((operationBlock) => operationBlock)
-				.forEach((operationBlock) => {
-					// console.log('processBlocks.first for each', operationBlock);
-					const fieldCount = Object.keys(operationBlock).filter((key) => !key.startsWith('$')).length;
-					if (Array.isArray(operationBlock.$id) && fieldCount > 0) {
-						const splitBlocksById = operationBlock.$id.map((id) => {
-							return { ...operationBlock, $id: id };
-						});
-						processIds = [...processIds, ...splitBlocksById];
-					} else {
-						processIds.push({ ...operationBlock });
-					}
-				});
-			let newOperationBlocks: FilledBQLMutationBlock[] = [];
-			const fieldsWithoutMultiples: FilledBQLMutationBlock[] = [];
-			const fieldsWithMultiples = processIds.filter((operationBlock) => {
-				const ops = ['delete', 'update', 'unlink'];
-				// Block must have one of the above operations
-				const isCorrectOp = ops.includes(operationBlock.$op || '');
-				const fieldCount = getFieldKeys(operationBlock, true).length;
-				// Block must either not have $id, have an array of $ids, or have a filter
-				const isMultiple =
-					!operationBlock.$id || (Array.isArray(operationBlock.$id) && fieldCount > 0) || operationBlock.$filter;
-				if (isMultiple && isCorrectOp) {
-					return true;
-				} else {
-					fieldsWithoutMultiples.push({ ...operationBlock });
-				}
-			});
-			// console.log('fields', { fieldsWithMultiples, fieldsWithoutMultiples });
-			if (fieldsWithMultiples.length > 0) {
-				fieldsWithMultiples.forEach((opBlock) => {
-					const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
-						const getDataFields = () => {
-							const dataFieldObj: any = {};
-							for (const key in obj) {
-								const currentSchema = getCurrentSchema(schema, obj);
-								if (!key.startsWith('$') && currentSchema.dataFields?.find((df) => df.path === key)) {
-									dataFieldObj[key] = obj[key];
-								}
-							}
-							return dataFieldObj;
-						};
-						const dataFieldObj = getDataFields();
-						// Get all keys, but only use non-$ keys for generating combinations
-						const allKeys = Object.keys(obj);
-						const combinableKeys = allKeys.filter((key) => !key.startsWith('$'));
-
-						const allCombinations: Partial<FilledBQLMutationBlock>[] = [];
-
-						const generateCombinations = (index: number, currentObj: Partial<FilledBQLMutationBlock>) => {
-							if (index === combinableKeys.length) {
-								// Construct the full object with the current id
-								const fullObj = { ...currentObj };
-								allKeys.forEach((key) => {
-									if (key.startsWith('$')) {
-										fullObj[key] = obj[key];
-									}
-								});
-								allCombinations.push(fullObj);
-								return;
-							}
-
-							// Include the current key
-							const newObjInclude = {
-								...currentObj,
-								[combinableKeys[index]]: obj[combinableKeys[index]],
-								...getSymbols(currentObj),
-								...dataFieldObj,
-							};
-							generateCombinations(index + 1, newObjInclude);
-
-							// Exclude the current key and move to the next
-							generateCombinations(index + 1, currentObj);
-						};
-						generateCombinations(0, { ...getSymbols(obj) });
-
-						return allCombinations;
-					};
-					const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(opBlock).filter(
-						(opBlock) =>
-							!(opBlock.$op === 'update' && Object.keys(opBlock).filter((key) => !key.startsWith('$')).length === 0),
-					);
-
-					let included: string[] = [];
-					const emptyObjCKey = objectPathToKey(opBlock.$objectPath);
-					const cacheR = cache[emptyObjCKey];
-					let remaining: string[] = cacheR ? cache[emptyObjCKey].$ids : [];
-					const combinationsFromCache = allCombinations
-						.map((combination: Partial<FilledBQLMutationBlock>, index: number) => {
-							const _currentSchema = getCurrentSchema(schema, combination);
-							const combinableKeys = Object.keys(combination).filter(
-								(fieldKey) => !fieldKey.includes('$') && !_currentSchema.dataFields?.some((o) => o.path === fieldKey),
-							);
-
-							const cachesFound = combinableKeys
-								.map((key: string) => {
-									// todo: test with adjacent operations that aren't multiples and also many multiples
-									const multiples = Array.isArray(combination[key])
-										? combination[key].length > 1
-											? combination[key].filter(
-													(opBlock: FilledBQLMutationBlock) =>
-														!opBlock.$id || Array.isArray(opBlock.$id) || opBlock.$filter,
-												)
-											: combination[key]
-										: [combination[key]];
-									const processedMultiples = multiples.map((multiple: FilledBQLMutationBlock) => {
-										const cKey = objectPathToKey(multiple.$objectPath);
-										const getIdsToKey = (searchKey: string) => {
-											const ids = [];
-											const searchSegments = searchKey.split('.');
-											const starting = searchSegments.slice(0, searchSegments.length - 1).join('.');
-											// eslint-disable-next-line prefer-destructuring
-											const ending = searchSegments
-												.slice(searchSegments.length - 1, searchSegments.length)[0]
-												.split('___')[1];
-											for (const key in cache) {
-												if (key.startsWith(starting) && key.endsWith(ending)) {
-													const searchSegments = key.split('.');
-													// eslint-disable-next-line prefer-destructuring
-													const id = searchSegments
-														.slice(searchSegments.length - 1, searchSegments.length)[0]
-														.split('___')[0];
-													ids.push(id);
-												}
-											}
-											return ids;
-										};
-
-										const idsToKey = getIdsToKey(cKey);
-										return { idsToKey, key, multiple };
-									});
-									return processedMultiples;
-								})
-								.filter((key) => key !== undefined);
-							const findCommonIds = (
-								data: { idsToKey: string[]; key: string; multiple: FilledBQLMutationBlock }[][],
-							) => {
-								const preppedArray = data.map((operations) => {
-									const ids = operations.map((operation) => {
-										return operation.idsToKey;
-									});
-									return ids;
-								});
-								const findCommonElements = (arr: string[][][]) => {
-									if (arr.length > 0) {
-										// Flatten the array to two dimensions
-
-										const flatArray = arr.reduce((acc, val) => acc.concat(val), []);
-
-										// Find common elements
-										return flatArray.reduce((acc, subArr) => {
-											if (!acc) {
-												return subArr;
-											}
-											return subArr.filter((item) => acc.includes(item));
-										});
-									} else {
-										return [];
-									}
-								};
-
-								return findCommonElements(preppedArray);
-							};
-							const commonIds = findCommonIds(cachesFound);
-							const filteredCommonIds = commonIds.filter((id) => !included.includes(id));
-							included = [...included, ...filteredCommonIds];
-							remaining = remaining.filter((id) => !filteredCommonIds.includes(id));
-							// the last combination is always without the fields with multiples, so it's all remaining ids found in the cache
-							if (index === allCombinations.length - 1 && remaining.length > 0) {
-								const newOp = {
-									...combination,
-									$id: remaining,
-									$bzId: `T1_${uuidv4()}`,
-									...getSymbols(combination),
-								};
-								return newOp;
-							} else if (filteredCommonIds.length > 0) {
-								const newOp = {
-									...combination,
-									$id: filteredCommonIds,
-									$bzId: `T2_${uuidv4()}`,
-									...getSymbols(combination),
-								};
-								return newOp;
-							}
-						})
-						.filter((combination) => combination !== undefined);
-					// console.log(
-					// 	'info: ',
-					// 	JSON.stringify({ combinationsFromCache, emptyObjCKey, parentOperationBlock, opBlock }, null, 2),
-					// );
-
-					const getReturnFields = () => {
-						if (combinationsFromCache.length === 0 && !parentOperationBlock?.$id) {
-							return fieldsWithMultiples;
-						} else if (combinationsFromCache.length === 0 && parentOperationBlock?.$id) {
-							const parentIds = Array.isArray(parentOperationBlock.$id)
-								? parentOperationBlock.$id
-								: [parentOperationBlock.$id];
-							const newOps: FilledBQLMutationBlock[] = [];
-							parentIds.forEach((id) => {
-								const cKey = objectPathToKey({ ...opBlock.$objectPath, ids: id });
-								const found = cache[cKey];
-								if (found) {
-									newOps.push({ ...opBlock, $id: found.$ids, ...getSymbols(opBlock), $bzId: `T_${uuidv4()}` });
-								}
-							});
-							return newOps;
-						} else {
-							return combinationsFromCache.filter((combination) => combination !== undefined);
-						}
-					};
-					const returnFields = getReturnFields();
-
-					//@ts-expect-error - todo
-					newOperationBlocks = [...fieldsWithoutMultiples, ...returnFields].map(processOperationBlock);
-				});
-			} else {
-				newOperationBlocks = processIds.map(processOperationBlock);
-			}
-			return newOperationBlocks;
-		};
-		const processOperationBlock = (operationBlock: FilledBQLMutationBlock) => {
-			// console.log('operationBlock', operationBlock);
-			const newBlock: FilledBQLMutationBlock = {
-				...operationBlock,
-				$bzId: operationBlock.$tempId ?? `T3_${uuidv4()}`,
-				...getSymbols(operationBlock),
-			};
-			const currentSchema = getCurrentSchema(schema, operationBlock);
-			Object.keys(operationBlock)
-				// field must be a roleField or linkField
-				.filter((fieldKey) => !fieldKey.includes('$') && !currentSchema.dataFields?.some((o) => o.path === fieldKey))
-				.forEach((fieldKey) => {
-					const operationBlocks: FilledBQLMutationBlock[] = Array.isArray(operationBlock[fieldKey])
-						? operationBlock[fieldKey]
-						: [operationBlock[fieldKey]];
-					const newOperationBlocks = processBlocks(operationBlocks, operationBlock);
-					newBlock[fieldKey] = newOperationBlocks.length > 0 ? newOperationBlocks : undefined;
-				});
-			return newBlock;
-		};
-		let newBlocks: FilledBQLMutationBlock[] = [];
-		// For each root block in a potentially batched mutation
+	const fillIds = (blocks: FilledBQLMutationBlock[]) => {
+		const newBlocks: FilledBQLMutationBlock[] = [];
 		blocks.forEach((block) => {
-			newBlocks = [...newBlocks, ...processBlocks([block])];
+			if (!block.$id && !block.id && !block.$tempId) {
+				const cacheKey = objectPathToKey(block.$objectPath);
+				const cacheFound = cache[cacheKey];
+				// console.log('cacheKey: ', JSON.stringify({ cacheKey, cacheFound }, null, 2));
+				if (cacheFound) {
+					cacheFound?.$ids.forEach((id) => {
+						const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}` };
+						newBlocks.push(newBlock);
+					});
+				} else {
+					newBlocks.push(block);
+				}
+			} else {
+				newBlocks.push(block);
+			}
 		});
-		const splitBlocks = newBlocks.map((block) => {
-			return processOperationBlock(block);
-		});
-		return splitBlocks;
-	};
 
+		const finalBlocks = newBlocks.map((block) => {
+			const newBlock = { ...block };
+			getFieldKeys(newBlock, true).forEach((key) => {
+				const subBlocks = Array.isArray(newBlock[key]) ? newBlock[key] : [newBlock[key]];
+				const newSubBlocks = fillIds(subBlocks);
+				newBlock[key] = newSubBlocks;
+			});
+			return newBlock;
+		});
+		return finalBlocks;
+	};
 	// console.log('filledBql', JSON.stringify([blocks], null, 2));
 
-	const splitBql = splitBzIds(Array.isArray(bqlWithObjectPaths) ? bqlWithObjectPaths : [bqlWithObjectPaths]);
+	const bqlFilledIds = fillIds(Array.isArray(bqlWithObjectPaths) ? bqlWithObjectPaths : [bqlWithObjectPaths]);
+
+	// console.log('bqlFilledIds', JSON.stringify(bqlFilledIds, null, 2));
+
+	const newFilled = fillObjectPaths(bqlFilledIds);
+
+	// console.log('newFilled', JSON.stringify(newFilled, null, 2));
+
+	const splitBzIds = (blocks: FilledBQLMutationBlock[]) => {
+		const processBlocks = (blocks: FilledBQLMutationBlock[]) => {
+			// 2. Get all combinations for operations with multiples
+			// 2a. Filter operations with multiples and operations without multiples
+			const getOperationsWithMultiples = (opBlocks: FilledBQLMutationBlock[]) => {
+				const operationWithMultiples: FilledBQLMutationBlock[] = [];
+				const operationWithoutMultiples: FilledBQLMutationBlock[] = [];
+				const otherOps: FilledBQLMutationBlock[] = [];
+
+				opBlocks.forEach((opBlock) => {
+					const keys = getFieldKeys(opBlock, true);
+					if (keys.length > 0) {
+						let hasMultiple = false;
+						keys.forEach((key) => {
+							const opBlocks: FilledBQLMutationBlock[] = Array.isArray(opBlock[key]) ? opBlock[key] : [opBlock[key]];
+
+							// todo: check for $filters
+							const blockMultiples: FilledBQLMutationBlock[] = opBlocks.filter(
+								(_opBlock) => !_opBlock.$id && !_opBlock.id && typeof opBlock === 'object',
+							);
+							if (blockMultiples.length) {
+								hasMultiple = true;
+							}
+						});
+						if (hasMultiple) {
+							operationWithMultiples.push(opBlock);
+						} else {
+							operationWithoutMultiples.push(opBlock);
+						}
+					} else {
+						otherOps.push({ ...opBlock, $bzId: opBlock.$tempId || `T_${uuidv4()}` });
+					}
+				});
+				return { operationWithMultiples, operationWithoutMultiples, otherOps };
+			};
+			const { operationWithMultiples, operationWithoutMultiples, otherOps } = getOperationsWithMultiples(blocks);
+			// console.log('filtered blocks: ', JSON.stringify({ operationWithMultiples, operationWithoutMultiples }, null, 2));
+			// 2b. For multiples get all possible combinations
+			const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
+				const getDataFields = () => {
+					const dataFieldObj: any = {};
+					for (const key in obj) {
+						const currentSchema = getCurrentSchema(schema, obj);
+						if (!key.startsWith('$') && currentSchema.dataFields?.find((df) => df.path === key)) {
+							dataFieldObj[key] = obj[key];
+						}
+					}
+					return dataFieldObj;
+				};
+				const dataFieldObj = getDataFields();
+
+				// Get all keys, but only use non-$ keys for generating combinations
+				const allKeys = Object.keys(obj);
+				const combinableKeys = getFieldKeys(obj, true);
+				const allCombinations: Partial<FilledBQLMutationBlock>[] = [];
+				const generateCombinations = (index: number, currentObj: Partial<FilledBQLMutationBlock>) => {
+					if (index === combinableKeys.length) {
+						// Construct the full object with the current id
+						const fullObj = { ...currentObj };
+						allKeys.forEach((key) => {
+							if (key.startsWith('$')) {
+								fullObj[key] = obj[key];
+							}
+						});
+						allCombinations.push({ ...fullObj, ...dataFieldObj });
+						return;
+					}
+
+					// Include the current key
+					const newObjInclude = {
+						...currentObj,
+						[combinableKeys[index]]: obj[combinableKeys[index]],
+						...getSymbols(currentObj),
+						...dataFieldObj,
+					};
+					generateCombinations(index + 1, newObjInclude);
+					// Exclude the current key and move to the next
+					generateCombinations(index + 1, currentObj);
+				};
+				generateCombinations(0, { ...getSymbols(obj) });
+				return allCombinations;
+			};
+			const crossReferencedOperations: Partial<FilledBQLMutationBlock>[] = [];
+			operationWithMultiples.forEach((multipleBlock) => {
+				const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(multipleBlock);
+				const combinationsToKeep: Partial<FilledBQLMutationBlock>[] = [];
+				// 2c. Check cache and prune combinations that don't have any ids in the cache
+				allCombinations.forEach((combinationBlock) => {
+					const keys = getFieldKeys(combinationBlock, true);
+
+					if (combinationBlock.$op === 'create') {
+						// console.log('Case 1: ', JSON.stringify(combinationBlock, null, 2));
+
+						combinationsToKeep.push(combinationBlock);
+					} else if (combinationBlock.$id) {
+						// combinationsToKeep.push(combinationBlock);
+
+						// console.log('Case 2: ', JSON.stringify(combinationBlock, null, 2));
+						// check result for if there exists one with the kinds of keys
+						const cacheKey = objectPathToKey(combinationBlock.$objectPath);
+						const foundKeys: { key: string; ids: string[] }[] = [];
+						keys.forEach((key) => {
+							const childKey = `${cacheKey.includes('undefined') ? 'root' : cacheKey}.${combinationBlock.$id}${preQueryPathSeparator}${key}`;
+							const cacheFound = cache[childKey];
+							const hasRemove =
+								combinationBlock[key].filter(
+									(subBlock: FilledBQLMutationBlock) =>
+										subBlock.$op === 'unlink' || subBlock.$op === 'delete' || subBlock.$op === 'update',
+								).length > 0;
+							if (hasRemove) {
+								if (cacheFound) {
+									foundKeys.push({ key, ids: cacheFound.$ids });
+								}
+							} else {
+								foundKeys.push({ key, ids: [''] });
+							}
+						});
+						if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === combinationBlock.$id)) {
+							combinationsToKeep.push(combinationBlock);
+						} else {
+							// only prune the child batched operation
+							const newBlock = { ...combinationBlock, $bzId: combinationBlock.$tempId || `T4_${uuidv4()}` };
+							keys.forEach((key) => {
+								// keeping ops that aren't batched (non-multiples)
+								const newOps = combinationBlock[key].filter((op: FilledBQLMutationBlock) => op.$id);
+								if (newOps.length > 0) {
+									// @ts-expect-error todo
+									newBlock[key] = newOps;
+								} else {
+									// @ts-expect-error todo
+									newBlock[key] = undefined;
+								}
+							});
+							const newBlockKeys = getFieldKeys(newBlock, true);
+							if (newBlockKeys.length > 0) {
+								combinationsToKeep.push(newBlock);
+							}
+						}
+					}
+					// When the block is not from the root level
+					else if (combinationBlock.$objectPath) {
+						// console.log('Case 3: ', JSON.stringify(combinationBlock, null, 2));
+						const parentKey = objectPathToKey(combinationBlock.$objectPath);
+						// a. get all ids of the parent block
+						const idsOfParent = cache[parentKey]?.$ids || [];
+						idsOfParent.forEach((id) => {
+							const foundKeys: { key: string; ids: string[] }[] = [];
+							keys.forEach((key) => {
+								const cacheKey = `${parentKey}.${id}${preQueryPathSeparator}${key}`;
+								const cacheFound = cache[cacheKey];
+								if (cacheFound) {
+									foundKeys.push({ key, ids: cacheFound.$ids });
+								}
+							});
+
+							// If this is the combination with no keys, create an opBlock per remaining $id
+							if (keys.length === 0) {
+								const remainingIds = idsOfParent.filter((id) => !combinationsToKeep.find((c) => c.$id === id));
+								remainingIds.forEach((id) => {
+									combinationsToKeep.push({
+										...combinationBlock,
+										$id: id,
+										$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
+									});
+								});
+							} else if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === id)) {
+								combinationsToKeep.push({
+									...combinationBlock,
+									$id: id,
+									$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
+								});
+							}
+						});
+					} else {
+						// console.log('Case 4: ', JSON.stringify(combinationBlock, null, 2));
+						combinationsToKeep.push(combinationBlock);
+					}
+				});
+				combinationsToKeep.forEach((c) => {
+					crossReferencedOperations.push(c);
+				});
+			});
+			// console.log(
+			// 	'operation: ',
+			// 	JSON.stringify({ crossReferencedOperations, operationWithoutMultiples, otherOps }, null, 2),
+			// );
+			// filter out odd leftover cases
+			const allOperations = [...crossReferencedOperations, ...operationWithoutMultiples, ...otherOps];
+			// console.log('allOperations', JSON.stringify(allOperations, null, 2));
+			const filteredOperations = allOperations.filter((b) => {
+				const hasKeys = getFieldKeys(b).length > 0;
+				if (hasKeys) {
+					return true;
+				} else {
+					if (b.$op === 'update') {
+						return false;
+					} else {
+						return true;
+					}
+				}
+			});
+
+			// 3. Recursion
+			const finalBlocks = filteredOperations.map((block) => {
+				const newBlock = { ...block };
+				getFieldKeys(newBlock, true).forEach((key) => {
+					const subBlocks = Array.isArray(newBlock[key]) ? newBlock[key] : [newBlock[key]];
+					const newSubBlocks = processBlocks(subBlocks);
+					newBlock[key] = newSubBlocks;
+				});
+				return newBlock;
+			});
+
+			return finalBlocks;
+		};
+		return processBlocks(blocks);
+	};
+
+	const splitBql = splitBzIds(Array.isArray(newFilled) ? newFilled : [newFilled]);
 	// console.log('splitBql', JSON.stringify(splitBql, null, 2));
 
 	const processReplaces = (blocks: FilledBQLMutationBlock[]) => {
 		return blocks.map((block) => {
 			const fields = getFieldKeys(block, true);
 			const newBlock = { ...block };
-			// console.log('block', JSON.stringify({ block, fields }, null, 2));
 
 			fields.forEach((field) => {
 				const opBlocks: FilledBQLMutationBlock[] = Array.isArray(block[field]) ? block[field] : [block[field]];
@@ -618,6 +614,8 @@ export const mutationPreQuery = async (
 
 				const cacheKey = objectPathToKey(replaceBlock.$objectPath);
 				const cacheKeys = convertManyPaths(cacheKey);
+				// console.log('cacheKey: ', JSON.stringify({ cacheKey, cacheKeys }, null, 2));
+
 				const foundKeys = cacheKeys.map((cacheKey) => {
 					return cache[cacheKey];
 				});
@@ -640,7 +638,7 @@ export const mutationPreQuery = async (
 						...replaceBlock,
 						$op: 'unlink',
 						$id: unlinkIds,
-						$bzId: `T4_${uuidv4()}`,
+						$bzId: replaceBlock.$tempId || `T4_${uuidv4()}`,
 						id: undefined,
 						...symbols,
 					});
@@ -651,7 +649,7 @@ export const mutationPreQuery = async (
 							...replaceBlock,
 							$op: 'link',
 							$id: id,
-							$bzId: `T5_${uuidv4()}`,
+							$bzId: replaceBlock.$tempId || `T5_${uuidv4()}`,
 							...symbols,
 						});
 					});
@@ -662,7 +660,7 @@ export const mutationPreQuery = async (
 							...replaceBlock,
 							$op: 'create',
 							id,
-							$bzId: `T6_${uuidv4()}`,
+							$bzId: replaceBlock.$tempId || `T6_${uuidv4()}`,
 							...symbols,
 						});
 					});
@@ -704,7 +702,6 @@ export const mutationPreQuery = async (
 						const processArrayIdsFound = (arrayOfIds: string[], cacheOfIds: string[]) => {
 							return arrayOfIds.every((id) => cacheOfIds.includes(id));
 						};
-						// console.log('info:', JSON.stringify({ cacheFound, thing }, null, 2));
 
 						const isOccupied = thing.$id
 							? Array.isArray(thing.$id)
@@ -791,7 +788,17 @@ export const mutationPreQuery = async (
 	};
 
 	const final = fillPaths(processedReplaces);
-	//console.log('post-preQuery', JSON.stringify(final, null, 2));
+	const finalArray = Array.isArray(final) ? final : [final];
+	const copy = [...finalArray];
+	const sortedArray = copy.sort((a: FilledBQLMutationBlock, b: FilledBQLMutationBlock) => {
+		if (a.$op === 'create' && b.$op !== 'create') {
+			return -1; // Move 'a' to an index lower than 'b' (to the top of the array)
+		} else if (a.$op !== 'create' && b.$op === 'create') {
+			return 1; // Move 'b' to an index lower than 'a'
+		}
+		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
+	});
+	// console.log('post-preQuery', JSON.stringify(final, null, 2));
 
-	return final;
+	return sortedArray;
 };

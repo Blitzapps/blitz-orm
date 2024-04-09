@@ -72,11 +72,11 @@ export const parseBQLMutation = async (
 			if (node.$op === 'create') {
 				const idValue = getIdValue(node);
 
-				if (nodes.find((x) => x.$id === idValue)) {
+				if (nodes.find((x) => x.$id === idValue && x.$op === 'create')) {
 					throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
 				}
 				if (edges.find((x) => x.$bzId === node.$bzId)) {
-					throw new Error(`Duplicate $bzid ${node.$bzId} for node ${JSON.stringify(node)}`);
+					throw new Error(`Duplicate $bzId ${node.$bzId} for node ${JSON.stringify(node)}`);
 				}
 				nodes.push({ ...node, $id: idValue });
 				return;
@@ -542,11 +542,15 @@ export const parseBQLMutation = async (
 	///Validate that each tempId has at least one creation op:
 	const allThings = [...mergedThings, ...mergedEdges];
 	const tempIds = new Set(allThings.filter((x) => x.$tempId).map((x) => x.$tempId));
-	tempIds.forEach((tempId) => {
-		if (allThings.filter((x) => x.$tempId === tempId && x.$op === 'create').length === 0) {
-			throw new Error("Can't link a $tempId that has not been created in the current mutation.");
-		}
-	});
+	const orphanTempIds = Array.from(tempIds).filter(
+		(tempId) => !allThings.some((x) => x.$tempId === tempId && x.$op === 'create'),
+	);
+
+	if (orphanTempIds.length > 0) {
+		throw new Error(
+			`Can't link a $tempId that has not been created in the current mutation: ${orphanTempIds.join(', ')}`,
+		);
+	}
 
 	//console.log('mergedThings', mergedThings);
 	//console.log('mergedEdges', mergedEdges);

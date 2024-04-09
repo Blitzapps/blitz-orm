@@ -2,6 +2,44 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.20(2023-03-20)
+
+- Refacto: Pre-queries refactoring
+
+## 0.9.19(2023-03-17)
+
+- Feat: JSON storage
+
+## 0.9.18(2023-03-13)
+
+- Fix: Fix false duplicate $id error
+
+## 0.9.17(2023-03-13)
+
+- Feat: %vars can be used to be consumed in pre-hooks
+
+## 0.9.16(2023-03-04)
+
+- Feat: dependency checker
+
+## 0.9.15(2023-02-04)
+
+- Fix: removed console.log
+
+## 0.9.14(2023-03-03)
+
+- Feat: triggers are optional, if none is created, then all are triggered (the $op can be used instead)
+- Fix: Extended objects inherit as well the prehooks. Actions are still unsafe
+
+## 0.9.13(2023-02-28)
+
+- Breaking change: $tempId without attributes mean link. $tempId with attribute means create
+- Fix: Fixed issue with nulls additions on hooks
+
+## 0.9.12(2023-02-28)
+
+- UX: Better replace issue message
+
 ## 0.9.11(2023-02-27)
 
 - Fix: Issue that did not spread symbols on children creation
@@ -29,7 +67,7 @@
 - Feat: Can add children nodes on transformations
 - Feat: Replace is now a valid operation
 - Breaking change: Should use $thing instead of $entity and $relation;
-- Breaking change: Mutation result are always array (even if nothing is nested) 
+- Breaking change: Mutation result are always array (even if nothing is nested)
 - Refacto: Preparing for multiple DBs
 - Chore: Immer downgraded to 9.0.21 (until <https://github.com/immerjs/immer/issues/1087> is fixed)
 - Fix: lot of fixes
@@ -37,7 +75,6 @@
 ## 0.8.11(2023-02-15)
 
 - Tests: Added nested object validation test
-
 
 ## 0.8.10(2023-02-14)
 

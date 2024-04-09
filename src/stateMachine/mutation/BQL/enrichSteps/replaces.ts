@@ -37,6 +37,8 @@ export const replaceToObj = (
 			$bzId: `S_${uuidv4()}`,
 		};
 	} else {
-		throw new Error('[Mutation Error] Replace can only be used with a single id or an array of ids');
+		throw new Error(
+			`[Mutation Error] Replace can only be used with a single id or an array of ids. (Field: ${field} Nodes: ${JSON.stringify(subNodes)} Parent: ${JSON.stringify(node, null, 2)})`,
+		);
 	}
 };
