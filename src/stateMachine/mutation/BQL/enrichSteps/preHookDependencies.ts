@@ -262,7 +262,7 @@ export const preHookDependencies = async (
 						? {
 								[DBNode]: $dbNode,
 							}
-						: { $dbNode }),
+						: { ...$dbNode }),
 				}),
 				$fields: undefined,
 				$objectPath: undefined,
@@ -289,7 +289,7 @@ export const preHookDependencies = async (
 	// @ts-expect-error todo
 	const filledDbNodes = fillDbNodes(blocks);
 
-	//console.log('filledDbNode', filledDbNodes);
+	// console.log('filledDbNode', JSON.stringify(filledDbNodes, null, 2));
 
 	return filledDbNodes;
 };

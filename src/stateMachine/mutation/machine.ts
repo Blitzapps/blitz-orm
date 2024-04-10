@@ -18,7 +18,6 @@ import { mutationPreQuery } from './BQL/preQuery';
 import { createMachine, transition, reduce, guard, interpret, state, invoke } from './robot3-wrapper';
 import { stringify } from './BQL/stringify';
 import { preHookDependencies } from './BQL/enrichSteps/preHookDependencies';
-import { preQueryGuard } from './BQL/guards/preQueryGuard';
 import { dependenciesGuard } from './BQL/guards/dependenciesGuard';
 
 const final = state;
@@ -129,13 +128,15 @@ const parseMutation = async (ctx: MachineContext) => {
 // Guards
 // ============================================================================
 const requiresPreQuery = (ctx: MachineContext) => {
-	return preQueryGuard(ctx.bql.current, ctx.config);
+	// return preQueryGuard(ctx.bql.current, ctx.config);
+	return true;
 };
 
 const requiresPreHookDependencies = (ctx: MachineContext) => {
 	// const needs = dependenciesGuard(ctx.bql.current);
 	// console.log('needs: ', JSON.stringify({ needs, bql: ctx.bql.current }, null, 2));
 	return dependenciesGuard(ctx.bql.current);
+	// return true;
 };
 
 /*const requiresParseBQL = (ctx: MachineContext) => {

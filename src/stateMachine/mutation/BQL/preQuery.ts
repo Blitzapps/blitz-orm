@@ -3,7 +3,6 @@ import { produce } from 'immer';
 import { traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import type {
-	BQLField,
 	BormConfig,
 	DBHandles,
 	EnrichedBQLMutationBlock,
@@ -49,6 +48,53 @@ export const mutationPreQuery = async (
 	if (!blocks) {
 		throw new Error('[BQLE-M-PQ-1] No blocks found');
 	}
+
+	if (config.mutation?.preQuery === false) {
+		return;
+	}
+
+	const ops: string[] = [];
+
+	traverse(blocks, ({ parent, key, value }) => {
+		if (parent && key && !key.includes('$') && isObject(parent)) {
+			const values = Array.isArray(parent[key]) ? parent[key] : [parent[key]];
+			// @ts-expect-error todo
+			values.forEach((val) => {
+				if (isObject(val)) {
+					if (parent.$op !== 'create') {
+						// @ts-expect-error todo
+						if (!ops.includes(val.$op)) {
+							// @ts-expect-error todo
+							ops.push(val.$op);
+						}
+					} else {
+						// @ts-expect-error todo
+						if (val.$op === 'delete' || val.$op === 'unlink') {
+							// @ts-expect-error todo
+							throw new Error(`Cannot ${val.$op} under a create`);
+						}
+					}
+				}
+			});
+		} else if (!parent && isObject(value)) {
+			// @ts-expect-error todo
+			if (!ops.includes(value.$op)) {
+				// @ts-expect-error todo
+				ops.push(value.$op);
+			}
+		}
+	});
+
+	if (
+		!ops.includes('delete') &&
+		!ops.includes('unlink') &&
+		!ops.includes('replace') &&
+		!ops.includes('update') &&
+		!ops.includes('link')
+	) {
+		return;
+	}
+	// return true;
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, transformation?: boolean, root?: boolean) => {
@@ -797,82 +843,9 @@ export const mutationPreQuery = async (
 		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
 	});
 
-	const fillDbNodes = (blocks: FilledBQLMutationBlock[], parentPath?: string) => {
-		const processBlock = (block: FilledBQLMutationBlock) => {
-			const $dbNode = {};
-			if (block.$fields) {
-				block.$fields.forEach((field: BQLField) => {
-					// @ts-expect-error todo
-					const fieldKey = field.$path || field;
-					const cacheKey = !block.$objectPath
-						? `${parentPath ? parentPath : 'root'}.${block.$id}${preQueryPathSeparator}${fieldKey}`
-						: `${parentPath ? parentPath : block.$objectPath}.${block.$id}${preQueryPathSeparator}${fieldKey}`;
-					// console.log(
-					// 	'cache stuff: ',
-					// 	JSON.stringify({ fieldKey, cacheKey, parentPath, BO: block.$objectPath }, null, 2),
-					// );
-					const cacheFound = tCache[cacheKey];
-					if (cacheFound) {
-						// todo: based on cardinality, change to single value instead of array
-						// @ts-expect-error todo
-						if (!field.$path) {
-							// @ts-expect-error todo
-							$dbNode[fieldKey] = cacheFound;
-						} else {
-							if (Array.isArray(cacheFound)) {
-								const items = cacheFound.map((b) => {
-									// @ts-expect-error todo
-									return processBlock({
-										$id: b,
-										// @ts-expect-error todo
-										$fields: block.$fields.find((f: BQLField) => f.$path === fieldKey).$fields,
-										// $id: id,
-										$objectPath: cacheKey,
-									});
-								});
-								// @ts-expect-error todo
-								$dbNode[fieldKey] = items;
-							} else {
-								// @ts-expect-error todo
-								$dbNode[fieldKey] = processBlock({
-									// ...cacheFound,
-									// @ts-expect-error todo
-									$id: cacheFound,
-
-									// @ts-expect-error todo
-									$fields: block.$fields.find((f: BQLField) => f.$path === fieldKey).$fields,
-									$objectPath: cacheKey,
-								});
-							}
-						}
-					}
-				});
-			}
-			const newBlock = { ...block, $dbNode, $fields: undefined, $objectPath: undefined };
-
-			return newBlock;
-		};
-		const newBlocks = blocks.map((block) => processBlock(block));
-		const finalBlocks = newBlocks.map((block) => {
-			const newBlock = { ...block };
-			getFieldKeys(newBlock, true).forEach((key) => {
-				const _parentPath = `${parentPath ? parentPath : 'root'}.${block.$id}${preQueryPathSeparator}${key}`;
-				// @ts-expect-error todo
-				const subBlocks = Array.isArray(newBlock[key]) ? newBlock[key] : [newBlock[key]];
-				const newSubBlocks = fillDbNodes(subBlocks, _parentPath);
-				// @ts-expect-error todo
-				newBlock[key] = newSubBlocks;
-			});
-			return newBlock;
-		});
-		return finalBlocks;
-	};
-
-	const filledDbNodes = fillDbNodes(sortedArray);
-
 	// console.log('filledDbNodes', JSON.stringify(filledDbNodes, null, 2));
 
 	// console.log('post-preQuery', JSON.stringify(final, null, 2));
 
-	return filledDbNodes;
+	return sortedArray;
 };

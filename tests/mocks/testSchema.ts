@@ -276,9 +276,8 @@ export const testSchema: BormSchema = {
 												'The user should have one space and 4 datafields. Datafield 1 should have expression mf1-expression already in db',
 											);
 										}
-										return false;
+										return true;
 									} else {
-										console.log('$op', $op);
 										return true;
 									}
 								},
