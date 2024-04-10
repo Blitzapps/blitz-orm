@@ -15,7 +15,7 @@ import { parseBQLMutation } from './BQL/parse';
 import { buildTQLMutation } from './TQL/build';
 import { mutationPreQuery } from './BQL/preQuery';
 
-import { createMachine, invoke, transition, reduce, guard, interpret, state } from './robot3-wrapper';
+import { createMachine, invoke, transition, reduce, guard, interpret, state } from '../robot3';
 import { stringify } from './BQL/stringify';
 
 const final = state;
@@ -169,16 +169,13 @@ export const machine = createMachine(
 		success: final(),
 		error: final(),
 	},
-	//@ts-expect-error - todo
 	(ctx: MachineContext) => ctx,
 );
 
 export const awaitMachine = async (context: MachineContext) => {
 	return new Promise<MachineContext>((resolve, reject) => {
-		//@ts-expect-error - todo
 		interpret(
 			machine,
-			//@ts-expect-error - todo
 			(service) => {
 				if (service.machine.state.name === 'success') {
 					resolve(service.context);

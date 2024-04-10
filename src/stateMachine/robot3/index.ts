@@ -4,7 +4,7 @@
 /* eslint-disable func-style */
 /* eslint-disable no-prototype-builtins */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-//@ts-nocheck
+// @ts-nocheck
 
 function valueEnumerable(value) {
 	return { enumerable: true, value };

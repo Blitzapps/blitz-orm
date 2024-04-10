@@ -1,6 +1,6 @@
-import type { PipelineOperation, BQLResponseSingle, BormConfig, Request } from '../../../../../types';
+import type { PipelineOperation, BQLResponseSingle, BormConfig, Request, BQLResponse, EnrichedBormSchema } from '../../../types';
 import { produce } from 'immer';
-import type { SurrealDbResponse, EnrichedBqlQuery } from '../../../types/base';
+import type { SurrealDbResponse, EnrichedBqlQuery } from './types';
 
 // expecting mutation, therefore disable reassign rule here
 /* eslint-disable no-param-reassign */
@@ -66,9 +66,13 @@ const cleanUpObj = ({
 
 /* eslint-enable no-param-reassign */
 
-export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-	const { config, enrichedBqlQuery, schema } = req;
-	const { bqlRes } = res;
+export const cleanQueryRes = (props: {
+  config: BormConfig;
+  enrichedBqlQuery: EnrichedBqlQuery[];
+  schema: EnrichedBormSchema;
+  bqlRes?: BQLResponse;
+}): BQLResponse | undefined => {
+	const { config, enrichedBqlQuery, schema, bqlRes } = props;
 
 	if (!bqlRes) {
 		return;
@@ -103,5 +107,5 @@ export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, r
 		}
 	});
 
-	res.bqlRes = cleanedMetadata;
+	return cleanedMetadata;
 };

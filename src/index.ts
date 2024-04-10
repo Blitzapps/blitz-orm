@@ -8,6 +8,7 @@ import { enrichSchema } from './helpers';
 import { queryPipeline } from './pipeline/pipeline';
 import type {
 	BQLMutation,
+	BQLResponse,
 	BQLResponseMulti,
 	BormConfig,
 	BormSchema,
@@ -19,6 +20,7 @@ import type {
 } from './types';
 import { enableMapSet } from 'immer';
 import { runMutationMachine } from './stateMachine/mutation/machine';
+import { runQueryMachine } from './stateMachine/query/machine';
 
 export * from './types';
 
@@ -134,21 +136,53 @@ class BormClient {
 	};
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
-	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
-		const handles = this.dbHandles;
-		if (!handles) {
-			throw new Error('dbHandles undefined');
-		}
+	// query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
+	// 	const handles = this.dbHandles;
+	// 	if (!handles) {
+	// 		throw new Error('dbHandles undefined');
+	// 	}
 
+	// 	await this.#enforceConnection();
+
+	// 	const qConfig = {
+	// 		...this.config,
+	// 		query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
+	// 	};
+
+	// 	// @ts-expect-error type of Query is incorrect
+	// 	return queryPipeline(query, qConfig, this.schema, handles);
+  // };
+
+	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
 
 		const qConfig = {
 			...this.config,
-			query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
+			query: {
+				...defaultConfig.query,
+				...this.config.query,
+				...queryConfig,
+			},
 		};
 
-		// @ts-expect-error type of Query is incorrect
-		return queryPipeline(query, qConfig, this.schema, handles);
+		const [errorRes, res] = await tryit(runQueryMachine)(
+      // @ts-expect-error
+			query,
+			this.schema as EnrichedBormSchema,
+			qConfig,
+			this.dbHandles as DBHandles,
+		);
+		if (errorRes) {
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			const error = new Error(errorRes.error.message);
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			error.stack = errorRes.error.stack;
+			throw error;
+		}
+
+		const result = res.bql.res;
+
+		return result as BQLResponse;
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {

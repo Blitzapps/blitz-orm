@@ -1,14 +1,11 @@
 import { getThing } from '../../../helpers';
-import type { EnrichedBormSchema, Sorter } from '../../../types';
+import type { BormSchema, EnrichedBormSchema, ParsedBQLQuery, Sorter } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
-import type { TypeDbResponse } from '../../pipeline';
-import type { PipelineOperation } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
 
-export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
-	const { enrichedBqlQuery, schema } = req;
+export const buildTQLQuery = async (enrichedBqlQuery: ParsedBQLQuery, schema: EnrichedBormSchema) => {
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL query not enriched');
 	}
@@ -61,7 +58,7 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 
 		const $metaData = `$metadata:{as:[${$asMetaData}]}`;
 
-		tqlStr += indent(`$${$path} as "${$path}.${$metaData}.$dataFields": ${postStr};`, depth);
+		tqlStr += line(`$${$path} as "${$path}.${$metaData}.$dataFields": ${postStr};`, depth);
 	};
 
 	const processRoleFields = (
@@ -99,11 +96,11 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 			const $metaData = `$metadata:{as:${$as},justId:${
 				$justId ? 'T' : 'F'
 			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
-			tqlStr += indent(`"${dotPath}.${$metaData}.${roleField.$var}": {`, depth);
-			tqlStr += indent('match', nextDepth);
+			tqlStr += line(`"${dotPath}.${$metaData}.${roleField.$var}": {`, depth);
+			tqlStr += line('match', nextDepth);
 			const $roleVar = `${$path}${separator}${roleField.$var}`;
-			tqlStr += indent(`$${$roleVar} isa ${roleField.$thing};`, nextDepth);
-			tqlStr += indent(
+			tqlStr += line(`$${$roleVar} isa ${roleField.$thing};`, nextDepth);
+			tqlStr += line(
 				`$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary};`,
 				nextDepth,
 			);
@@ -126,9 +123,9 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 
 			if ($fields) {
 				const randomId = `M_${uuidv4()}`;
-				tqlStr += indent(`\n?queryPath${randomId} = "${queryPath}";`, nextDepth); ///rawPaths => to inject metadata in the response, in this case only the path
-				tqlStr += indent('fetch', nextDepth);
-				tqlStr += indent(`?queryPath${randomId} as "queryPath";`, nextDepth); ///rawPaths => to recover metadata in the response
+				tqlStr += line(`\n?queryPath${randomId} = "${queryPath}";`, nextDepth); ///rawPaths => to inject metadata in the response, in this case only the path
+				tqlStr += line('fetch', nextDepth);
+				tqlStr += line(`?queryPath${randomId} as "queryPath";`, nextDepth); ///rawPaths => to recover metadata in the response
 
 				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
 				if (dataFields && dataFields.length > 0) {
@@ -153,14 +150,14 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 			}
 
 			if (typeof $offset === 'number') {
-				tqlStr += indent(`offset ${$offset};`, nextDepth);
+				tqlStr += line(`offset ${$offset};`, nextDepth);
 			}
 
 			if (typeof $limit === 'number') {
-				tqlStr += indent(`limit ${$limit};`, nextDepth);
+				tqlStr += line(`limit ${$limit};`, nextDepth);
 			}
 
-			tqlStr += indent('};', depth);
+			tqlStr += line('};', depth);
 		}
 	};
 
@@ -199,10 +196,10 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 			const $metaData = `$metadata:{as:${$as},justId:${
 				$justId ? 'T' : 'F'
 			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
-			tqlStr += indent(`"${dotPath}.${$metaData}.${linkField.$var}": {`, depth);
-			tqlStr += indent('match', nextDepth);
+			tqlStr += line(`"${dotPath}.${$metaData}.${linkField.$var}": {`, depth);
+			tqlStr += line('match', nextDepth);
 			const $linkVar = `${$path}${separator}${linkField.$var}`;
-			tqlStr += indent(`$${$linkVar} isa ${linkField.$thing};`, nextDepth);
+			tqlStr += line(`$${$linkVar} isa ${linkField.$thing};`, nextDepth);
 
 			if (linkField.$filter) {
 				tqlStr += buildFilter({
@@ -222,7 +219,7 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 
 			// a. intermediary
 			if (linkField.$target === 'role') {
-				tqlStr += indent(
+				tqlStr += line(
 					`$${$path}_intermediary (${linkField.$plays}: $${$path}, ${$playedBy.plays}: $${$linkVar}) isa ${linkField.$intermediary};`,
 					nextDepth,
 				);
@@ -233,9 +230,9 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 
 			if ($fields) {
 				const randomId = `M_${uuidv4()}`;
-				tqlStr += indent(`?queryPath${randomId} = "${queryPath}";`, nextDepth); ///queryPath => to inject metadata in the response, in this case only the path
-				tqlStr += indent('fetch', nextDepth);
-				tqlStr += indent(`?queryPath${randomId} as "queryPath";`, nextDepth); ///queryPath => to recover metadata in the response
+				tqlStr += line(`?queryPath${randomId} = "${queryPath}";`, nextDepth); ///queryPath => to inject metadata in the response, in this case only the path
+				tqlStr += line('fetch', nextDepth);
+				tqlStr += line(`?queryPath${randomId} as "queryPath";`, nextDepth); ///queryPath => to recover metadata in the response
 
 				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
 				if (dataFields && dataFields.length > 0) {
@@ -261,17 +258,18 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 			}
 
 			if (typeof $offset === 'number') {
-				tqlStr += indent(`offset ${$offset};`, nextDepth);
+				tqlStr += line(`offset ${$offset};`, nextDepth);
 			}
 
 			if (typeof $limit === 'number') {
-				tqlStr += indent(`limit ${$limit};`, nextDepth);
+				tqlStr += line(`limit ${$limit};`, nextDepth);
 			}
 
-			tqlStr += indent('};', depth);
+			tqlStr += line('};', depth);
 		}
 	};
 
+  // @ts-expect-error Incompatible type
 	const isBatched = enrichedBqlQuery.length > 1;
 	const tqlStrings: string[] = [];
 
@@ -399,10 +397,10 @@ export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 		}
 	};
 
+  // @ts-expect-error Incompatible type
 	builder(enrichedBqlQuery);
-	// todo: type the tqlRequest
-	// @ts-expect-error todo
-	req.tqlRequest = isBatched ? tqlStrings : tqlStr;
+
+	return isBatched ? tqlStrings : tqlStr;
 };
 
 type FilterValue = string | string[] | number | number[] | boolean | boolean[] | Date | Date[] | null;
@@ -428,13 +426,13 @@ const buildFilter = (props: {
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
-				matches.push(indent(`$${$var} has ${key} $${key}_${uuidv4()};`, depth));
+				matches.push(line(`$${$var} has ${key} $${key}_${uuidv4()};`, depth));
 			} else if (Array.isArray(value)) {
 				value.forEach((v) => {
-					matches.push(indent(`not { $${$var} has ${key} ${serializeValue(v)}; };`, depth));
+					matches.push(line(`not { $${$var} has ${key} ${serializeValue(v)}; };`, depth));
 				});
 			} else {
-				matches.push(indent(`not { $${$var} has ${key} ${serializeValue(value)}; };`, depth));
+				matches.push(line(`not { $${$var} has ${key} ${serializeValue(value)}; };`, depth));
 			}
 			return;
 		}
@@ -449,11 +447,11 @@ const buildFilter = (props: {
 			}
 			if (lf.target === 'relation') {
 				if (value === null) {
-					matches.push(indent(`(${lf.plays}: $${$var}) isa ${lf.relation};`, depth));
+					matches.push(line(`(${lf.plays}: $${$var}) isa ${lf.relation};`, depth));
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							indent(
+							line(
 								`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)}; };`,
 								depth,
 							),
@@ -461,7 +459,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						indent(
+						line(
 							`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)}; };`,
 							depth,
 						),
@@ -471,7 +469,7 @@ const buildFilter = (props: {
 				const oppVar = `${opposite.thing}_${uuidv4()}`;
 				if (value === null) {
 					matches.push(
-						indent(
+						line(
 							`$${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`,
 							depth,
 						),
@@ -479,7 +477,7 @@ const buildFilter = (props: {
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							indent(
+							line(
 								`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(v)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 								depth,
 							),
@@ -487,7 +485,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						indent(
+						line(
 							`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 							depth,
 						),
@@ -508,11 +506,11 @@ const buildFilter = (props: {
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
 				if (value === null) {
-					matches.push(indent(`$${$var} (${player.plays}: ${playerVar});`, depth));
+					matches.push(line(`$${$var} (${player.plays}: ${playerVar});`, depth));
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							indent(
+							line(
 								`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`,
 								depth,
 							),
@@ -520,7 +518,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						indent(
+						line(
 							`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`,
 							depth,
 						),
@@ -535,15 +533,15 @@ const buildFilter = (props: {
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
-				matches.push(indent(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`, depth));
+				matches.push(line(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`, depth));
 			} else if (Array.isArray(value)) {
 				const alt = value.map((v) => `$${$var} has ${key} ${serializeValue(v)};`);
 				const match = joinAlt(alt);
 				if (match) {
-					matches.push(indent(match, depth));
+					matches.push(line(match, depth));
 				}
 			} else {
-				matches.push(indent(`$${$var} has ${key} ${serializeValue(value)};`, depth));
+				matches.push(line(`$${$var} has ${key} ${serializeValue(value)};`, depth));
 			}
 			return;
 		}
@@ -558,18 +556,18 @@ const buildFilter = (props: {
 			}
 			if (lf.target === 'relation') {
 				if (value === null) {
-					matches.push(indent(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`, depth));
+					matches.push(line(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`, depth));
 				} else if (Array.isArray(value)) {
 					const alt = value.map(
 						(v) => `(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)};`,
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(indent(match, depth));
+						matches.push(line(match, depth));
 					}
 				} else {
 					matches.push(
-						indent(
+						line(
 							`(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)};`,
 							depth,
 						),
@@ -579,7 +577,7 @@ const buildFilter = (props: {
 				const oppVar = `${opposite.thing}_${uuidv4()}`;
 				if (value === null) {
 					matches.push(
-						indent(
+						line(
 							`not { $${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 							depth,
 						),
@@ -591,11 +589,11 @@ const buildFilter = (props: {
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(indent(match, depth));
+						matches.push(line(match, depth));
 					}
 				} else {
 					matches.push(
-						indent(
+						line(
 							`$${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`,
 							depth,
 						),
@@ -616,7 +614,7 @@ const buildFilter = (props: {
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
 				if (value === null) {
-					matches.push(indent(`not { $${$var} (${player.plays}: ${playerVar}); };`, depth));
+					matches.push(line(`not { $${$var} (${player.plays}: ${playerVar}); };`, depth));
 				} else if (Array.isArray(value)) {
 					const alt = value.map(
 						(v) =>
@@ -624,11 +622,11 @@ const buildFilter = (props: {
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(indent(match, depth));
+						matches.push(line(match, depth));
 					}
 				} else {
 					matches.push(
-						indent(
+						line(
 							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`,
 							depth,
 						),
@@ -692,20 +690,20 @@ const buildSorter = (props: {
 			throw new Error(`"${$thing}" does not have data field "${s.field}"`);
 		}
 		const attrVar = `${s.field}_${uuidv4()}`;
-		sortMatch.push(indent('{', depth));
-		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
-		sortMatch.push(indent('not {', depth + 1));
-		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
-		sortMatch.push(indent(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
-		sortMatch.push(indent('};', depth + 1));
-		sortMatch.push(indent(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
-		sortMatch.push(indent('} or {', depth));
-		sortMatch.push(indent(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
+		sortMatch.push(line('{', depth));
+		sortMatch.push(line(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
+		sortMatch.push(line('not {', depth + 1));
+		sortMatch.push(line(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
+		sortMatch.push(line(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
+		sortMatch.push(line('};', depth + 1));
+		sortMatch.push(line(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
+		sortMatch.push(line('} or {', depth));
+		sortMatch.push(line(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
 		// TODO: This is a workaround to put things with undefined attribute at the end.
 		// "~" is the last non-control char (DEC 126) in ASCII.
-		sortMatch.push(indent(`?${attrVar}_ = "~";`, depth + 1));
-		sortMatch.push(indent('};', depth));
-		sortMatch.push(indent(`?${attrVar} = ?${attrVar}_;`, depth));
+		sortMatch.push(line(`?${attrVar}_ = "~";`, depth + 1));
+		sortMatch.push(line('};', depth));
+		sortMatch.push(line(`?${attrVar} = ?${attrVar}_;`, depth));
 		const order = s.desc ? 'desc' : 'asc';
 		sorter.push(`?${attrVar} ${order}`);
 	});
@@ -716,11 +714,11 @@ const buildSorter = (props: {
 
 	return {
 		match: sortMatch.join(''),
-		sort: indent(`sort ${sorter.join(', ')};`, depth),
+		sort: line(`sort ${sorter.join(', ')};`, depth),
 	};
 };
 
-const indent = (line: string, depth: number) => {
+const line = (line: string, depth: number) => {
 	let _indent = '';
 	for (let i = 0; i < depth; i++) {
 		_indent += '  ';

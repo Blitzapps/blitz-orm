@@ -1,16 +1,14 @@
 import { trainCase } from 'case-anything';
-import type { Pipeline } from '../../types/pipeline/base';
-import type { EnrichedBormSchema, PipelineOperation } from '../../types';
-import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
-import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, dash } from 'radash';
-import { QueryPath } from '../../types/symbols';
+import type { BormConfig, DBHandles, EnrichedBormSchema, PipelineOperation } from '../../../types';
+import { QueryPath } from '../../../types/symbols';
 import type {
 	SurrealDbResponse,
 	EnrichedBqlQuery,
 	EnrichedBqlQueryEntity,
 	EnrichedBqlQueryAttribute,
-} from './types/base';
+} from './types';
+import BormClient from '../../..';
 
 const getSubtype = (
 	schema: EnrichedBormSchema,
@@ -86,9 +84,14 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
 	return result;
 };
 
-const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-  console.log('\n\nbuildSurrealDbQuery\n', JSON.stringify(req));
-	const { dbHandles, enrichedBqlQuery, schema } = req;
+// TODO: Break it into multiple steps
+export const buildSurrealDbQuery = async (props: {
+  dbHandles: any;
+  enrichedBqlQuery: EnrichedBqlQuery[];
+  schema: EnrichedBormSchema;
+  config: BormConfig;
+}) => {
+	const { dbHandles, enrichedBqlQuery, schema, config } = props;
 
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL request not parsed');
@@ -97,7 +100,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 		throw new Error('missing SurrealDB in dbHandles');
 	}
 
-	const connector = req.config.dbConnectors.find((connector) => connector.provider === 'surrealDB');
+	const connector = config.dbConnectors.find((connector) => connector.provider === 'surrealDB');
 
 	if (!connector) {
 		throw new Error('missing SurrealDB config');
@@ -112,8 +115,8 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 	const { client } = mapItem;
 
 	const results = await Promise.all(
-		(req.enrichedBqlQuery as Array<EnrichedBqlQuery>).map(async (query) => {
-			let queryResult: Array<Record<string, unknown>> | undefined;
+		enrichedBqlQuery.map(async (query) => {
+			let queryResult: Record<string, unknown>[] | undefined;
 
 			if (query['$thingType'] === 'relation') {
 				// NOTE relations from testSchema contains hyphen at the moment. Remove case transformation, once we use camelcase for all tables
@@ -121,11 +124,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 
 				const generatedQuery = buildQuery(thing, query);
 
-				const queryRes: Array<
-					Record<string, unknown> & {
-						id: string;
-					}
-				> = await client.query(generatedQuery);
+				const queryRes: (Record<string, unknown> & { id: string })[] = await client.query(generatedQuery);
 
 				queryResult = queryRes.map((item) => ({
 					$id: item.id,
@@ -133,11 +132,12 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 					$thingType: 'relation',
 					...item,
 					id: item.id,
+          // @ts-expect-error implicit any
 					[QueryPath]: enrichedBqlQuery[0][QueryPath],
 				}));
 			} else {
 				// retrieve all subtype entities, and we query them one by one. At the end we flatten the result.
-				const subtypes = [query['$thing'], ...getSubtype(req.schema, 'entities', query['$thing'])];
+				const subtypes = [query['$thing'], ...getSubtype(schema, 'entities', query['$thing'])];
 
 				const payload = await Promise.all(
 					subtypes.map(async (subtype) => {
@@ -153,6 +153,7 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 							$thingType: 'entity',
 							...item,
 							id: dash(item.id),
+              // @ts-expect-error implicit any
 							[QueryPath]: enrichedBqlQuery[0][QueryPath],
 						}));
 					}),
@@ -169,14 +170,9 @@ const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, re
 		}),
 	);
 
-	if (req.enrichedBqlQuery.length > 1) {
+	if (enrichedBqlQuery.length > 1) {
 		throw new Error('batch query unimplemented');
 	}
 
-	res.bqlRes = req.enrichedBqlQuery[0]?.$filter?.id ? results[0][0] : results[0];
-};
-
-export const SurrealDbPipelines: Record<string, Pipeline<SurrealDbResponse>> = {
-	query: [enrichBQLQuery, buildSurrealDbQuery, cleanQueryRes],
-	mutation: [],
+	return enrichedBqlQuery[0]?.$filter?.id ? results[0][0] : results[0];
 };
