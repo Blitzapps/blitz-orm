@@ -314,7 +314,7 @@ const buildLinkQuery = (props: {
   }
   lines.push(indent(`FROM ${from}`, queryLevel));
 
-  lines.push(indent(')', level));
+  lines.push(indent(`) AS ${query.$path}`, level));
 
   return lines;
 };
@@ -372,7 +372,7 @@ const buildRoleQuery = (props: {
     lines.push(...buildFilter(query.$filter, queryLevel));
   }
 
-  lines.push(indent(')', level));
+  lines.push(indent(`) AS ${query.$path}`, level));
 
   return lines;
 };
