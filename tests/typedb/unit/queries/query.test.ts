@@ -1462,14 +1462,14 @@ describe('Query', () => {
 	});
 
 	it('s1[self] Relation playing a a role defined by itself', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.query({ $relation: 'Self' }, { noMetadata: true });
-		expect(deepSort(res, 'id')).toEqual([
-			{ id: 'self1', owned: ['self2'], space: 'space-2' },
-			{ id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
-			{ id: 'self3', owner: 'self2', space: 'space-2' },
-			{ id: 'self4', owner: 'self2', space: 'space-2' },
-		]);
+    expect(bormClient).toBeDefined();
+    const res = await bormClient.query({ $relation: 'Self' }, { noMetadata: true });
+    expect(deepSort(res, 'id')).toEqual([
+      { id: 'self1', owned: ['self2'], space: 'space-2' },
+      { id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
+      { id: 'self3', owner: 'self2', space: 'space-2' },
+      { id: 'self4', owner: 'self2', space: 'space-2' },
+    ]);
 	});
 
 	it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {

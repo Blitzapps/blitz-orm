@@ -7,7 +7,7 @@ import type {
 	EnrichedRoleField,
 } from '../schema/enriched';
 import type { EdgeSchema, EdgeType, Schema } from '../symbols';
-import type { Filter } from './filters';
+import { Filter } from './queries';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
@@ -18,7 +18,7 @@ export type BQLMutation = RootBQLMutationBlock | RootBQLMutationBlock[];
 export type RootBQLMutationBlock = {
 	[key: string]: any;
 	$id?: string | string[];
-	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
+	$filter?: Filter; // todo: keyof BQLmutationBlock
 	$tempId?: string;
 	$op?: string;
 } & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType?: 'entity' | 'relation' }); // | { $attribute: string });
@@ -26,7 +26,7 @@ export type RootBQLMutationBlock = {
 export type BQLMutationBlock = {
 	[key: string]: any;
 	$id?: string | string[];
-	$filter?: Filter | Filter[]; // todo: keyof BQLmutationBlock
+	$filter?: Filter; // todo: keyof BQLmutationBlock
 	$tempId?: string;
 	$op?: string;
 	$entity?: string;
@@ -46,7 +46,7 @@ export type FilledBQLMutationBlock = WithRequired<BQLMutationBlock, '$op'> & {
 export type EnrichedBQLMutationBlock = {
 	[key: string]: any;
 	$id?: string | string[];
-	$filter?: Filter | Filter[];
+	$filter?: Filter;
 	$tempId?: string;
 	$op: BormOperation;
 	$thing: string;

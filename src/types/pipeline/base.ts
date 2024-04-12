@@ -4,7 +4,7 @@ import type {
 	DBHandles,
 	EnrichedBormSchema,
 	ParsedBQLMutation as BQLMutation,
-	ParsedBQLQuery as BQLQuery,
+	EnrichedBQLQuery as BQLQuery,
 	RawBQLQuery as RawBQLRequest,
 	TQLRequest,
 	FilledBQLMutationBlock,

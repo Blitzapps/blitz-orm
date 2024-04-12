@@ -174,7 +174,8 @@ export const enrichBQLQuery: PipelineOperation<BaseResponse> = async (req) => {
 			if (typeof field !== 'string') {
 				if (field.$fields) {
 					if (idNotIncluded) {
-						fields = [...field.$fields, ...currentSchema.idFields];
+            const idFields = currentSchema.idFields || [];
+						fields = [...field.$fields, ...idFields];
 					} else {
 						fields = field.$fields;
 					}
@@ -255,7 +256,6 @@ export const enrichBQLQuery: PipelineOperation<BaseResponse> = async (req) => {
 						// todo: composite ids
 						if (currentSchema?.idFields?.length === 1) {
 							const [idField] = currentSchema.idFields;
-							// @ts-expect-error todo
 							value.$filter = { ...value.$filter, ...{ [idField]: value.$id } };
 							delete value.$id;
 						} else {

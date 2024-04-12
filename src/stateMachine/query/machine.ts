@@ -1,23 +1,20 @@
-import { EnrichedBqlQuery } from "../../adapters/surrealDB/types/base";
-import { BormConfig, DBHandles, EnrichedBormSchema, ParsedBQLQuery, RawBQLQuery } from "../../types";
+import { assertDefined } from "../../helpers";
+import { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from "../../types";
 import { TqlRes } from "../mutation/TQL/parse";
 import { createMachine, guard, interpret, invoke, reduce, state, transition } from "../robot3";
 import { cleanQueryRes } from "./bql/clean";
 import { enrichBQLQuery } from "./bql/enrich";
 import { postHooks } from "./postHook";
 import { buildTQLQuery } from "./tql/build";
+import { runTypeDbQueryMachine } from "./tql/machine";
 import { parseTQLQuery } from "./tql/parse";
 import { runTQLQuery } from "./tql/run";
 
 type MachineContext = {
 	bql: {
-		raw: RawBQLQuery;
-		current: EnrichedBqlQuery;
-    res: any;
-	};
-	typeDB: {
-		query: string | string[];
-		res: TqlRes;
+		raw: RawBQLQuery[];
+		queries?: EnrichedBQLQuery[];
+    res?: any[]; // TODO
 	};
 	schema: EnrichedBormSchema;
 	config: BormConfig;
@@ -26,12 +23,13 @@ type MachineContext = {
 };
 
 const updateBqlReq = (ctx: MachineContext, event: any) => {
+  console.log('updateBqlReq', JSON.stringify(event));
 	if (!event.data) {
 		return ctx;
 	}
 	return {
 		...ctx,
-		bql: { ...ctx.bql, current: event.data },
+		bql: { ...ctx.bql, queries: event.data },
 	};
 };
 
@@ -42,26 +40,6 @@ const updateBqlRes = (ctx: MachineContext, event: any) => {
 	return {
 		...ctx,
 		bql: { ...ctx.bql, res: event.data },
-	};
-};
-
-const updateTqlReq = (ctx: MachineContext, event: any) => {
-	if (!event.data) {
-		return ctx;
-	}
-	return {
-		...ctx,
-		typeDB: { ...ctx.typeDB, query: event.data },
-	};
-};
-
-const updateTqlRes = (ctx: MachineContext, event: any) => {
-	if (!event.data) {
-		return ctx;
-	}
-	return {
-		...ctx,
-		typeDB: { ...ctx.typeDB, res: event.data },
 	};
 };
 
@@ -81,42 +59,33 @@ export const queryMachine = createMachine(
   {
 		enrich: invoke(
 			async (ctx: MachineContext) => enrichBQLQuery(ctx.bql.raw, ctx.schema),
-			transition('done', 'build', reduce(updateBqlReq)),
+			transition('done', 'adapter', reduce(updateBqlReq)),
 			errorTransition,
 		),
-    build: invoke(
-      // @ts-expect-error Bad type
-      async (ctx: MachineContext) => buildTQLQuery(ctx.bql.current, ctx.schema),
-			transition('done', 'run', reduce(updateTqlReq)),
-			errorTransition,
-    ),
-    run: invoke(
-      // @ts-expect-error Bad type
-      async (ctx: MachineContext) => runTQLQuery(ctx.handles, ctx.bql.current, ctx.typeDB.query, ctx.config),
-			transition('done', 'parse', reduce(updateTqlRes)),
-			errorTransition,
-    ),
-    parse: invoke(
-      async (ctx: MachineContext) => parseTQLQuery({
-        rawBqlRequest: ctx.bql.raw,
-        // @ts-expect-error Bad type
-        enrichedBqlQuery: ctx.bql.current,
-        schema: ctx.schema,
-        config: ctx.config,
-        rawTqlRes: ctx.typeDB.res,
-        isBatched: Array.isArray(ctx.typeDB.query),
-      }),
+    adapter: invoke(
+      async (ctx: MachineContext) => {
+        const res = await runTypeDbQueryMachine(
+          ctx.bql.raw,
+          assertDefined(ctx.bql.queries),
+          ctx.schema,
+          ctx.config,
+          ctx.handles,
+        );
+        if (res.error) {
+          throw new Error(res.error);
+        }
+        return res.bql.res;
+      },
 			transition('done', 'postHooks', reduce(updateBqlRes)),
 			errorTransition,
     ),
     postHooks: invoke(
-      // @ts-expect-error Bad type
-      async (ctx: MachineContext) => postHooks(ctx.schema, ctx.bql.current, ctx.bql.res),
+      async (ctx: MachineContext) => postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
 			transition('done', 'clean', reduce(updateBqlRes)),
 			errorTransition,
     ),
     clean: invoke(
-      async (ctx: MachineContext) => cleanQueryRes(ctx.config, ctx.bql.res),
+      async (ctx: MachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
 			transition('done', 'success', reduce(updateBqlRes)),
 			errorTransition,
     ),
@@ -147,19 +116,15 @@ export const awaitQueryMachine = async (context: MachineContext) => {
 };
 
 export const runQueryMachine = async (
-	bql: RawBQLQuery,
+	bql: RawBQLQuery[],
 	schema: EnrichedBormSchema,
 	config: BormConfig,
 	handles: DBHandles,
 ) => {
 	return awaitQueryMachine({
-    // @ts-expect-error Bad type
 		bql: {
 			raw: bql,
-      res: null,
 		},
-    // @ts-expect-error Bad type
-		typeDB: {},
 		schema: schema,
 		config: config,
 		handles: handles,

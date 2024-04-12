@@ -164,25 +164,27 @@ class BormClient {
 				...queryConfig,
 			},
 		};
+    const isBatched = Array.isArray(query);
+    console.log('isBatched', isBatched);
+    const queries = isBatched ? query : [query];
 
 		const [errorRes, res] = await tryit(runQueryMachine)(
-      // @ts-expect-error
-			query,
+      queries,
 			this.schema as EnrichedBormSchema,
 			qConfig,
 			this.dbHandles as DBHandles,
 		);
 		if (errorRes) {
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
-			const error = new Error(errorRes.error.message);
+			const error = new Error(errorRes.error);
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			error.stack = errorRes.error.stack;
 			throw error;
 		}
 
-		const result = res.bql.res;
+		const result = res.bql.res as BQLResponse[];
 
-		return result as BQLResponse;
+    return isBatched ? result : result[0];
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {

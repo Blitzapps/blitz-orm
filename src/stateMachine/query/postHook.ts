@@ -2,12 +2,12 @@ import { isObject } from 'radash';
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
-import { BQLResponse, EnrichedBormSchema, ParsedBQLQuery } from '../../types';
+import { BQLResponse, BQLResponseMulti, EnrichedBormSchema, EnrichedBQLQuery } from '../../types';
 import { getCurrentSchema } from '../../helpers';
 import { computeField } from '../../engine/compute';
 import { QueryPath } from '../../types/symbols';
 
-export const postHooks = async (schema: EnrichedBormSchema, enrichedBqlQuery: ParsedBQLQuery, bqlRes: BQLResponse) => {
+export const postHooks = async (schema: EnrichedBormSchema, enrichedBqlQuery: EnrichedBQLQuery[], bqlRes: BQLResponseMulti) => {
 	if (!bqlRes) {
 		return;
 	}

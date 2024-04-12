@@ -1,413 +1,277 @@
-import { getThing } from '../../../helpers';
-import type { BormSchema, EnrichedBormSchema, ParsedBQLQuery, Sorter } from '../../../types';
+import { getThing, indent } from '../../../helpers';
+import type { EnrichedAttributeQuery, EnrichedBormSchema, EnrichedBQLQuery, EnrichedLinkQuery, EnrichedRoleQuery } from '../../../types';
+import { Filter } from '../../../types/requests/queries';
 import { QueryPath } from '../../../types/symbols';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
 
-export const buildTQLQuery = async (enrichedBqlQuery: ParsedBQLQuery, schema: EnrichedBormSchema) => {
-	if (!enrichedBqlQuery) {
-		throw new Error('BQL query not enriched');
-	}
+export const buildTQLQuery = async (props: {
+  queries: EnrichedBQLQuery[];
+  schema: EnrichedBormSchema;
+}) => {
+  const { queries: batches, schema } = props;
+  return batches.map((query) => buildQuery({ query, schema }));
+}
 
-	let tqlStr = '';
+const buildQuery = (props: {
+  query: EnrichedBQLQuery;
+  schema: EnrichedBormSchema;
+}) => {
+  console.log('buildQuery', JSON.stringify(props.query));
+  const { query, schema } = props;
+  const { $path, $thing, $filter, $fields, $sort, $offset, $limit } = query;
 
-	type ValueBlock = {
-		$thing: string;
-		$thingType: 'entity' | 'relation' | 'thing' | 'attribute';
-		$path?: string;
-		$as?: string;
-		$var?: string;
-		$fields?: ValueBlock[];
-		$filter?: object;
-		$fieldType?: 'data' | 'role' | 'link';
-		$sort?: Sorter[];
-		$offset?: number;
-		$limit?: number;
-		[QueryPath]?: string;
-	};
+  if (!$path) {
+    throw new Error('Path is not defined');
+  }
 
-	const processDataFields = (
-		dataFields: {
-			$path: string;
-			$dbPath: string;
-			$thingType: 'attribute';
-			$as: string;
-			$var: string;
-			$fieldType: 'data';
-			$justId: boolean;
-			$isVirtual: boolean;
-		}[],
-		$path: string,
-		depth: number,
-	) => {
-		const postStrParts: string[] = [];
-		const asMetaDataParts: string[] = [];
+  const lines: string[] = [];
+  const queryPath = query[QueryPath];
+  lines.push('match')
+  lines.push(`$${$path} isa ${$thing};`);
 
-		let $asMetaData = '';
+  if ($filter) {
+    const filter = buildFilter({ $filter: $filter as any, $var: $path, $thing, schema, depth: 0 });
+    lines.push(`\n${filter}`);
+  }
 
-		for (let i = 0; i < dataFields.length; i++) {
-			if (!dataFields[i].$isVirtual) {
-				postStrParts.push(dataFields[i].$dbPath);
-			}
-			asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
-		}
+  const sorter = buildSorter({ schema, $thing, $var: $path, $sort, depth: 0 });
 
-		const postStr = postStrParts.join(', ');
-		$asMetaData = asMetaDataParts.join(',');
+  if (sorter) {
+    lines.push(sorter.match);
+  }
 
-		const $metaData = `$metadata:{as:[${$asMetaData}]}`;
+  const randomId = `M_${uuidv4()}`;
 
-		tqlStr += line(`$${$path} as "${$path}.${$metaData}.$dataFields": ${postStr};`, depth);
-	};
+  lines.push(`?queryPath${randomId} = "${queryPath}";`);
+  lines.push('fetch');
+  lines.push(`?queryPath${randomId} as "queryPath";`);
 
-	const processRoleFields = (
-		roleFields: {
-			$path: string;
-			$dbPath: string;
-			$thingType: 'entity' | 'relation' | 'thing';
-			$as: string;
-			$var: string;
-			$fieldType: 'link';
-			$target: 'role' | 'relation';
-			$fields?: ValueBlock[];
-			$thing: string;
-			$plays: string;
-			$intermediary: string;
-			$justId: boolean;
-			$filter: object;
-			$idNotIncluded: boolean;
-			$filterByUnique: boolean;
-			$playedBy: any;
-			$sort?: Sorter[];
-			$offset?: number;
-			$limit?: number;
-			[QueryPath]: string;
-		}[],
-		$path: string,
-		dotPath: string,
-		depth: number,
-	) => {
-		const nextDepth = depth + 1;
-		for (const roleField of roleFields) {
-			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $thing, $sort, $offset, $limit } = roleField;
-			const queryPath = roleField[QueryPath];
+  if ($fields) {
+    const dataFields = $fields.filter((f) => f.$fieldType === 'data') as EnrichedAttributeQuery[];
+    if (dataFields && dataFields.length > 0) {
+      lines.push(...processDataFields(dataFields, $path, 0));
+    }
 
-			const $metaData = `$metadata:{as:${$as},justId:${
-				$justId ? 'T' : 'F'
-			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
-			tqlStr += line(`"${dotPath}.${$metaData}.${roleField.$var}": {`, depth);
-			tqlStr += line('match', nextDepth);
-			const $roleVar = `${$path}${separator}${roleField.$var}`;
-			tqlStr += line(`$${$roleVar} isa ${roleField.$thing};`, nextDepth);
-			tqlStr += line(
-				`$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary};`,
-				nextDepth,
-			);
+    const linkFields = $fields.filter((f) => f.$fieldType === 'link') as EnrichedLinkQuery[];
+    if (linkFields && linkFields.length > 0) {
+      lines.push(...processLinkFields(linkFields, $path, $path, 0, schema));
+    }
 
-			if (roleField.$filter) {
-				tqlStr += buildFilter({
-					$filter: roleField.$filter as any,
-					$var: $roleVar,
-					$thing: roleField.$thing,
-					schema,
-					depth: nextDepth,
-				});
-			}
+    const roleFields = $fields.filter((f) => f.$fieldType === 'role') as EnrichedRoleQuery[];
+    if (roleFields && roleFields.length > 0) {
+      lines.push(...processRoleFields(roleFields, $path, $path, 0, schema));
+    }
+  }
 
-			const sorter = buildSorter({ schema, $thing, $var: $roleVar, $sort, depth: nextDepth });
+  if (sorter) {
+    lines.push(sorter.sort);
+  }
 
-			if (sorter) {
-				tqlStr += sorter.match;
-			}
+  if (typeof $offset === 'number') {
+    lines.push(`\noffset ${$offset};`);
+  }
 
-			if ($fields) {
-				const randomId = `M_${uuidv4()}`;
-				tqlStr += line(`\n?queryPath${randomId} = "${queryPath}";`, nextDepth); ///rawPaths => to inject metadata in the response, in this case only the path
-				tqlStr += line('fetch', nextDepth);
-				tqlStr += line(`?queryPath${randomId} as "queryPath";`, nextDepth); ///rawPaths => to recover metadata in the response
+  if (typeof $limit === 'number') {
+    lines.push(`\nlimit ${$limit};`);
+  }
 
-				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-				if (dataFields && dataFields.length > 0) {
-					// @ts-expect-error todo
-					processDataFields(dataFields, $roleVar, `${$path}.${roleField.$var}`, nextDepth);
-				}
-
-				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-				if (linkFields && linkFields.length > 0) {
-					// @ts-expect-error todo
-					processLinkFields(linkFields, $roleVar, `${$path}.${roleField.$var}`, nextDepth);
-				}
-				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-				if (roleFields && roleFields.length > 0) {
-					// @ts-expect-error todo
-					processRoleFields(roleFields, $roleVar, `${$path}.${roleField.$var}`, nextDepth);
-				}
-			}
-
-			if (sorter) {
-				tqlStr += sorter.sort;
-			}
-
-			if (typeof $offset === 'number') {
-				tqlStr += line(`offset ${$offset};`, nextDepth);
-			}
-
-			if (typeof $limit === 'number') {
-				tqlStr += line(`limit ${$limit};`, nextDepth);
-			}
-
-			tqlStr += line('};', depth);
-		}
-	};
-
-	const processLinkFields = (
-		linkFields: {
-			$path: string;
-			$dbPath: string;
-			$thingType: 'entity' | 'relation' | 'thing';
-			$as: string;
-			$var: string;
-			$fieldType: 'link';
-			$target: 'role' | 'relation';
-			$fields?: ValueBlock[];
-			$intermediary?: string;
-			$thing: string;
-			$plays: string;
-			$justId: boolean;
-			$filter: object;
-			$idNotIncluded: boolean;
-			$filterByUnique: boolean;
-			$playedBy: any;
-			$sort?: Sorter[];
-			$offset?: number;
-			$limit?: number;
-			[QueryPath]: string;
-		}[],
-		$path: string,
-		dotPath: string,
-		depth: number,
-	) => {
-		const nextDepth = depth + 1;
-		for (const linkField of linkFields) {
-			const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $playedBy, $thing, $sort, $offset, $limit } =
-				linkField;
-			const queryPath = linkField[QueryPath];
-			const $metaData = `$metadata:{as:${$as},justId:${
-				$justId ? 'T' : 'F'
-			},idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
-			tqlStr += line(`"${dotPath}.${$metaData}.${linkField.$var}": {`, depth);
-			tqlStr += line('match', nextDepth);
-			const $linkVar = `${$path}${separator}${linkField.$var}`;
-			tqlStr += line(`$${$linkVar} isa ${linkField.$thing};`, nextDepth);
-
-			if (linkField.$filter) {
-				tqlStr += buildFilter({
-					$filter: linkField.$filter as any,
-					$var: $linkVar,
-					$thing: linkField.$thing,
-					schema,
-					depth: nextDepth,
-				});
-			}
-
-			const sorter = buildSorter({ schema, $thing, $var: $linkVar, $sort, depth: nextDepth });
-
-			if (sorter) {
-				tqlStr += sorter.match;
-			}
-
-			// a. intermediary
-			if (linkField.$target === 'role') {
-				tqlStr += line(
-					`$${$path}_intermediary (${linkField.$plays}: $${$path}, ${$playedBy.plays}: $${$linkVar}) isa ${linkField.$intermediary};`,
-					nextDepth,
-				);
-			} else {
-				// b. no intermediary
-				tqlStr += `\n$${$linkVar} (${linkField.$plays}: $${$path}) isa ${linkField.$thing};`;
-			}
-
-			if ($fields) {
-				const randomId = `M_${uuidv4()}`;
-				tqlStr += line(`?queryPath${randomId} = "${queryPath}";`, nextDepth); ///queryPath => to inject metadata in the response, in this case only the path
-				tqlStr += line('fetch', nextDepth);
-				tqlStr += line(`?queryPath${randomId} as "queryPath";`, nextDepth); ///queryPath => to recover metadata in the response
-
-				const dataFields = $fields?.filter((f) => f.$fieldType === 'data');
-				if (dataFields && dataFields.length > 0) {
-					// @ts-expect-error todo
-					processDataFields(dataFields, $linkVar, nextDepth);
-				}
-
-				const linkFields = $fields?.filter((f) => f.$fieldType === 'link');
-				if (linkFields && linkFields.length > 0) {
-					// @ts-expect-error todo
-					processLinkFields(linkFields, $linkVar, `${$path}.${linkField.$var}`, nextDepth);
-				}
-
-				const roleFields = $fields?.filter((f) => f.$fieldType === 'role');
-				if (roleFields && roleFields.length > 0) {
-					// @ts-expect-error todo
-					processRoleFields(roleFields, $linkVar, `${$path}.${linkField.$var}`, nextDepth);
-				}
-			}
-
-			if (sorter) {
-				tqlStr += sorter.sort;
-			}
-
-			if (typeof $offset === 'number') {
-				tqlStr += line(`offset ${$offset};`, nextDepth);
-			}
-
-			if (typeof $limit === 'number') {
-				tqlStr += line(`limit ${$limit};`, nextDepth);
-			}
-
-			tqlStr += line('};', depth);
-		}
-	};
-
-  // @ts-expect-error Incompatible type
-	const isBatched = enrichedBqlQuery.length > 1;
-	const tqlStrings: string[] = [];
-
-	const builder = (enrichedBqlQuery: ValueBlock[]) => {
-		// Batched
-		if (isBatched) {
-			for (const query of enrichedBqlQuery) {
-				const { $path, $thing, $filter, $fields, $sort, $offset, $limit } = query;
-
-				if (!$path) {
-					throw new Error('Path is not defined');
-				}
-
-				const queryPath = query[QueryPath];
-				tqlStr += `\nmatch\n$${$path} isa ${$thing};`;
-
-				if ($filter) {
-					const filter = buildFilter({ $filter: $filter as any, $var: $path, $thing, schema, depth: 0 });
-					tqlStr += `\n${filter}`;
-				}
-
-				const sorter = buildSorter({ schema, $thing, $var: $path, $sort, depth: 0 });
-
-				if (sorter) {
-					tqlStr += sorter.match;
-				}
-
-				const randomId = `M_${uuidv4()}`;
-
-				tqlStr += `\n?queryPath${randomId} = "${queryPath}";`;
-				tqlStr += '\nfetch';
-				tqlStr += `\n?queryPath${randomId} as "queryPath";`;
-
-				if ($fields) {
-					const dataFields = $fields.filter((f) => f.$fieldType === 'data');
-					if (dataFields && dataFields.length > 0) {
-						// @ts-expect-error todo
-						processDataFields(dataFields, $path, 0);
-					}
-
-					const linkFields = $fields.filter((f) => f.$fieldType === 'link');
-					if (linkFields && linkFields.length > 0) {
-						// @ts-expect-error todo
-						processLinkFields(linkFields, $path, $path, 0);
-					}
-
-					const roleFields = $fields.filter((f) => f.$fieldType === 'role');
-					if (roleFields && roleFields.length > 0) {
-						// @ts-expect-error todo
-						processRoleFields(roleFields, $path, $path, 0);
-					}
-				}
-
-				if (sorter) {
-					tqlStr += sorter.sort;
-				}
-
-				if (typeof $offset === 'number') {
-					tqlStr += `\noffset ${$offset};`;
-				}
-
-				if (typeof $limit === 'number') {
-					tqlStr += `\nlimit ${$limit};`;
-				}
-
-				tqlStrings.push(tqlStr);
-				tqlStr = '';
-			}
-		} else {
-			for (const query of enrichedBqlQuery) {
-				const { $path, $thing, $filter, $fields, $sort, $offset, $limit } = query;
-				if (!$path || $path === 'undefined') {
-					throw new Error('Path is not defined');
-				}
-
-				const queryPath = query[QueryPath];
-				tqlStr += `\nmatch\n$${$path} isa ${$thing};`;
-
-				if ($filter) {
-					tqlStr += buildFilter({ $filter: $filter as any, $var: $path, $thing, schema, depth: 0 });
-				}
-
-				const sorter = buildSorter({ schema, $thing, $var: $path, $sort, depth: 0 });
-
-				if (sorter) {
-					tqlStr += sorter.match;
-				}
-
-				tqlStr += `\n?queryPath = "${queryPath}";`;
-				tqlStr += '\nfetch';
-				tqlStr += '\n?queryPath as "queryPath";';
-
-				if ($fields) {
-					const dataFields = $fields.filter((f) => f.$fieldType === 'data');
-					if (dataFields && dataFields.length > 0) {
-						// @ts-expect-error todo
-						processDataFields(dataFields, $path, 0);
-					}
-
-					const linkFields = $fields.filter((f) => f.$fieldType === 'link');
-					if (linkFields && linkFields.length > 0) {
-						// @ts-expect-error todo
-						processLinkFields(linkFields, $path, $path, 0);
-					}
-
-					const roleFields = $fields.filter((f) => f.$fieldType === 'role');
-					if (roleFields && roleFields.length > 0) {
-						// @ts-expect-error todo
-						processRoleFields(roleFields, $path, $path, 0);
-					}
-				}
-
-				if (sorter) {
-					tqlStr += sorter.sort;
-				}
-
-				if (typeof $offset === 'number') {
-					tqlStr += `\noffset ${$offset};`;
-				}
-
-				if (typeof $limit === 'number') {
-					tqlStr += `\nlimit ${$limit};`;
-				}
-			}
-		}
-	};
-
-  // @ts-expect-error Incompatible type
-	builder(enrichedBqlQuery);
-
-	return isBatched ? tqlStrings : tqlStr;
+	return lines.join('\n');
 };
 
-type FilterValue = string | string[] | number | number[] | boolean | boolean[] | Date | Date[] | null;
+const processDataFields = (
+  dataFields: EnrichedAttributeQuery[],
+  $path: string,
+  depth: number,
+) => {
+  const postStrParts: string[] = [];
+  const asMetaDataParts: string[] = [];
 
-type Filter = {
-	$not?: Record<string, FilterValue>;
-} & Record<string, FilterValue>;
+  for (let i = 0; i < dataFields.length; i++) {
+    if (!dataFields[i].$isVirtual) {
+      postStrParts.push(dataFields[i].$dbPath);
+    }
+    asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
+  }
+
+  const postStr = postStrParts.join(', ');
+  let $asMetaData = asMetaDataParts.join(',');
+  const $metaData = `$metadata:{as:[${$asMetaData}]}`;
+  const lines = [indent(`$${$path} as "${$path}.${$metaData}.$dataFields": ${postStr};`, depth)];
+
+  return lines;
+};
+
+const processRoleFields = (
+  roleFields: EnrichedRoleQuery[],
+  $path: string,
+  dotPath: string,
+  depth: number,
+  schema: EnrichedBormSchema,
+) => {
+  const nextDepth = depth + 1;
+  const lines: string[] = [];
+
+  for (const roleField of roleFields) {
+    const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $thing, $sort, $offset, $limit } = roleField;
+    const queryPath = roleField[QueryPath];
+
+    const $metaData = `$metadata:{as:${$as},justId:${
+      $justId ? 'T' : 'F'
+    },idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
+    lines.push(indent(`"${dotPath}.${$metaData}.${roleField.$var}": {`, depth));
+    lines.push(indent('match', nextDepth));
+    const $roleVar = `${$path}${separator}${roleField.$var}`;
+    lines.push(indent(`$${$roleVar} isa ${roleField.$thing};`, nextDepth));
+    lines.push(indent(
+      `$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary};`,
+      nextDepth,
+    ));
+
+    if (roleField.$filter) {
+      lines.push(buildFilter({
+        $filter: roleField.$filter as any,
+        $var: $roleVar,
+        $thing: roleField.$thing,
+        schema,
+        depth: nextDepth,
+      }));
+    }
+
+    const sorter = buildSorter({ schema, $thing, $var: $roleVar, $sort, depth: nextDepth });
+
+    if (sorter) {
+      lines.push(sorter.match);
+    }
+
+    if ($fields) {
+      const randomId = `M_${uuidv4()}`;
+      lines.push(indent(`\n?queryPath${randomId} = "${queryPath}";`, nextDepth)); ///rawPaths => to inject metadata in the response, in this case only the path
+      lines.push(indent('fetch', nextDepth));
+      lines.push(indent(`?queryPath${randomId} as "queryPath";`, nextDepth)); ///rawPaths => to recover metadata in the response
+
+      const dataFields = $fields?.filter((f) => f.$fieldType === 'data') as EnrichedAttributeQuery[];
+      if (dataFields && dataFields.length > 0) {
+        lines.push(...processDataFields(dataFields, $roleVar, nextDepth));
+      }
+
+      const linkFields = $fields?.filter((f) => f.$fieldType === 'link') as EnrichedLinkQuery[];
+      if (linkFields && linkFields.length > 0) {
+        lines.push(...processLinkFields(linkFields, $roleVar, `${$path}.${roleField.$var}`, nextDepth, schema));
+      }
+      const roleFields = $fields?.filter((f) => f.$fieldType === 'role') as EnrichedRoleQuery[];
+      if (roleFields && roleFields.length > 0) {
+        lines.push(...processRoleFields(roleFields, $roleVar, `${$path}.${roleField.$var}`, nextDepth, schema));
+      }
+    }
+
+    if (sorter) {
+      lines.push(sorter.sort);
+    }
+
+    if (typeof $offset === 'number') {
+      lines.push(indent(`offset ${$offset};`, nextDepth));
+    }
+
+    if (typeof $limit === 'number') {
+      lines.push(indent(`limit ${$limit};`, nextDepth));
+    }
+
+    lines.push(indent('};', depth));
+  }
+
+  return lines;
+};
+
+const processLinkFields = (
+  linkFields: EnrichedLinkQuery[],
+  $path: string,
+  dotPath: string,
+  depth: number,
+  schema: EnrichedBormSchema,
+) => {
+  const nextDepth = depth + 1;
+  const lines: string[] = [];
+
+  for (const linkField of linkFields) {
+    const { $fields, $as, $justId, $idNotIncluded, $filterByUnique, $playedBy, $thing, $sort, $offset, $limit } =
+      linkField;
+    const queryPath = linkField[QueryPath];
+    const $metaData = `$metadata:{as:${$as},justId:${
+      $justId ? 'T' : 'F'
+    },idNotIncluded:${$idNotIncluded},filterByUnique:${$filterByUnique}}`;
+    lines.push(indent(`"${dotPath}.${$metaData}.${linkField.$var}": {`, depth));
+    lines.push(indent('match', nextDepth));
+    const $linkVar = `${$path}${separator}${linkField.$var}`;
+    lines.push(indent(`$${$linkVar} isa ${linkField.$thing};`, nextDepth));
+
+    if (linkField.$filter) {
+      lines.push(buildFilter({
+        $filter: linkField.$filter as any,
+        $var: $linkVar,
+        $thing: linkField.$thing,
+        schema,
+        depth: nextDepth,
+      }));
+    }
+
+    const sorter = buildSorter({ schema, $thing, $var: $linkVar, $sort, depth: nextDepth });
+
+    if (sorter) {
+      lines.push(sorter.match);
+    }
+
+    // a. intermediary
+    if (linkField.$target === 'role') {
+      lines.push(indent(
+        `$${$path}_intermediary (${linkField.$plays}: $${$path}, ${$playedBy.plays}: $${$linkVar}) isa ${linkField.$intermediary};`,
+        nextDepth,
+      ));
+    } else {
+      // b. no intermediary
+      lines.push(`\n$${$linkVar} (${linkField.$plays}: $${$path}) isa ${linkField.$thing};`);
+    }
+
+    if ($fields) {
+      const randomId = `M_${uuidv4()}`;
+      lines.push(indent(`?queryPath${randomId} = "${queryPath}";`, nextDepth)); ///queryPath => to inject metadata in the response, in this case only the path
+      lines.push(indent('fetch', nextDepth));
+      lines.push(indent(`?queryPath${randomId} as "queryPath";`, nextDepth)); ///queryPath => to recover metadata in the response
+
+      const dataFields = $fields?.filter((f) => f.$fieldType === 'data') as EnrichedAttributeQuery[];
+      if (dataFields && dataFields.length > 0) {
+        lines.push(...processDataFields(dataFields, $linkVar, nextDepth));
+      }
+
+      const linkFields = $fields?.filter((f) => f.$fieldType === 'link') as EnrichedLinkQuery[];
+      if (linkFields && linkFields.length > 0) {
+        lines.push(...processLinkFields(linkFields, $linkVar, `${$path}.${linkField.$var}`, nextDepth, schema));
+      }
+
+      const roleFields = $fields?.filter((f) => f.$fieldType === 'role') as EnrichedRoleQuery[];
+      if (roleFields && roleFields.length > 0) {
+        lines.push(...processRoleFields(roleFields, $linkVar, `${$path}.${linkField.$var}`, nextDepth, schema));
+      }
+    }
+
+    if (sorter) {
+      lines.push(sorter.sort);
+    }
+
+    if (typeof $offset === 'number') {
+      lines.push(indent(`offset ${$offset};`, nextDepth));
+    }
+
+    if (typeof $limit === 'number') {
+      lines.push(indent(`limit ${$limit};`, nextDepth));
+    }
+
+    lines.push(indent('};', depth));
+  }
+
+  return lines;
+};
 
 const buildFilter = (props: {
 	$filter: Filter;
@@ -426,13 +290,13 @@ const buildFilter = (props: {
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
-				matches.push(line(`$${$var} has ${key} $${key}_${uuidv4()};`, depth));
+				matches.push(indent(`$${$var} has ${key} $${key}_${uuidv4()};`, depth));
 			} else if (Array.isArray(value)) {
 				value.forEach((v) => {
-					matches.push(line(`not { $${$var} has ${key} ${serializeValue(v)}; };`, depth));
+					matches.push(indent(`not { $${$var} has ${key} ${serializeValue(v)}; };`, depth));
 				});
 			} else {
-				matches.push(line(`not { $${$var} has ${key} ${serializeValue(value)}; };`, depth));
+				matches.push(indent(`not { $${$var} has ${key} ${serializeValue(value)}; };`, depth));
 			}
 			return;
 		}
@@ -447,11 +311,11 @@ const buildFilter = (props: {
 			}
 			if (lf.target === 'relation') {
 				if (value === null) {
-					matches.push(line(`(${lf.plays}: $${$var}) isa ${lf.relation};`, depth));
+					matches.push(indent(`(${lf.plays}: $${$var}) isa ${lf.relation};`, depth));
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							line(
+							indent(
 								`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)}; };`,
 								depth,
 							),
@@ -459,7 +323,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						line(
+						indent(
 							`not { (${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)}; };`,
 							depth,
 						),
@@ -469,7 +333,7 @@ const buildFilter = (props: {
 				const oppVar = `${opposite.thing}_${uuidv4()}`;
 				if (value === null) {
 					matches.push(
-						line(
+						indent(
 							`$${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`,
 							depth,
 						),
@@ -477,7 +341,7 @@ const buildFilter = (props: {
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							line(
+							indent(
 								`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(v)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 								depth,
 							),
@@ -485,7 +349,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						line(
+						indent(
 							`not { $${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 							depth,
 						),
@@ -506,11 +370,11 @@ const buildFilter = (props: {
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
 				if (value === null) {
-					matches.push(line(`$${$var} (${player.plays}: ${playerVar});`, depth));
+					matches.push(indent(`$${$var} (${player.plays}: ${playerVar});`, depth));
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
 						matches.push(
-							line(
+							indent(
 								`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`,
 								depth,
 							),
@@ -518,7 +382,7 @@ const buildFilter = (props: {
 					});
 				} else {
 					matches.push(
-						line(
+						indent(
 							`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`,
 							depth,
 						),
@@ -533,15 +397,15 @@ const buildFilter = (props: {
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
-				matches.push(line(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`, depth));
+				matches.push(indent(`not { $${$var} has ${key} $${key}_${uuidv4()}; };`, depth));
 			} else if (Array.isArray(value)) {
 				const alt = value.map((v) => `$${$var} has ${key} ${serializeValue(v)};`);
 				const match = joinAlt(alt);
 				if (match) {
-					matches.push(line(match, depth));
+					matches.push(indent(match, depth));
 				}
 			} else {
-				matches.push(line(`$${$var} has ${key} ${serializeValue(value)};`, depth));
+				matches.push(indent(`$${$var} has ${key} ${serializeValue(value)};`, depth));
 			}
 			return;
 		}
@@ -556,18 +420,18 @@ const buildFilter = (props: {
 			}
 			if (lf.target === 'relation') {
 				if (value === null) {
-					matches.push(line(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`, depth));
+					matches.push(indent(`not { (${lf.plays}: $${$var}) isa ${lf.relation}; };`, depth));
 				} else if (Array.isArray(value)) {
 					const alt = value.map(
 						(v) => `(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(v)};`,
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(line(match, depth));
+						matches.push(indent(match, depth));
 					}
 				} else {
 					matches.push(
-						line(
+						indent(
 							`(${lf.plays}: $${$var}) isa ${lf.relation}, has ${oppositeIdField} ${serializeValue(value)};`,
 							depth,
 						),
@@ -577,7 +441,7 @@ const buildFilter = (props: {
 				const oppVar = `${opposite.thing}_${uuidv4()}`;
 				if (value === null) {
 					matches.push(
-						line(
+						indent(
 							`not { $${oppVar} isa ${opposite.thing}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation}; };`,
 							depth,
 						),
@@ -589,11 +453,11 @@ const buildFilter = (props: {
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(line(match, depth));
+						matches.push(indent(match, depth));
 					}
 				} else {
 					matches.push(
-						line(
+						indent(
 							`$${oppVar} isa ${opposite.thing}, has ${oppositeIdField} ${serializeValue(value)}; (${lf.plays}: $${$var}, ${opposite.plays}: $${oppVar}) isa ${lf.relation};`,
 							depth,
 						),
@@ -614,7 +478,7 @@ const buildFilter = (props: {
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
 				if (value === null) {
-					matches.push(line(`not { $${$var} (${player.plays}: ${playerVar}); };`, depth));
+					matches.push(indent(`not { $${$var} (${player.plays}: ${playerVar}); };`, depth));
 				} else if (Array.isArray(value)) {
 					const alt = value.map(
 						(v) =>
@@ -622,11 +486,11 @@ const buildFilter = (props: {
 					);
 					const match = joinAlt(alt);
 					if (match) {
-						matches.push(line(match, depth));
+						matches.push(indent(match, depth));
 					}
 				} else {
 					matches.push(
-						line(
+						indent(
 							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`,
 							depth,
 						),
@@ -690,20 +554,20 @@ const buildSorter = (props: {
 			throw new Error(`"${$thing}" does not have data field "${s.field}"`);
 		}
 		const attrVar = `${s.field}_${uuidv4()}`;
-		sortMatch.push(line('{', depth));
-		sortMatch.push(line(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
-		sortMatch.push(line('not {', depth + 1));
-		sortMatch.push(line(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
-		sortMatch.push(line(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
-		sortMatch.push(line('};', depth + 1));
-		sortMatch.push(line(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
-		sortMatch.push(line('} or {', depth));
-		sortMatch.push(line(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
+		sortMatch.push(indent('{', depth));
+		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_1;`, depth + 1));
+		sortMatch.push(indent('not {', depth + 1));
+		sortMatch.push(indent(`$${$var} has ${df.dbPath} $${attrVar}_2;`, depth + 2));
+		sortMatch.push(indent(`$${attrVar}_2 < $${attrVar}_1;`, depth + 2));
+		sortMatch.push(indent('};', depth + 1));
+		sortMatch.push(indent(`?${attrVar}_ = $${attrVar}_1;`, depth + 1));
+		sortMatch.push(indent('} or {', depth));
+		sortMatch.push(indent(`not { $${$var} has ${df.dbPath} $${attrVar}_1; };`, depth + 1));
 		// TODO: This is a workaround to put things with undefined attribute at the end.
 		// "~" is the last non-control char (DEC 126) in ASCII.
-		sortMatch.push(line(`?${attrVar}_ = "~";`, depth + 1));
-		sortMatch.push(line('};', depth));
-		sortMatch.push(line(`?${attrVar} = ?${attrVar}_;`, depth));
+		sortMatch.push(indent(`?${attrVar}_ = "~";`, depth + 1));
+		sortMatch.push(indent('};', depth));
+		sortMatch.push(indent(`?${attrVar} = ?${attrVar}_;`, depth));
 		const order = s.desc ? 'desc' : 'asc';
 		sorter.push(`?${attrVar} ${order}`);
 	});
@@ -714,14 +578,6 @@ const buildSorter = (props: {
 
 	return {
 		match: sortMatch.join(''),
-		sort: line(`sort ${sorter.join(', ')};`, depth),
+		sort: indent(`sort ${sorter.join(', ')};`, depth),
 	};
-};
-
-const line = (line: string, depth: number) => {
-	let _indent = '';
-	for (let i = 0; i < depth; i++) {
-		_indent += '  ';
-	}
-	return `\n${_indent}${line}`;
 };
