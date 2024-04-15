@@ -72,11 +72,13 @@ export const typeDbQueryMachine = createMachine(
 			errorTransition,
     ),
     run: invoke(
-      async (ctx: TypeDbMachineContext) => runTQLQuery({
-        dbHandles: ctx.handles,
-        tqlRequest: assertDefined(ctx.tql.queries),
-        config: ctx.config,
-      }),
+      async (ctx: TypeDbMachineContext) => {
+        return runTQLQuery({
+          dbHandles: ctx.handles,
+          tqlRequest: assertDefined(ctx.tql.queries),
+          config: ctx.config,
+        });
+      },
 			transition('done', 'parse', reduce(updateTqlRes)),
 			errorTransition,
     ),
@@ -99,17 +101,17 @@ export const typeDbQueryMachine = createMachine(
 );
 
 const awaitQueryMachine = async (context: TypeDbMachineContext) => {
-	return new Promise<TypeDbMachineContext>((resolve, reject) => {
+	return new Promise<any[]>((resolve, reject) => {
     // @ts-expect-error Bad type
 		interpret(
 			typeDbQueryMachine,
       // @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
-					resolve(service.context);
+					resolve(service.context.bql.res);
 				}
 				if (service.machine.state.name === 'error') {
-					reject(service.context);
+					reject(service.context.error);
 				}
 			},
 			context,

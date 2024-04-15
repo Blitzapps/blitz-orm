@@ -45,6 +45,7 @@ const realParse = (res: any, rawBqlRequest: RawBQLQuery, schema: EnrichedBormSch
       ...parsedRoleFields,
       ...schemaValue,
       ...(!config.query?.noMetadata && rawBqlRequest.$id
+        // TODO: This line is wrong: the id field may not be "id"; $id may be an array of string;
         ? { $id: Array.isArray(rawBqlRequest.$id) ? parsedDataFields['id'] : rawBqlRequest.$id }
         : {}),
       ...(idNotIncluded

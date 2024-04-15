@@ -62,32 +62,32 @@ DEFINE TABLE ThingRelation_things SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
 DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
 
-DEFINE TABLE UserAccounts SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE UserAccounts_user SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserAccounts_user TYPE record<UserAccounts>;
-DEFINE FIELD out ON TABLE UserAccounts_user TYPE record<User>;
-DEFINE TABLE UserAccounts_accounts SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserAccounts_accounts TYPE record<UserAccounts>;
-DEFINE FIELD out ON TABLE UserAccounts_accounts TYPE record<Account>;
+DEFINE TABLE `User-Accounts` SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE `User-Accounts_user` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `User-Accounts_user` TYPE record<`User-Accounts`>;
+DEFINE FIELD out ON TABLE `User-Accounts_user` TYPE record<User>;
+DEFINE TABLE `User-Accounts_accounts` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `User-Accounts_accounts` TYPE record<`User-Accounts`>;
+DEFINE FIELD out ON TABLE `User-Accounts_accounts` TYPE record<Account>;
 
-DEFINE TABLE UserSessions SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE UserSessions_user SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserSessions_user TYPE record<UserSessions>;
-DEFINE FIELD out ON TABLE UserSessions_user TYPE record<User>;
-DEFINE TABLE UserSessions_accounts SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserSessions_accounts TYPE record<UserSessions>;
-DEFINE FIELD out ON TABLE UserSessions_accounts TYPE record<Session>;
+DEFINE TABLE `User-Sessions` SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE `User-Sessions_user` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `User-Sessions_user` TYPE record<`User-Sessions`>;
+DEFINE FIELD out ON TABLE `User-Sessions_user` TYPE record<User>;
+DEFINE TABLE `User-Sessions_accounts` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `User-Sessions_accounts` TYPE record<`User-Sessions`>;
+DEFINE FIELD out ON TABLE `User-Sessions_accounts` TYPE record<Session>;
 
-DEFINE TABLE SpaceUser SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE SpaceUser_spaces SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE SpaceUser_spaces TYPE record<SpaceUser>;
-DEFINE FIELD out ON TABLE SpaceUser_spaces TYPE record<Space>;
-DEFINE TABLE SpaceUser_users SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE SpaceUser_users TYPE record<SpaceUser>;
-DEFINE FIELD out ON TABLE SpaceUser_users TYPE record<User>;
-DEFINE TABLE SpaceUser_power SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE SpaceUser_power TYPE record<SpaceUser>;
-DEFINE FIELD out ON TABLE SpaceUser_power TYPE record<Power>;
+DEFINE TABLE `Space-User` SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE `Space-User_spaces` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `Space-User_spaces` TYPE record<`Space-User`>;
+DEFINE FIELD out ON TABLE `Space-User_spaces` TYPE record<Space>;
+DEFINE TABLE `Space-User_users` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `Space-User_users` TYPE record<`Space-User`>;
+DEFINE FIELD out ON TABLE `Space-User_users` TYPE record<User>;
+DEFINE TABLE `Space-User_power` SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE `Space-User_power` TYPE record<`Space-User`>;
+DEFINE FIELD out ON TABLE `Space-User_power` TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
@@ -133,7 +133,6 @@ DEFINE FIELD out ON TABLE HookParent_otherHooks TYPE record<Hook>;
 
 DEFINE TABLE Kind SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON Table Kind TYPE string;
-
 DEFINE TABLE Kind_space SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE Kind_space TYPE record<Kind>;
 DEFINE FIELD out ON TABLE Kind_space TYPE record<Space>;

@@ -98,7 +98,7 @@ INSERT INTO Post [
   { id: "post4", "mentions": [ "@Ann" ] }
 ];
 
-INSERT INTO UserAccounts [
+INSERT INTO `User-Accounts` [
   { id: "ua1-1" },
   { id: "ua1-2" },
   { id: "ua1-3" },
@@ -106,22 +106,22 @@ INSERT INTO UserAccounts [
   { id: "ua3-1" }
 ];
 
-RELATE UserAccounts:`ua1-1` -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:`ua1-1` -> UserAccounts_accounts -> Account:`account1-1`;
-RELATE UserAccounts:`ua1-2` -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:`ua1-2` -> UserAccounts_accounts -> Account:`account1-2`;
-RELATE UserAccounts:`ua1-3` -> UserAccounts_user -> User:user1;
-RELATE UserAccounts:`ua1-3` -> UserAccounts_accounts -> Account:`account1-3`;
-RELATE UserAccounts:`ua2-1` -> UserAccounts_user -> User:user2;
-RELATE UserAccounts:`ua2-1` -> UserAccounts_accounts -> Account:`account2-1`;
-RELATE UserAccounts:`ua3-1` -> UserAccounts_user -> User:user3;
-RELATE UserAccounts:`ua3-1` -> UserAccounts_accounts -> Account:`account3-1`;
+RELATE `User-Accounts`:`ua1-1` -> `User-Accounts_user` -> User:user1;
+RELATE `User-Accounts`:`ua1-1` -> `User-Accounts_accounts` -> Account:`account1-1`;
+RELATE `User-Accounts`:`ua1-2` -> `User-Accounts_user` -> User:user1;
+RELATE `User-Accounts`:`ua1-2` -> `User-Accounts_accounts` -> Account:`account1-2`;
+RELATE `User-Accounts`:`ua1-3` -> `User-Accounts_user` -> User:user1;
+RELATE `User-Accounts`:`ua1-3` -> `User-Accounts_accounts` -> Account:`account1-3`;
+RELATE `User-Accounts`:`ua2-1` -> `User-Accounts_user` -> User:user2;
+RELATE `User-Accounts`:`ua2-1` -> `User-Accounts_accounts` -> Account:`account2-1`;
+RELATE `User-Accounts`:`ua3-1` -> `User-Accounts_user` -> User:user3;
+RELATE `User-Accounts`:`ua3-1` -> `User-Accounts_accounts` -> Account:`account3-1`;
 
 INSERT INTO Power [
   { id: "power1", description: "useless power" }
 ];
 
-INSERT INTO SpaceUser [
+INSERT INTO `Space-User` [
   { id: "u1s1" },
   { id: "u1s2" },
   { id: "u5s1" },
@@ -129,17 +129,17 @@ INSERT INTO SpaceUser [
   { id: "u3s2" }
 ];
 
-RELATE SpaceUser:u1s1 -> SpaceUser_users -> User:user1;
-RELATE SpaceUser:u1s1 -> SpaceUser_spaces -> Space:`space-1`;
-RELATE SpaceUser:u1s2 -> SpaceUser_users -> User:user1;
-RELATE SpaceUser:u1s2 -> SpaceUser_spaces -> Space:`space-2`;
-RELATE SpaceUser:u5s1 -> SpaceUser_users -> User:user5;
-RELATE SpaceUser:u5s1 -> SpaceUser_spaces -> Space:`space-1`;
-RELATE SpaceUser:u2s2 -> SpaceUser_users -> User:user2;
-RELATE SpaceUser:u2s2 -> SpaceUser_spaces -> Space:`space-2`;
-RELATE SpaceUser:u3s2 -> SpaceUser_users -> User:user3;
-RELATE SpaceUser:u3s2 -> SpaceUser_spaces -> Space:`space-2`;
-RELATE SpaceUser:u3s2 -> SpaceUser_power -> Power:power1;
+RELATE `Space-User`:u1s1 -> `Space-User_users` -> User:user1;
+RELATE `Space-User`:u1s1 -> `Space-User_spaces` -> Space:`space-1`;
+RELATE `Space-User`:u1s2 -> `Space-User_users` -> User:user1;
+RELATE `Space-User`:u1s2 -> `Space-User_spaces` -> Space:`space-2`;
+RELATE `Space-User`:u5s1 -> `Space-User_users` -> User:user5;
+RELATE `Space-User`:u5s1 -> `Space-User_spaces` -> Space:`space-1`;
+RELATE `Space-User`:u2s2 -> `Space-User_users` -> User:user2;
+RELATE `Space-User`:u2s2 -> `Space-User_spaces` -> Space:`space-2`;
+RELATE `Space-User`:u3s2 -> `Space-User_users` -> User:user3;
+RELATE `Space-User`:u3s2 -> `Space-User_spaces` -> Space:`space-2`;
+RELATE `Space-User`:u3s2 -> `Space-User_power` -> Power:power1;
 
 INSERT INTO UserTag [
   { id: "tag-1" },

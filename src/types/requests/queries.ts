@@ -91,8 +91,8 @@ export type EnrichedLinkQuery = {
   $intermediary?: string;
   $justId: boolean;
   $id: string,
+  $idNotIncluded?: boolean,
   $filter?: Filter;
-  $idNotIncluded: boolean;
   $filterByUnique: boolean;
   $filterProcessed: boolean;
 	$sort?: Sorter[];
@@ -113,8 +113,8 @@ export type EnrichedRoleQuery = {
   $intermediary: string,
   $justId: string,
   $id: string,
+  $idNotIncluded?: boolean,
   $filter?: Filter,
-  $idNotIncluded: boolean,
   $filterByUnique: boolean,
   $playedBy: PlayedBy,
   $filterProcessed: boolean,
@@ -131,6 +131,7 @@ export type EnrichedEntityQuery = {
   $thing: string;
   $path: string;
   $fields: (EnrichedAttributeQuery | EnrichedLinkQuery)[];
+  $idNotIncluded?: boolean,
   $filter?: Filter;
   $filterByUnique: boolean;
 	$sort?: Sorter[];
@@ -144,6 +145,7 @@ export type EnrichedRelationQuery = {
   $thing: string;
   $path: string;
   $fields: EnrichedFieldQuery[];
+  $idNotIncluded?: boolean,
   $filter?: Filter;
   $filterByUnique: boolean;
 	$sort?: Sorter[];

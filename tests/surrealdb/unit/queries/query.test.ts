@@ -353,6 +353,46 @@ describe('Query', () => {
 		});
 	});
 
+	it.only('NEW', async () => {
+		expect(bormClient).toBeDefined();
+		const res = await bormClient.query({
+			$entity: 'Color',
+			$fields: [
+        'id',
+        {
+          $path: 'user-tags',
+          $fields: ['id', 'name']
+        },
+      ],
+		});
+    console.log(JSON.stringify(res, null, 4));
+
+		expect(deepSort(res, 'id')).toEqual([
+      {
+        id: 'blue',
+        'user-tags': [
+          {
+            id: 'tag-3',
+            name: null
+          }
+        ]
+      },
+      {
+        id: 'yellow',
+        'user-tags': [
+          {
+              id: 'tag-1',
+              name: null
+          },
+          {
+              id: 'tag-2',
+              name: null
+          }
+        ]
+      }
+    ]);
+	});
+
 	afterAll(async () => {
 		await cleanup(bormClient, dbName);
 	});

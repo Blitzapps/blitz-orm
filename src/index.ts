@@ -165,7 +165,6 @@ class BormClient {
 			},
 		};
     const isBatched = Array.isArray(query);
-    console.log('isBatched', isBatched);
     const queries = isBatched ? query : [query];
 
 		const [errorRes, res] = await tryit(runQueryMachine)(

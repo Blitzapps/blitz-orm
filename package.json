@@ -26,6 +26,7 @@
 		"test": "jest --coverage",
 		"test:query": "jest query.test.ts",
 		"test:typedb-query": "jest typedb/unit/queries/query.test.ts",
+		"test:surrealdb-query": "jest surrealdb/unit/queries/query.test.ts",
 		"test:ignoreTodo": "jest -t \"^(?!.*TODO:).*\" --detectOpenHandles",
 		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "jest --watch",

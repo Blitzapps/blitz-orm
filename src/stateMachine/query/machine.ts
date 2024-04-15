@@ -1,14 +1,13 @@
-import { assertDefined } from "../../helpers";
+import type { Surreal } from 'surrealdb.node';
+import { TypeDBDriver } from "typedb-driver";
+import { assertDefined, getThing } from "../../helpers";
 import { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from "../../types";
-import { TqlRes } from "../mutation/TQL/parse";
-import { createMachine, guard, interpret, invoke, reduce, state, transition } from "../robot3";
+import { createMachine, interpret, invoke, reduce, state, transition } from "../robot3";
 import { cleanQueryRes } from "./bql/clean";
 import { enrichBQLQuery } from "./bql/enrich";
 import { postHooks } from "./postHook";
-import { buildTQLQuery } from "./tql/build";
+import { runSurrealDbQueryMachine } from "./surql/machine";
 import { runTypeDbQueryMachine } from "./tql/machine";
-import { parseTQLQuery } from "./tql/parse";
-import { runTQLQuery } from "./tql/run";
 
 type MachineContext = {
 	bql: {
@@ -23,7 +22,6 @@ type MachineContext = {
 };
 
 const updateBqlReq = (ctx: MachineContext, event: any) => {
-  console.log('updateBqlReq', JSON.stringify(event));
 	if (!event.data) {
 		return ctx;
 	}
@@ -54,6 +52,24 @@ const errorTransition = transition(
 	}),
 );
 
+type TypeDBAdapter = {
+  db: 'typeDB';
+  client: TypeDBDriver;
+  rawBql: RawBQLQuery[];
+  bqlQueries: EnrichedBQLQuery[];
+  indices: number[];
+}
+
+type SurrealDBAdapter = {
+  db: 'surrealDB';
+  client: Surreal;
+  rawBql: RawBQLQuery[];
+  bqlQueries: EnrichedBQLQuery[];
+  indices: number[];
+}
+
+type Adapter = TypeDBAdapter | SurrealDBAdapter;
+
 export const queryMachine = createMachine(
 	'enrich',
   {
@@ -64,17 +80,64 @@ export const queryMachine = createMachine(
 		),
     adapter: invoke(
       async (ctx: MachineContext) => {
-        const res = await runTypeDbQueryMachine(
-          ctx.bql.raw,
-          assertDefined(ctx.bql.queries),
-          ctx.schema,
-          ctx.config,
-          ctx.handles,
-        );
-        if (res.error) {
-          throw new Error(res.error);
-        }
-        return res.bql.res;
+        const adapters: Record<string, Adapter> = {};
+
+        ctx.bql.queries?.forEach((q, i) => {
+          const raw = ctx.bql.raw[i];
+          const thing = getThing(ctx.schema, q.$thing);
+          const { id } = thing.defaultDBConnector;
+          if (thing.db === 'typeDB') {
+            if (!adapters[id]) {
+              const client = ctx.handles.typeDB?.get(id)?.client;
+              if (!client) {
+                throw new Error(`TypeDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+              }
+              adapters[id] = {
+                db: 'typeDB',
+                client,
+                rawBql: [],
+                bqlQueries: [],
+                indices: [],
+              };
+            }
+          } else if (thing.db === 'surrealDB') {
+            if (!adapters[id]) {
+              const client = ctx.handles.surrealDB?.get(id)?.client;
+              if (!client) {
+                throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+              }
+              adapters[id] = {
+                db: 'surrealDB',
+                client,
+                rawBql: [],
+                bqlQueries: [],
+                indices: [],
+              };
+            }
+          } else {
+            throw new Error(`Unsupported DB "${thing.db}"`);
+          }
+          const adapter = adapters[id];
+          adapter.rawBql.push(raw);
+          adapter.bqlQueries.push(q);
+          adapter.indices.push(i);
+        });
+        const adapterList = Object.values(adapters);
+        const proms = adapterList.map((a) => {
+          if (a.db === 'typeDB') {
+            // TODO: Replace DBHandles with TypeDBAdapter
+            return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
+          }
+          return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+        });
+        const results = await Promise.all(proms);
+        const orderedResults = adapterList.flatMap((a, i) => {
+          const result = results[i];
+          return a.indices.map((index, j) => ({ index, result: result[j] }));
+        });
+        orderedResults.sort((a, b) => a.index < b.index ? -1 : a.index > b.index ? 1 : 0);
+        const result = orderedResults.map(({ result }) => result);
+        return result;
       },
 			transition('done', 'postHooks', reduce(updateBqlRes)),
 			errorTransition,

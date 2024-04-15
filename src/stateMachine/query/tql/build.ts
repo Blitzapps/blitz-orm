@@ -18,7 +18,6 @@ const buildQuery = (props: {
   query: EnrichedBQLQuery;
   schema: EnrichedBormSchema;
 }) => {
-  console.log('buildQuery', JSON.stringify(props.query));
   const { query, schema } = props;
   const { $path, $thing, $filter, $fields, $sort, $offset, $limit } = query;
 

@@ -86,10 +86,7 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
           // if no fields, then it's all fields
           if (value.$fields) {
             const idFieldIncluded =
-              value.$fields.filter(
-                (field: any) =>
-                  currentSchema?.idFields?.includes(field) || currentSchema?.idFields?.includes(field.$path),
-              ).length > 0;
+              value.$fields.some((field: any) => currentSchema?.idFields?.includes(field?.$path || field));
             if (!idFieldIncluded) {
               value.$fields = [
                 ...value.$fields,
