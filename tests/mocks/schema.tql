@@ -78,9 +78,17 @@ Thing sub entity,
     plays ThingRelation:extra,
     plays ThingRelation:things;
 
+CascadeThing sub entity,
+    owns id @key,
+    plays CascadeRelation:things;
+
 
 SubthingOne sub Thing;
 SubthingTwo sub Thing;
+
+CascadeRelation sub relation,
+    owns id @key,
+    relates things;
 
 ThingRelation sub relation,
     owns id @key,

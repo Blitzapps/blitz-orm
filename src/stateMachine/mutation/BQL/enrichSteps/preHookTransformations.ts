@@ -28,14 +28,17 @@ export const preHookTransformations = (
 			const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
 			const currentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
 			const userContext = (config.mutation?.context || {}) as Record<string, any>;
-			const dbNode = clone(deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || {})) as
-				| EnrichedBQLMutationBlock
-				| Record<string, never>;
+			const dbNode = clone(
+				deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || subNode.$dbNode),
+			) as EnrichedBQLMutationBlock | Record<string, never>;
+			// console.log('preHookTransformations.subNode: ', JSON.stringify(subNode, null, 2));
 
 			triggeredActions.forEach((action) => {
 				//! Todo: Sandbox the function in computeFunction()
-				// console.log('preHookTransformations.$dbNode: ', JSON.stringify($dbNode, null, 2));
-				const newProps = action.fn(currentNode, parentNode, userContext, dbNode);
+				// console.log('transforming: ', JSON.stringify({ node, dbNode }, null, 2));
+
+				// console.log('preHookTransformations.$dbNode: ', JSON.stringify(dbNode, null, 2));
+				const newProps = action.fn(currentNode, parentNode, userContext, dbNode || {});
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}

@@ -23,7 +23,7 @@ export const preHookDependencies = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
-	// console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
+	// console.log('before: ', JSON.stringify(blocks, null, 2));
 	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$') && block[key] !== undefined) {
@@ -49,8 +49,8 @@ export const preHookDependencies = async (
 	}
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
-		const processBlock = (block: FilledBQLMutationBlock, transformation?: boolean, root?: boolean) => {
-			let $fields: any[] = transformation ? block.$fields || [] : [];
+		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
+			let $fields: any[] = [...block.$fields] || [];
 			const filteredBlock = {};
 			const toRemoveFromRoot = ['$op', '$bzId', '$parentKey'];
 			const toRemove = ['$relation', '$entity', '$id', ...toRemoveFromRoot];
@@ -67,14 +67,25 @@ export const preHookDependencies = async (
 						v.forEach((opBlock) => {
 							const newField = {
 								$path: k,
-								...processBlock(opBlock, transformation),
+								...processBlock(opBlock),
 							};
-							$fields = [...$fields, ...[newField]];
+							if ($fields.find((o) => o.$path === newField.$path)) {
+								// do nothing
+							} else if ($fields.find((o) => o === newField.$path)) {
+								const filteredFields = $fields.filter((o) => o !== newField.$path);
+								// console.log('f: ', JSON.stringify({ filteredFields, path: newField.$path }, null, 2));
+
+								$fields = [...filteredFields, ...[newField]];
+								// console.log('f: ', $fields);
+							} else {
+								$fields = [...$fields, ...[newField]];
+							}
+							// $fields = [...$fields, ...[newField]];
 						});
 					} else {
 						const newField = {
 							$path: k,
-							...processBlock(v, transformation),
+							...processBlock(v),
 						};
 						$fields = [...$fields, ...[newField]];
 					}
@@ -90,18 +101,18 @@ export const preHookDependencies = async (
 		};
 		return {
 			// preQueryReq: blocks.map((block) => processBlock(block, false, true)),
-			transformationPreQueryReq: blocks.map((block) => processBlock(block, true, true)),
+			transformationPreQueryReq: blocks.map((block) => processBlock(block, true)),
 		};
 	};
 
 	const { transformationPreQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
-	// console.log('preQueryReq', JSON.stringify({ preQueryReq, transformationPreQueryReq }, null, 2));
+	// console.log('preQueryReq', JSON.stringify({ transformationPreQueryReq }, null, 2));
 
 	// @ts-expect-error todo
 	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
 
-	//console.log('preQueryRes', JSON.stringify({ transformationPreQueryRes }, null, 2));
+	// console.log('preQueryRes', JSON.stringify({ transformationPreQueryRes }, null, 2));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -177,24 +188,20 @@ export const preHookDependencies = async (
 						tCache[cacheKey] = cacheArray;
 					} else {
 						const val = parent[key];
-						tCache[cacheKey] = val;
-						// if (isObject(val)) {
-						// 	// @ts-expect-error todo
-						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.$id.toString()] };
-
-						// 	// @ts-expect-error todo
-						// 	// eslint-disable-next-line no-param-reassign
-						// 	val.$objectPath = newObjPath;
-						// } else if (val) {
-						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.toString()] };
-						// }
+						if (isObject(val)) {
+							// @ts-expect-error todo
+							tCache[cacheKey] = val.$id.toString();
+							// @ts-expect-error todo
+							val.$objectPath = newObjPath;
+						} else if (val) {
+							tCache[cacheKey] = val.toString();
+						}
 					}
 				}
 			}),
 		);
 	};
 
-	// console.log('tCache: ', JSON.stringify(tCache));
 	// @ts-expect-error todo
 	tCachePaths(transformationPreQueryRes || {});
 
@@ -208,17 +215,13 @@ export const preHookDependencies = async (
 					const cacheKey = !block.$objectPath
 						? `${parentPath ? parentPath : 'root'}.${block.$id}${preQueryPathSeparator}${fieldKey}`
 						: `${parentPath ? parentPath : block.$objectPath}.${block.$id}${preQueryPathSeparator}${fieldKey}`;
-					// console.log(
-					// 	'cache stuff: ',
-					// 	JSON.stringify({ fieldKey, cacheKey, parentPath, BO: block.$objectPath }, null, 2),
-					// );
 					const cacheFound = tCache[cacheKey];
 					if (cacheFound) {
 						// todo: based on cardinality, change to single value instead of array
 						// @ts-expect-error todo
 						if (!field.$path) {
 							// @ts-expect-error todo
-							$dbNode[fieldKey] = cacheFound;
+							$dbNode[field] = cacheFound;
 						} else {
 							if (Array.isArray(cacheFound)) {
 								const items = cacheFound.map((b) => {
@@ -240,7 +243,6 @@ export const preHookDependencies = async (
 								// @ts-expect-error todo
 								$dbNode[fieldKey] = processBlock(
 									{
-										// ...cacheFound,
 										// @ts-expect-error todo
 										$id: cacheFound,
 
@@ -255,18 +257,19 @@ export const preHookDependencies = async (
 					}
 				});
 			}
-			const newBlock = {
+			let newBlock = {
 				...block,
-				...(Object.keys($dbNode).length > 0 && {
-					...(!hasSymbol
-						? {
-								[DBNode]: $dbNode,
-							}
-						: { ...$dbNode }),
-				}),
 				$fields: undefined,
 				$objectPath: undefined,
 			};
+			if (Object.keys($dbNode).length > 0) {
+				if (hasSymbol) {
+					newBlock = { ...newBlock, ...$dbNode };
+				} else {
+					// @ts-expect-error todo
+					newBlock[DBNode] = $dbNode;
+				}
+			}
 
 			return newBlock;
 		};
@@ -286,8 +289,7 @@ export const preHookDependencies = async (
 		return finalBlocks;
 	};
 
-	// @ts-expect-error todo
-	const filledDbNodes = fillDbNodes(blocks);
+	const filledDbNodes = fillDbNodes(Array.isArray(blocks) ? blocks : [blocks]);
 
 	// console.log('filledDbNode', JSON.stringify(filledDbNodes, null, 2));
 

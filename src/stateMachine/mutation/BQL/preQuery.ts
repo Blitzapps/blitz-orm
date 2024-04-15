@@ -97,8 +97,8 @@ export const mutationPreQuery = async (
 	// return true;
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
-		const processBlock = (block: FilledBQLMutationBlock, transformation?: boolean, root?: boolean) => {
-			let $fields: any[] = transformation ? block.$fields || [] : [];
+		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
+			let $fields: any[] = [];
 			const filteredBlock = {};
 			const toRemoveFromRoot = ['$op', '$bzId', '$parentKey'];
 			const toRemove = ['$relation', '$entity', '$id', ...toRemoveFromRoot];
@@ -115,15 +115,18 @@ export const mutationPreQuery = async (
 						v.forEach((opBlock) => {
 							const newField = {
 								$path: k,
-								...processBlock(opBlock, transformation),
+								...processBlock(opBlock),
 							};
-							$fields = [...$fields, ...[newField]];
+							// todo: make sure it keeps the one with the most keys
+							if (!$fields.find((o) => o.$path === newField.$path)) {
+								$fields = [...$fields, ...[newField]];
+							}
 							// $fields.push(newField);
 						});
 					} else {
 						const newField = {
 							$path: k,
-							...processBlock(v, transformation),
+							...processBlock(v),
 						};
 						$fields = [...$fields, ...[newField]];
 					}
@@ -138,21 +141,18 @@ export const mutationPreQuery = async (
 			};
 		};
 		return {
-			preQueryReq: blocks.map((block) => processBlock(block, false, true)),
-			transformationPreQueryReq: blocks.map((block) => processBlock(block, true, true)),
+			preQueryReq: blocks.map((block) => processBlock(block, true)),
 		};
 	};
 
-	const { preQueryReq, transformationPreQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
+	const { preQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
-	// console.log('preQueryReq', JSON.stringify({ preQueryReq, transformationPreQueryReq }, null, 2));
+	// console.log('preQueryReq', JSON.stringify({ preQueryReq }, null, 2));
 
 	// @ts-expect-error todo
 	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
-	// @ts-expect-error todo
-	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
 
-	// console.log('preQueryRes', JSON.stringify({ preQueryRes, transformationPreQueryRes }, null, 2));
+	// console.log('preQueryRes', JSON.stringify({ preQueryRes }, null, 2));
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -258,59 +258,7 @@ export const mutationPreQuery = async (
 	//@ts-expect-error - todo
 	cachePaths(preQueryRes || {});
 
-	const tCache: Cache<string> = {};
-	const tCachePaths = (
-		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
-	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
-		return produce(blocks, (draft) =>
-			traverse(draft, (context) => {
-				const { key, parent } = context;
-
-				if (parent && key && parent.$id && !key.includes('$')) {
-					const newObjPath = getObjectPath(parent, key);
-					const cacheKey = objectPathToKey(newObjPath);
-					if (Array.isArray(parent[key])) {
-						// @ts-expect-error todo
-						const cacheArray = [];
-						// @ts-expect-error todo
-						parent[key].forEach((val) => {
-							if (isObject(val)) {
-								// @ts-expect-error todo
-								// eslint-disable-next-line no-param-reassign
-								val.$objectPath = newObjPath;
-								// @ts-expect-error todo
-								cacheArray.push(val.$id.toString());
-							} else if (val) {
-								cacheArray.push(val.toString());
-							}
-						});
-
-						// @ts-expect-error todo
-						// tCache[cacheKey] = { $objectPath: newObjPath, $ids: cacheArray };
-						tCache[cacheKey] = cacheArray;
-					} else {
-						const val = parent[key];
-						tCache[cacheKey] = val;
-						// if (isObject(val)) {
-						// 	// @ts-expect-error todo
-						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.$id.toString()] };
-
-						// 	// @ts-expect-error todo
-						// 	// eslint-disable-next-line no-param-reassign
-						// 	val.$objectPath = newObjPath;
-						// } else if (val) {
-						// 	tCache[cacheKey] = { $objectPath: newObjPath, $ids: [val.toString()] };
-						// }
-					}
-				}
-			}),
-		);
-	};
-	//@ts-expect-error - todo
-	tCachePaths(transformationPreQueryRes || {});
-
-	// console.log('tCache', JSON.stringify(tCache, null, 2));
-	// console.log('tCache', tCache);
+	// console.log('cache', JSON.stringify(cache, null, 2));
 
 	const fillObjectPaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
@@ -561,6 +509,24 @@ export const mutationPreQuery = async (
 									});
 								});
 							} else if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === id)) {
+								keys.forEach((k) => {
+									const cKey = `${objectPathToKey(combinationBlock.$objectPath)}.${id}${preQueryPathSeparator}${k}`;
+									const { $ids } = cache[cKey];
+									// todo: make sure other ops are included as well, replace the old batched op with these new ops
+									const originalOp = combinationBlock[k].find((b: FilledBQLMutationBlock) => !b.$id);
+									const newBlocks = [
+										...$ids.map((id) => {
+											return {
+												...originalOp,
+												$id: id,
+												$objectPath: { beforePath: combinationBlock.$objectPath, ids: id, key: k },
+											};
+										}),
+										...combinationBlock[k].filter((b: FilledBQLMutationBlock) => b.$id),
+									];
+									combinationBlock[k] = newBlocks;
+								});
+
 								combinationsToKeep.push({
 									...combinationBlock,
 									$id: id,
@@ -843,9 +809,7 @@ export const mutationPreQuery = async (
 		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
 	});
 
-	// console.log('filledDbNodes', JSON.stringify(filledDbNodes, null, 2));
-
-	// console.log('post-preQuery', JSON.stringify(final, null, 2));
+	// console.log('post-preQuery', JSON.stringify(sortedArray, null, 2));
 
 	return sortedArray;
 };

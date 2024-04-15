@@ -535,6 +535,8 @@ describe('Mutations: PreHooks', () => {
 		expect(bormClient).toBeDefined();
 
 		try {
+			// console.log('===== CREATING =====');
+
 			await bormClient.mutate([
 				{
 					$entity: 'User',
@@ -549,7 +551,7 @@ describe('Mutations: PreHooks', () => {
 									id: 'mf2-dataField-1',
 									values: [
 										{
-											id: 'mf2-dataValue',
+											id: 'mf2-dataValue-1',
 										},
 									],
 									expression: { $op: 'create', id: 'mf2-expression-1' },
@@ -571,6 +573,8 @@ describe('Mutations: PreHooks', () => {
 				},
 			]);
 
+			// console.log('===== MUTATING =====');
+
 			await bormClient.mutate({
 				$thing: 'User',
 				$id: 'mf2-user',
@@ -579,18 +583,18 @@ describe('Mutations: PreHooks', () => {
 					{
 						dataFields: [
 							{
-								values: [{ $fields: ['id'], type: 'test-type', $op: 'update' }],
-								expression: { $fields: ['id'], type: 'test-type', $op: 'update' },
+								values: [{ $fields: ['id', 'type'], type: 'test-type', $op: 'update' }],
+								expression: { $fields: ['id', 'type'], type: 'test-type', $op: 'update' },
 								$fields: ['values', 'expression'],
 								type: 'test-type',
 								$op: 'update',
 							},
 						],
-						$fields: ['dataFields'],
+						$fields: ['id', 'dataFields'],
 						$op: 'update',
 					},
 				],
-				$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+				$fields: ['id', 'email'],
 			});
 		} finally {
 			//clean
@@ -669,6 +673,89 @@ describe('Mutations: PreHooks', () => {
 				$id: 'gold',
 				$op: 'delete',
 			});
+		}
+	});
+
+	it('tf4[transform, fields] Use $fields nested', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$relation: 'CascadeRelation',
+					id: 'cr-1',
+					things: [
+						{
+							id: 't-1',
+						},
+						{
+							id: 't-2',
+						},
+					],
+				},
+			]);
+
+			const q1 = await bormClient.query({
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+				$fields: ['things'],
+			});
+
+			const q2 = await bormClient.query(
+				{
+					$thing: 'CascadeThing',
+					$thingType: 'entity',
+					$fields: ['id'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(q1, 'id')).toEqual({
+				things: ['t-1', 't-2'],
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+			});
+
+			expect(deepSort(q2, 'id')).toEqual([
+				{
+					id: 't-1',
+				},
+				{
+					id: 't-2',
+				},
+			]);
+
+			await bormClient.mutate({
+				$thing: 'CascadeRelation',
+				$id: 'cr-1',
+				$op: 'delete',
+				$fields: ['things'],
+			});
+
+			const q3 = await bormClient.query({
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+				$fields: ['things'],
+			});
+
+			const q4 = await bormClient.query({
+				$thing: 'CascadeThing',
+				$thingType: 'entity',
+			});
+
+			expect(q3).toEqual(null);
+			expect(q4).toEqual(null);
+		} finally {
+			// //clean
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$thingType: 'entity',
+			// 	$op: 'delete',
+			// 	$id: 'mf2-user',
+			// });
 		}
 	});
 

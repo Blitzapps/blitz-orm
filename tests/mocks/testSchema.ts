@@ -161,6 +161,20 @@ export const testSchema: BormSchema = {
 				},
 			],
 		},
+		CascadeThing: {
+			idFields: ['id'], // could be a composite key
+			defaultDBConnector: { id: 'default', path: 'CascadeThing' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+			dataFields: [{ ...id }],
+			linkFields: [
+				{
+					path: 'cascadeRelations',
+					cardinality: 'MANY',
+					relation: 'CascadeRelation',
+					plays: 'things',
+					target: 'relation',
+				},
+			],
+		},
 		SubthingOne: {
 			extends: 'Thing',
 			defaultDBConnector: { id: 'default', as: 'Thing', path: 'SubthingOne' },
@@ -283,6 +297,25 @@ export const testSchema: BormSchema = {
 								},
 							},
 							{
+								name: 'Validate tf2 test',
+								type: 'validate',
+								message: 'Failed test tf2',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { email: dbEmail } = dbNode;
+									if ($op === 'update' && $id === 'mf2-user') {
+										if (dbEmail !== 'john@email.com') {
+											throw new Error(
+												'The email of the test tf2 should be recovered here from the db and be john@email.com',
+											);
+										}
+										return true;
+									} else {
+										return true;
+									}
+								},
+							},
+							{
 								name: 'Add children',
 								type: 'transform',
 								fn: ({ name, spaces }) =>
@@ -340,6 +373,33 @@ export const testSchema: BormSchema = {
 		Space: {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default' },
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in space',
+								type: 'validate',
+								message: 'Failed test tf2 in space',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { dataFields: dbDataFields } = dbNode;
+									if ($op === 'update' && $id === 'mf2-space') {
+										if (!(dbDataFields?.length === 4)) {
+											throw new Error(
+												'The user should have one space and 4 datafields. Datafield 1 should have expression mf2-expression already in db',
+											);
+										}
+										return true;
+									} else {
+										return true;
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 			dataFields: [{ ...id }, { ...name, rights: ['CREATE', 'UPDATE'] }],
 			linkFields: [
 				{
@@ -454,9 +514,14 @@ export const testSchema: BormSchema = {
 						actions: [
 							{
 								type: 'transform',
-								fn: ({ $op, value }, b, c, { value: dbValue }) => {
-									if ($op === 'update' && value === dbValue && value === 'gold') {
-										return { value: 'bronze' };
+								fn: ({ $op, value }, b, c, dbNode) => {
+									const { value: dbValue } = dbNode;
+									if (value) {
+										if ($op === 'update' && value && value === dbValue && value === 'gold') {
+											return { value: 'bronze' };
+										} else {
+											return {};
+										}
 									} else {
 										return {};
 									}
@@ -529,6 +594,39 @@ export const testSchema: BormSchema = {
 				},
 				root: { cardinality: 'ONE' },
 				extra: { cardinality: 'ONE' },
+			},
+		},
+		'CascadeRelation': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'CascadeRelation' },
+			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
+			dataFields: [{ ...id }],
+			roles: {
+				things: {
+					cardinality: 'MANY',
+				},
+			},
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op }, b, c, { things: dbThings }) => {
+									if ($op === 'delete') {
+										return {
+											things: dbThings.map((id: string) => {
+												return { $op: 'delete', $id: id };
+											}),
+										};
+									} else {
+										return {};
+									}
+								},
+							},
+						],
+					},
+				],
 			},
 		},
 		'User-Accounts': {
@@ -721,6 +819,54 @@ export const testSchema: BormSchema = {
 				{ contentType: 'TEXT', path: 'type' },
 				{ contentType: 'TEXT', path: 'computeType' },
 			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in datafield',
+								type: 'validate',
+								message: 'Failed test tf2 in datafield',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { expression: dbExpression, values: dbValues } = dbNode;
+									if ($op === 'update') {
+										if ($id === 'mf2-dataField-1') {
+											if (
+												dbValues.length !== 1 ||
+												!dbValues.find((id: string) => id === 'mf2-dataValue-1') ||
+												dbExpression !== 'mf2-expression-1'
+											) {
+												throw new Error('The df should have one value and 1 expression');
+											}
+											return true;
+										} else if ($id === 'mf2-dataField-2') {
+											if (dbValues.length !== 1 || !dbValues.find((id: string) => id === 'mf2-dataValue-2')) {
+												throw new Error('The df should have one value');
+											}
+											return true;
+										} else if ($id === 'mf2-dataField-3') {
+											if (dbExpression !== 'mf2-expression-2') {
+												throw new Error('The df should have one expression');
+											}
+											return true;
+										} else if ($id === 'mf2-dataField-4') {
+											if (dbExpression || dbValues) {
+												throw new Error('The df should have no expression and no values');
+											}
+											return true;
+										} else {
+											return true;
+										}
+									} else {
+										return true;
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 			linkFields: [
 				{
 					path: 'values',
@@ -748,6 +894,38 @@ export const testSchema: BormSchema = {
 				{ contentType: 'TEXT', path: 'value', rights: ['CREATE', 'UPDATE'] },
 				{ contentType: 'TEXT', path: 'type' },
 			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in expression',
+								type: 'validate',
+								message: 'Failed test tf2 in expression',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { id: dbId } = dbNode;
+									if ($op === 'update') {
+										if ($id === 'mf2-expression-1') {
+											if (dbId !== 'mf2-expression-1') {
+												throw new Error('The df should have one expression');
+											}
+										}
+										if ($id === 'mf2-expression-2') {
+											if (dbId !== 'mf2-expression-2') {
+												throw new Error('The df should have one expression');
+											}
+										}
+										return true;
+									} else {
+										return true;
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 			roles: {
 				dataField: { cardinality: 'ONE' },
 			},
@@ -755,6 +933,38 @@ export const testSchema: BormSchema = {
 		'DataValue': {
 			idFields: ['id'],
 			dataFields: [id, { contentType: 'TEXT', path: 'type' }],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in expression',
+								type: 'validate',
+								message: 'Failed test tf2 in expression',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { id: dbId } = dbNode;
+									if ($op === 'update') {
+										if ($id === 'mf2-dataValue-1') {
+											if (dbId !== 'mf2-dataValue-1') {
+												throw new Error('The df should have one dv');
+											}
+										}
+										if ($id === 'mf2-dataValue-2') {
+											if (dbId !== 'mf2-dataValue-2') {
+												throw new Error('The df should have one dv');
+											}
+										}
+										return true;
+									} else {
+										return true;
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 			roles: {
 				dataField: { cardinality: 'ONE' },
 			},
