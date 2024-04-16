@@ -7,7 +7,7 @@ import type {
 	EnrichedRoleField,
 } from '../schema/enriched';
 import type { EdgeSchema, EdgeType, Schema } from '../symbols';
-import { Filter } from './queries';
+import type { Filter } from './queries';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 

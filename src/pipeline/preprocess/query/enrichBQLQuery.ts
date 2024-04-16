@@ -174,7 +174,7 @@ export const enrichBQLQuery: PipelineOperation<BaseResponse> = async (req) => {
 			if (typeof field !== 'string') {
 				if (field.$fields) {
 					if (idNotIncluded) {
-            const idFields = currentSchema.idFields || [];
+						const idFields = currentSchema.idFields || [];
 						fields = [...field.$fields, ...idFields];
 					} else {
 						fields = field.$fields;

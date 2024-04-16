@@ -1,8 +1,7 @@
 import { getThing } from '../../../helpers';
-import type { EnrichedBormSchema, Sorter } from '../../../types';
+import type { EnrichedBormSchema, Sorter, PipelineOperation } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
 import type { TypeDbResponse } from '../../pipeline';
-import type { PipelineOperation } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';

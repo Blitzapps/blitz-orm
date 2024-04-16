@@ -169,16 +169,16 @@ export const machine = createMachine(
 		success: final(),
 		error: final(),
 	},
-  // @ts-expect-error Bad type
+	// @ts-expect-error Bad type
 	(ctx: MachineContext) => ctx,
 );
 
 export const awaitMachine = async (context: MachineContext) => {
 	return new Promise<MachineContext>((resolve, reject) => {
-    // @ts-expect-error Bad type
+		// @ts-expect-error Bad type
 		interpret(
 			machine,
-      // @ts-expect-error Bad type
+			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
 					resolve(service.context);

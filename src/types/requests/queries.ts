@@ -1,5 +1,5 @@
 import type { BQLField } from '..';
-import { QueryPath } from '../symbols';
+import type { QueryPath } from '../symbols';
 
 export type Sorter = { field: string; desc?: boolean } | string;
 
@@ -18,17 +18,16 @@ export type RawBQLQuery = {
 	$limit?: number;
 } & ({ $entity: string } | { $relation: string } | { $thing: string; $thingType: 'entity' | 'relation' });
 
-
 export type EnrichedAttributeQuery = {
-  $fieldType: 'data';
-  $thingType: 'attribute';
-  $path: string;
-  $dbPath: string;
-  $as: string;
-  $var: string;
-  $justId: boolean;
-  $id: string,
-  $isVirtual?: boolean;
+	$fieldType: 'data';
+	$thingType: 'attribute';
+	$path: string;
+	$dbPath: string;
+	$as: string;
+	$var: string;
+	$justId: boolean;
+	$id: string;
+	$isVirtual?: boolean;
 };
 
 // TODO: Update type based on these example
@@ -67,91 +66,91 @@ export type EnrichedAttributeQuery = {
 //   "thingType":"entity"
 // }
 export type PlayedBy = {
-  path: string;
-  cardinality: 'ONE' | 'MANY';
-  relation: string;
-  plays: string;
-  target: 'role' | 'relation';
-  thing: string;
-  thingType: 'entity' | 'relation'
+	path: string;
+	cardinality: 'ONE' | 'MANY';
+	relation: string;
+	plays: string;
+	target: 'role' | 'relation';
+	thing: string;
+	thingType: 'entity' | 'relation';
 };
 
 export type EnrichedLinkQuery = {
-  $fieldType: 'link';
-  $thingType: 'entity' | 'relation';
-  $thing: string;
-  $plays: string;
-  $playedBy: PlayedBy;
-  $path: string;
-  $dbPath: string;
-  $as: string;
-  $var: string;
-  $fields: EnrichedFieldQuery[];
-  $target: 'relation' | 'role';
-  $intermediary?: string;
-  $justId: boolean;
-  $id: string,
-  $idNotIncluded?: boolean,
-  $filter?: Filter;
-  $filterByUnique: boolean;
-  $filterProcessed: boolean;
+	$fieldType: 'link';
+	$thingType: 'entity' | 'relation';
+	$thing: string;
+	$plays: string;
+	$playedBy: PlayedBy;
+	$path: string;
+	$dbPath: string;
+	$as: string;
+	$var: string;
+	$fields: EnrichedFieldQuery[];
+	$target: 'relation' | 'role';
+	$intermediary?: string;
+	$justId: boolean;
+	$id: string;
+	$idNotIncluded?: boolean;
+	$filter?: Filter;
+	$filterByUnique: boolean;
+	$filterProcessed: boolean;
 	$sort?: Sorter[];
-  $offset?: number;
-  $limit?: number;
-  [QueryPath]: string;
+	$offset?: number;
+	$limit?: number;
+	[QueryPath]: string;
 };
 
 export type EnrichedRoleQuery = {
-  $fieldType: 'role',
-  $thingType: 'relation';
-  $thing: string,
-  $path: string,
-  $dbPath: string,
-  $as: string,
-  $var: string,
-  $fields: EnrichedFieldQuery[],
-  $intermediary: string,
-  $justId: string,
-  $id: string,
-  $idNotIncluded?: boolean,
-  $filter?: Filter,
-  $filterByUnique: boolean,
-  $playedBy: PlayedBy,
-  $filterProcessed: boolean,
+	$fieldType: 'role';
+	$thingType: 'relation';
+	$thing: string;
+	$path: string;
+	$dbPath: string;
+	$as: string;
+	$var: string;
+	$fields: EnrichedFieldQuery[];
+	$intermediary: string;
+	$justId: string;
+	$id: string;
+	$idNotIncluded?: boolean;
+	$filter?: Filter;
+	$filterByUnique: boolean;
+	$playedBy: PlayedBy;
+	$filterProcessed: boolean;
 	$sort?: Sorter[];
-  $offset?: number,
-  $limit?: number,
-  [QueryPath]: string;
+	$offset?: number;
+	$limit?: number;
+	[QueryPath]: string;
 };
 
 export type EnrichedFieldQuery = EnrichedAttributeQuery | EnrichedLinkQuery | EnrichedRoleQuery;
 
 export type EnrichedEntityQuery = {
-  $thingType: 'entity';
-  $thing: string;
-  $path: string;
-  $fields: (EnrichedAttributeQuery | EnrichedLinkQuery)[];
-  $idNotIncluded?: boolean,
-  $filter?: Filter;
-  $filterByUnique: boolean;
+	$thingType: 'entity';
+	$thing: string;
+	$path: string;
+	$fields: (EnrichedAttributeQuery | EnrichedLinkQuery)[];
+	$idNotIncluded?: boolean;
+	$filter?: Filter;
+	$filterByUnique: boolean;
 	$sort?: Sorter[];
-  $offset?: number,
-  $limit?: number,
-  [QueryPath]: string;
+	$offset?: number;
+	$limit?: number;
+	[QueryPath]: string;
 };
 
 export type EnrichedRelationQuery = {
-  $thingType: 'relation';
-  $thing: string;
-  $path: string;
-  $fields: EnrichedFieldQuery[];
-  $idNotIncluded?: boolean,
-  $filter?: Filter;
-  $filterByUnique: boolean;
+	$thingType: 'relation';
+	$thing: string;
+	$path: string;
+	$fields: EnrichedFieldQuery[];
+	$idNotIncluded?: boolean;
+	$filter?: Filter;
+	$filterByUnique: boolean;
 	$sort?: Sorter[];
-  $offset?: number,
-  $limit?: number,
-  [QueryPath]: string;
+	$offset?: number;
+	$limit?: number;
+	[QueryPath]: string;
 };
 
 export type EnrichedBQLQuery = EnrichedEntityQuery | EnrichedRelationQuery;

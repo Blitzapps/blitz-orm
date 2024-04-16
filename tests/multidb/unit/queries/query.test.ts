@@ -2,6 +2,8 @@ import 'jest';
 
 import { init } from '../../helpers/lifecycle';
 import type BormClient from '../../../../src/index';
+import { deepSort } from '../../../helpers/matchers';
+import { BQLResponse } from '../../../../src/index';
 
 describe('Query', () => {
 	let cleanup: () => Promise<void>;
@@ -47,7 +49,9 @@ describe('Query', () => {
 			},
 		])
 
-		expect(res).toMatchObject([
+		console.log(JSON.stringify(res, null, 2));
+
+		expect((res as BQLResponse[]).map((r) => r.map((i: Record<string, any>) => deepSort(i, 'id')))).toMatchObject([
       [
         {
           members: [

@@ -14,43 +14,43 @@ export const cleanQueryRes = (config: BormConfig, bqlRes: BQLResponse) => {
 };
 
 const queryPostHooks = (blocks: any) => {
-  return produce(blocks, (draft: any) =>
-    traverse(draft, ({ value: val }: TraversalCallbackContext) => {
-      if (isObject(val)) {
-        // eslint-disable-next-line no-param-reassign
-      }
-    }),
-  );
+	return produce(blocks, (draft: any) =>
+		traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+			if (isObject(val)) {
+				// eslint-disable-next-line no-param-reassign
+			}
+		}),
+	);
 };
 
 const cleanOutput = (blocks: any, noMetadata: boolean) => {
-  return produce(blocks, (draft: any) =>
-    traverse(draft, ({ value: val }: TraversalCallbackContext) => {
-      if (isObject(val)) {
-        const value = val as any;
+	return produce(blocks, (draft: any) =>
+		traverse(draft, ({ value: val }: TraversalCallbackContext) => {
+			if (isObject(val)) {
+				const value = val as any;
 
-        // UNDEFINED FIELDS
-        Object.keys(value).forEach((k: string) => {
-          if (value[k] === undefined) {
-            delete value[k];
-          }
-        });
+				// UNDEFINED FIELDS
+				Object.keys(value).forEach((k: string) => {
+					if (value[k] === undefined) {
+						delete value[k];
+					}
+				});
 
-        // INTERNAL SYMBOLS
-        Object.getOwnPropertySymbols(value).forEach((symbol) => {
-          delete value[symbol];
-        });
+				// INTERNAL SYMBOLS
+				Object.getOwnPropertySymbols(value).forEach((symbol) => {
+					delete value[symbol];
+				});
 
-        /// USER FACING METADATA
-        if (noMetadata === true) {
-          // eslint-disable-next-line no-param-reassign
-          Object.keys(value).forEach((k: string) => {
-            if (k.startsWith('$')) {
-              delete value[k];
-            }
-          });
-        }
-      }
-    }),
-  );
+				/// USER FACING METADATA
+				if (noMetadata === true) {
+					// eslint-disable-next-line no-param-reassign
+					Object.keys(value).forEach((k: string) => {
+						if (k.startsWith('$')) {
+							delete value[k];
+						}
+					});
+				}
+			}
+		}),
+	);
 };

@@ -5,7 +5,6 @@ import { Surreal } from 'surrealdb.node';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { queryPipeline } from './pipeline/pipeline';
 import type {
 	BQLMutation,
 	BQLResponse,
@@ -151,7 +150,7 @@ class BormClient {
 
 	// 	// @ts-expect-error type of Query is incorrect
 	// 	return queryPipeline(query, qConfig, this.schema, handles);
-  // };
+	// };
 
 	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
@@ -164,11 +163,11 @@ class BormClient {
 				...queryConfig,
 			},
 		};
-    const isBatched = Array.isArray(query);
-    const queries = isBatched ? query : [query];
+		const isBatched = Array.isArray(query);
+		const queries = isBatched ? query : [query];
 
 		const [errorRes, res] = await tryit(runQueryMachine)(
-      queries,
+			queries,
 			this.schema as EnrichedBormSchema,
 			qConfig,
 			this.dbHandles as DBHandles,
@@ -183,7 +182,7 @@ class BormClient {
 
 		const result = res.bql.res as BQLResponse[];
 
-    return isBatched ? result : result[0];
+		return isBatched ? result : result[0];
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {

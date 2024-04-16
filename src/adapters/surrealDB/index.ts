@@ -87,7 +87,7 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
 };
 
 const buildSurrealDbQuery: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-  console.log('\n\nbuildSurrealDbQuery\n', JSON.stringify(req));
+	console.log('\n\nbuildSurrealDbQuery\n', JSON.stringify(req));
 	const { dbHandles, enrichedBqlQuery, schema } = req;
 
 	if (!enrichedBqlQuery) {

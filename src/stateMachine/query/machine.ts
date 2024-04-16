@@ -1,19 +1,19 @@
 import type { Surreal } from 'surrealdb.node';
-import { TypeDBDriver } from "typedb-driver";
-import { assertDefined, getThing } from "../../helpers";
-import { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from "../../types";
-import { createMachine, interpret, invoke, reduce, state, transition } from "../robot3";
-import { cleanQueryRes } from "./bql/clean";
-import { enrichBQLQuery } from "./bql/enrich";
-import { postHooks } from "./postHook";
-import { runSurrealDbQueryMachine } from "./surql/machine";
-import { runTypeDbQueryMachine } from "./tql/machine";
+import type { TypeDBDriver } from 'typedb-driver';
+import { assertDefined, getThing } from '../../helpers';
+import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../types';
+import { createMachine, interpret, invoke, reduce, state, transition } from '../robot3';
+import { cleanQueryRes } from './bql/clean';
+import { enrichBQLQuery } from './bql/enrich';
+import { postHooks } from './postHook';
+import { runSurrealDbQueryMachine } from './surql/machine';
+import { runTypeDbQueryMachine } from './tql/machine';
 
 type MachineContext = {
 	bql: {
 		raw: RawBQLQuery[];
 		queries?: EnrichedBQLQuery[];
-    res?: any[]; // TODO
+		res?: any[]; // TODO
 	};
 	schema: EnrichedBormSchema;
 	config: BormConfig;
@@ -53,118 +53,118 @@ const errorTransition = transition(
 );
 
 type TypeDBAdapter = {
-  db: 'typeDB';
-  client: TypeDBDriver;
-  rawBql: RawBQLQuery[];
-  bqlQueries: EnrichedBQLQuery[];
-  indices: number[];
-}
+	db: 'typeDB';
+	client: TypeDBDriver;
+	rawBql: RawBQLQuery[];
+	bqlQueries: EnrichedBQLQuery[];
+	indices: number[];
+};
 
 type SurrealDBAdapter = {
-  db: 'surrealDB';
-  client: Surreal;
-  rawBql: RawBQLQuery[];
-  bqlQueries: EnrichedBQLQuery[];
-  indices: number[];
-}
+	db: 'surrealDB';
+	client: Surreal;
+	rawBql: RawBQLQuery[];
+	bqlQueries: EnrichedBQLQuery[];
+	indices: number[];
+};
 
 type Adapter = TypeDBAdapter | SurrealDBAdapter;
 
 export const queryMachine = createMachine(
 	'enrich',
-  {
+	{
 		enrich: invoke(
 			async (ctx: MachineContext) => enrichBQLQuery(ctx.bql.raw, ctx.schema),
 			transition('done', 'adapter', reduce(updateBqlReq)),
 			errorTransition,
 		),
-    adapter: invoke(
-      async (ctx: MachineContext) => {
-        const adapters: Record<string, Adapter> = {};
+		adapter: invoke(
+			async (ctx: MachineContext) => {
+				const adapters: Record<string, Adapter> = {};
 
-        ctx.bql.queries?.forEach((q, i) => {
-          const raw = ctx.bql.raw[i];
-          const thing = getThing(ctx.schema, q.$thing);
-          const { id } = thing.defaultDBConnector;
-          if (thing.db === 'typeDB') {
-            if (!adapters[id]) {
-              const client = ctx.handles.typeDB?.get(id)?.client;
-              if (!client) {
-                throw new Error(`TypeDB client with id "${thing.defaultDBConnector.id}" does not exist`);
-              }
-              adapters[id] = {
-                db: 'typeDB',
-                client,
-                rawBql: [],
-                bqlQueries: [],
-                indices: [],
-              };
-            }
-          } else if (thing.db === 'surrealDB') {
-            if (!adapters[id]) {
-              const client = ctx.handles.surrealDB?.get(id)?.client;
-              if (!client) {
-                throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
-              }
-              adapters[id] = {
-                db: 'surrealDB',
-                client,
-                rawBql: [],
-                bqlQueries: [],
-                indices: [],
-              };
-            }
-          } else {
-            throw new Error(`Unsupported DB "${thing.db}"`);
-          }
-          const adapter = adapters[id];
-          adapter.rawBql.push(raw);
-          adapter.bqlQueries.push(q);
-          adapter.indices.push(i);
-        });
-        const adapterList = Object.values(adapters);
-        const proms = adapterList.map((a) => {
-          if (a.db === 'typeDB') {
-            // TODO: Replace DBHandles with TypeDBAdapter
-            return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
-          }
-          return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
-        });
-        const results = await Promise.all(proms);
-        const orderedResults = adapterList.flatMap((a, i) => {
-          const result = results[i];
-          return a.indices.map((index, j) => ({ index, result: result[j] }));
-        });
-        orderedResults.sort((a, b) => a.index < b.index ? -1 : a.index > b.index ? 1 : 0);
-        const result = orderedResults.map(({ result }) => result);
-        return result;
-      },
+				ctx.bql.queries?.forEach((q, i) => {
+					const raw = ctx.bql.raw[i];
+					const thing = getThing(ctx.schema, q.$thing);
+					const { id } = thing.defaultDBConnector;
+					if (thing.db === 'typeDB') {
+						if (!adapters[id]) {
+							const client = ctx.handles.typeDB?.get(id)?.client;
+							if (!client) {
+								throw new Error(`TypeDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+							}
+							adapters[id] = {
+								db: 'typeDB',
+								client,
+								rawBql: [],
+								bqlQueries: [],
+								indices: [],
+							};
+						}
+					} else if (thing.db === 'surrealDB') {
+						if (!adapters[id]) {
+							const client = ctx.handles.surrealDB?.get(id)?.client;
+							if (!client) {
+								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+							}
+							adapters[id] = {
+								db: 'surrealDB',
+								client,
+								rawBql: [],
+								bqlQueries: [],
+								indices: [],
+							};
+						}
+					} else {
+						throw new Error(`Unsupported DB "${thing.db}"`);
+					}
+					const adapter = adapters[id];
+					adapter.rawBql.push(raw);
+					adapter.bqlQueries.push(q);
+					adapter.indices.push(i);
+				});
+				const adapterList = Object.values(adapters);
+				const proms = adapterList.map((a) => {
+					if (a.db === 'typeDB') {
+						// TODO: Replace DBHandles with TypeDBAdapter
+						return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
+					}
+					return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+				});
+				const results = await Promise.all(proms);
+				const orderedResults = adapterList.flatMap((a, i) => {
+					const result = results[i];
+					return a.indices.map((index, j) => ({ index, result: result[j] }));
+				});
+				orderedResults.sort((a, b) => (a.index < b.index ? -1 : a.index > b.index ? 1 : 0));
+				const result = orderedResults.map(({ result }) => result);
+				return result;
+			},
 			transition('done', 'postHooks', reduce(updateBqlRes)),
 			errorTransition,
-    ),
-    postHooks: invoke(
-      async (ctx: MachineContext) => postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
+		),
+		postHooks: invoke(
+			async (ctx: MachineContext) => postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
 			transition('done', 'clean', reduce(updateBqlRes)),
 			errorTransition,
-    ),
-    clean: invoke(
-      async (ctx: MachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
+		),
+		clean: invoke(
+			async (ctx: MachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
 			transition('done', 'success', reduce(updateBqlRes)),
 			errorTransition,
-    ),
+		),
 		success: state(),
 		error: state(),
-  },
-  // @ts-expect-error Bad type
+	},
+	// @ts-expect-error Bad type
 	(ctx: MachineContext) => ctx,
 );
 
 export const awaitQueryMachine = async (context: MachineContext) => {
 	return new Promise<MachineContext>((resolve, reject) => {
-    // @ts-expect-error Bad type
+		// @ts-expect-error Bad type
 		interpret(
 			queryMachine,
-      // @ts-expect-error Bad type
+			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
 					resolve(service.context);

@@ -1,4 +1,8 @@
-import type { TypeDBProvider as TypeDBProvider, TypeDBClusterProvider as TypeDBClusterProvider, TypeDBHandles } from './typedb';
+import type {
+	TypeDBProvider as TypeDBProvider,
+	TypeDBClusterProvider as TypeDBClusterProvider,
+	TypeDBHandles,
+} from './typedb';
 import type { SurrealDBProviderObject as SurrealDBProvider, SurrealDBHandles } from './surrealdb';
 
 export type QueryConfig = {
@@ -25,10 +29,7 @@ export type BormConfig = {
 	dbConnectors: [Provider, ...Provider[]]; // minimum one
 };
 
-export type Provider =
-	| TypeDBProvider
-	| TypeDBClusterProvider
-	| SurrealDBProvider;
+export type Provider = TypeDBProvider | TypeDBClusterProvider | SurrealDBProvider;
 
 export interface CommonProvider {
 	id: string;
