@@ -2107,8 +2107,21 @@ describe('Mutations: Edges', () => {
 			$relation: 'DataValue',
 		});
 
-		expect(expressions).toEqual(null);
-		expect(values).toEqual(null);
+		// cleaning
+		await bormClient.mutate({
+			$entity: 'User',
+			$id: 'delete-test',
+			$op: 'delete',
+			spaces: [
+				{
+					$id: 'd-space-1',
+					$op: 'delete',
+				},
+			],
+		});
+
+		expect(expressions).toMatchObject([]);
+		expect(values).toMatchObject([]);
 
 		expect(deepSort(deleted, 'id')).toEqual({
 			spaces: [
@@ -2124,19 +2137,6 @@ describe('Mutations: Edges', () => {
 			$thingType: 'entity',
 			$id: 'delete-test',
 			id: 'delete-test',
-		});
-
-		// cleaning
-		await bormClient.mutate({
-			$entity: 'User',
-			$id: 'delete-test',
-			$op: 'delete',
-			spaces: [
-				{
-					$id: 'd-space-1',
-					$op: 'delete',
-				},
-			],
 		});
 	});
 

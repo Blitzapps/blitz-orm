@@ -365,7 +365,6 @@ describe('Query', () => {
         },
       ],
 		});
-    console.log(JSON.stringify(res, null, 4));
 
 		expect(deepSort(res, 'id')).toEqual([
       {

@@ -48,8 +48,6 @@ describe('Query', () => {
 			},
 		])
 
-		console.log(JSON.stringify(deepSort(res, 'id'), null, 2));
-
 		expect(deepSort(res, 'id')).toMatchObject([
       [
         {
