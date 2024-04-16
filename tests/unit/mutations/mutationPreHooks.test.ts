@@ -677,6 +677,7 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('TODO:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
+		// this test should pass when we add more protections over nested $ids not being the same as parent $ids in a mutation
 		expect(bormClient).toBeDefined();
 
 		try {

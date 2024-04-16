@@ -23,14 +23,12 @@ export const preHookDependencies = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
-	// console.log('before: ', JSON.stringify(blocks, null, 2));
 	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$') && block[key] !== undefined) {
 				if (noDataFields) {
 					const currentSchema = getCurrentSchema(schema, block);
 					if (currentSchema.dataFields?.find((field) => field.path === key)) {
-						// console.log('key is df', key);
 						return false;
 					} else {
 						return true;
@@ -47,7 +45,7 @@ export const preHookDependencies = async (
 	if (!blocks) {
 		throw new Error('[BQLE-M-PQ-1] No blocks found');
 	}
-
+	/// 1. Convert the mutation to a query to get all $fields
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
 			let $fields: any[] = block.$fields || [];
@@ -73,14 +71,10 @@ export const preHookDependencies = async (
 								// do nothing
 							} else if ($fields.find((o) => o === newField.$path)) {
 								const filteredFields = $fields.filter((o) => o !== newField.$path);
-								// console.log('f: ', JSON.stringify({ filteredFields, path: newField.$path }, null, 2));
-
 								$fields = [...filteredFields, ...[newField]];
-								// console.log('f: ', $fields);
 							} else {
 								$fields = [...$fields, ...[newField]];
 							}
-							// $fields = [...$fields, ...[newField]];
 						});
 					} else {
 						const newField = {
@@ -99,16 +93,14 @@ export const preHookDependencies = async (
 				$fields,
 			};
 		};
-		return {
-			// preQueryReq: blocks.map((block) => processBlock(block, false, true)),
-			transformationPreQueryReq: blocks.map((block) => processBlock(block, true)),
-		};
+		return blocks.map((block) => processBlock(block, true));
 	};
 
-	const { transformationPreQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
+	const transformationPreQueryReq = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
 	// console.log('preQueryReq', JSON.stringify({ transformationPreQueryReq }, null, 2));
 
+	/// 2. Perform query
 	// @ts-expect-error todo
 	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
 
@@ -136,8 +128,6 @@ export const preHookDependencies = async (
 				key,
 			};
 		}
-
-		// return `${parent.$objectPath || 'root'}${idField ? `.${idField}` : ''}${preQueryPathSeparator}${key}`;
 	};
 
 	const objectPathToKey = ($objectPath: ObjectPath, hardId?: string) => {
@@ -184,7 +174,6 @@ export const preHookDependencies = async (
 						});
 
 						// @ts-expect-error todo
-						// tCache[cacheKey] = { $objectPath: newObjPath, $ids: cacheArray };
 						tCache[cacheKey] = cacheArray;
 					} else {
 						const val = parent[key];
@@ -204,6 +193,8 @@ export const preHookDependencies = async (
 
 	// @ts-expect-error todo
 	tCachePaths(transformationPreQueryRes || {});
+
+	/// 4. Using cache, fill on dbNodes with $fields data
 
 	const fillDbNodes = (blocks: FilledBQLMutationBlock[], parentPath?: string) => {
 		const processBlock = (block: FilledBQLMutationBlock, hasSymbol?: boolean) => {
@@ -231,7 +222,6 @@ export const preHookDependencies = async (
 											$id: b,
 											// @ts-expect-error todo
 											$fields: block.$fields.find((f: BQLField) => f.$path === fieldKey).$fields,
-											// $id: id,
 											$objectPath: cacheKey,
 										},
 										true,

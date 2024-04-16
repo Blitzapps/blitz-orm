@@ -24,7 +24,6 @@ export const mutationPreQuery = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
-	// console.log('beforePreQuery', JSON.stringify(blocks, null, 2));
 	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
 			if (!key.startsWith('$') && block[key] !== undefined) {
@@ -44,6 +43,8 @@ export const mutationPreQuery = async (
 			}
 		});
 	};
+
+	/// 1. Check if pre-query should be run
 
 	if (!blocks) {
 		throw new Error('[BQLE-M-PQ-1] No blocks found');
@@ -94,7 +95,7 @@ export const mutationPreQuery = async (
 	) {
 		return;
 	}
-	// return true;
+	/// 2. Convert mutation into query for all children nodes
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
@@ -121,7 +122,6 @@ export const mutationPreQuery = async (
 							if (!$fields.find((o) => o.$path === newField.$path)) {
 								$fields = [...$fields, ...[newField]];
 							}
-							// $fields.push(newField);
 						});
 					} else {
 						const newField = {
@@ -140,15 +140,14 @@ export const mutationPreQuery = async (
 				$fields,
 			};
 		};
-		return {
-			preQueryReq: blocks.map((block) => processBlock(block, true)),
-		};
+		return blocks.map((block) => processBlock(block, true));
 	};
 
-	const { preQueryReq } = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
+	const preQueryReq = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
 	// console.log('preQueryReq', JSON.stringify({ preQueryReq }, null, 2));
 
+	/// 3. Perform query
 	// @ts-expect-error todo
 	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
 
@@ -203,7 +202,7 @@ export const mutationPreQuery = async (
 		}
 	};
 
-	// 3. Create cache of paths
+	// 4. Create cache of paths
 	type Cache<K extends string> = {
 		[key in K]: {
 			$objectPath: ObjectPath;
@@ -260,6 +259,8 @@ export const mutationPreQuery = async (
 
 	// console.log('cache', JSON.stringify(cache, null, 2));
 
+	/// 5. Fill all nodes with their correct object paths
+
 	const fillObjectPaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -302,13 +303,14 @@ export const mutationPreQuery = async (
 
 	const bqlWithObjectPaths = fillObjectPaths(blocks);
 
+	/// 6. For every node that doesn't have a $id, give it the correct ones based on the pre-query
+
 	const fillIds = (blocks: FilledBQLMutationBlock[]) => {
 		const newBlocks: FilledBQLMutationBlock[] = [];
 		blocks.forEach((block) => {
 			if (!block.$id && !block.id && !block.$tempId) {
 				const cacheKey = objectPathToKey(block.$objectPath);
 				const cacheFound = cache[cacheKey];
-				// console.log('cacheKey: ', JSON.stringify({ cacheKey, cacheFound }, null, 2));
 				if (cacheFound) {
 					cacheFound?.$ids.forEach((id) => {
 						const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}` };
@@ -343,10 +345,11 @@ export const mutationPreQuery = async (
 
 	// console.log('newFilled', JSON.stringify(newFilled, null, 2));
 
+	/// 7. For every node that is a multiple (many $ids or $filter), find all combinations that are based on the pre-query
+
 	const splitBzIds = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlocks = (blocks: FilledBQLMutationBlock[]) => {
-			// 2. Get all combinations for operations with multiples
-			// 2a. Filter operations with multiples and operations without multiples
+			// a. Filter operations with multiples and operations without multiples
 			const getOperationsWithMultiples = (opBlocks: FilledBQLMutationBlock[]) => {
 				const operationWithMultiples: FilledBQLMutationBlock[] = [];
 				const operationWithoutMultiples: FilledBQLMutationBlock[] = [];
@@ -379,8 +382,7 @@ export const mutationPreQuery = async (
 				return { operationWithMultiples, operationWithoutMultiples, otherOps };
 			};
 			const { operationWithMultiples, operationWithoutMultiples, otherOps } = getOperationsWithMultiples(blocks);
-			// console.log('filtered blocks: ', JSON.stringify({ operationWithMultiples, operationWithoutMultiples }, null, 2));
-			// 2b. For multiples get all possible combinations
+			// b. For multiples get all possible combinations
 			const getAllKeyCombinations = (obj: FilledBQLMutationBlock) => {
 				const getDataFields = () => {
 					const dataFieldObj: any = {};
@@ -429,17 +431,14 @@ export const mutationPreQuery = async (
 			operationWithMultiples.forEach((multipleBlock) => {
 				const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(multipleBlock);
 				const combinationsToKeep: Partial<FilledBQLMutationBlock>[] = [];
-				// 2c. Check cache and prune combinations that don't have any ids in the cache
+				// c. Check cache and prune combinations that don't have any ids in the cache
 				allCombinations.forEach((combinationBlock) => {
 					const keys = getFieldKeys(combinationBlock, true);
 
 					if (combinationBlock.$op === 'create') {
 						// console.log('Case 1: ', JSON.stringify(combinationBlock, null, 2));
-
 						combinationsToKeep.push(combinationBlock);
 					} else if (combinationBlock.$id) {
-						// combinationsToKeep.push(combinationBlock);
-
 						// console.log('Case 2: ', JSON.stringify(combinationBlock, null, 2));
 						// check result for if there exists one with the kinds of keys
 						const cacheKey = objectPathToKey(combinationBlock.$objectPath);
@@ -486,7 +485,7 @@ export const mutationPreQuery = async (
 					else if (combinationBlock.$objectPath) {
 						// console.log('Case 3: ', JSON.stringify(combinationBlock, null, 2));
 						const parentKey = objectPathToKey(combinationBlock.$objectPath);
-						// a. get all ids of the parent block
+						// d. get all ids of the parent block
 						const idsOfParent = cache[parentKey]?.$ids || [];
 						idsOfParent.forEach((id) => {
 							const foundKeys: { key: string; ids: string[] }[] = [];
@@ -512,7 +511,7 @@ export const mutationPreQuery = async (
 								keys.forEach((k) => {
 									const cKey = `${objectPathToKey(combinationBlock.$objectPath)}.${id}${preQueryPathSeparator}${k}`;
 									const { $ids } = cache[cKey];
-									// todo: make sure other ops are included as well, replace the old batched op with these new ops
+									/// making sure other ops are included as well, replace the old batched op with these new ops
 									const originalOp = combinationBlock[k].find((b: FilledBQLMutationBlock) => !b.$id);
 									const newBlocks = [
 										...$ids.map((id) => {
@@ -543,13 +542,9 @@ export const mutationPreQuery = async (
 					crossReferencedOperations.push(c);
 				});
 			});
-			// console.log(
-			// 	'operation: ',
-			// 	JSON.stringify({ crossReferencedOperations, operationWithoutMultiples, otherOps }, null, 2),
-			// );
+
 			// filter out odd leftover cases
 			const allOperations = [...crossReferencedOperations, ...operationWithoutMultiples, ...otherOps];
-			// console.log('allOperations', JSON.stringify(allOperations, null, 2));
 			const filteredOperations = allOperations.filter((b) => {
 				const hasKeys = getFieldKeys(b).length > 0;
 				if (hasKeys) {
@@ -563,7 +558,7 @@ export const mutationPreQuery = async (
 				}
 			});
 
-			// 3. Recursion
+			// e. Recursion
 			const finalBlocks = filteredOperations.map((block) => {
 				const newBlock = { ...block };
 				getFieldKeys(newBlock, true).forEach((key) => {
@@ -581,6 +576,8 @@ export const mutationPreQuery = async (
 
 	const splitBql = splitBzIds(Array.isArray(newFilled) ? newFilled : [newFilled]);
 	// console.log('splitBql', JSON.stringify(splitBql, null, 2));
+
+	/// 8. For each replace, make sure you prune existing ids from pre-query that want to be kept, and add deletes for all other ids
 
 	const processReplaces = (blocks: FilledBQLMutationBlock[]) => {
 		return blocks.map((block) => {
@@ -687,6 +684,8 @@ export const mutationPreQuery = async (
 
 	// console.log('processedReplaces', JSON.stringify(processedReplaces, null, 2));
 
+	/// 9. Throw any error case
+
 	const throwErrors = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -777,6 +776,8 @@ export const mutationPreQuery = async (
 
 	throwErrors(processedReplaces);
 
+	/// 10. Refill paths that are needed for the rest of the pipeline
+
 	const fillPaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
@@ -786,8 +787,6 @@ export const mutationPreQuery = async (
 				if (isObject(value)) {
 					// @ts-expect-error todo
 					value[Symbol.for('path') as any] = meta.nodePath;
-					// // @ts-expect-error todo
-					// value.$_path = meta.nodePath;
 					// @ts-expect-error todo
 					delete value.$objectPath;
 					// @ts-expect-error todo
@@ -797,9 +796,11 @@ export const mutationPreQuery = async (
 		);
 	};
 
-	const final = fillPaths(processedReplaces);
-	const finalArray = Array.isArray(final) ? final : [final];
-	const copy = [...finalArray];
+	/// 11. Sort tree
+
+	const filledPaths = fillPaths(processedReplaces);
+	const filledPathsArray = Array.isArray(filledPaths) ? filledPaths : [filledPaths];
+	const copy = [...filledPathsArray];
 	const sortedArray = copy.sort((a: FilledBQLMutationBlock, b: FilledBQLMutationBlock) => {
 		if (a.$op === 'create' && b.$op !== 'create') {
 			return -1; // Move 'a' to an index lower than 'b' (to the top of the array)
