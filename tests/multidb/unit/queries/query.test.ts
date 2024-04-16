@@ -49,9 +49,9 @@ describe('Query', () => {
 			},
 		])
 
-		console.log(JSON.stringify(res, null, 2));
+		console.log(JSON.stringify(deepSort(res, 'id'), null, 2));
 
-		expect((res as BQLResponse[]).map((r) => r.map((i: Record<string, any>) => deepSort(i, 'id')))).toMatchObject([
+		expect(deepSort(res, 'id')).toMatchObject([
       [
         {
           members: [

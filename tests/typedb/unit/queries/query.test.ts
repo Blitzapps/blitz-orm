@@ -484,7 +484,7 @@ describe('Query', () => {
 		const res = await bormClient.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
-		expect(deepSort(res, 'id')).toEqual(expectedRes);
+		expect(deepSort(res)).toEqual(expectedRes);
 		const resWithoutMetadata = await bormClient.query(query, {
 			noMetadata: true,
 		});
