@@ -473,7 +473,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('tf1[transform, fields] Use $fields', async () => {
+	it('tf1[transform, fields] Use $fields for dbNode', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -531,7 +531,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('tf2[transform, fields] Use $fields nested', async () => {
+	it('tf2[transform, fields] Use $fields for dbNode nested', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -607,7 +607,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('tf3[transform, fields] Use $fields', async () => {
+	it('tf3[transform, fields] Use $fields for transformation', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -676,7 +676,7 @@ describe('Mutations: PreHooks', () => {
 		}
 	});
 
-	it('tf4[transform, fields] Use $fields nested', async () => {
+	it('TODO:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
 		expect(bormClient).toBeDefined();
 
 		try {
@@ -687,9 +687,57 @@ describe('Mutations: PreHooks', () => {
 					things: [
 						{
 							id: 't-1',
+							cascadeRelations: [
+								{
+									id: 'cr-2',
+									things: [
+										{
+											id: 't-3',
+										},
+										{
+											id: 't-4',
+										},
+									],
+								},
+								{
+									id: 'cr-3',
+									things: [
+										{
+											id: 't-5',
+										},
+										{
+											id: 't-6',
+										},
+									],
+								},
+							],
 						},
 						{
 							id: 't-2',
+							cascadeRelations: [
+								{
+									id: 'cr-4',
+									things: [
+										{
+											id: 't-7',
+										},
+										{
+											id: 't-8',
+										},
+									],
+								},
+								{
+									id: 'cr-5',
+									things: [
+										{
+											id: 't-9',
+										},
+										{
+											id: 't-10',
+										},
+									],
+								},
+							],
 						},
 					],
 				},
@@ -723,7 +771,31 @@ describe('Mutations: PreHooks', () => {
 					id: 't-1',
 				},
 				{
+					id: 't-10',
+				},
+				{
 					id: 't-2',
+				},
+				{
+					id: 't-3',
+				},
+				{
+					id: 't-4',
+				},
+				{
+					id: 't-5',
+				},
+				{
+					id: 't-6',
+				},
+				{
+					id: 't-7',
+				},
+				{
+					id: 't-8',
+				},
+				{
+					id: 't-9',
 				},
 			]);
 
@@ -748,6 +820,83 @@ describe('Mutations: PreHooks', () => {
 
 			expect(q3).toEqual(null);
 			expect(q4).toEqual(null);
+		} finally {
+			// //clean
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$thingType: 'entity',
+			// 	$op: 'delete',
+			// 	$id: 'mf2-user',
+			// });
+		}
+	});
+
+	it('tf5[transform, fields] Use $fields nested looping through transformations', async () => {
+		expect(bormClient).toBeDefined();
+
+		try {
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					id: 'mf5-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf5-space',
+							dataFields: [
+								{
+									id: 'mf5-dataField-1',
+								},
+								{
+									id: 'mf5-dataField-2',
+								},
+								{
+									id: 'mf5-dataField-3',
+								},
+								{
+									id: 'mf5-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			// cascade delete
+
+			await bormClient.mutate([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+					$op: 'delete',
+					$fields: ['spaces'],
+				},
+			]);
+
+			await bormClient.query([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+				},
+			]);
+
+			const res = await bormClient.query([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+				},
+				{
+					$entity: 'Space',
+					$id: 'mf5-space',
+				},
+				{
+					$relation: 'DataField',
+					$id: ['mf5-dataField-1', 'mf5-dataField-4', 'mf5-dataField-3', 'mf5-dataField-4'],
+				},
+			]);
+
+			expect(res).toEqual([null, null, null]);
 		} finally {
 			// //clean
 			// await bormClient.mutate({

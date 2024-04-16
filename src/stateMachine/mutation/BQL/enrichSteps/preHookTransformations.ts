@@ -3,7 +3,7 @@ import { clone, isArray } from 'radash';
 import type { BormConfig, EnrichedBormSchema, EnrichedBQLMutationBlock, TransFormAction } from '../../../../types';
 import { deepCurrent, getSymbols, isBQLBlock } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
-import { DBNode } from '../../../../types/symbols';
+import { DBNode, Transformed } from '../../../../types/symbols';
 
 export const preHookTransformations = (
 	node: EnrichedBQLMutationBlock,
@@ -16,7 +16,8 @@ export const preHookTransformations = (
 
 		// Step 2: Transform nodes
 		if (isBQLBlock(subNode)) {
-			if (subNode.$fields) {
+			// @ts-expect-error todo
+			if (subNode.$fields || subNode[Transformed]) {
 				///change machine context so we are sun we run preQueryDeps before coming back to here
 				return subNode;
 			}
@@ -43,7 +44,7 @@ export const preHookTransformations = (
 					return;
 				}
 				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode) };
+				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), [Transformed]: true };
 			});
 
 			return subNode;

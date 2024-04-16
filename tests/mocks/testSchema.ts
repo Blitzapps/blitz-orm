@@ -174,6 +174,33 @@ export const testSchema: BormSchema = {
 					target: 'relation',
 				},
 			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op }, b, c, { cascadeRelations: dbCascadeRelations }) => {
+									if ($op === 'delete' && dbCascadeRelations.length > 0) {
+										console.log('dbCascadeRelations', JSON.stringify(dbCascadeRelations, null, 2));
+										return {
+											cascadeRelations: dbCascadeRelations.map((id: string) => {
+												return {
+													$op: 'delete',
+													$id: id,
+													$fields: ['things'],
+												};
+											}),
+										};
+									} else {
+										return {};
+									}
+								},
+							},
+						],
+					},
+				],
+			},
 		},
 		SubthingOne: {
 			extends: 'Thing',
@@ -341,6 +368,28 @@ export const testSchema: BormSchema = {
 					{
 						actions: [
 							{
+								type: 'transform',
+								fn: ({ $op, $id }, b, c, { spaces: dbSpaces }) => {
+									if ($id === 'mf5-user' && $op === 'delete') {
+										return {
+											spaces: dbSpaces.map((id: string) => {
+												return {
+													$op: 'delete',
+													$id: id,
+													$fields: ['dataFields'],
+												};
+											}),
+										};
+									} else {
+										return {};
+									}
+								},
+							},
+						],
+					},
+					{
+						actions: [
+							{
 								description: 'Use %var to replace name',
 								type: 'transform',
 								fn: ({ $op, '%name': varName }) => ($op === 'create' && varName ? { name: `secret-${varName}` } : {}),
@@ -393,6 +442,27 @@ export const testSchema: BormSchema = {
 										return true;
 									} else {
 										return true;
+									}
+								},
+							},
+						],
+					},
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op, $id }, b, c, { dataFields: dbDataFields }) => {
+									if ($id === 'mf5-space' && $op === 'delete') {
+										return {
+											dataFields: dbDataFields.map((id: string) => {
+												return {
+													$op: 'delete',
+													$id: id,
+												};
+											}),
+										};
+									} else {
+										return {};
 									}
 								},
 							},
@@ -613,10 +683,15 @@ export const testSchema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op }, b, c, { things: dbThings }) => {
-									if ($op === 'delete') {
+									if ($op === 'delete' && dbThings.length > 0) {
+										console.log('dbThings', JSON.stringify(dbThings, null, 2));
 										return {
 											things: dbThings.map((id: string) => {
-												return { $op: 'delete', $id: id };
+												return {
+													$op: 'delete',
+													$id: id,
+													$fields: ['cascadeRelations'],
+												};
 											}),
 										};
 									} else {

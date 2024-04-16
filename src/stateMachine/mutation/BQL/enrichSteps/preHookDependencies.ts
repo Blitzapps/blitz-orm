@@ -50,7 +50,7 @@ export const preHookDependencies = async (
 
 	const convertMutationToQuery = (blocks: FilledBQLMutationBlock[]) => {
 		const processBlock = (block: FilledBQLMutationBlock, root?: boolean) => {
-			let $fields: any[] = [...block.$fields] || [];
+			let $fields: any[] = block.$fields || [];
 			const filteredBlock = {};
 			const toRemoveFromRoot = ['$op', '$bzId', '$parentKey'];
 			const toRemove = ['$relation', '$entity', '$id', ...toRemoveFromRoot];
