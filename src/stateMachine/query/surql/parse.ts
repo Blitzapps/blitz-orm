@@ -7,6 +7,7 @@ export const parse = (props: {
   config: BormConfig;
 }) => {
   const { res, queries, schema, config } = props;
+	console.log('surrealdb/parse', JSON.stringify(res));
   return res.map((r, i) => parseRes(queries[i], r));
 };
 

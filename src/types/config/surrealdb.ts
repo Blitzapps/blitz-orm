@@ -1,6 +1,7 @@
 import type { Surreal } from 'surrealdb.node';
+import type { CommonProvider } from './base';
 
-export interface SurrealDBProviderObject {
+export interface SurrealDBProviderObject extends CommonProvider {
 	provider: 'surrealDB';
 	url: string;
 	namespace: string;

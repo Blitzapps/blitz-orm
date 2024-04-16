@@ -11,7 +11,7 @@ import { testSchema } from '../../mocks/testSchema';
 
 // to replace by the provider being tested. In the future, test every provider
 // const provider: Provider = 'typeDBCluster';
-const provider: Provider = 'typeDB';
+const provider: Provider['provider'] = 'typeDB';
 
 const providerConfig = {
 	typeDB: testConfig,

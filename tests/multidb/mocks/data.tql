@@ -1,0 +1,174 @@
+insert
+
+$user1 isa User,
+	has id "user_1",
+	has User·name "Jhon",
+	has User·email "jhon@test.com";
+
+$user2 isa User,
+	has id "user_2",
+	has User·name "Budi",
+	has User·email "budi@test.com";
+
+$user3 isa User,
+	has id "user_3",
+	has User·name "Susi",
+	has User·email "susi@test.com";
+
+$user4 isa User,
+	has id "user_4",
+	has User·name "Desi",
+	has User·email "desi@test.com";
+
+$user5 isa User,
+	has id "user_5",
+	has User·name "Joko",
+	has User·email "joko@test.com";
+
+$user6 isa User,
+	has id "user_6",
+	has User·name "Iwan",
+	has User·email "iwan@test.com";
+
+$user7 isa User,
+	has id "user_7",
+	has User·name "Dewi",
+	has User·email "dewi@test.com";
+
+$user8 isa User,
+	has id "user_8",
+	has User·name "Intan",
+	has User·email "intan@test.com";
+
+$user9 isa User,
+	has id "user_9",
+	has User·name "Dian",
+	has User·email "dian@test.com";
+
+$user10 isa User,
+	has id "user_10",
+	has User·name "Adi",
+	has User·email "adi@test.com";
+
+$space1 isa Space,
+	has id "space_1",
+	has Space·name "Product";
+
+$space2 isa Space,
+	has id "space_2",
+	has Space·name "Marketing";
+
+$space3 isa Space,
+	has id "space_3",
+	has Space·name "Sales";
+
+$project1 isa Project,
+	has id "project_1",
+	has Project·name "Frontend";
+
+$project2 isa Project,
+	has id "project_2",
+	has Project·name "Backend";
+
+$project3 isa Project,
+	has id "project_3",
+	has Project·name "Ads";
+
+$project4 isa Project,
+	has id "project_4",
+	has Project·name "Blog";
+
+$project5 isa Project,
+	has id "project_5",
+	has Project·name "Cold call";
+
+$project6 isa Project,
+	has id "project_6",
+	has Project·name "Prospecting";
+
+(space: $space1, owner: $user1) isa SpaceOwner,
+	has id "space_1_owner_1";
+
+(space: $space2, owner: $user5) isa SpaceOwner,
+	has id "space_2_owner_2";
+
+(space: $space3, owner: $user9) isa SpaceOwner,
+	has id "space_3_owner_3";
+
+(space: $space1, member: $user1) isa SpaceMember,
+	has id "space_1_member_1";
+
+(space: $space1, member: $user2) isa SpaceMember,
+	has id "space_1_member_2";
+
+(space: $space1, member: $user3) isa SpaceMember,
+	has id "space_1_member_3";
+
+(space: $space1, member: $user4) isa SpaceMember,
+	has id "space_1_member_4";
+
+(space: $space2, member: $user5) isa SpaceMember,
+	has id "space_2_member_5";
+
+(space: $space2, member: $user6) isa SpaceMember,
+	has id "space_2_member_6";
+
+(space: $space2, member: $user7) isa SpaceMember,
+	has id "space_2_member_7";
+
+(space: $space2, member: $user8) isa SpaceMember,
+	has id "space_2_member_8";
+
+(space: $space3, member: $user9) isa SpaceMember,
+	has id "space_3_member_9";
+
+(space: $space3, member: $user10) isa SpaceMember,
+	has id "space_3_member_10";
+
+(space: $space1, project: $project1) isa SpaceProject,
+	has id "space_1_project_1";
+
+(space: $space1, project: $project2) isa SpaceProject,
+	has id "space_1_project_2";
+
+(space: $space2, project: $project3) isa SpaceProject,
+	has id "space_2_project_3";
+
+(space: $space2, project: $project4) isa SpaceProject,
+	has id "space_2_project_4";
+
+(space: $space3, project: $project5) isa SpaceProject,
+	has id "space_3_project_5";
+
+(space: $space3, project: $project6) isa SpaceProject,
+	has id "space_4_project_6";
+
+(project: $project1, executor: $user1) isa ProjectExecutor,
+	has id "project_1_executor_1";
+
+(project: $project1, executor: $user2) isa ProjectExecutor,
+	has id "project_1_executor_2";
+
+(project: $project2, executor: $user3) isa ProjectExecutor,
+	has id "project_2_executor_3";
+
+(project: $project2, executor: $user4) isa ProjectExecutor,
+	has id "projec_2_executor_4";
+
+(project: $project3, executor: $user5) isa ProjectExecutor,
+	has id "project_2_executor_5";
+
+(project: $project3, executor: $user6) isa ProjectExecutor,
+	has id "project_3_executor_6";
+
+(project: $project4, executor: $user7) isa ProjectExecutor,
+	has id "project_4_executor_7";
+
+(project: $project4, executor: $user8) isa ProjectExecutor,
+	has id "project_4_executor_8";
+
+(project: $project5, executor: $user9) isa ProjectExecutor,
+	has id "project_5_executor_9";
+
+(project: $project6, executor: $user10) isa ProjectExecutor,
+	has id "project_6_executor_10";

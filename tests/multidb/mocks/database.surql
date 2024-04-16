@@ -1,0 +1,4 @@
+DEFINE NAMESPACE multi_db_test;
+USE NS multi_db_test;
+DEFINE DATABASE test;
+DEFINE USER tester ON NAMESPACE PASSWORD 'tester' ROLES OWNER;

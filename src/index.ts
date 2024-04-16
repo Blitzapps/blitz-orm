@@ -228,6 +228,9 @@ class BormClient {
 			}
 			await client.close();
 		});
+		// TODO: Close SurrealDB clients.
+		// Currently there's no `close()` method in the client.
+		// See https://github.com/surrealdb/surrealdb.node/issues/36
 	};
 }
 

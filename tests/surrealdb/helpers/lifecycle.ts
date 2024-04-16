@@ -15,7 +15,7 @@ import { customAlphabet } from 'nanoid'
 const alphabet = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const nanoid = customAlphabet(alphabet,  21)
 
-const provider: Provider = 'surrealDB';
+const provider: Provider['provider'] = 'surrealDB';
 
 const providerConfig = {
 	surrealDB: testConfig,
