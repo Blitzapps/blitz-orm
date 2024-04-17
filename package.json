@@ -27,6 +27,7 @@
 		"test:query": "./tests/test.sh query.test.ts",
 		"test:typedb-query": "./tests/test.sh typedb/unit/queries",
 		"test:typedb-mutation": "./tests/test.sh typedb/unit/mutations",
+		"test:typedb-ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\" --detectOpenHandles typedb",
 		"test:surrealdb-query": "./tests/test.sh surrealdb/unit/queries/query.test.ts",
 		"test:multidb": "./tests/test.sh --detectOpenHandles multidb",
 		"test:ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\" --detectOpenHandles",

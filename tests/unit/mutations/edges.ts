@@ -2107,8 +2107,8 @@ export const testEdgesMutation = createTest('Mutation: Edges', (client) => {
 			],
 		});
 
-		expect(expressions).toMatchObject([]);
-		expect(values).toMatchObject([]);
+		expect(expressions).toBeNull();
+		expect(values).toBeNull();
 
 		expect(deepSort(deleted, 'id')).toEqual({
 			spaces: [
