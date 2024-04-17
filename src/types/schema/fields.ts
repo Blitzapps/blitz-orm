@@ -2,7 +2,7 @@ import type { DBConnector, Filter, ThingType, RawBQLQuery, BQLMutationBlock } fr
 
 export type BormField = {
 	path: string;
-	cardinality?: CardinalityType;
+	cardinality?: DiscreteCardinality;
 	ordered?: boolean;
 	embedded?: boolean;
 	rights?: readonly RightType[];
@@ -12,7 +12,7 @@ export type RoleField = {
 	// LATER?: path: string;
 	// YES: validations => For exzample make one of the roles required
 	// YES: default => Why not, one relation could have a default value
-	cardinality: CardinalityType;
+	cardinality: DiscreteCardinality;
 	// MAYBE: rigths => Why not, maybe relation.particular child has better rigths than otherchild.relation.particular child
 	// NO: ordered => This can be really messy. Probably roles should never be ordered as relations are precisely the ones having the index
 	dbConnector?: DBConnector;
@@ -20,7 +20,7 @@ export type RoleField = {
 
 export type LinkField = BormField & {
 	relation: string;
-	cardinality: CardinalityType;
+	cardinality: DiscreteCardinality;
 	plays: string;
 } & (
 		| {
@@ -89,6 +89,7 @@ type BooleanField = BormField & {
 type AllDataField = StringField | NumberField | DateField | BooleanField;
 
 export type DataField = BormField & {
+	cardinality?: Cardinality;
 	shared?: boolean;
 	validations?: {
 		required?: boolean;
@@ -126,7 +127,9 @@ export type ContentTypeMapping = {
 	TEXT: string;
 };
 
-export type CardinalityType = 'ONE' | 'MANY' | 'INTERVAL';
+export type DiscreteCardinality = 'ONE' | 'MANY';
+
+export type Cardinality = DiscreteCardinality | 'INTERVAL';
 
 export type RightType = 'CREATE' | 'DELETE' | 'UPDATE' | 'LINK' | 'UNLINK';
 

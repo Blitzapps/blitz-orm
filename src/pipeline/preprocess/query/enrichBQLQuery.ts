@@ -1,9 +1,14 @@
 import { produce } from 'immer';
-import type { PipelineOperation } from '../../pipeline';
+import type {
+	PipelineOperation,
+	BQLMutationBlock,
+	EnrichedBormEntity,
+	EnrichedBormRelation,
+	BaseResponse,
+} from '../../../types';
 import { traverse } from 'object-traversal';
 import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
-import type { BQLMutationBlock, EnrichedBormEntity, EnrichedBormRelation } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
 
 //todo: use getCurrentFields instead
@@ -52,7 +57,7 @@ const processFilter = ($filter: any, currentSchema: EnrichedBormEntity | Enriche
 	}, {});
 };
 
-export const enrichBQLQuery: PipelineOperation = async (req) => {
+export const enrichBQLQuery: PipelineOperation<BaseResponse> = async (req) => {
 	const { rawBqlRequest: rawBqlQuery, schema } = req;
 
 	if (!Array.isArray(rawBqlQuery)) {
@@ -169,7 +174,8 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 			if (typeof field !== 'string') {
 				if (field.$fields) {
 					if (idNotIncluded) {
-						fields = [...field.$fields, ...currentSchema.idFields];
+						const idFields = currentSchema.idFields || [];
+						fields = [...field.$fields, ...idFields];
 					} else {
 						fields = field.$fields;
 					}
@@ -250,7 +256,6 @@ export const enrichBQLQuery: PipelineOperation = async (req) => {
 						// todo: composite ids
 						if (currentSchema?.idFields?.length === 1) {
 							const [idField] = currentSchema.idFields;
-							// @ts-expect-error todo
 							value.$filter = { ...value.$filter, ...{ [idField]: value.$id } };
 							delete value.$id;
 						} else {

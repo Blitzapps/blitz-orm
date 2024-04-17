@@ -1,4 +1,9 @@
-import type { TypeDBProviderObject, TypeDBClusterProviderObject, TypeDBHandles } from './typedb';
+import type {
+	TypeDBProvider as TypeDBProvider,
+	TypeDBClusterProvider as TypeDBClusterProvider,
+	TypeDBHandles,
+} from './typedb';
+import type { SurrealDBProviderObject as SurrealDBProvider, SurrealDBHandles } from './surrealdb';
 
 export type QueryConfig = {
 	noMetadata?: boolean;
@@ -21,19 +26,15 @@ export type BormConfig = {
 	// queryDefaults
 	query?: QueryConfig;
 	mutation?: MutationConfig;
-	dbConnectors: [ProviderObject, ...ProviderObject[]]; // minimum one
+	dbConnectors: [Provider, ...Provider[]]; // minimum one
 };
 
-export type ProviderObject =
-	| (TypeDBProviderObject & CommonProperties)
-	| (TypeDBClusterProviderObject & CommonProperties);
+export type Provider = TypeDBProvider | TypeDBClusterProvider | SurrealDBProvider;
 
-export interface CommonProperties {
+export interface CommonProvider {
 	id: string;
 	dbName: string;
 }
-
-export type Provider = 'typeDB' | 'typeDBCluster';
 
 export type DBConnector = {
 	id: string;
@@ -44,7 +45,7 @@ export type DBConnector = {
 
 type AllDbHandles = {
 	typeDB: TypeDBHandles;
-	surrealDB: any;
+	surrealDB: SurrealDBHandles;
 };
 type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U];
 

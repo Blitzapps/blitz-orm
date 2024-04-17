@@ -4,11 +4,12 @@ import { traverse } from 'object-traversal';
 import { isObject, listify } from 'radash';
 
 import type { EnrichedDataField, FilledBQLMutationBlock } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { getCurrentSchema, getCurrentFields, oFind } from '../../../helpers';
 
-export const attributePreHooks: PipelineOperation = async (req) => {
+export const attributePreHooks: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
 	if (!filledBqlRequest) {

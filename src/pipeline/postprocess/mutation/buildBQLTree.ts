@@ -3,8 +3,8 @@ import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 
-import type { BormConfig, BQLMutationBlock, RawBQLQuery } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { BormConfig, BQLMutationBlock, RawBQLQuery, PipelineOperation } from '../../../types';
+import type { TypeDbResponse } from '../../pipeline';
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
 	produce(obj, (draft) =>
@@ -91,7 +91,7 @@ const hasMatches = (resItems: any[], things: any[]): boolean => {
 	return found;
 };
 
-export const buildBQLTree: PipelineOperation = async (req, res) => {
+export const buildBQLTree: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { bqlRequest, config } = req;
 	// const queryConfig = config.query;
 	// console.log('cache', cache);

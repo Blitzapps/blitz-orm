@@ -22,38 +22,47 @@ const getCommonKey = (obj1: Record<string, any>, obj2: Record<string, any>): str
 	return undefined;
 };
 
-const sortArrByIdOrString = (arr: any[], key?: string) =>
-	arr.sort((a, b) => {
-		if (key && a[key] && b[key]) {
-			return a[key].localeCompare(b[key]);
-		}
-		if (a.$id && b.$id) {
-			return a.$id.localeCompare(b.$id);
-		}
-		if (typeof a === 'string' && typeof b === 'string') {
-			return a.localeCompare(b);
-		}
-		if (typeof a === 'object' && typeof b === 'object') {
-			const cKey = getCommonKey(a, b);
-			if (cKey) {
-				return a[cKey].localeCompare(b[cKey]);
-			}
-			throw new Error(`Sorting objects that don't have a common key ${JSON.stringify(a)} ${JSON.stringify(b)}`);
-		}
-		throw new Error(`in sortArrByIdOrString a:${a} b:${b}`);
-	});
+export const deepSort = <T>(obj: T, key: string = "$id"): T => {
+	if (typeof obj !== 'object' || obj === null) {
+		return obj;
+	}
 
-// todo: once there are vectors, they will be indexed, which means we will need to treat those in an special way
-export const deepSort = (obj: Record<string, any>, key?: string) => {
-	const sort = ({ value }: TraversalCallbackContext) => {
-		if (Array.isArray(value) && typeof value !== 'string') {
-			value = sortArrByIdOrString(value, key);
-			return value;
+	const sorter = (a: unknown, b: unknown) => {
+		if (Array.isArray(a) || Array.isArray(b) || typeof a !== typeof b) {
+			// Don't sort an array of arrays or an array with different types.
+			return 0;
 		}
-		return value;
+		let aCmp;
+		let bCmp;
+		if (typeof a === 'object' && a !== null) {
+			aCmp = (a as Record<string, any>)[key];
+		} else {
+			aCmp = a;
+		}
+		if (typeof b === 'object' && b !== null) {
+			bCmp = (b as Record<string, any>)[key];
+		} else {
+			bCmp = b;
+		}
+		if (aCmp < bCmp) {
+			return -1;
+		}
+		if (aCmp > bCmp) {
+			return 1;
+		}
+		return 0;
 	};
 
-	return produce(obj, (draft) => traverse(draft, sort));
+	if (Array.isArray(obj)) {
+		const newObj = obj.map((i) => deepSort(i, key));
+		return newObj.sort(sorter) as T;
+	}
+
+	if (typeof obj === 'object' && obj !== null) {
+		return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepSort(v, key)])) as T;
+	}
+
+	return obj;
 };
 
 export const deepRemoveMetaData = (obj: object) => {

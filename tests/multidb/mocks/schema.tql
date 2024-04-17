@@ -1,0 +1,63 @@
+define 
+
+# Shared attributes
+
+id sub attribute,
+	value string;
+
+# Entities
+
+User sub entity,
+	owns id @key,
+	owns User·name,
+	owns User·email,
+	plays SpaceOwner:owner,
+	plays SpaceMember:member,
+	plays ProjectExecutor:executor;
+
+User·name sub attribute,
+	value string;
+
+User·email sub attribute,
+	value string;
+
+Space sub entity,
+	owns id @key,
+	owns Space·name,
+	plays SpaceOwner:space,
+	plays SpaceMember:space,
+	plays SpaceProject:space;
+
+Space·name sub attribute,
+	value string;
+
+Project sub entity,
+	owns id @key,
+	owns Project·name,
+	plays SpaceProject:project,
+	plays ProjectExecutor:project;
+
+Project·name sub attribute,
+	value string;
+
+# Relations
+
+SpaceOwner sub relation,
+	owns id @key,
+	relates space,
+	relates owner;
+
+SpaceMember sub relation,
+	owns id @key,
+	relates space,
+	relates member;
+
+SpaceProject sub relation,
+	owns id @key,
+	relates space,
+	relates project;
+
+ProjectExecutor sub relation,
+	owns id @key,
+	relates project,
+	relates executor;

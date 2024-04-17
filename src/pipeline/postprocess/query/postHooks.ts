@@ -1,5 +1,6 @@
 import { isObject } from 'radash';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline';
+import type { PipelineOperation } from '../../../types';
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
@@ -7,7 +8,7 @@ import { getCurrentSchema } from '../../../helpers';
 import { computeField } from '../../../engine/compute';
 import { QueryPath } from '../../../types/symbols';
 
-export const postHooks: PipelineOperation = async (req, res) => {
+export const postHooks: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { schema, enrichedBqlQuery } = req;
 	const { bqlRes } = res;
 

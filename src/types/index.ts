@@ -1,7 +1,6 @@
 export * from './config/base';
 export * from './config/typedb';
 export * from './requests/base';
-export * from './requests/filters';
 export * from './requests/mutations';
 export * from './requests/queries';
 export * from './requests/databases/typeql';
@@ -9,3 +8,4 @@ export * from './schema/base';
 export * from './schema/enriched';
 export * from './schema/fields';
 export * from './typeGen';
+export * from './pipeline/base';

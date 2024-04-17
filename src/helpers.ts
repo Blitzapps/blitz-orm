@@ -14,7 +14,6 @@ import type {
 	EnrichedBormRelation,
 	EnrichedBormSchema,
 	LinkedFieldWithThing,
-	ParsedBQLQuery,
 	RawBQLQuery,
 	DataField,
 	BormEntity,
@@ -22,6 +21,7 @@ import type {
 	DBHandles,
 	DBHandleKey,
 	ThingType,
+	PositiveFilter,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
@@ -508,14 +508,14 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 
 	const localFilterFields = !node.$filter
 		? []
-		: listify(node.$filter, (k: string) => (k.toString().startsWith('$') ? undefined : k.toString())).filter(
-				(x) => x && availableDataFields?.includes(x),
-			);
+		: listify(node.$filter as PositiveFilter, (k: string) =>
+				k.toString().startsWith('$') ? undefined : k.toString(),
+			).filter((x) => x && availableDataFields?.includes(x));
 	const nestedFilterFields = !node.$filter
 		? []
-		: listify(node.$filter, (k: string) => (k.toString().startsWith('$') ? undefined : k.toString())).filter(
-				(x) => x && [...(availableRoleFields || []), ...(availableLinkFields || [])]?.includes(x),
-			);
+		: listify(node.$filter as PositiveFilter, (k: string) =>
+				k.toString().startsWith('$') ? undefined : k.toString(),
+			).filter((x) => x && [...(availableRoleFields || []), ...(availableLinkFields || [])]?.includes(x));
 
 	const unidentifiedFields = [...usedFields, ...localFilterFields]
 		.filter((x) => !x?.startsWith('%'))
@@ -538,22 +538,6 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		...(localFilterFields.length ? { localFilters } : {}),
 		...(nestedFilterFields.length ? { nestedFilters } : {}),
 	} as ReturnTypeWithNode;
-};
-
-// todo: move this function to typeDBhelpers
-export const getLocalFilters = (
-	currentSchema: EnrichedBormEntity | EnrichedBormRelation,
-	// todo: node?: BQLMutationBlock | ParsedBQLQuery
-	node: ParsedBQLQuery,
-) => {
-	const localFilters =
-		node.$localFilters &&
-		listify(node.$localFilters, (k: string, v) => {
-			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			return `has ${currentDataField?.dbPath} '${v}'`;
-		});
-	const localFiltersTql = localFilters?.length ? `, ${localFilters.join(',')}` : '';
-	return localFiltersTql;
 };
 
 /*
@@ -639,4 +623,22 @@ export const deepCurrent = <T>(obj: Drafted<T>): any => {
 		// Return the value directly for non-objects and non-arrays
 		return obj as DeepCurrent<T>;
 	}
+};
+
+export const assertDefined = <T>(value?: T, msg?: string): T => {
+	if (value === undefined) {
+		if (msg) {
+			throw new Error(msg);
+		}
+		throw new Error('Value is undefined');
+	}
+	return value;
+};
+
+export const indent = (line: string, depth: number) => {
+	let _indent = '';
+	for (let i = 0; i < depth; i++) {
+		_indent += '  ';
+	}
+	return `${_indent}${line}`;
 };
