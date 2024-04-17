@@ -2,11 +2,10 @@ import 'jest';
 
 import { createTest } from '../../helpers/createTest';
 
-export const testUnsupportedMutation = createTest('Mutation: Unsupported', (client) => {
+export const testUnsupportedMutation = createTest('Mutation: Unsupported', (ctx) => {
 	it("notYet1[format] Can't update on link", async () => {
-		expect(client).toBeDefined();
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'Thing',
 				$thingType: 'entity',
 				$id: 'temp1',

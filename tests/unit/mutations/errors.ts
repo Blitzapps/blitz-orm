@@ -2,12 +2,10 @@ import 'jest';
 
 import { createTest } from '../../helpers/createTest';
 
-export const testMutationErrors = createTest('Mutation: Errors', (client) => {
+export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 	it('e1[duplicate] Duplicate creation', async () => {
-		expect(client).toBeDefined();
-
 		await expect(
-			client.mutate({
+			ctx.mutate({
 				$relation: 'User-Accounts',
 				id: 'r1',
 				user: {
@@ -22,15 +20,13 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e2[relation] Error for match and $id not found', async () => {
-		expect(client).toBeDefined();
-
 		const mutation = {
 			$relation: 'UserTagGroup',
 			$id: 'non-existing-user-tag-group',
 			tags: [{ $op: 'link', $id: 'tag-1' }],
 		};
 
-		const res = await client.mutate(mutation);
+		const res = await ctx.mutate(mutation);
 		// console.log('res', res);
 		expect(res).toStrictEqual([
 			{
@@ -41,8 +37,6 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e3[create] Check for no $id field on $op create', async () => {
-		expect(client).toBeDefined();
-
 		const mutation = {
 			$entity: 'User',
 			$op: 'create',
@@ -52,7 +46,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		};
 
 		try {
-			await client.mutate(mutation, { noMetadata: true });
+			await ctx.mutate(mutation, { noMetadata: true });
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
@@ -70,10 +64,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 
 	it('e4[update, nested, error] Update all children error', async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					$id: 'account3-1',
@@ -97,10 +89,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -131,11 +121,10 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e7a[tempId, deletion] Delete tempId', async () => {
-		expect(client).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -159,11 +148,10 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e7b[tempId, unlink] Unlink tempId', async () => {
-		expect(client).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -187,10 +175,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e8a[multi, create, link] Incompatible tempId ops', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$relation: 'UserTagGroup',
 					$tempId: '_:utg1',
@@ -218,10 +204,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 	it('e8b[multi, create, link] Incompatible tempId ops', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$relation: 'UserTagGroup',
 					$tempId: '_:utg1',
@@ -248,10 +232,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m1d[delete, missing] Delete a non existing $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -277,10 +259,9 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
-		expect(client).toBeDefined();
 		// needs more than regular pre query
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'UserTag',
 				$id: 'tag-1',
 				users: [{ $op: 'link', $id: 'jnsndadsn' }],
@@ -299,10 +280,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m1up[update, missing] Update a non existing $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -328,10 +307,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m1un[unlink, missing] Unlink a non existing $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -357,10 +334,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m2d[delete, missing] Delete a non related $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -383,10 +358,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m2up[update, missing] Update a non related $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -408,10 +381,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('m2un[unlink, missing] Unlink a non related $id', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -433,10 +404,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e-v1[virtual] Cant insert virtual', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate([
+			await ctx.mutate([
 				{
 					$entity: 'Color',
 					isBlue: false,
@@ -458,10 +427,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					$id: 'account3-1',
@@ -486,10 +453,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e-c1d[create, nested delete] With pre-query, cannot delete under a create', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					$op: 'create',
@@ -511,10 +476,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('e-c1ul[create, nested unlink] With pre-query, cannot unlink under a create', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					$op: 'create',
@@ -537,16 +500,14 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('TODO:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
-		expect(client).toBeDefined();
-
 		/// create
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG1',
 			tags: ['tag-1', 'tag-2'], //no color
 		});
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG2',
@@ -555,7 +516,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		});
 
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$id: ['tmpUTG1', 'tmpUTG2'],
 				$relation: 'UserTagGroup',
 				$op: 'update',
@@ -573,7 +534,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		throw new Error('Expected mutation to throw an error');
 
 		//clean changes by deleting the new tmpUTG
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$op: 'delete',
@@ -581,10 +542,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'Field',
 				id: 'ul-many',
 				kinds: [
@@ -615,10 +574,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 
 	it("vi1[create, virtual, error] Can't set virtual fields", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					id: 'newAccount',
@@ -642,10 +599,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 
 	it('tid1[tempId, format]', async () => {
 		/// throw an error when a tempId does not have the _: format
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$entity: 'Account',
 					$tempId: 'wronglyFormattedTempId',
@@ -668,10 +623,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 
 	it("e-or1[orphan, relation] Can't create an orphan relation, but can create if its linked elsewhere", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				[
 					{
 						$relation: 'Kind',
@@ -702,7 +655,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 			}
 		}
 
-		await client.mutate(
+		await ctx.mutate(
 			[
 				{
 					$relation: 'Kind',
@@ -718,7 +671,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 			{ preQuery: true },
 		);
 
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$relation: 'Kind',
 				$id: 'or1-k-2',
@@ -729,7 +682,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		expect(res).toStrictEqual({ id: 'or1-k-2', space: 'space-3' });
 
 		//CLEAN
-		await client.mutate([
+		await ctx.mutate([
 			{
 				$relation: 'Kind',
 				$id: 'or1-k-2',
@@ -738,10 +691,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 		]);
 	});
 	it('e-or2[orphan, relation] Creating a relation without anything that links', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'Field',
 				id: 'ul-many',
 			});
@@ -759,9 +710,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	});
 
 	it("f1[format] Can't filter by $id when creating its parent", async () => {
-		expect(client).toBeDefined();
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'Thing',
 				$thingType: 'entity',
 				id: 'temp1',

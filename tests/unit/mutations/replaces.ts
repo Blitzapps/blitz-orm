@@ -3,11 +3,10 @@ import 'jest';
 import { deepSort } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 
-export const testReplaceMutation = createTest('Mutation: Replaces', (client) => {
+export const testReplaceMutation = createTest('Mutation: Replaces', (ctx) => {
 	it('r1[replace] replace single roles in relation', async () => {
-		expect(client).toBeDefined();
 		// cardinality one
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -17,7 +16,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		);
 
 		// cardinality many
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -25,7 +24,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			},
 			{ preQuery: true },
 		);
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -43,9 +42,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r2[replace] replace many roles in relation', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr3',
@@ -55,7 +52,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			{ preQuery: true },
 		);
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr3',
@@ -73,9 +70,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r3[replace] replace many roles in many relation', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate([
+		await ctx.mutate([
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr4',
@@ -90,7 +85,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			},
 		]);
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: ['tr4', 'tr5'],
@@ -116,9 +111,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r4[replace] replace depth test', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate({
+		await ctx.mutate({
 			'$entity': 'User',
 			'$id': 'user3',
 			'user-tags': [
@@ -128,7 +121,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 				},
 			],
 		});
-		const queryRes = await client.query({
+		const queryRes = await ctx.query({
 			$thing: 'UserTag',
 			$thingType: 'relation',
 			$id: 'tag-2',
@@ -142,7 +135,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		// revert to original
-		await client.mutate({
+		await ctx.mutate({
 			'$entity': 'User',
 			'$id': 'user3',
 			'user-tags': [
@@ -155,10 +148,8 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r5a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
-		expect(client).toBeDefined();
-
 		/// create
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -166,7 +157,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		/// the mutation to be tested
-		await client.mutate({
+		await ctx.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [
@@ -175,7 +166,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			],
 		});
 
-		const tmpUTG = await client.query({
+		const tmpUTG = await ctx.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -189,7 +180,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -197,10 +188,8 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r5b[replace, unlink, link, many] Replace using unlink + link single role, by IDs. MultiIds', async () => {
-		expect(client).toBeDefined();
-
 		/// create
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -208,7 +197,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		/// the mutation to be tested
-		await client.mutate({
+		await ctx.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [
@@ -217,7 +206,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			],
 		});
 
-		const tmpUTG = await client.query({
+		const tmpUTG = await ctx.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -231,7 +220,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -239,10 +228,8 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('r6a[replace, unlink, link, many] Replace using unlink + link , all unlink', async () => {
-		expect(client).toBeDefined();
-
 		/// create
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -251,13 +238,13 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		/// the mutation to be tested
-		await client.mutate({
+		await ctx.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [{ $op: 'link', $id: ['tag-4', 'tag-3'] }, { $op: 'unlink' }],
 		});
 
-		const tmpUTG = await client.query({
+		const tmpUTG = await ctx.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -271,7 +258,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await client.mutate({
+		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -279,9 +266,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('TODO:ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr6',
@@ -295,7 +280,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr6',
@@ -312,9 +297,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('TODO:ri1-ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr7',
@@ -328,7 +311,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr7',
@@ -345,9 +328,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 	});
 
 	it('TODO:ri1-up[ignore ids pre-query update] update something that does not exist', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr8',
@@ -361,7 +342,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (client) => 
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr8',

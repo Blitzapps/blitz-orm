@@ -189,7 +189,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b2a[update] Basic', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate(
 			{
 				$entity: 'User',
@@ -367,7 +366,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b3e[delete, entity] Basic', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate({
 			$entity: 'User',
 			$op: 'delete',
@@ -397,7 +395,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b3r[delete, relation] Basic', async () => {
-		expect(ctx).toBeDefined();
 		await ctx.mutate({
 			$relation: 'User-Accounts',
 			id: 'r1',
@@ -432,7 +429,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 	it('b3rn[delete, relation, nested] Basic', async () => {
-		expect(ctx).toBeDefined();
 		//create nested object
 		await ctx.mutate(
 			{
@@ -551,7 +547,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b4[create, children] Create with children', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate(
 			{
 				...secondUser,
@@ -619,8 +614,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b4.2[create, link] Create all then link', async () => {
-		expect(ctx).toBeDefined();
-
 		/// create third user
 		const res1 = await ctx.mutate(
 			{
@@ -685,8 +678,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('TODO:b4.3[update, link] Link ALL (without ids)', async () => {
-		expect(ctx).toBeDefined();
-
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -716,8 +707,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('TODO:b4.4[create, link] Create and link ALL (without ids)', async () => {
-		expect(ctx).toBeDefined();
-
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -754,7 +743,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b5[update, children] Update children', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate(
 			{
 				$entity: 'User',
@@ -799,7 +787,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b6.1[create, withId] Create with id (override default)', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate(
 			[
 				{
@@ -871,7 +858,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
-		expect(ctx).toBeDefined();
 		const res = await ctx.mutate(godUser, { noMetadata: true });
 		expect(res[0]).toEqual({
 			id: 'squarepusher',
@@ -883,8 +869,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b8[create, multiple, date] Next-auth example ', async () => {
-		expect(ctx).toBeDefined();
-
 		await ctx.mutate(
 			{
 				$entity: 'Session',
@@ -913,8 +897,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n1[create, nested] nested', async () => {
-		expect(ctx).toBeDefined();
-
 		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
@@ -989,8 +971,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n2[create, nested] nested, self referenced', async () => {
-		expect(ctx).toBeDefined();
-
 		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
@@ -1095,8 +1075,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n3[delete, nested] nested delete', async () => {
-		expect(ctx).toBeDefined();
-
 		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
@@ -1179,8 +1157,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('u1[update, multiple] Shared ids', async () => {
-		expect(ctx).toBeDefined();
-
 		await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -1349,8 +1325,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	it('u2[update, multiple, nested(many), noId] Update only children (no id)', async () => {
 		// This test might fail if b4 fails
 
-		expect(ctx).toBeDefined();
-
 		/// cardinality MANY
 		await ctx.mutate(
 			{
@@ -1414,7 +1388,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 	it('u3[update, multiple, nested(many), noId] Update only but all children (no id)', async () => {
 		/// This test might fail if b4 fails
-		expect(ctx).toBeDefined();
 		const currentSpacesOfUser2And5 = await ctx.query(
 			{
 				$entity: 'User',
@@ -1501,8 +1474,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('u4[update, multiple, nested(one), noId] Update all children (no id)', async () => {
-		expect(ctx).toBeDefined();
-
 		/// cardinality ONE
 		await ctx.mutate(
 			{

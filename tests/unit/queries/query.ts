@@ -8,26 +8,22 @@ import type { WithBormMetadata } from '../../../src/index';
 import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
 
-export const testQuery = createTest('Query', (client) => {
+export const testQuery = createTest('Query', (ctx) => {
 	it('v1[validation] - $entity missing', async () => {
-		expect(client).toBeDefined();
 		// @ts-expect-error - $entity is missing
-		await expect(client.query({})).rejects.toThrow();
+		await expect(ctx.query({})).rejects.toThrow();
 	});
 
 	it('v2[validation] - $entity not in schema', async () => {
-		expect(client).toBeDefined();
-		await expect(client.query({ $entity: 'fakeEntity' })).rejects.toThrow();
+		await expect(ctx.query({ $entity: 'fakeEntity' })).rejects.toThrow();
 	});
 
 	it('v3[validation] - $id not existing', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'User', $id: 'nonExisting' });
+		const res = await ctx.query({ $entity: 'User', $id: 'nonExisting' });
 		await expect(res).toBeNull();
 	});
 
 	it('e1[entity] - basic and direct link to relation', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'User' };
 		const expectedRes = [
 			{
@@ -101,14 +97,13 @@ export const testQuery = createTest('Query', (client) => {
 				spaces: ['space-1'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('e1.b[entity] - basic and direct link to relation sub entity', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'God' };
 		const expectedRes = [
 			{
@@ -122,14 +117,13 @@ export const testQuery = createTest('Query', (client) => {
 				power: 'mind control',
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('e2[entity] - filter by single $id', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			// '$entity': 'User',
@@ -144,7 +138,7 @@ export const testQuery = createTest('Query', (client) => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = (await client.query(query)) as UserType;
+		const res = (await ctx.query(query)) as UserType;
 
 		expect(res).toBeDefined();
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
@@ -158,7 +152,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('e3[entity, nested] - direct link to relation, query nested ', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'User', $fields: ['id', { $path: 'user-tags' }] };
 		const expectedRes = [
 			{
@@ -253,18 +246,17 @@ export const testQuery = createTest('Query', (client) => {
 				id: 'user5',
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
 	it('opt1[options, noMetadata', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'name': 'Antoine',
@@ -276,7 +268,7 @@ export const testQuery = createTest('Query', (client) => {
 		};
 
 		type UserType = WithBormMetadata<TypeGen<typeof typesSchema.entities.User>>;
-		const res = (await client.query(query, {
+		const res = (await ctx.query(query, {
 			noMetadata: true,
 		})) as UserType;
 		expect(res).toBeDefined();
@@ -289,7 +281,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('TODO:opt2[options, debugger', async () => {
-		expect(client).toBeDefined();
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'$id': 'user1',
@@ -335,7 +326,7 @@ export const testQuery = createTest('Query', (client) => {
 			'user-tags': ['tag-1', 'tag-2'],
 		};
 
-		const res = (await client.query(query, {
+		const res = (await ctx.query(query, {
 			debugger: true,
 		})) as UserType;
 		expect(res).toBeDefined();
@@ -348,7 +339,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user4',
@@ -362,14 +352,13 @@ export const testQuery = createTest('Query', (client) => {
 			'spaces': null, //example linkfield from intermediary relation
 			'user-tags': null, //example linkfield from direct relation
 		};
-		const res = await client.query(query, { returnNulls: true });
+		const res = await ctx.query(query, { returnNulls: true });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
 	it('r1[relation] - basic', async () => {
-		expect(client).toBeDefined();
 		const query = { $relation: 'User-Accounts' };
 		const expectedRes = [
 			{
@@ -418,12 +407,12 @@ export const testQuery = createTest('Query', (client) => {
 				accounts: ['account3-1'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -433,7 +422,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r2[relation] - filtered fields', async () => {
-		expect(client).toBeDefined();
 		const query = { $relation: 'User-Accounts', $fields: ['user'] };
 		const expectedRes = [
 			{
@@ -467,11 +455,11 @@ export const testQuery = createTest('Query', (client) => {
 				user: 'user3',
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res)).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'user')).toEqual(
@@ -480,7 +468,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r3[relation, nested] - nested entity', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$relation: 'User-Accounts',
 			$fields: ['id', { $path: 'user', $fields: ['name'] }],
@@ -547,11 +534,11 @@ export const testQuery = createTest('Query', (client) => {
 				},
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, '$id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -559,7 +546,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r4[relation, nested, direct] - nested relation direct on relation', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -608,18 +594,17 @@ export const testQuery = createTest('Query', (client) => {
 				users: [{ $id: 'user2', $thing: 'User', $thingType: 'entity', id: 'user2' }],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
 	it('r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Color',
 			$fields: ['id', 'user-tags', 'group'],
@@ -642,12 +627,12 @@ export const testQuery = createTest('Query', (client) => {
 				'user-tags': ['tag-1', 'tag-2'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -655,7 +640,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 		};
@@ -695,12 +679,12 @@ export const testQuery = createTest('Query', (client) => {
 				users: ['user2'],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -708,7 +692,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r7[relation, nested, direct] - nested on nested', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -830,12 +813,12 @@ export const testQuery = createTest('Query', (client) => {
 				],
 			},
 		];
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -843,7 +826,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r8[relation, nested, deep] - deep nested', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -893,12 +875,12 @@ export const testQuery = createTest('Query', (client) => {
 				],
 			},
 		};
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -906,13 +888,12 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('r9[relation, nested, ids]', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$relation: 'UserTagGroup',
 			$id: 'utg-1',
 			$fields: ['tags', 'color'],
 		};
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -926,10 +907,9 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef1[entity] - $id single', async () => {
-		expect(client).toBeDefined();
-		const wrongRes = await client.query({ $entity: 'User', $id: uuidv4() });
+		const wrongRes = await ctx.query({ $entity: 'User', $id: uuidv4() });
 		expect(wrongRes).toEqual(null);
-		const validRes = await client.query({
+		const validRes = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['id'],
@@ -938,8 +918,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef2[entity] - $id multiple', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2'],
 			$fields: ['id'],
@@ -954,8 +933,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef3[entity] - $fields single', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'User', $fields: ['id'] });
+		const res = await ctx.query({ $entity: 'User', $fields: ['id'] });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -981,8 +959,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef4[entity] - $fields multiple', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', 'email'],
@@ -997,8 +974,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef5[entity,filter] - $filter single', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { name: 'Antoine' },
 			$fields: ['name'],
@@ -1009,8 +985,7 @@ export const testQuery = createTest('Query', (client) => {
 
 	// can also be the id field!
 	it('ef6[entity,filter] - $filter by unique field', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { id: 'user1' },
 			$fields: ['name'],
@@ -1019,8 +994,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('ef7[entity,unique] - $filter unique field', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { id: 'user1' }, // not $id, just being used as a regular field
 			$fields: ['name', 'email'],
@@ -1036,8 +1010,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('n1[nested] Only ids', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', 'accounts'],
@@ -1055,13 +1028,12 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('n2[nested] First level all fields', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts' }],
 		};
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -1103,7 +1075,7 @@ export const testQuery = createTest('Query', (client) => {
 				},
 			],
 		});
-		const resWithoutMetadata = await client.query(query, { noMetadata: true });
+		const resWithoutMetadata = await ctx.query(query, { noMetadata: true });
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual({
 			name: 'Antoine',
@@ -1132,8 +1104,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('n3[nested, $fields] First level filtered fields', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts', $fields: ['provider'] }],
@@ -1153,8 +1124,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('n4a[nested, $id] Local filter on nested, by id', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
 			$fields: [
@@ -1199,8 +1169,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('n4b[nested, $id] Local filter on nested depth two, by id', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
 			$fields: [
@@ -1232,13 +1201,12 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('nf1[nested, $filters] Local filter on nested, single id', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
 			$fields: ['name', { $path: 'accounts', $filter: { provider: 'github' } }],
 		};
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -1262,8 +1230,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
 			$fields: [
@@ -1310,7 +1277,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
 				$filter: { user: 'user1' },
@@ -1322,7 +1289,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
 				$filter: {
@@ -1336,7 +1303,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'User',
 				$filter: { spaces: ['space-1'] },
@@ -1348,7 +1315,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('slo1[$sort, $limit, $offset] root', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'Account',
 				$sort: [{ field: 'provider', desc: false }, 'id'],
@@ -1368,7 +1335,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('slo1[$sort, $limit, $offset] sub level', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'user1',
@@ -1396,7 +1363,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'User',
 				$fields: ['id', 'email'],
@@ -1436,8 +1403,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
-		expect(client).toBeDefined();
-		const res = await client.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
+		const res = await ctx.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
 		expect(res).toEqual({
 			id: 'god1',
 			name: 'Richard David James',
@@ -1448,8 +1414,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('s1[self] Relation playing a a role defined by itself', async () => {
-    expect(client).toBeDefined();
-    const res = await client.query({ $relation: 'Self' }, { noMetadata: true });
+    const res = await ctx.query({ $relation: 'Self' }, { noMetadata: true });
     expect(deepSort(res, 'id')).toEqual([
       { id: 'self1', owned: ['self2'], space: 'space-2' },
       { id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
@@ -1460,9 +1425,8 @@ export const testQuery = createTest('Query', (client) => {
 
 	it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
 
-		const res = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
+		const res = await ctx.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
@@ -1477,9 +1441,7 @@ export const testQuery = createTest('Query', (client) => {
 
 	it('ex2[extends] Query of the parent', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{ $entity: 'Space', $id: 'space-2', $fields: ['objects'] },
 			{ noMetadata: true },
 		);
@@ -1489,9 +1451,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'Space',
 				$id: 'space-2',
@@ -1519,9 +1479,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'Space',
 				$id: 'space-2',
@@ -1544,7 +1502,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('xf1[excludedFields] Testing excluded fields', async () => {
-		expect(client).toBeDefined();
 		let godUser = {
 			$entity: 'God',
 			id: 'squarepusher',
@@ -1554,7 +1511,7 @@ export const testQuery = createTest('Query', (client) => {
 			isEvil: false,
 		};
 		// Create a new godUser
-		const mutationRes = await client.mutate(godUser, { noMetadata: true });
+		const mutationRes = await ctx.mutate(godUser, { noMetadata: true });
 		const [user] = mutationRes;
 
 		expect(user).toEqual({
@@ -1566,7 +1523,7 @@ export const testQuery = createTest('Query', (client) => {
 		});
 		godUser = { ...godUser, id: user.id };
 
-		const queryRes = await client.query(
+		const queryRes = await ctx.query(
 			{
 				$entity: 'God',
 				$id: godUser.id,
@@ -1583,7 +1540,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('xf2[excludedFields, deep] - deep nested', async () => {
-		expect(client).toBeDefined();
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -1633,12 +1589,12 @@ export const testQuery = createTest('Query', (client) => {
 				],
 			},
 		};
-		const res = await client.query(query);
+		const res = await ctx.query(query);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -1646,8 +1602,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('xf3[excludedFields, deep] - Exclude virtual field', async () => {
-		expect(client).toBeDefined();
-
 		const query = {
 			$entity: 'User',
 			$id: 'user2',
@@ -1673,12 +1627,12 @@ export const testQuery = createTest('Query', (client) => {
 				},
 			],
 		};
-		const res = await client.query(query, { noMetadata: true });
+		const res = await ctx.query(query, { noMetadata: true });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
-		const resWithoutMetadata = await client.query(query, {
+		const resWithoutMetadata = await ctx.query(query, {
 			noMetadata: true,
 		});
 
@@ -1687,9 +1641,7 @@ export const testQuery = createTest('Query', (client) => {
 
 	it('vi1[virtual, attribute] Virtual DB field', async () => {
 		//This works with TypeDB rules
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{ $entity: 'Account', $fields: ['id', 'isSecureProvider'] },
 			{ noMetadata: true },
 		);
@@ -1720,9 +1672,7 @@ export const testQuery = createTest('Query', (client) => {
 
 	it('vi2[virtual, edge] Virtual DB edge field', async () => {
 		//This works with TypeDB rules
-		expect(client).toBeDefined();
-
-		const res = await client.query({ $entity: 'Hook' }, { noMetadata: true });
+		const res = await ctx.query({ $entity: 'Hook' }, { noMetadata: true });
 
 		expect(deepSort(res, 'id')).toEqual([
 			{
@@ -1754,9 +1704,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('co1[computed] Virtual computed field', async () => {
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
 			{ noMetadata: true },
 		);
@@ -1774,9 +1722,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('co2[computed] Computed virtual field depending on edge id', async () => {
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'user-tags', 'totalUserTags'] },
 			{ noMetadata: true },
 		);
@@ -1796,9 +1742,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
-		expect(client).toBeDefined();
-
-		const res = await client.query(
+		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
 		);
@@ -1955,7 +1899,6 @@ export const testQuery = createTest('Query', (client) => {
 	// NESTED
 
 	it('a1[$as] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
 		const expectedRes = {
 			'email_as': 'antoine@test.com',
 			'id': 'user1',
@@ -1985,7 +1928,7 @@ export const testQuery = createTest('Query', (client) => {
 			],
 		};
 
-		const res = (await client.query(
+		const res = (await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'user1',
@@ -2007,7 +1950,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('bq1[batched query] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
 		const expectedRes = [
 			{
 				id: 'user1',
@@ -2017,7 +1959,7 @@ export const testQuery = createTest('Query', (client) => {
 			},
 		];
 
-		const res = (await client.query(
+		const res = (await ctx.query(
 			[
 				{
 					$entity: 'User',
@@ -2038,7 +1980,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('j1[json] Query a thing with a JSON attribute', async () => {
-		const entity = await client.query({
+		const entity = await ctx.query({
 			$entity: 'Account',
 			$id: 'account1-1',
 			$fields: ['profile'],
@@ -2049,7 +1991,7 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('j2[json] Query a thing with an empty JSON attribute', async () => {
-		const entity = await client.query({
+		const entity = await ctx.query({
 			$entity: 'Account',
 			$id: 'account1-2',
 			$fields: ['profile'],
@@ -2058,8 +2000,6 @@ export const testQuery = createTest('Query', (client) => {
 	});
 
 	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
-		expect(client).toBeDefined();
-
 		const expectedRes = {
 			users: {
 				id: 'user1',
@@ -2069,7 +2009,7 @@ export const testQuery = createTest('Query', (client) => {
 			},
 		};
 
-		const res = (await client.query(
+		const res = (await ctx.query(
 			{
 				// @ts-expect-error change RawBQLQuery type
 				$queryType: 'batched',

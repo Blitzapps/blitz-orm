@@ -3,19 +3,17 @@ import 'jest';
 import { deepSort } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 
-export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) => {
+export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	// field level
 
 	it('df[default, field] Default field', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate({
+		await ctx.mutate({
 			$entity: 'Hook',
 			id: 'hookDf1',
 			requiredOption: 'b',
 		});
 
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$entity: 'Hook',
 				$id: 'hookDf1',
@@ -33,7 +31,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBeTruthy();
 
 		//cleanup
-		await client.mutate({
+		await ctx.mutate({
 			$entity: 'Hook',
 			$op: 'delete',
 			$id: 'hookDF11',
@@ -41,16 +39,14 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('rf[required, field] Required field', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 			});
 
 			//cleanup
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				$op: 'delete',
 				id: 'hook1',
@@ -65,10 +61,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('ef1[enum, field, one] Enum field cardinality one', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 				requiredOption: 'd',
@@ -83,10 +77,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('ef2[enum, field, many] Enum field cardinality one', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 				requiredOption: 'c',
@@ -104,10 +96,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	// node level
 
 	it('vfl1[validation, functions, local, thing] Basic', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'Kind',
 				id: 'kind1',
 				name: 'Tyrannosaurus name',
@@ -127,10 +117,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('vfl2[validation, functions, local, attribute] Function', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'something@test.es',
 				requiredOption: 'a',
@@ -149,10 +137,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('vfl3[validation, functions, local, attribute] FUnction with custom error', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'secretTesthe@test.es',
 				requiredOption: 'a',
@@ -173,10 +159,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('vfr1[validation, functions, remote, parent] Validate considering the parent', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$entity: 'Hook',
 				id: 'hook-c0',
 				requiredOption: 'a',
@@ -221,10 +205,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('vflr2[validation, functions, remote, things] Check nested array', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'Kind',
 				id: 'kind1',
 				fields: [{ name: 'forbiddenName' }],
@@ -243,10 +225,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('TODO:vflr3[validation, functions, nested, things] Check nested array, card ONE', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate({
+			await ctx.mutate({
 				$relation: 'HookATag',
 				id: 'vfla6-1-hey',
 				hookTypeA: { requiredOption: 'a' },
@@ -265,9 +245,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('tn1[transform, node] Transform node depending on attribute', async () => {
-		expect(client).toBeDefined();
-
-		await client.mutate(
+		await ctx.mutate(
 			[
 				{
 					$relation: 'Kind',
@@ -286,7 +264,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 			{ noMetadata: true },
 		);
 
-		const res = await client.query(
+		const res = await ctx.query(
 			{
 				$relation: 'Kind',
 				$fields: ['id', 'name'],
@@ -311,10 +289,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('tn2[transform, children] Append children to node', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$thing: 'User',
 					id: 'tn2-u1',
@@ -323,7 +299,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 				{ noMetadata: true },
 			);
 
-			const res = await client.query(
+			const res = await ctx.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -340,7 +316,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 			});
 		} finally {
 			//clean
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$op: 'delete',
@@ -350,10 +326,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('tn3[transform, inherited] Append children to node', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$thing: 'Kind',
 					id: 'secret-kind-tn3',
@@ -362,7 +336,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 				{ noMetadata: true },
 			);
 
-			const res = await client.query(
+			const res = await ctx.query(
 				{
 					$thing: 'Kind',
 					$thingType: 'relation',
@@ -376,7 +350,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 			});
 		} finally {
 			//clean
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'Kind',
 				$thingType: 'relation',
 				$op: 'delete',
@@ -386,10 +360,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('tt1[transform, temp props] Transform using %vars', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					'$thing': 'User',
 					'id': 'tt1-u1',
@@ -398,7 +370,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 				{ noMetadata: true },
 			);
 
-			const res = await client.query(
+			const res = await ctx.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -412,7 +384,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 			});
 		} finally {
 			//clean
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$id: 'tt1-u1',
@@ -422,10 +394,8 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 	});
 
 	it('ctx1[transform, context] Use context', async () => {
-		expect(client).toBeDefined();
-
 		try {
-			await client.mutate(
+			await ctx.mutate(
 				{
 					$thing: 'User',
 					id: 'ctx1-u1',
@@ -434,7 +404,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 				{ noMetadata: true, context: { spaceId: 'mySpace' } },
 			);
 
-			const res = await client.query(
+			const res = await ctx.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -451,7 +421,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) =>
 			});
 		} finally {
 			//clean
-			await client.mutate({
+			await ctx.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$op: 'delete',

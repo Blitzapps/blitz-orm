@@ -37,7 +37,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c1r[multi, create, link] nested tempIds in relation', async () => {
-			expect(ctx).toBeDefined();
 			const res = await ctx.mutate([
 				{
 					$relation: 'UserTagGroup',
@@ -70,7 +69,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c2[multi, create, link] Nested tempIds simple', async () => {
-			expect(ctx).toBeDefined();
 			const res = await ctx.mutate([
 				{
 					$entity: 'Account',
@@ -119,7 +117,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c2r[multi, create, link] nested tempIds in relation', async () => {
-			expect(ctx).toBeDefined();
 			const res = await ctx.mutate([
 				{
 					$relation: 'UserTagGroup',
@@ -199,7 +196,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c3[multi, create, link] Nested tempIds triple', async () => {
-			expect(ctx).toBeDefined();
 			const res = await ctx.mutate([
 				{
 					$entity: 'Account',
@@ -255,7 +251,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c4[multi, create, link] Complex tempIds', async () => {
-			expect(ctx).toBeDefined();
 			const res = await ctx.mutate([
 				{
 					$entity: 'User',
@@ -308,7 +303,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		});
 
 		it('c5[multi, create, link] tempIds in extended relation', async () => {
-			expect(ctx).toBeDefined();
 			const [res1] = await ctx.mutate([
 				{
 					$entity: 'Space',
