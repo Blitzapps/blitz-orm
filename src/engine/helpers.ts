@@ -1,4 +1,4 @@
-import acorn from 'acorn';
+import * as acorn from 'acorn';
 
 const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/gm;
 const STRIP_KEYWORDS = /(\s*async\s*|\s*function\s*|\s*\(\s*|\s*\)\s*=>|\s*\)\s*\{)/;

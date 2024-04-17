@@ -4,14 +4,16 @@ import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 import type { FilledBQLMutationBlock } from '../../../types';
 import { getCurrentSchema, getCardinality, getSymbols } from '../../../helpers';
-import { queryPipeline, type PipelineOperation } from '../../pipeline';
+import { queryPipeline } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 
 export const preQueryPathSeparator = '___';
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
 
 const grandChildOfCreateSymbol = Symbol.for('grandChildOfCreate');
 
-export const preQuery: PipelineOperation = async (req) => {
+export const preQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { filledBqlRequest, config, schema } = req;
 
 	//console.log('filledBqlRequest', JSON.stringify(filledBqlRequest, null, 2));

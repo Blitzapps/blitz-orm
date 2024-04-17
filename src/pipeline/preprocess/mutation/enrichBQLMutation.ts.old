@@ -20,7 +20,8 @@ import type {
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
 } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { Schema } from '../../../types/symbols';
 
@@ -50,7 +51,7 @@ const sanitizeTempId = (id: string): string => {
 	return sanitizedId;
 };
 
-export const enrichBQLMutation: PipelineOperation = async (req) => {
+export const enrichBQLMutation: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { rawBqlRequest, filledBqlRequest, schema } = req;
 
 	/// STEP 1, remove undefined stuff, sanitize tempIds and split arrays of $ids
