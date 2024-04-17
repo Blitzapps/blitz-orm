@@ -45,7 +45,7 @@ const realParse = (
 		// This is a little inconsistent.  In the prop if the result is empty
 		// we return null or undefined based on the config, but the test
 		// expect the top level result to always return null.
-		// always return 
+		// always return
 		// return config.query?.returnNulls ? null : undefined;
 		return null;
 	}
@@ -55,39 +55,32 @@ const realParse = (
 	return res.map((item) => parseObj(item, rawBqlRequest, schema, config));
 };
 
-const parseObj = (
-	res: any,
-	rawBqlRequest: RawBQLQuery,
-	schema: EnrichedBormSchema,
-	config: BormConfig,
-) => {
-		const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(res, schema);
+const parseObj = (res: any, rawBqlRequest: RawBQLQuery, schema: EnrichedBormSchema, config: BormConfig) => {
+	const { dataFields, currentSchema, linkFields, roleFields, schemaValue } = parseFields(res, schema);
 
-		const parsedDataFields = parseDataFields(dataFields, currentSchema, config);
-		const parsedLinkFields = parseLinkFields(linkFields, schema, config);
-		const parsedRoleFields = parseRoleFields(roleFields, schema, config);
-		console.log('parseObj/parsedLinkFields', JSON.stringify(parsedLinkFields));
-		console.log('parseObj/parsedRoleFields', JSON.stringify(parsedRoleFields));
-		const idNotIncluded = rawBqlRequest?.$fields?.every(
-			(field) => !currentSchema?.idFields?.includes(typeof field === 'string' ? field : field.$path),
-		);
+	const parsedDataFields = parseDataFields(dataFields, currentSchema, config);
+	const parsedLinkFields = parseLinkFields(linkFields, schema, config);
+	const parsedRoleFields = parseRoleFields(roleFields, schema, config);
+	console.log('parseObj/parsedLinkFields', JSON.stringify(parsedLinkFields));
+	console.log('parseObj/parsedRoleFields', JSON.stringify(parsedRoleFields));
+	const idNotIncluded = rawBqlRequest?.$fields?.every(
+		(field) => !currentSchema?.idFields?.includes(typeof field === 'string' ? field : field.$path),
+	);
 
-		const finalObj = {
-			...parsedLinkFields,
-			...parsedRoleFields,
-			...schemaValue,
-			...(!config.query?.noMetadata && rawBqlRequest.$id
-				? // TODO: This line is wrong: the id field may not be "id"; $id may be an array of string;
-					{ $id: Array.isArray(rawBqlRequest.$id) ? parsedDataFields['id'] : rawBqlRequest.$id }
-				: {}),
-			...(idNotIncluded
-				? Object.fromEntries(
-						Object.entries(parsedDataFields).filter(([key]) => !currentSchema?.idFields?.includes(key)),
-					)
-				: parsedDataFields),
-		};
+	const finalObj = {
+		...parsedLinkFields,
+		...parsedRoleFields,
+		...schemaValue,
+		...(!config.query?.noMetadata && rawBqlRequest.$id
+			? // TODO: This line is wrong: the id field may not be "id"; $id may be an array of string;
+				{ $id: Array.isArray(rawBqlRequest.$id) ? parsedDataFields['id'] : rawBqlRequest.$id }
+			: {}),
+		...(idNotIncluded
+			? Object.fromEntries(Object.entries(parsedDataFields).filter(([key]) => !currentSchema?.idFields?.includes(key)))
+			: parsedDataFields),
+	};
 
-		return finalObj;
+	return finalObj;
 };
 
 const parseFields = (obj: any, schema: EnrichedBormSchema) => {
@@ -121,8 +114,7 @@ const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 	const linkFields = keys
 		.filter((key) => {
 			const $key = assertDefined(key.split('.').pop());
-			return !key.endsWith('.$dataFields')
-				&& currentSchema.linkFields?.some((o) => o.path === $key);
+			return !key.endsWith('.$dataFields') && currentSchema.linkFields?.some((o) => o.path === $key);
 		})
 		.map((key) => {
 			const $key = assertDefined(key.split('.').pop());
@@ -132,16 +124,15 @@ const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 				$key,
 				$metaData: key.split('.')[key.split('.').length - 2],
 				$cardinality: linkField.cardinality,
-			}
+			};
 		});
 
 	const roleFields = keys
 		.filter((key) => {
 			const role = key.split('.').pop();
-			return role
-				&& !key.endsWith('.$dataFields')
-				&& currentSchema.thingType === 'relation'
-				&& currentSchema.roles?.[role];
+			return (
+				role && !key.endsWith('.$dataFields') && currentSchema.thingType === 'relation' && currentSchema.roles?.[role]
+			);
 		})
 		.map((key) => {
 			const role = assertDefined(key.split('.').pop());
@@ -150,7 +141,7 @@ const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 				$key: role,
 				$metaData: key.split('.')[key.split('.').length - 2],
 				$cardinality: (currentSchema as EnrichedBormRelation).roles[role].cardinality,
-			}
+			};
 		});
 
 	return { dataFields, schemaValue, currentSchema, linkFields, roleFields };

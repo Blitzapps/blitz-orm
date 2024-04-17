@@ -1,6 +1,6 @@
 import type { LinkedFieldWithThing, Filter, BormEntity, BormRelation, DBHandleKey } from '..';
 import type { AdapterContext } from '../../adapters';
-import type { RoleField, DataField, BormField, LinkField } from './fields';
+import type { RoleField, DataField, LinkField } from './fields';
 
 export type EnrichedBormSchema = {
 	entities: { [s: string]: EnrichedBormEntity };
