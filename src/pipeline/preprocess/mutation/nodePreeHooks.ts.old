@@ -4,12 +4,13 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 
 import type { FilledBQLMutationBlock, TransFormAction } from '../../../types';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline'
+import type { PipelineOperation } from '../../../types';
 import { computeNode } from '../../../engine/compute';
 import { getTriggeredActions } from './hooks/utils';
 import { getParentNode, isBQLBlock } from '../../../helpers';
 
-export const nodePreHooks: PipelineOperation = async (req) => {
+export const nodePreHooks: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { filledBqlRequest, schema } = req;
 
 	if (!filledBqlRequest) {

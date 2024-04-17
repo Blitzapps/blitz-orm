@@ -2,70 +2,75 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.9.20(2024-04-17)
+## 0.10.1(2024-04-17)
 
-- Feat: Transformations with $fields included in mutations
+- Feat: Transformations for mutations with $fields included.
 
-## 0.9.20(2023-03-20)
+## 0.10.0(2024-04-17)
+
+- Feat: Add SurrealDB query adapter
+- Feat: Enable batched query that target multiple DB. Each query in the batch can only access a single DB.
+
+## 0.9.20(2024-03-20)
 
 - Refacto: Pre-queries refactoring
 
-## 0.9.19(2023-03-17)
+## 0.9.19(2024-03-17)
 
 - Feat: JSON storage
 
-## 0.9.18(2023-03-13)
+## 0.9.18(2024-03-13)
 
 - Fix: Fix false duplicate $id error
 
-## 0.9.17(2023-03-13)
+## 0.9.17(2024-03-13)
 
 - Feat: %vars can be used to be consumed in pre-hooks
 
-## 0.9.16(2023-03-04)
+## 0.9.16(2024-03-04)
 
 - Feat: dependency checker
 
-## 0.9.15(2023-02-04)
+## 0.9.15(2024-02-04)
 
 - Fix: removed console.log
 
-## 0.9.14(2023-03-03)
+## 0.9.14(2024-03-03)
 
 - Feat: triggers are optional, if none is created, then all are triggered (the $op can be used instead)
 - Fix: Extended objects inherit as well the prehooks. Actions are still unsafe
 
-## 0.9.13(2023-02-28)
+## 0.9.13(2024-02-28)
 
 - Breaking change: $tempId without attributes mean link. $tempId with attribute means create
 - Fix: Fixed issue with nulls additions on hooks
 
-## 0.9.12(2023-02-28)
+## 0.9.12(2024-02-28)
 
 - UX: Better replace issue message
 
-## 0.9.11(2023-02-27)
+## 0.9.11(2024-02-27)
 
 - Fix: Issue that did not spread symbols on children creation
 
-## 0.9.10(2023-02-27)
+## 0.9.10(2024-02-27)
 
 - Feat: Actions can use user provided context in the mutation config
 - Feat: Actions can have name and descriptions
 
-## 0.9.9(2023-02-27)
+## 0.9.9(2024-02-27)
 
 - Feat: Catch some extra schema errors
 
-## 0.9.8(2023-02-26)
+## 0.9.8(2024-02-26)
 
 - Fix: Issue that was splitting things assigning them two different $vars ($tempId and $bzId generated in pre-queries)
 
-## 0.9.1-7(2023-02-26)
+## 0.9.1-7(2024-02-26)
 
 - Fix: Fixing issue with module exports (robot3)
 
-## 0.9.0(2023-02-26)
+## 0.9.0(2024-02-26)
 
 - Feat: Non linear pipeline
 - Feat: Can add children nodes on transformations
@@ -76,27 +81,27 @@
 - Chore: Immer downgraded to 9.0.21 (until <https://github.com/immerjs/immer/issues/1087> is fixed)
 - Fix: lot of fixes
 
-## 0.8.11(2023-02-15)
+## 0.8.11(2024-02-15)
 
 - Tests: Added nested object validation test
 
-## 0.8.10(2023-02-14)
+## 0.8.10(2024-02-14)
 
 - Fix: Sanitized params in fn validations and transforms
 
-## 0.8.9(2023-02-12)
+## 0.8.9(2024-02-12)
 
 - Feat: Transform pre-hooks
 - Temp breaking change: b3rn use case no longer working until it gets fixed in next version
 
-## 0.8.8(2023-02-11)
+## 0.8.8(2024-02-11)
 
 - Feat: More $tempId working cases
 - Chore: Added getSymbols helper
 - Chore: Added some missing types
 - Tests: New tests
 
-## 0.8.7(2023-02-09)
+## 0.8.7(2024-02-09)
 
 - Feat: virtual fields can't be written
 - Feat: virtual fields without function can be read (for DB computed stuff)
@@ -104,24 +109,24 @@
 - Fix: Issue with undefined dates
 - Chore: Cleaned some dead code
 
-## 0.8.6(2023-02-08)
+## 0.8.6(2024-02-08)
 
 - Feat: Node validations can also use the parent object of the mutation
 
-## 0.8.5(2023-02-08)
+## 0.8.5(2024-02-08)
 
 - Fix: Compatible now with typedb 2.26.6
 - Fix: Fix new closed session error introduced in typedb 2.26.0
 
-## 0.8.4(2023-02-08)
+## 0.8.4(2024-02-08)
 
 - Feat: Validations can now throw dynamic errors using (by catching errors)
 
-## 0.8.3(2023-02-08)
+## 0.8.3(2024-02-08)
 
 - Fix: Published issue
 
-## 0.8.2(2023-02-08)
+## 0.8.2(2024-02-08)
 
 - Feat: Queries' virtual fields are no working also with rolefields and linkfields (but not remote fields, and they require to explicitly query the dependencies)
 - Feat: Attribute validation fns //will probably required a more flexible schema later tho
@@ -130,12 +135,12 @@
 - Refacto: Started refacto of metadatas in fetch queries
 - Tests: New test for excluded fields
 
-## 0.8.1(2023-02-03)
+## 0.8.1(2024-02-03)
 
 - Feat: optional cardinality definition on attributes (default: ONE)
 - Chore: updated dependencies
 
-## 0.8.0(2023-02-02)
+## 0.8.0(2024-02-02)
 
 - Feat: Default values, not only for id fields
 - Feat: Required values are check now on create //cardinality ONE only
@@ -145,19 +150,19 @@
 - Mini breaking change: Fixed some issues with the dates with come now with the Z at the end
 - Refactoring: Refactoring some code, preparing for other pre-hooks
 
-## 0.7.4(2023-02-01)
+## 0.7.4(2024-02-01)
 
 - Feat: Added thing validations V0 (📝Only working with local and existing values in the same mutation, for instance an update can't check a new value comparing with the existing one)
 
-## 0.7.2(2023-01-26)
+## 0.7.2(2024-01-26)
 
 - Fix: Issues with published version
 
-## 0.7.1(2023-01-26)
+## 0.7.1(2024-01-26)
 
 - Feat: Fixed some extra tests for multi-links. Mainly by splitting $id
 
-## 0.7.0(2023-01-26)
+## 0.7.0(2024-01-26)
 
 - Feat: pre-queries, fetch queries and lots of refactos
 - Warning: BQL queries now use $thing and $thingType, but mutations not yet

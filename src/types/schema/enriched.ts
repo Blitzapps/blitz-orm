@@ -1,6 +1,6 @@
 import type { LinkedFieldWithThing, Filter, BormEntity, BormRelation, DBHandleKey } from '..';
 import type { AdapterContext } from '../../adapters';
-import type { RoleField, DataField, BormField } from './fields';
+import type { RoleField, DataField, LinkField } from './fields';
 
 export type EnrichedBormSchema = {
 	entities: { [s: string]: EnrichedBormEntity };
@@ -42,7 +42,7 @@ export type EnrichedDataField = DataField & {
 	dbPath: string;
 };
 
-export type EnrichedLinkField = BormField & {
+export type EnrichedLinkField = LinkField & {
 	name: string; // same as the key it has
 	relation: string;
 	plays: string;

@@ -1,12 +1,12 @@
 import { getThing } from '../../../helpers';
-import type { EnrichedBormSchema, Sorter } from '../../../types';
+import type { EnrichedBormSchema, Sorter, PipelineOperation } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
-import type { PipelineOperation } from '../../pipeline';
+import type { TypeDbResponse } from '../../pipeline';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
 
-export const buildTQLQuery: PipelineOperation = async (req) => {
+export const buildTQLQuery: PipelineOperation<TypeDbResponse> = async (req) => {
 	const { enrichedBqlQuery, schema } = req;
 	if (!enrichedBqlQuery) {
 		throw new Error('BQL query not enriched');
