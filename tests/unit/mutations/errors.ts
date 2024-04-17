@@ -1,26 +1,13 @@
 import 'jest';
 
-import type BormClient from '../../../../src/index';
-import { cleanup, init } from '../../helpers/lifecycle';
+import { createTest } from '../../helpers/createTest';
 
-describe('Mutations: Errors', () => {
-	let dbName: string;
-	let bormClient: BormClient;
-
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 20000);
-
+export const testMutationErrors = createTest('Mutation: Errors', (client) => {
 	it('e1[duplicate] Duplicate creation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		await expect(
-			bormClient.mutate({
+			client.mutate({
 				$relation: 'User-Accounts',
 				id: 'r1',
 				user: {
@@ -31,11 +18,11 @@ describe('Mutations: Errors', () => {
 					],
 				},
 			}),
-		).rejects.toThrowError('Duplicate id pink');
+		).rejects.toThrow('Duplicate id pink');
 	});
 
 	it('e2[relation] Error for match and $id not found', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		const mutation = {
 			$relation: 'UserTagGroup',
@@ -43,7 +30,7 @@ describe('Mutations: Errors', () => {
 			tags: [{ $op: 'link', $id: 'tag-1' }],
 		};
 
-		const res = await bormClient.mutate(mutation);
+		const res = await client.mutate(mutation);
 		// console.log('res', res);
 		expect(res).toStrictEqual([
 			{
@@ -54,7 +41,7 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e3[create] Check for no $id field on $op create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		const mutation = {
 			$entity: 'User',
@@ -65,7 +52,7 @@ describe('Mutations: Errors', () => {
 		};
 
 		try {
-			await bormClient.mutate(mutation, { noMetadata: true });
+			await client.mutate(mutation, { noMetadata: true });
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
@@ -83,10 +70,10 @@ describe('Mutations: Errors', () => {
 
 	it('e4[update, nested, error] Update all children error', async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					$id: 'account3-1',
@@ -110,10 +97,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -144,11 +131,11 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e7a[tempId, deletion] Delete tempId', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -172,11 +159,11 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e7b[tempId, unlink] Unlink tempId', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 		// todo: antoine query of nested tempIds without op="create"
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$entity: 'User',
 					name: 'Peter',
@@ -200,10 +187,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e8a[multi, create, link] Incompatible tempId ops', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$relation: 'UserTagGroup',
 					$tempId: '_:utg1',
@@ -231,10 +218,10 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 	});
 	it('e8b[multi, create, link] Incompatible tempId ops', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$relation: 'UserTagGroup',
 					$tempId: '_:utg1',
@@ -261,10 +248,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m1d[delete, missing] Delete a non existing $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -290,10 +277,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 		// needs more than regular pre query
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'UserTag',
 				$id: 'tag-1',
 				users: [{ $op: 'link', $id: 'jnsndadsn' }],
@@ -312,10 +299,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m1up[update, missing] Update a non existing $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -341,10 +328,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m1un[unlink, missing] Unlink a non existing $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -370,10 +357,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m2d[delete, missing] Delete a non related $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -396,10 +383,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m2up[update, missing] Update a non related $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -421,10 +408,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('m2un[unlink, missing] Unlink a non related $id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTag',
 					$id: 'tag-1',
@@ -446,10 +433,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e-v1[virtual] Cant insert virtual', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate([
+			await client.mutate([
 				{
 					$entity: 'Color',
 					isBlue: false,
@@ -471,10 +458,10 @@ describe('Mutations: Errors', () => {
 	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					$id: 'account3-1',
@@ -499,10 +486,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e-c1d[create, nested delete] With pre-query, cannot delete under a create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					$op: 'create',
@@ -524,10 +511,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('e-c1ul[create, nested unlink] With pre-query, cannot unlink under a create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					$op: 'create',
@@ -550,16 +537,16 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('TODO:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG1',
 			tags: ['tag-1', 'tag-2'], //no color
 		});
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG2',
@@ -568,7 +555,7 @@ describe('Mutations: Errors', () => {
 		});
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$id: ['tmpUTG1', 'tmpUTG2'],
 				$relation: 'UserTagGroup',
 				$op: 'update',
@@ -586,7 +573,7 @@ describe('Mutations: Errors', () => {
 		throw new Error('Expected mutation to throw an error');
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$op: 'delete',
@@ -594,10 +581,10 @@ describe('Mutations: Errors', () => {
 	});
 
 	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'Field',
 				id: 'ul-many',
 				kinds: [
@@ -628,10 +615,10 @@ describe('Mutations: Errors', () => {
 
 	it("vi1[create, virtual, error] Can't set virtual fields", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					id: 'newAccount',
@@ -655,10 +642,10 @@ describe('Mutations: Errors', () => {
 
 	it('tid1[tempId, format]', async () => {
 		/// throw an error when a tempId does not have the _: format
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$entity: 'Account',
 					$tempId: 'wronglyFormattedTempId',
@@ -681,10 +668,10 @@ describe('Mutations: Errors', () => {
 
 	it("e-or1[orphan, relation] Can't create an orphan relation, but can create if its linked elsewhere", async () => {
 		/// updating on cardinality === "ONE" must throw an error if not specifying if it's update or create as it is too ambiguous
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				[
 					{
 						$relation: 'Kind',
@@ -715,7 +702,7 @@ describe('Mutations: Errors', () => {
 			}
 		}
 
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				{
 					$relation: 'Kind',
@@ -731,7 +718,7 @@ describe('Mutations: Errors', () => {
 			{ preQuery: true },
 		);
 
-		const res = await bormClient.query(
+		const res = await client.query(
 			{
 				$relation: 'Kind',
 				$id: 'or1-k-2',
@@ -742,7 +729,7 @@ describe('Mutations: Errors', () => {
 		expect(res).toStrictEqual({ id: 'or1-k-2', space: 'space-3' });
 
 		//CLEAN
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$relation: 'Kind',
 				$id: 'or1-k-2',
@@ -751,10 +738,10 @@ describe('Mutations: Errors', () => {
 		]);
 	});
 	it('e-or2[orphan, relation] Creating a relation without anything that links', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'Field',
 				id: 'ul-many',
 			});
@@ -772,9 +759,9 @@ describe('Mutations: Errors', () => {
 	});
 
 	it("f1[format] Can't filter by $id when creating its parent", async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'Thing',
 				$thingType: 'entity',
 				id: 'temp1',
@@ -792,9 +779,5 @@ describe('Mutations: Errors', () => {
 			return;
 		}
 		throw new Error('Expected mutation to throw an error');
-	});
-
-	afterAll(async () => {
-		await cleanup(bormClient, dbName);
 	});
 });

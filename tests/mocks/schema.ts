@@ -34,7 +34,7 @@ const id: DataField = {
 const isEmail = (val: string) => val.includes('@'); //basic on purpose
 const isGmail = (val: string) => val.includes('gmail.com'); //basic on purpose
 
-export const testSchema: BormSchema = {
+export const schema: BormSchema = {
 	entities: {
 		Hook: {
 			idFields: ['id'],

@@ -1,78 +1,63 @@
 import 'jest';
 import { v4 as uuidv4 } from 'uuid';
 
-import type BormClient from '../../../../src/index';
-import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort, expectArraysInObjectToContainSameElements } from '../../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { createTest } from '../../helpers/createTest';
 
-// some random issues forced a let here
-let firstUser = {
-	$entity: 'User',
-	name: 'John',
-	email: 'wrong email',
-	id: undefined,
-};
+export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
+	// some random issues forced a let here
+	let firstUser = {
+		$entity: 'User',
+		name: 'John',
+		email: 'wrong email',
+		id: undefined,
+	};
 
-const secondUser = {
-	$entity: 'User',
-	name: 'Jane',
-	email: 'jane@test.com',
-	id: undefined,
-};
+	const secondUser = {
+		$entity: 'User',
+		name: 'Jane',
+		email: 'jane@test.com',
+		id: undefined,
+	};
 
-const thirdUser = {
-	$entity: 'User',
-	name: 'Jill',
-	email: 'jill@test.com',
-	id: undefined,
-};
+	const thirdUser = {
+		$entity: 'User',
+		name: 'Jill',
+		email: 'jill@test.com',
+		id: undefined,
+	};
 
-const godUser = {
-	$entity: 'God',
-	id: 'squarepusher',
-	name: 'Tom Jenkinson',
-	email: 'tom@warp.com',
-	power: 'rhythm',
-	isEvil: false,
-};
+	const godUser = {
+		$entity: 'God',
+		id: 'squarepusher',
+		name: 'Tom Jenkinson',
+		email: 'tom@warp.com',
+		power: 'rhythm',
+		isEvil: false,
+	};
 
-const spaceOne = {
-	id: undefined,
-	name: 'Space 1',
-};
+	const spaceOne = {
+		id: undefined,
+		name: 'Space 1',
+	};
 
-const spaceTwo = {
-	id: undefined,
-	name: 'Space 2',
-};
+	const spaceTwo = {
+		id: undefined,
+		name: 'Space 2',
+	};
 
-const spaceThree = {
-	id: 'newSpaceThreeId',
-	name: 'Space 3',
-};
+	const spaceThree = {
+		id: 'newSpaceThreeId',
+		name: 'Space 3',
+	};
 
-const spaceFour = {
-	id: 'newSpaceFourId',
-	name: 'Space 4',
-};
-
-describe('Mutations: Init', () => {
-	let dbName: string;
-	let bormClient: BormClient;
-
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 25000);
+	const spaceFour = {
+		id: 'newSpaceFourId',
+		name: 'Space 4',
+	};
 
 	it('b1a[create] Basic', async () => {
-		expect(bormClient).toBeDefined();
-
-		const res = await bormClient.mutate(firstUser, { noMetadata: true });
+		const res = await ctx.mutate(firstUser, { noMetadata: true });
 		const expectedUnit = {
 			id: '$unitId',
 			name: 'John',
@@ -91,7 +76,7 @@ describe('Mutations: Init', () => {
 			$thing: 'Account',
 			id: uuidv4(),
 		};
-		const createRes = await bormClient.mutate(account);
+		const createRes = await ctx.mutate(account);
 		expect(createRes).toMatchObject([account]);
 
 		const updated = {
@@ -99,9 +84,9 @@ describe('Mutations: Init', () => {
 			$id: account.id,
 			profile: { hobby: ['Running'] },
 		};
-		const updateRes = await bormClient.mutate(updated);
+		const updateRes = await ctx.mutate(updated);
 		expect(updateRes).toMatchObject([updated]);
-		const deleteRes = await bormClient.mutate({
+		const deleteRes = await ctx.mutate({
 			$thing: 'Account',
 			$op: 'delete',
 			$id: account.id,
@@ -121,7 +106,7 @@ describe('Mutations: Init', () => {
 			id: uuidv4(),
 			profile: { hobby: ['Running'] },
 		};
-		const createRes = await bormClient.mutate(account);
+		const createRes = await ctx.mutate(account);
 		expect(createRes).toMatchObject([account]);
 
 		const updated = {
@@ -129,9 +114,9 @@ describe('Mutations: Init', () => {
 			$id: account.id,
 			profile: { hobby: ['Running', 'Hiking'] },
 		};
-		const updateRes = await bormClient.mutate(updated);
+		const updateRes = await ctx.mutate(updated);
 		expect(updateRes).toMatchObject([updated]);
-		const deleteRes = await bormClient.mutate({
+		const deleteRes = await ctx.mutate({
 			$thing: 'Account',
 			$op: 'delete',
 			$id: account.id,
@@ -157,7 +142,7 @@ describe('Mutations: Init', () => {
 				},
 			],
 		};
-		const res = await bormClient.mutate(user);
+		const res = await ctx.mutate(user);
 		expect(res).toMatchObject([
 			{
 				$thing: 'User',
@@ -180,7 +165,7 @@ describe('Mutations: Init', () => {
 				user: user.id,
 			},
 		]);
-		const deleteRes = await bormClient.mutate({
+		const deleteRes = await ctx.mutate({
 			$thing: 'User',
 			$op: 'delete',
 			$id: user.id,
@@ -204,8 +189,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b2a[update] Basic', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: firstUser.id,
@@ -224,7 +209,7 @@ describe('Mutations: Init', () => {
 			throw new Error('firstUser.id is undefined');
 		}
 
-		const res2 = await bormClient.query({
+		const res2 = await ctx.query({
 			$entity: 'User',
 			$id: firstUser.id,
 		});
@@ -239,7 +224,7 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b2b[update] Set null in single-attribute mutation should delete the attribute', async () => {
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'create',
 				$entity: 'User',
@@ -250,7 +235,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: false },
 		);
 
-		const res = await bormClient.mutate(
+		const res = await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -264,7 +249,7 @@ describe('Mutations: Init', () => {
 			name: null,
 		});
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'b2b-user',
@@ -275,7 +260,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toEqual({ email: 'foo@test.com' });
 
 		/// CLEAN: delete b2b-user
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'delete',
 				$entity: 'User',
@@ -286,7 +271,7 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b2c[update] Set null in multi-attributes mutation should delete the attribute', async () => {
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'create',
 				$entity: 'User',
@@ -297,7 +282,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: false },
 		);
 
-		const res = await bormClient.mutate(
+		const res = await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -313,7 +298,7 @@ describe('Mutations: Init', () => {
 			email: 'bar@test.com',
 		});
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'b2c-user',
@@ -324,7 +309,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toEqual({ email: 'bar@test.com' });
 
 		// CLEAN: delete b2c-user
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'delete',
 				$entity: 'User',
@@ -335,7 +320,7 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b2d[update] Set an empty string should update the attribute to an empty string', async () => {
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'create',
 				$entity: 'User',
@@ -346,7 +331,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: false },
 		);
 
-		const res = await bormClient.mutate(
+		const res = await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -360,7 +345,7 @@ describe('Mutations: Init', () => {
 			email: '',
 		});
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'b2d-user',
@@ -371,7 +356,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toEqual({ name: 'Foo', email: '' });
 
 		// CLEAN: delete b2d-user
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$op: 'delete',
 				$entity: 'User',
@@ -382,8 +367,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b3e[delete, entity] Basic', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate({
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate({
 			$entity: 'User',
 			$op: 'delete',
 			$id: firstUser.id,
@@ -403,7 +388,7 @@ describe('Mutations: Init', () => {
 			throw new Error('firstUser.id is undefined');
 		}
 
-		const res2 = await bormClient.query({
+		const res2 = await ctx.query({
 			$entity: 'User',
 			$id: firstUser.id as string,
 		});
@@ -412,20 +397,20 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b3r[delete, relation] Basic', async () => {
-		expect(bormClient).toBeDefined();
-		await bormClient.mutate({
+		expect(ctx).toBeDefined();
+		await ctx.mutate({
 			$relation: 'User-Accounts',
 			id: 'r1',
 			user: { id: 'u1' },
 			accounts: [{ id: 'a1' }],
 		});
-		await bormClient.mutate({
+		await ctx.mutate({
 			$relation: 'User-Accounts',
 			$op: 'delete',
 			$id: 'r1',
 		});
 
-		const res2 = await bormClient.query({
+		const res2 = await ctx.query({
 			$relation: 'User-Accounts',
 			$id: 'r1',
 		});
@@ -433,7 +418,7 @@ describe('Mutations: Init', () => {
 		expect(res2).toBeNull();
 
 		/// clean user and account
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'User',
 				$op: 'delete',
@@ -447,9 +432,9 @@ describe('Mutations: Init', () => {
 		]);
 	});
 	it('b3rn[delete, relation, nested] Basic', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 		//create nested object
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'User-Accounts',
 				id: 'r1',
@@ -465,7 +450,7 @@ describe('Mutations: Init', () => {
 			},
 			{ preQuery: true },
 		);
-		const res1 = await bormClient.query(
+		const res1 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'u2',
@@ -481,7 +466,7 @@ describe('Mutations: Init', () => {
 			],
 		});
 
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'User-Accounts',
 				$id: 'r1',
@@ -496,7 +481,7 @@ describe('Mutations: Init', () => {
 			// { preQuery: false },
 		);
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$relation: 'User-Accounts',
 				$id: 'r1',
@@ -518,7 +503,7 @@ describe('Mutations: Init', () => {
 			},
 		});
 
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'User-Accounts',
 				$id: 'r1',
@@ -533,7 +518,7 @@ describe('Mutations: Init', () => {
 			// { preQuery: false },
 		);
 
-		const res3 = await bormClient.query(
+		const res3 = await ctx.query(
 			{
 				$relation: 'User-Accounts',
 				$id: 'r1',
@@ -556,7 +541,7 @@ describe('Mutations: Init', () => {
 			},
 		});
 		/// clean user
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'User',
 				$op: 'delete',
@@ -566,8 +551,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b4[create, children] Create with children', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate(
 			{
 				...secondUser,
 				spaces: [{ name: spaceOne.name }, { name: spaceTwo.name }],
@@ -609,7 +594,7 @@ describe('Mutations: Init', () => {
 			throw new Error('firstUser.id is undefined');
 		}
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: secondUser.id,
@@ -624,7 +609,7 @@ describe('Mutations: Init', () => {
 		});
 
 		// clean spaceOne
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'Space',
 				$op: 'delete',
@@ -634,10 +619,10 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b4.2[create, link] Create all then link', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
 		/// create third user
-		const res1 = await bormClient.mutate(
+		const res1 = await ctx.mutate(
 			{
 				...thirdUser,
 			},
@@ -645,7 +630,7 @@ describe('Mutations: Init', () => {
 		);
 
 		// create spaces
-		const res2 = await bormClient.mutate(
+		const res2 = await ctx.mutate(
 			[
 				{
 					$entity: 'Space',
@@ -674,7 +659,7 @@ describe('Mutations: Init', () => {
 
 		// link the user to the spaces
 		//console.log('res3-3', spaceThree.id, spaceFour.id, thirdUser.id);
-		const res3 = await bormClient.mutate(
+		const res3 = await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: thirdUser.id,
@@ -700,9 +685,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('TODO:b4.3[update, link] Link ALL (without ids)', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		const res = await bormClient.mutate(
+		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
 				$id: 'space-3',
@@ -731,9 +716,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('TODO:b4.4[create, link] Create and link ALL (without ids)', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		const res = await bormClient.mutate(
+		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
 				id: 'space-5', //no $op and no $id means create
@@ -761,7 +746,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		//clean
-		await bormClient.mutate({
+		await ctx.mutate({
 			$entity: 'Space',
 			$op: 'delete',
 			$id: 'space-5',
@@ -769,8 +754,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b5[update, children] Update children', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: secondUser.id,
@@ -791,7 +776,7 @@ describe('Mutations: Init', () => {
 			throw new Error('firstUser.id is undefined');
 		}
 
-		const res2 = await bormClient.query(
+		const res2 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: secondUser.id,
@@ -804,7 +789,7 @@ describe('Mutations: Init', () => {
 		});
 
 		// clean spaceTwo
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'Space',
 				$op: 'delete',
@@ -814,8 +799,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b6.1[create, withId] Create with id (override default)', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate(
 			[
 				{
 					$entity: 'Color',
@@ -836,7 +821,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// CLEAN: delete the newly created colors
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'Color',
 				$op: 'delete',
@@ -851,7 +836,7 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b6.2[create, default id] Create without id', async () => {
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$entity: 'Space',
 				$id: 'space-3',
@@ -859,7 +844,7 @@ describe('Mutations: Init', () => {
 			},
 		]);
 
-		const res = await bormClient.query(
+		const res = await ctx.query(
 			{
 				$relation: 'Kind',
 				$filter: { name: 'b6-k' },
@@ -878,7 +863,7 @@ describe('Mutations: Init', () => {
 		const kindId = res[0].id;
 
 		/// CLEAN
-		await bormClient.mutate({
+		await ctx.mutate({
 			$relation: 'Kind',
 			$id: kindId,
 			$op: 'delete',
@@ -886,8 +871,8 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
-		expect(bormClient).toBeDefined();
-		const res = await bormClient.mutate(godUser, { noMetadata: true });
+		expect(ctx).toBeDefined();
+		const res = await ctx.mutate(godUser, { noMetadata: true });
 		expect(res[0]).toEqual({
 			id: 'squarepusher',
 			name: 'Tom Jenkinson',
@@ -898,9 +883,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('b8[create, multiple, date] Next-auth example ', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'Session',
 				user: 'user1',
@@ -910,7 +895,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		const sessions = await bormClient.query(
+		const sessions = await ctx.query(
 			{
 				$entity: 'Session',
 			},
@@ -928,9 +913,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('n1[create, nested] nested', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		const mutated = await bormClient.mutate(
+		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
 				name: 'myTest',
@@ -943,7 +928,7 @@ describe('Mutations: Init', () => {
 		const fieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
 		const kindId = mutated?.find((m) => m.name === 'myTest')?.id;
 
-		const kinds = await bormClient.query(
+		const kinds = await ctx.query(
 			{
 				$relation: 'Kind',
 			},
@@ -962,7 +947,7 @@ describe('Mutations: Init', () => {
 		// @ts-expect-error - TODO description
 		expectArraysInObjectToContainSameElements(kinds, expectedKindTemplate);
 
-		const fields = await bormClient.query(
+		const fields = await ctx.query(
 			{
 				$relation: 'DataField',
 			},
@@ -986,7 +971,7 @@ describe('Mutations: Init', () => {
 		// expectResLikeTemplate(ids, ids2);
 
 		/// delete both things
-		await bormClient.mutate(
+		await ctx.mutate(
 			[
 				{
 					$relation: 'Kind',
@@ -1004,9 +989,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('n2[create, nested] nested, self referenced', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		const mutated = await bormClient.mutate(
+		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
 				name: 'myTestKind1',
@@ -1033,7 +1018,7 @@ describe('Mutations: Init', () => {
 		const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
 		const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
 
-		const kinds = await bormClient.query(
+		const kinds = await ctx.query(
 			{
 				$relation: 'Kind',
 			},
@@ -1062,7 +1047,7 @@ describe('Mutations: Init', () => {
 		// @ts-expect-error - TODO description
 		expectArraysInObjectToContainSameElements(kinds, expectedKindTemplate); // todo: delete when matcher is ready
 
-		const fields = await bormClient.query(
+		const fields = await ctx.query(
 			{
 				$relation: 'DataField',
 			},
@@ -1087,7 +1072,7 @@ describe('Mutations: Init', () => {
 		// expectResLikeTemplate(ids, ids2);
 
 		/// delete both things
-		await bormClient.mutate(
+		await ctx.mutate(
 			[
 				{
 					$relation: 'DataField',
@@ -1110,9 +1095,9 @@ describe('Mutations: Init', () => {
 	});
 
 	it('n3[delete, nested] nested delete', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		const mutated = await bormClient.mutate(
+		const mutated = await ctx.mutate(
 			{
 				$relation: 'Kind',
 				name: 'myTestKind1',
@@ -1139,7 +1124,7 @@ describe('Mutations: Init', () => {
 		// console.log('myTestKind1Id', myTestKind1Id);
 
 		/// delete both things
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'Kind',
 				$op: 'delete',
@@ -1170,7 +1155,7 @@ describe('Mutations: Init', () => {
     ];
     const edges = [{ $relation: 'Field', $id: 'localNestedFieldId', kinds: ['$rootId', 'localNestedKindsId'] }];
     */
-		const kinds = await bormClient.query(
+		const kinds = await ctx.query(
 			{
 				$relation: 'Kind',
 			},
@@ -1190,13 +1175,13 @@ describe('Mutations: Init', () => {
 	it('TEMP:buffer', async () => {
 		// Some failed tests generate a fail in the next test, this test is here to prevent that to happen in ui
 		// todo: fix the borm / jest issue instead
-		await bormClient.query({ $entity: 'Space' });
+		await ctx.query({ $entity: 'Space' });
 	});
 
 	it('u1[update, multiple] Shared ids', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'Space',
 				id: 'sp1',
@@ -1214,7 +1199,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'Space',
 				$id: 'sp1',
@@ -1228,7 +1213,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		const res = await bormClient.query(
+		const res = await ctx.query(
 			{
 				$entity: 'Space',
 				$id: 'sp1',
@@ -1253,7 +1238,7 @@ describe('Mutations: Init', () => {
 			],
 		});
 
-		const allUsers = await bormClient.query(
+		const allUsers = await ctx.query(
 			{
 				$entity: 'User',
 				$fields: ['name'],
@@ -1301,7 +1286,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// delete created users and spaces
-		await bormClient.mutate(
+		await ctx.mutate(
 			[
 				{
 					$entity: 'User',
@@ -1319,7 +1304,7 @@ describe('Mutations: Init', () => {
 		);
 
 		/// get all users again
-		const allUsers2 = await bormClient.query(
+		const allUsers2 = await ctx.query(
 			{
 				$entity: 'User',
 				$fields: ['name'],
@@ -1364,10 +1349,10 @@ describe('Mutations: Init', () => {
 	it('u2[update, multiple, nested(many), noId] Update only children (no id)', async () => {
 		// This test might fail if b4 fails
 
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
 		/// cardinality MANY
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: 'user1',
@@ -1376,7 +1361,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		const allSpaces = await bormClient.query(
+		const allSpaces = await ctx.query(
 			{
 				$entity: 'Space',
 				$fields: ['id', 'name'],
@@ -1408,7 +1393,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// get back original space names
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$id: 'space-2',
 				$entity: 'Space',
@@ -1429,8 +1414,8 @@ describe('Mutations: Init', () => {
 
 	it('u3[update, multiple, nested(many), noId] Update only but all children (no id)', async () => {
 		/// This test might fail if b4 fails
-		expect(bormClient).toBeDefined();
-		const currentSpacesOfUser2And5 = await bormClient.query(
+		expect(ctx).toBeDefined();
+		const currentSpacesOfUser2And5 = await ctx.query(
 			{
 				$entity: 'User',
 				$id: ['user2', 'user5'],
@@ -1460,7 +1445,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// cardinality MANY
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: ['user2', 'user5'],
@@ -1469,7 +1454,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		const allSpaces = await bormClient.query(
+		const allSpaces = await ctx.query(
 			{
 				$entity: 'Space',
 				$fields: ['id', 'name'],
@@ -1501,7 +1486,7 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// get back original space names
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$id: 'space-1',
 				$entity: 'Space',
@@ -1516,10 +1501,10 @@ describe('Mutations: Init', () => {
 	});
 
 	it('u4[update, multiple, nested(one), noId] Update all children (no id)', async () => {
-		expect(bormClient).toBeDefined();
+		expect(ctx).toBeDefined();
 
 		/// cardinality ONE
-		await bormClient.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'Account',
 				$id: 'account3-1',
@@ -1531,7 +1516,7 @@ describe('Mutations: Init', () => {
 			{ noMetadata: true },
 		);
 
-		const allOriginalUsers = await bormClient.query(
+		const allOriginalUsers = await ctx.query(
 			{
 				$entity: 'User',
 				$id: ['user1', 'user2', 'user3', 'user4', 'user5'],
@@ -1563,37 +1548,12 @@ describe('Mutations: Init', () => {
 		]);
 
 		/// get back original emails
-		await bormClient.mutate([
+		await ctx.mutate([
 			{
 				$id: 'user3',
 				$entity: 'User',
 				email: 'ann@test.com',
 			},
 		]);
-	});
-
-	/*
-  it('f1[json] Basic nested json-like field', async () => {
-    /// In general, this json-like is used only as a way to group properties that actually belong to the entity
-    /// So Address is maybe not the best example, it should probably be a node itself.
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.mutate([
-      {
-        $entity: 'User',
-        $id: 'user3',
-        address: {
-          $embeddedObject: true,
-          city: 'Moscow',
-          street: 'Lenina',
-          house: 1,
-        },
-      },
-    ]);
-    expect(res?.length).toBe(17);
-  });
-*/
-
-	afterAll(async () => {
-		await cleanup(bormClient, dbName);
 	});
 });

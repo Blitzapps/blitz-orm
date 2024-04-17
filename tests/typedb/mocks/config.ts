@@ -1,6 +1,6 @@
 import type { BormConfig } from '../../../src/index';
 
-export const testConfig: BormConfig = {
+export const config: BormConfig = {
 	server: {
 		provider: 'blitz-orm-js',
 	},

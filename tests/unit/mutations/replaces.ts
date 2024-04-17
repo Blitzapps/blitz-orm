@@ -1,26 +1,13 @@
 import 'jest';
 
-import type BormClient from '../../../../src/index';
-import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort } from '../../../helpers/matchers';
+import { deepSort } from '../../helpers/matchers';
+import { createTest } from '../../helpers/createTest';
 
-describe('Mutations: Replaces', () => {
-	let dbName: string;
-	let bormClient: BormClient;
-
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 25000);
-
+export const testReplaceMutation = createTest('Mutation: Replaces', (client) => {
 	it('r1[replace] replace single roles in relation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 		// cardinality one
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -30,7 +17,7 @@ describe('Mutations: Replaces', () => {
 		);
 
 		// cardinality many
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -38,7 +25,7 @@ describe('Mutations: Replaces', () => {
 			},
 			{ preQuery: true },
 		);
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr2',
@@ -56,9 +43,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r2[replace] replace many roles in relation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr3',
@@ -68,7 +55,7 @@ describe('Mutations: Replaces', () => {
 			{ preQuery: true },
 		);
 
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr3',
@@ -86,9 +73,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r3[replace] replace many roles in many relation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr4',
@@ -103,7 +90,7 @@ describe('Mutations: Replaces', () => {
 			},
 		]);
 
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: ['tr4', 'tr5'],
@@ -129,9 +116,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r4[replace] replace depth test', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			'$entity': 'User',
 			'$id': 'user3',
 			'user-tags': [
@@ -141,7 +128,7 @@ describe('Mutations: Replaces', () => {
 				},
 			],
 		});
-		const queryRes = await bormClient.query({
+		const queryRes = await client.query({
 			$thing: 'UserTag',
 			$thingType: 'relation',
 			$id: 'tag-2',
@@ -155,7 +142,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		// revert to original
-		await bormClient.mutate({
+		await client.mutate({
 			'$entity': 'User',
 			'$id': 'user3',
 			'user-tags': [
@@ -168,10 +155,10 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r5a[replace, unlink, link, many] Replace using unlink + link single role, by IDs', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -179,7 +166,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [
@@ -188,7 +175,7 @@ describe('Mutations: Replaces', () => {
 			],
 		});
 
-		const tmpUTG = await bormClient.query({
+		const tmpUTG = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -202,7 +189,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -210,10 +197,10 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r5b[replace, unlink, link, many] Replace using unlink + link single role, by IDs. MultiIds', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -221,7 +208,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [
@@ -230,7 +217,7 @@ describe('Mutations: Replaces', () => {
 			],
 		});
 
-		const tmpUTG = await bormClient.query({
+		const tmpUTG = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -244,7 +231,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -252,10 +239,10 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('r6a[replace, unlink, link, many] Replace using unlink + link , all unlink', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -264,13 +251,13 @@ describe('Mutations: Replaces', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [{ $op: 'link', $id: ['tag-4', 'tag-3'] }, { $op: 'unlink' }],
 		});
 
-		const tmpUTG = await bormClient.query({
+		const tmpUTG = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -284,7 +271,7 @@ describe('Mutations: Replaces', () => {
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -292,9 +279,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('TODO:ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr6',
@@ -308,7 +295,7 @@ describe('Mutations: Replaces', () => {
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr6',
@@ -325,9 +312,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('TODO:ri1-ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr7',
@@ -341,7 +328,7 @@ describe('Mutations: Replaces', () => {
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr7',
@@ -358,9 +345,9 @@ describe('Mutations: Replaces', () => {
 	});
 
 	it('TODO:ri1-up[ignore ids pre-query update] update something that does not exist', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr8',
@@ -374,7 +361,7 @@ describe('Mutations: Replaces', () => {
 			{ ignoreNonexistingThings: true },
 		);
 
-		const queryRes = await bormClient.query(
+		const queryRes = await client.query(
 			{
 				$relation: 'ThingRelation',
 				$id: 'tr8',
@@ -388,30 +375,5 @@ describe('Mutations: Replaces', () => {
 			id: 'tr7',
 			root: '',
 		});
-	});
-
-	/*
-  it('f1[json] Basic nested json-like field', async () => {
-    /// In general, this json-like is used only as a way to group properties that actually belong to the entity
-    /// So Address is maybe not the best example, it should probably be a node itself.
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.mutate([
-      {
-        $entity: 'User',
-        $id: 'user3',
-        address: {
-          $embeddedObject: true,
-          city: 'Moscow',
-          street: 'Lenina',
-          house: 1,
-        },
-      },
-    ]);
-    expect(res?.length).toBe(17);
-  });
-*/
-
-	afterAll(async () => {
-		await cleanup(bormClient, dbName);
 	});
 });

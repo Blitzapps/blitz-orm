@@ -1,27 +1,14 @@
 import 'jest';
 
-import type BormClient from '../../../../src/index';
-import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort } from '../../../helpers/matchers';
+import { deepSort } from '../../helpers/matchers';
 import type { KindType } from '../../types/testTypes';
+import { createTest } from '../../helpers/createTest';
 
-describe('Mutations: Edges', () => {
-	let dbName: string;
-	let bormClient: BormClient;
-
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 25000);
-
+export const testEdgesMutation = createTest('Mutation: Edges', (client) => {
 	it('l1[link, add, nested, relation] Update entity by adding a new created relation children. Also test getting ids by tempId', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		const editedUser = await bormClient.mutate(
+		const editedUser = await client.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user5',
@@ -39,7 +26,7 @@ describe('Mutations: Edges', () => {
 		/// We get the id by its tempId
 		const tagId = editedUser?.find((m) => m.$tempId === '_:newTagId')?.id;
 
-		const resUser = await bormClient.query(
+		const resUser = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user5',
@@ -60,7 +47,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// delete the created tag and created color
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTag',
 				$id: tagId,
@@ -71,7 +58,7 @@ describe('Mutations: Edges', () => {
 		);
 
 		///check the color purple is been deleted
-		const resColors = await bormClient.query(
+		const resColors = await client.query(
 			{
 				$entity: 'Color',
 				$fields: ['id'],
@@ -90,9 +77,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l2[link, nested, relation] Create and update 3-level nested. Also test getting ids by type', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		const mutation = await bormClient.mutate(
+		const mutation = await client.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user4',
@@ -125,7 +112,7 @@ describe('Mutations: Edges', () => {
 
 		expect(createdTagsIds.length).toBe(2);
 
-		const resUser = await bormClient.query(
+		const resUser = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user4',
@@ -157,7 +144,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// now delete the two new tags
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTag',
 				$id: createdTagsIds,
@@ -166,7 +153,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: createdTagGroupsIds,
@@ -182,8 +169,8 @@ describe('Mutations: Edges', () => {
 		// case 2: Unlink with target = relation (Edge unlink the role in the director relation)
 		// case 3: Unlink with a relation that is a role of a relation (Edge = 'unlink',just unlink things connected to the role)
 		// case 4: Unlink in a >3 role relation (Edge = 'unlink',ensure the other >2 roles stay connected )
-		expect(bormClient).toBeDefined();
-		const originalState = await bormClient.query(
+		expect(client).toBeDefined();
+		const originalState = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user2',
@@ -197,7 +184,7 @@ describe('Mutations: Edges', () => {
 			spaces: ['space-2'],
 		});
 		/// do the unlinks
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$entity: 'User',
 				$id: 'user2',
@@ -207,7 +194,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		const user = await bormClient.query(
+		const user = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user2',
@@ -223,7 +210,7 @@ describe('Mutations: Edges', () => {
 
 		// todo: Loic, should this be a replace instead of unlink link?
 		/// recover original state
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$entity: 'User',
 				$id: 'user2',
@@ -236,9 +223,9 @@ describe('Mutations: Edges', () => {
 
 	it('l3rel[unlink, simple, relation] unlink link in relation but one role per time', async () => {
 		// todo: When the relation is the self relation being modified, no need to have it as match and then as op in the edges
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				{
 					$relation: 'Space-User',
@@ -249,7 +236,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				{
 					$relation: 'Space-User',
@@ -260,7 +247,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const user = await bormClient.query(
+		const user = await client.query(
 			{
 				$relation: 'Space-User',
 				$id: 'u3-s2',
@@ -275,7 +262,7 @@ describe('Mutations: Edges', () => {
 			power: 'power1',
 		});
 		// Recover the state
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Space-User',
 			$id: 'u3-s2',
 			spaces: [{ $op: 'link', $id: 'space-2' }], // todo: simplify when replaces work
@@ -284,9 +271,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l4[link, add, relation, nested] add link in complex relation. Also unlink test to be splitted somewhere', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user3',
@@ -295,7 +282,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const user = await bormClient.query(
+		const user = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user3',
@@ -311,7 +298,7 @@ describe('Mutations: Edges', () => {
 
 		/// replace by deleting all and adding 3 back
 		/// this would kill tag-2 if it wasnt already linked to something, so in this case it should work to link it back to tag-2
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user3',
@@ -319,7 +306,7 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				'$entity': 'User',
 				'$id': 'user3',
@@ -328,7 +315,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const updatedUser = await bormClient.query(
+		const updatedUser = await client.query(
 			{
 				$entity: 'User',
 				$id: 'user3',
@@ -344,9 +331,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l5[unlink, nested] unlink by id', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-1',
@@ -357,7 +344,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const userTag = await bormClient.query(
+		const userTag = await client.query(
 			{
 				$relation: 'UserTag',
 				$id: 'tag-2',
@@ -375,7 +362,7 @@ describe('Mutations: Edges', () => {
 			// color: undefined,
 		});
 
-		const userTagGroup = await bormClient.query(
+		const userTagGroup = await client.query(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-1',
@@ -391,7 +378,7 @@ describe('Mutations: Edges', () => {
 			color: 'yellow',
 		});
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-1',
@@ -404,8 +391,8 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l6[link, many] explicit link to many', async () => {
-		expect(bormClient).toBeDefined();
-		await bormClient.mutate(
+		expect(client).toBeDefined();
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -416,7 +403,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const userTagGroup = await bormClient.query(
+		const userTagGroup = await client.query(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -435,9 +422,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l7[unlink, all, nested] unlink all from one particular role', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -446,7 +433,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const UserTagGroupModified = await bormClient.query({
+		const UserTagGroupModified = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 		});
@@ -462,7 +449,7 @@ describe('Mutations: Edges', () => {
 			space: 'space-3',
 		});
 		/// get it back to original state
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 			tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
@@ -471,7 +458,7 @@ describe('Mutations: Edges', () => {
 
 	it('l7b[unlink, all, nested] unlink all from two roles', async () => {
 		// todo: test where we try to delete both but only one is actually there (which will not work with current typeDB features)
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/* const original = await bormClient.query({
       $relation: 'UserTagGroup',
@@ -480,7 +467,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('original', original);
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -490,7 +477,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const UserTagGroupModified = await bormClient.query({
+		const UserTagGroupModified = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 		});
@@ -505,7 +492,7 @@ describe('Mutations: Edges', () => {
 			space: 'space-3',
 		});
 		/// get it back to original state
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 			tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
@@ -515,7 +502,7 @@ describe('Mutations: Edges', () => {
 
 	it('l7c[unlink, all, nested] unlink all from two roles but one is empty', async () => {
 		//note: should not work but it does lol
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/* const original = await bormClient.query({
       $relation: 'UserTagGroup',
@@ -524,7 +511,7 @@ describe('Mutations: Edges', () => {
 
     console.log('original', original); */
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -533,7 +520,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-2',
@@ -550,7 +537,7 @@ describe('Mutations: Edges', () => {
 
     console.log('post', post); */
 
-		const UserTagGroupModified = await bormClient.query({
+		const UserTagGroupModified = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 		});
@@ -565,7 +552,7 @@ describe('Mutations: Edges', () => {
 			space: 'space-3',
 		});
 		/// get it back to original state
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'utg-2',
 			tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
@@ -574,10 +561,10 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l8[create, link, relation, unsupported] Create relation and link it to multiple existing things', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'UserTag',
 				$op: 'create',
 				id: 'tmpTag',
@@ -601,16 +588,16 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l9[create,relation] Create relation multiple edges ', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTag',
 			$op: 'create',
 			id: 'tmp-user-tag3',
 			users: ['user1', 'user5', 'user3'],
 		});
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTag',
 				$id: 'tmp-user-tag3',
@@ -618,14 +605,14 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-		const userTags = await bormClient.query(
+		const userTags = await client.query(
 			{ $relation: 'UserTag', $id: 'tmp-user-tag3', $fields: ['id', 'users'] },
 			{ noMetadata: true },
 		);
 		expect(userTags).toBeDefined();
 		expect(userTags).toEqual({ id: 'tmp-user-tag3', users: ['user5'] });
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTag',
 				$id: 'tmp-user-tag3',
@@ -633,7 +620,7 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-		const userTags2 = await bormClient.query(
+		const userTags2 = await client.query(
 			{ $relation: 'UserTag', $id: 'tmp-user-tag3', $fields: ['id', 'users'] },
 			{ noMetadata: true },
 		);
@@ -642,9 +629,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l10[create, link, relation] Create relation and link it to multiple existing things', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTag',
 			$op: 'create',
 			id: 'tmpTag',
@@ -652,7 +639,7 @@ describe('Mutations: Edges', () => {
 			group: 'utg-1',
 		});
 
-		const newUserTag = await bormClient.query(
+		const newUserTag = await client.query(
 			{
 				$relation: 'UserTag',
 				$id: 'tmpTag',
@@ -668,7 +655,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		//clean the tmpTag
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTag',
 			$id: 'tmpTag',
 			$op: 'delete',
@@ -676,12 +663,12 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l11[link, replace, relation] Get existing relation and link it to multiple existing things', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
 			// todo: l11b and c, recover original l11. Issue with typedb as it tries to insert one color per tag
 			/// This test requires pre-queries to work in typeDB
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTagGroup',
 					$op: 'create',
@@ -695,7 +682,7 @@ describe('Mutations: Edges', () => {
 				{ preQuery: true },
 			);
 
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTagGroup',
 					$id: 'tmpGroup',
@@ -706,7 +693,7 @@ describe('Mutations: Edges', () => {
 				{ preQuery: true },
 			);
 
-			const newUserTagGroup = await bormClient.query(
+			const newUserTagGroup = await client.query(
 				{
 					$relation: 'UserTagGroup',
 					$id: 'tmpGroup',
@@ -722,7 +709,7 @@ describe('Mutations: Edges', () => {
 			});
 		} finally {
 			/// clean created groups
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$relation: 'UserTagGroup',
 					$id: 'tmpGroup',
@@ -732,14 +719,14 @@ describe('Mutations: Edges', () => {
 				{ preQuery: true },
 			);
 
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'Color',
 				$thingType: 'entity',
 				$id: 'tempYellow',
 				$op: 'delete',
 			});
 
-			const colors = await bormClient.query(
+			const colors = await client.query(
 				{
 					$entity: 'Color',
 					$fields: ['id'],
@@ -752,8 +739,8 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l12[link,many] Insert items in multiple', async () => {
-		expect(bormClient).toBeDefined();
-		await bormClient.mutate(
+		expect(client).toBeDefined();
+		await client.mutate(
 			{
 				$relation: 'Space-User',
 				id: 'u1-s1-s2',
@@ -762,7 +749,7 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-		const res = await bormClient.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
+		const res = await client.query({ $relation: 'Space-User', $id: 'u1-s1-s2' }, { noMetadata: true });
 
 		expect(deepSort(res, 'id')).toEqual({
 			id: 'u1-s1-s2',
@@ -773,11 +760,11 @@ describe('Mutations: Edges', () => {
 
 	it('l13[unlink, nested, relation] Unlink in nested array', async () => {
 		/// this test might fail if b4 fails
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// get user 2, space 2 and then add a new dataField to it linked to the existing 'kind-book'
 
-		const preSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
+		const preSpace = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
 		expect(deepSort(preSpace, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
@@ -789,7 +776,7 @@ describe('Mutations: Edges', () => {
 			users: ['user1', 'user2', 'user3'],
 		});
 
-		const newRelRes = await bormClient.mutate({
+		const newRelRes = await client.mutate({
 			$entity: 'User',
 			$id: 'user2',
 			spaces: [
@@ -810,7 +797,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const kindBook = (await bormClient.query(
+		const kindBook = (await client.query(
 			{ $relation: 'Kind', $id: 'kind-book' },
 			{ noMetadata: true },
 		)) as KindType;
@@ -820,7 +807,7 @@ describe('Mutations: Edges', () => {
 			throw new Error('Mutation failed');
 		}
 
-		const postSpace = await bormClient.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
+		const postSpace = await client.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
 
 		expect(deepSort(postSpace, 'id')).toEqual({
 			objects: ['firstDataField', 'kind-book', 'self1', 'self2', 'self3', 'self4'],
@@ -835,7 +822,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// now the real test, get that new field and unlink it to the "kind-book"
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'user2',
 			spaces: [
@@ -851,7 +838,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const DataFieldPostPostWithoutKind = await bormClient.query(
+		const DataFieldPostPostWithoutKind = await client.query(
 			{ $relation: 'DataField', $id: 'firstDataField' },
 			{ noMetadata: true },
 		);
@@ -869,9 +856,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l14[unlink, nested, relation] Unlink all in role', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				// unlink all color in all the groups linked to usertag tag.2
 				{
@@ -886,7 +873,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true },
 		);
 
-		const t2 = await bormClient.query(
+		const t2 = await client.query(
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: ['color', { $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
@@ -896,13 +883,13 @@ describe('Mutations: Edges', () => {
 		});
 
 		// put yellow back
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'utg-1',
 			color: { $op: 'link', $id: 'yellow' },
 		});
 
-		const t2Back = await bormClient.query(
+		const t2Back = await client.query(
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: ['color', { $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
@@ -914,9 +901,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('l15[replace, nested, ONE, role] replace role in nested', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTag',
 				$id: 'tag-2',
@@ -928,7 +915,7 @@ describe('Mutations: Edges', () => {
 			{ preQuery: true },
 		);
 
-		const t2 = await bormClient.query(
+		const t2 = await client.query(
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: [{ $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
@@ -939,7 +926,7 @@ describe('Mutations: Edges', () => {
 
 		// put yellow back
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-1',
@@ -951,9 +938,9 @@ describe('Mutations: Edges', () => {
 
 	it('l15b[unlink, link, nested, relation] Unlink in a nested field', async () => {
 		/// this test unlinks nested, then links nested edge
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			// unlink all color in all the groups linked to usertag tag.2
 			{
 				$relation: 'UserTag',
@@ -966,7 +953,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		const withoutColor = await bormClient.query(
+		const withoutColor = await client.query(
 			{ $relation: 'UserTag', $id: 'tag-2', $fields: ['id', { $path: 'group', $fields: ['id', 'color'] }] },
 			{ noMetadata: true },
 		);
@@ -979,7 +966,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		//checking no other group has been modified
-		const allGroups = await bormClient.query(
+		const allGroups = await client.query(
 			{
 				$relation: 'UserTagGroup',
 				$fields: ['id', 'color', 'tags'],
@@ -1002,7 +989,7 @@ describe('Mutations: Edges', () => {
 		]);
 
 		///now tag-2 (so utg-1) should also be blue
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				{
 					$relation: 'UserTag',
@@ -1016,7 +1003,7 @@ describe('Mutations: Edges', () => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		const userTags = await bormClient.query(
+		const userTags = await client.query(
 			{
 				$relation: 'UserTag',
 				$fields: ['id', { $path: 'group' }],
@@ -1056,7 +1043,7 @@ describe('Mutations: Edges', () => {
 		]);
 
 		/// and now we get yellow back into utg-1 (reverted)
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'utg-1',
@@ -1067,9 +1054,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('TODO:l16[replace, nested, create, replace] replacing nested under a create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'Thing',
 			id: 'temp1',
 			root: {
@@ -1079,7 +1066,7 @@ describe('Mutations: Edges', () => {
 			},
 		});
 
-		const res = await bormClient.query(
+		const res = await client.query(
 			{
 				$entity: 'Thing',
 				$id: 'temp1',
@@ -1096,10 +1083,10 @@ describe('Mutations: Edges', () => {
 
 	// Todo: ask loic why there's an all link
 	it('TODO:rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -1108,13 +1095,13 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [{ $op: 'unlink' }, { $op: 'link' }], //should unlink everything, then link everything
 		});
 
-		const tmpUTG = await bormClient.query({
+		const tmpUTG = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -1128,7 +1115,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -1136,10 +1123,10 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('TODO:rep2c[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG',
@@ -1148,13 +1135,13 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: 'tmpUTG',
 			$relation: 'UserTagGroup',
 			tags: [{ $op: 'link' }], //should link  to every tag but not repeat tag-1 and tag-2
 		});
 
-		const tmpUTG = await bormClient.query({
+		const tmpUTG = await client.query({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$fields: ['tags'],
@@ -1168,7 +1155,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		//clean changes by deleting the new tmpUTG
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: 'tmpUTG',
 			$op: 'delete',
@@ -1176,17 +1163,17 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('rep3[replace, many, multi] Replace multiple fields', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		/// create
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG1',
 			tags: ['tag-1', 'tag-2'],
 			//no color
 		});
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
 			id: 'tmpUTG2',
@@ -1195,7 +1182,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		/// the mutation to be tested
-		await bormClient.mutate({
+		await client.mutate({
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$relation: 'UserTagGroup',
 			$op: 'update',
@@ -1203,7 +1190,7 @@ describe('Mutations: Edges', () => {
 			color: 'yellow',
 		});
 
-		const tmpUTGs = await bormClient.query({
+		const tmpUTGs = await client.query({
 			$relation: 'UserTagGroup',
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$fields: ['tags', 'color'],
@@ -1227,7 +1214,7 @@ describe('Mutations: Edges', () => {
 		]);
 
 		//clean changes by deleting the new tmpUTGs
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$op: 'delete',
@@ -1235,9 +1222,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('TODO:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'h1-user',
@@ -1258,20 +1245,20 @@ describe('Mutations: Edges', () => {
 		]);
 
 		///this one should actually only link account-ml3
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'User-Accounts',
 			id: 'h1-user-account1and3',
 			user: 'h1-user',
 			accounts: ['h1-account2', 'h1-account3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'h1-user',
 			accounts: [{ $op: 'unlink', $id: 'h1-account3' }], //should not unlink account-ml1
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$thing: 'User',
 			$thingType: 'entity',
 			$id: 'h1-user',
@@ -1286,7 +1273,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		//delete all
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				$op: 'delete',
@@ -1311,9 +1298,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('TODO:h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'Account',
 				id: 'account-ml2',
@@ -1328,20 +1315,20 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 		///this one should actually only link account-ml3
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'User-Accounts',
 			id: 'user-ml1-account-ml1',
 			user: 'user-ml1',
 			accounts: ['account-ml1', 'account-ml3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'user-ml1',
 			accounts: [{ $op: 'unlink', $id: 'account-ml3' }],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$entity: 'User',
 			$id: 'user-ml1',
 			$fields: ['accounts'],
@@ -1355,11 +1342,11 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-i1[link and unlink many, intermediary] linking and unlinking many things at once with intermediary, not batched, on-create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		// create user with 3 spaces
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			id: 'ul-many-1',
 			spaces: [
@@ -1378,7 +1365,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-1',
 			spaces: [
@@ -1393,7 +1380,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-1',
 			$fields: ['spaces', 'id'],
@@ -1408,7 +1395,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// delete user
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-1',
 			$op: 'delete',
@@ -1416,11 +1403,11 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-i2[link and unlink many] linking and unlinking many things at once with intermediary, batched, on-create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		// todo: User with same id
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			id: 'ul-many-2',
 			spaces: [
@@ -1431,7 +1418,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-2',
 			$fields: ['spaces', 'id'],
@@ -1445,7 +1432,7 @@ describe('Mutations: Edges', () => {
 			spaces: ['space-1', 'space-2', 'space-3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-2',
 			spaces: [
@@ -1456,7 +1443,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-2',
 			$fields: ['spaces'],
@@ -1470,7 +1457,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// delete user
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-2',
 			$op: 'delete',
@@ -1478,14 +1465,14 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-i3[link and unlink many, intermediary] linking and unlinking many things at once with intermediary, not batched, pre-created', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			id: 'ul-many-3',
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-3',
 			spaces: [
@@ -1504,7 +1491,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-3',
 			$fields: ['spaces', 'id'],
@@ -1518,7 +1505,7 @@ describe('Mutations: Edges', () => {
 			spaces: ['space-1', 'space-2', 'space-3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-3',
 			spaces: [
@@ -1533,7 +1520,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-3',
 			$fields: ['spaces'],
@@ -1547,7 +1534,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// delete user
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-3',
 			$op: 'delete',
@@ -1555,16 +1542,16 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-i4[link and unlink many, intermediary] linking and unlinking many things at once batched with intermediary, batched, pre-created', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			id: 'ul-many-4',
 		});
 
 		// todo: intermediary has multiple of same ids
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-4',
 			spaces: [
@@ -1575,7 +1562,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-4',
 			$fields: ['spaces', 'id'],
@@ -1589,7 +1576,7 @@ describe('Mutations: Edges', () => {
 			spaces: ['space-1', 'space-2', 'space-3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-4',
 			spaces: [
@@ -1600,7 +1587,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$entity: 'User',
 			$id: 'ul-many-4',
 			$fields: ['spaces', 'id'],
@@ -1615,7 +1602,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// delete user
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'ul-many-4',
 			$op: 'delete',
@@ -1623,9 +1610,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-ni1[link and unlink many] linking and unlinking many things at once without intermediary, not batched, on-create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$relation: 'Kind',
 				id: 'k1',
@@ -1644,7 +1631,7 @@ describe('Mutations: Edges', () => {
 		]);
 		// console.log('LINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			id: 'link-many-1',
 			kinds: [
@@ -1663,7 +1650,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-1',
 			$fields: ['kinds', 'id'],
@@ -1679,7 +1666,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('UNLINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-1',
 			kinds: [
@@ -1694,7 +1681,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-1',
 			$fields: ['kinds', 'id'],
@@ -1711,7 +1698,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-1',
 			$op: 'delete',
@@ -1719,11 +1706,11 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		// console.log('CREATING AND LINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			id: 'link-many-2',
 			kinds: [
@@ -1736,7 +1723,7 @@ describe('Mutations: Edges', () => {
 
 		// todo: it's not creating with batched, error occurring after pre-query
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-2',
 			$fields: ['kinds', 'id'],
@@ -1752,7 +1739,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('UNLINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-2',
 			kinds: [
@@ -1763,7 +1750,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-2',
 			$fields: ['kinds', 'id'],
@@ -1778,7 +1765,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-2',
 			$op: 'delete',
@@ -1786,7 +1773,7 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('lm-ni3[link and unlink many] linking and unlinking many things at once without intermediary, not batched, pre-created', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		// await bormClient.mutate([
 		// 	{
@@ -1808,7 +1795,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('CREATING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			id: 'link-many-3',
 			space: 'space-1',
@@ -1816,7 +1803,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('LINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-3',
 			kinds: [
@@ -1837,7 +1824,7 @@ describe('Mutations: Edges', () => {
 
 		// todo: it's only linking 1, error occurring after pre-query
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-3',
 			$fields: ['kinds', 'id'],
@@ -1855,7 +1842,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('UNLINKING...');
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-3',
 			kinds: [
@@ -1870,7 +1857,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-3',
 			$fields: ['kinds', 'id'],
@@ -1885,13 +1872,13 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-3',
 			$op: 'delete',
 		});
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$relation: 'Kind',
 				$id: 'k1',
@@ -1913,8 +1900,8 @@ describe('Mutations: Edges', () => {
 	it('lm-ni4[link and unlink many] linking and unlinking many things at once without intermediary, batched, pre-created', async () => {
 		// This test fails if upper tests fail
 
-		expect(bormClient).toBeDefined();
-		await bormClient.mutate([
+		expect(client).toBeDefined();
+		await client.mutate([
 			{
 				$relation: 'Kind',
 				id: 'k1',
@@ -1932,13 +1919,13 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			id: 'link-many-4',
 			space: 'space-1',
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-4',
 			kinds: [
@@ -1949,7 +1936,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res1 = await bormClient.query({
+		const res1 = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-4',
 			$fields: ['kinds', 'id'],
@@ -1963,7 +1950,7 @@ describe('Mutations: Edges', () => {
 			kinds: ['k1', 'k2', 'k3'],
 		});
 
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-4',
 			kinds: [
@@ -1974,7 +1961,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const res = await bormClient.query({
+		const res = await client.query({
 			$relation: 'Field',
 			$id: 'link-many-4',
 			$fields: ['kinds', 'id'],
@@ -1989,13 +1976,13 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'Field',
 			$id: 'link-many-4',
 			$op: 'delete',
 		});
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$relation: 'Kind',
 				$id: 'k1',
@@ -2015,9 +2002,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('d-pq1[delete with pre query, intermediary, nested] delete mutation from root and delete children with intermediary', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'delete-test',
@@ -2051,7 +2038,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'delete-test',
 			spaces: [
@@ -2081,7 +2068,7 @@ describe('Mutations: Edges', () => {
 
 		// console.log('filterByNull', JSON.stringify(filterByNull, null, 2));
 
-		const deleted = await bormClient.query({
+		const deleted = await client.query({
 			$entity: 'User',
 			$id: 'delete-test',
 			$fields: [
@@ -2099,16 +2086,16 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const expressions = await bormClient.query({
+		const expressions = await client.query({
 			$relation: 'Expression',
 		});
 
-		const values = await bormClient.query({
+		const values = await client.query({
 			$relation: 'DataValue',
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'delete-test',
 			$op: 'delete',
@@ -2141,9 +2128,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('d-pq2[delete with pre query, intermediary, nested] delete mutation from root and delete children with intermediary', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'delete-test',
@@ -2170,7 +2157,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'delete-test',
 			spaces: [
@@ -2194,7 +2181,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const deleted = await bormClient.query({
+		const deleted = await client.query({
 			$entity: 'User',
 			$id: 'delete-test',
 			$fields: [
@@ -2246,9 +2233,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('TODO:d-pq3[delete with pre query, intermediary, nested, nothing to delete] delete mutation from root and delete children but there are no children with intermediary', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'delete-test',
@@ -2265,7 +2252,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'delete-test',
 			spaces: [
@@ -2288,7 +2275,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const deleted = await bormClient.query({
+		const deleted = await client.query({
 			$entity: 'User',
 			$id: 'delete-test',
 			$fields: [
@@ -2330,7 +2317,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'delete-test',
 			$op: 'delete',
@@ -2345,9 +2332,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('ul-pq1[unlink with pre query, intermediary, nested] unlink mutation from root and delete children with intermediary', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'unlink-test',
@@ -2381,7 +2368,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'unlink-test',
 			spaces: [
@@ -2404,7 +2391,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const unlinked = await bormClient.query({
+		const unlinked = await client.query({
 			$entity: 'User',
 			$id: 'unlink-test',
 			$fields: [
@@ -2439,7 +2426,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				$id: 'unlink-test',
@@ -2455,11 +2442,11 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('up-pq1[update with pre query, intermediary, nested] update mutation from root and delete children with intermediary', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		// creating
 
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				id: 'update-test',
@@ -2493,7 +2480,7 @@ describe('Mutations: Edges', () => {
 			},
 		]);
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'User',
 			$id: 'update-test',
 			spaces: [
@@ -2519,7 +2506,7 @@ describe('Mutations: Edges', () => {
 			],
 		});
 
-		const unlinked = await bormClient.query({
+		const unlinked = await client.query({
 			$entity: 'User',
 			$id: 'update-test',
 			$fields: [
@@ -2622,7 +2609,7 @@ describe('Mutations: Edges', () => {
 		});
 
 		// cleaning
-		await bormClient.mutate([
+		await client.mutate([
 			{
 				$entity: 'User',
 				$id: 'update-test',
@@ -2639,9 +2626,9 @@ describe('Mutations: Edges', () => {
 	});
 
 	it('rep-del1[delete, replace, ONE] replace on cardinality ONE but deleting existing', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			{
 				$relation: 'UserTagGroup',
 				id: 'rep-del1-utg1',
@@ -2649,7 +2636,7 @@ describe('Mutations: Edges', () => {
 			},
 			{ noMetadata: true },
 		);
-		const origin = await bormClient.query(
+		const origin = await client.query(
 			{
 				$relation: 'UserTagGroup',
 				$id: 'rep-del1-utg1',
@@ -2664,14 +2651,14 @@ describe('Mutations: Edges', () => {
 		});
 
 		//The real test
-		await bormClient.mutate({
+		await client.mutate({
 			$relation: 'UserTagGroup',
 			$thing: 'UserTagGroup',
 			$id: 'rep-del1-utg1',
 			color: [{ $op: 'delete' }, { $op: 'create', id: 'purple' }],
 		});
 
-		const colors = await bormClient.query(
+		const colors = await client.query(
 			{
 				$thing: 'Color',
 				$thingType: 'entity',
@@ -2695,30 +2682,5 @@ describe('Mutations: Edges', () => {
 				id: 'yellow',
 			},
 		]);
-	});
-
-	/*
-  it('f1[json] Basic nested json-like field', async () => {
-    /// In general, this json-like is used only as a way to group properties that actually belong to the entity
-    /// So Address is maybe not the best example, it should probably be a node itself.
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.mutate([
-      {
-        $entity: 'User',
-        $id: 'user3',
-        address: {
-          $embeddedObject: true,
-          city: 'Moscow',
-          street: 'Lenina',
-          house: 1,
-        },
-      },
-    ]);
-    expect(res?.length).toBe(17);
-  });
-*/
-
-	afterAll(async () => {
-		await cleanup(bormClient, dbName);
 	});
 });

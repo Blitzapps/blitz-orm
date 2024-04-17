@@ -1,34 +1,21 @@
 import 'jest';
 
-import type BormClient from '../../../../src/index';
-import { cleanup, init } from '../../helpers/lifecycle';
-import { deepSort } from '../../../helpers/matchers';
+import { deepSort } from '../../helpers/matchers';
+import { createTest } from '../../helpers/createTest';
 
-describe('Mutations: PreHooks', () => {
-	let dbName: string;
-	let bormClient: BormClient;
-
-	beforeAll(async () => {
-		const { dbName: configDbName, bormClient: configBormClient } = await init();
-		if (!configBormClient) {
-			throw new Error('Failed to initialize BormClient');
-		}
-		dbName = configDbName;
-		bormClient = configBormClient;
-	}, 25000);
-
+export const testMutationPrehooks = createTest('Mutation: PreHooks', (client) => {
 	// field level
 
 	it('df[default, field] Default field', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'Hook',
 			id: 'hookDf1',
 			requiredOption: 'b',
 		});
 
-		const res = await bormClient.query(
+		const res = await client.query(
 			{
 				$entity: 'Hook',
 				$id: 'hookDf1',
@@ -46,7 +33,7 @@ describe('Mutations: PreHooks', () => {
 		expect(timestamp >= twoMinutesAgo && timestamp <= currentTime).toBeTruthy();
 
 		//cleanup
-		await bormClient.mutate({
+		await client.mutate({
 			$entity: 'Hook',
 			$op: 'delete',
 			$id: 'hookDF11',
@@ -54,16 +41,16 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('rf[required, field] Required field', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 			});
 
 			//cleanup
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				$op: 'delete',
 				id: 'hook1',
@@ -78,10 +65,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('ef1[enum, field, one] Enum field cardinality one', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 				requiredOption: 'd',
@@ -96,10 +83,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('ef2[enum, field, many] Enum field cardinality one', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				id: 'hook1',
 				requiredOption: 'c',
@@ -117,10 +104,10 @@ describe('Mutations: PreHooks', () => {
 	// node level
 
 	it('vfl1[validation, functions, local, thing] Basic', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'Kind',
 				id: 'kind1',
 				name: 'Tyrannosaurus name',
@@ -140,10 +127,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('vfl2[validation, functions, local, attribute] Function', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'something@test.es',
 				requiredOption: 'a',
@@ -162,10 +149,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('vfl3[validation, functions, local, attribute] FUnction with custom error', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				fnValidatedField: 'secretTesthe@test.es',
 				requiredOption: 'a',
@@ -186,10 +173,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('vfr1[validation, functions, remote, parent] Validate considering the parent', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$entity: 'Hook',
 				id: 'hook-c0',
 				requiredOption: 'a',
@@ -234,10 +221,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('vflr2[validation, functions, remote, things] Check nested array', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'Kind',
 				id: 'kind1',
 				fields: [{ name: 'forbiddenName' }],
@@ -256,10 +243,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('TODO:vflr3[validation, functions, nested, things] Check nested array, card ONE', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate({
+			await client.mutate({
 				$relation: 'HookATag',
 				id: 'vfla6-1-hey',
 				hookTypeA: { requiredOption: 'a' },
@@ -278,9 +265,9 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('tn1[transform, node] Transform node depending on attribute', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
-		await bormClient.mutate(
+		await client.mutate(
 			[
 				{
 					$relation: 'Kind',
@@ -299,7 +286,7 @@ describe('Mutations: PreHooks', () => {
 			{ noMetadata: true },
 		);
 
-		const res = await bormClient.query(
+		const res = await client.query(
 			{
 				$relation: 'Kind',
 				$fields: ['id', 'name'],
@@ -324,10 +311,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('tn2[transform, children] Append children to node', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$thing: 'User',
 					id: 'tn2-u1',
@@ -336,7 +323,7 @@ describe('Mutations: PreHooks', () => {
 				{ noMetadata: true },
 			);
 
-			const res = await bormClient.query(
+			const res = await client.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -353,7 +340,7 @@ describe('Mutations: PreHooks', () => {
 			});
 		} finally {
 			//clean
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$op: 'delete',
@@ -363,10 +350,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('tn3[transform, inherited] Append children to node', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$thing: 'Kind',
 					id: 'secret-kind-tn3',
@@ -375,7 +362,7 @@ describe('Mutations: PreHooks', () => {
 				{ noMetadata: true },
 			);
 
-			const res = await bormClient.query(
+			const res = await client.query(
 				{
 					$thing: 'Kind',
 					$thingType: 'relation',
@@ -389,7 +376,7 @@ describe('Mutations: PreHooks', () => {
 			});
 		} finally {
 			//clean
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'Kind',
 				$thingType: 'relation',
 				$op: 'delete',
@@ -399,10 +386,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('tt1[transform, temp props] Transform using %vars', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					'$thing': 'User',
 					'id': 'tt1-u1',
@@ -411,7 +398,7 @@ describe('Mutations: PreHooks', () => {
 				{ noMetadata: true },
 			);
 
-			const res = await bormClient.query(
+			const res = await client.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -425,7 +412,7 @@ describe('Mutations: PreHooks', () => {
 			});
 		} finally {
 			//clean
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$id: 'tt1-u1',
@@ -435,10 +422,10 @@ describe('Mutations: PreHooks', () => {
 	});
 
 	it('ctx1[transform, context] Use context', async () => {
-		expect(bormClient).toBeDefined();
+		expect(client).toBeDefined();
 
 		try {
-			await bormClient.mutate(
+			await client.mutate(
 				{
 					$thing: 'User',
 					id: 'ctx1-u1',
@@ -447,7 +434,7 @@ describe('Mutations: PreHooks', () => {
 				{ noMetadata: true, context: { spaceId: 'mySpace' } },
 			);
 
-			const res = await bormClient.query(
+			const res = await client.query(
 				{
 					$thing: 'User',
 					$thingType: 'entity',
@@ -464,16 +451,12 @@ describe('Mutations: PreHooks', () => {
 			});
 		} finally {
 			//clean
-			await bormClient.mutate({
+			await client.mutate({
 				$thing: 'User',
 				$thingType: 'entity',
 				$op: 'delete',
 				$id: 'tn2-u1',
 			});
 		}
-	});
-
-	afterAll(async () => {
-		await cleanup(bormClient, dbName);
 	});
 });
