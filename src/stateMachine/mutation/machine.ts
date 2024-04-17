@@ -127,7 +127,7 @@ const parseMutation = async (ctx: MachineContext) => {
 
 // Guards
 // ============================================================================
-const requiresPreQuery = (ctx: MachineContext) => {
+const requiresPreQuery = () => {
 	// return preQueryGuard(ctx.bql.current, ctx.config);
 	return true;
 };

@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.9.20(2024-04-17)
+
+- Feat: Transformations with $fields included in mutations
+
 ## 0.9.20(2023-03-20)
 
 - Refacto: Pre-queries refactoring
