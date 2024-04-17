@@ -1,12 +1,13 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType } from 'typedb-driver';
+import { Surreal } from 'surrealdb.node';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
-import { queryPipeline } from './pipeline/pipeline';
 import type {
 	BQLMutation,
+	BQLResponse,
 	BQLResponseMulti,
 	BormConfig,
 	BormSchema,
@@ -18,6 +19,7 @@ import type {
 } from './types';
 import { enableMapSet } from 'immer';
 import { runMutationMachine } from './stateMachine/mutation/machine';
+import { runQueryMachine } from './stateMachine/query/machine';
 
 export * from './types';
 
@@ -47,6 +49,20 @@ class BormClient {
 		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
+				if (dbc.provider === 'surrealDB') {
+					const db = new Surreal();
+
+					await db.connect(dbc.url);
+
+					await db.signin({
+						namespace: dbc.namespace,
+						database: dbc.dbName,
+						username: dbc.username,
+						password: dbc.password,
+					});
+
+					dbHandles.surrealDB.set(dbc.id, { client: db });
+				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
@@ -119,14 +135,54 @@ class BormClient {
 	};
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema
+	// query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
+	// 	const handles = this.dbHandles;
+	// 	if (!handles) {
+	// 		throw new Error('dbHandles undefined');
+	// 	}
+
+	// 	await this.#enforceConnection();
+
+	// 	const qConfig = {
+	// 		...this.config,
+	// 		query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
+	// 	};
+
+	// 	// @ts-expect-error type of Query is incorrect
+	// 	return queryPipeline(query, qConfig, this.schema, handles);
+	// };
+
 	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
 		await this.#enforceConnection();
+
 		const qConfig = {
 			...this.config,
-			query: { ...defaultConfig.query, ...this.config.query, ...queryConfig },
+			query: {
+				...defaultConfig.query,
+				...this.config.query,
+				...queryConfig,
+			},
 		};
-		// @ts-expect-error - enforceConnection ensures dbHandles is defined
-		return queryPipeline(query, qConfig, this.schema, this.dbHandles);
+		const isBatched = Array.isArray(query);
+		const queries = isBatched ? query : [query];
+
+		const [errorRes, res] = await tryit(runQueryMachine)(
+			queries,
+			this.schema as EnrichedBormSchema,
+			qConfig,
+			this.dbHandles as DBHandles,
+		);
+		if (errorRes) {
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			const error = new Error(errorRes.error);
+			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
+			error.stack = errorRes.error.stack;
+			throw error;
+		}
+
+		const result = res.bql.res as BQLResponse[];
+
+		return isBatched ? result : result[0];
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {
@@ -171,6 +227,9 @@ class BormClient {
 			}
 			await client.close();
 		});
+		// TODO: Close SurrealDB clients.
+		// Currently there's no `close()` method in the client.
+		// See https://github.com/surrealdb/surrealdb.node/issues/36
 	};
 }
 
