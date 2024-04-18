@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.10.1",
+	"version": "0.10.2",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -16,7 +16,7 @@
 		"build": "tsup src/index.ts --format cjs,esm --clean --dts --treeshake --minify",
 		"dev": "tsup --dts --watch --sourcemap",
 		"knip": "knip",
-		"husky:prepare": "husky install",
+		"husky:prepare": "husky init",
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"lint-staged": "lint-staged",
@@ -27,13 +27,14 @@
 		"test:query": "./tests/test.sh query.test.ts",
 		"test:typedb-query": "./tests/test.sh typedb/unit/queries",
 		"test:typedb-mutation": "./tests/test.sh typedb/unit/mutations",
-		"test:typedb-ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\" --detectOpenHandles typedb",
+		"test:typedb-ignoreTodo": "vitest typedb -t \"^(?!.*TODO:).*\" ",
 		"test:surrealdb-query": "./tests/test.sh surrealdb/unit/queries/query.test.ts",
 		"test:multidb": "./tests/test.sh --detectOpenHandles multidb",
 		"test:ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\" --detectOpenHandles",
 		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "./tests/test.sh --watch",
-		"types": "tsc --noEmit"
+		"types": "tsc --noEmit",
+		"prepare": "husky"
 	},
 	"private": false,
 	"license": "AGPL-3.0-only",
@@ -54,14 +55,16 @@
 	"dependencies": {
 		"acorn": "^8.11.3",
 		"case-anything": "^2.1.13",
+		"dotenv": "^16.4.5",
 		"immer": "10.0.4",
-		"nanoid": "3",
+		"nanoid": "^5.0.7",
 		"object-traversal": "^1.0.1",
 		"radash": "^11.0.0",
 		"robot3": "^0.4.1",
 		"surrealdb.node": "^0.3.0",
 		"typedb-driver": "2.26.6-rc1",
-		"uuid": "^9.0.1"
+		"uuid": "^9.0.1",
+		"vitest": "^1.5.0"
 	},
 	"devDependencies": {
 		"@blitznocode/eslint-config": "^1.1.0",

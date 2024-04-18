@@ -7,6 +7,7 @@ import type { TypeGen } from '../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../src/index';
 import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testQuery = createTest('Query', (ctx) => {
 	it('v1[validation] - $entity missing', async () => {

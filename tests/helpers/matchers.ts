@@ -3,6 +3,7 @@
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
+import { expect } from 'vitest';
 
 const getCommonKey = (obj1: Record<string, any>, obj2: Record<string, any>): string | undefined => {
 	const keys1 = Object.keys(obj1);

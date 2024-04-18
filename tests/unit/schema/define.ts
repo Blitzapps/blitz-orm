@@ -1,6 +1,7 @@
 import 'jest';
 
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testSchemaDefine = createTest('Schema', (client) => {
 	it('Todo:b1[create] Basic', async () => {

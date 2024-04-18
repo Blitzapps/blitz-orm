@@ -2,6 +2,7 @@ import 'jest';
 
 import { deepSort } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	// field level

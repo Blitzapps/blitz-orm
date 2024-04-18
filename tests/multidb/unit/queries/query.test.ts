@@ -3,6 +3,7 @@ import 'jest';
 import { init } from '../../helpers/lifecycle';
 import type BormClient from '../../../../src/index';
 import { deepSort } from '../../../helpers/matchers';
+import { afterAll, beforeAll, describe } from 'vitest';
 
 describe('Query', () => {
 	let cleanup: () => Promise<void>;
