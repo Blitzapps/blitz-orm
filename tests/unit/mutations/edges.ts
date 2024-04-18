@@ -3,6 +3,7 @@ import 'jest';
 import { deepSort } from '../../helpers/matchers';
 import type { KindType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	it('l1[link, add, nested, relation] Update entity by adding a new created relation children. Also test getting ids by tempId', async () => {

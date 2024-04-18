@@ -61,8 +61,8 @@ const parseObj = (res: any, rawBqlRequest: RawBQLQuery, schema: EnrichedBormSche
 	const parsedDataFields = parseDataFields(dataFields, currentSchema, config);
 	const parsedLinkFields = parseLinkFields(linkFields, schema, config);
 	const parsedRoleFields = parseRoleFields(roleFields, schema, config);
-	console.log('parseObj/parsedLinkFields', JSON.stringify(parsedLinkFields));
-	console.log('parseObj/parsedRoleFields', JSON.stringify(parsedRoleFields));
+	//console.log('parseObj/parsedLinkFields', JSON.stringify(parsedLinkFields));
+	//console.log('parseObj/parsedRoleFields', JSON.stringify(parsedRoleFields));
 	const idNotIncluded = rawBqlRequest?.$fields?.every(
 		(field) => !currentSchema?.idFields?.includes(typeof field === 'string' ? field : field.$path),
 	);

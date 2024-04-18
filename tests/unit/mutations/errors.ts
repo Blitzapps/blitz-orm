@@ -1,6 +1,7 @@
 import 'jest';
 
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 	it('e1[duplicate] Duplicate creation', async () => {
