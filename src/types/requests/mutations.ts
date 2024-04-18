@@ -6,7 +6,7 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 } from '../schema/enriched';
-import type { EdgeSchema, EdgeType, Schema } from '../symbols';
+import type { DBNode, EdgeSchema, EdgeType, Schema } from '../symbols';
 import type { Filter } from './queries';
 
 type RequiredKey<T, K extends keyof T> = T & { [P in K]-?: T[P] };
@@ -47,12 +47,14 @@ export type EnrichedBQLMutationBlock = {
 	[key: string]: any;
 	$id?: string | string[];
 	$filter?: Filter;
+	$fields?: any[]; // todo use ValueBlock once is renamed to BQLQueryBlock
 	$tempId?: string;
 	$op: BormOperation;
 	$thing: string;
 	$thingType: 'entity' | 'relation';
 	[EdgeSchema]?: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
 	[EdgeType]?: 'linkField' | 'roleField';
+	[DBNode]?: EnrichedBQLMutationBlock | Record<string, never>;
 };
 
 export type RawBQLMutation<T extends Record<string, any> = Record<string, any>> = (

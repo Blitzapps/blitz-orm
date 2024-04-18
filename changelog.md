@@ -2,9 +2,15 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
 ## 0.10.2(2024-04-18)
+
 - Test: Migrated to vitest
 - Test: TypeDB url moved as env var
+
+## 0.10.1(2024-04-17)
+
+- Feat: Transformations for mutations with $fields included.
 
 ## 0.10.0(2024-04-17)
 

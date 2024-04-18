@@ -3,6 +3,7 @@ import { clone, isArray, isObject } from 'radash';
 import type { BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../../types';
 import { deepCurrent, getCurrentSchema } from '../../../../helpers';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
+import { DBNode } from '../../../../types/symbols';
 
 export const preHookValidations = (
 	node: EnrichedBQLMutationBlock,
@@ -13,6 +14,11 @@ export const preHookValidations = (
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
 	subNodes.forEach((subNode: EnrichedBQLMutationBlock) => {
 		if ('$thing' in subNode) {
+			if (subNode.$fields) {
+				///change machine context so we are sun we run preQueryDeps before coming back to here
+				return subNode;
+			}
+
 			const { requiredFields, enumFields, fnValidatedFields, dataFields } = getCurrentSchema(schema, subNode);
 
 			/// Required fields
@@ -73,6 +79,9 @@ export const preHookValidations = (
 				const parentNode = clone(deepCurrent(node));
 				const currentNode = clone(deepCurrent(value));
 				const userContext = (config.mutation?.context || {}) as Record<string, any>;
+				const dbNode = clone(deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || {})) as
+					| EnrichedBQLMutationBlock
+					| Record<string, never>;
 
 				const triggeredActions = getTriggeredActions(value, schema);
 				triggeredActions.forEach((action) => {
@@ -83,7 +92,7 @@ export const preHookValidations = (
 
 						try {
 							//! Todo: Sandbox the function in nodeCompute() instead of the existing fieldCompute()
-							const validationResult = action.fn(currentNode, parentNode, userContext);
+							const validationResult = action.fn(currentNode, parentNode, userContext, dbNode);
 
 							if (validationResult === false) {
 								throw new Error(`${action.message}.`);
