@@ -16,7 +16,7 @@
 		"build": "tsup src/index.ts --format cjs,esm --clean --dts --treeshake --minify",
 		"dev": "tsup --dts --watch --sourcemap",
 		"knip": "knip",
-		"husky:prepare": "husky install",
+		"husky:prepare": "husky init",
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"lint-staged": "lint-staged",
@@ -33,7 +33,8 @@
 		"test:ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\" --detectOpenHandles",
 		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:watch": "./tests/test.sh --watch",
-		"types": "tsc --noEmit"
+		"types": "tsc --noEmit",
+		"prepare": "husky"
 	},
 	"private": false,
 	"license": "AGPL-3.0-only",
