@@ -50,6 +50,7 @@ export type NodeFunctionParams = [
 	currentNode: EnrichedBQLMutationBlock,
 	parentNode: EnrichedBQLMutationBlock,
 	context: Record<string, any>,
+	dbNode: EnrichedBQLMutationBlock | Record<string, never>,
 ];
 
 export type TransFormAction = {

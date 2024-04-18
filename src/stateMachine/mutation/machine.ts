@@ -15,8 +15,10 @@ import { parseBQLMutation } from './BQL/parse';
 import { buildTQLMutation } from './TQL/build';
 import { mutationPreQuery } from './BQL/preQuery';
 
-import { createMachine, invoke, transition, reduce, guard, interpret, state } from '../robot3';
+import { createMachine, transition, reduce, guard, interpret, state, invoke } from '../robot3';
 import { stringify } from './BQL/stringify';
+import { preHookDependencies } from './BQL/enrichSteps/preHookDependencies';
+import { dependenciesGuard } from './BQL/guards/dependenciesGuard';
 
 const final = state;
 type MachineContext = {
@@ -103,6 +105,10 @@ const preQuery = async (ctx: MachineContext) => {
 	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
 };
 
+const preQueryDependencies = async (ctx: MachineContext) => {
+	return preHookDependencies(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+};
+
 const parseBQL = async (ctx: MachineContext) => {
 	return parseBQLMutation(ctx.bql.current, ctx.schema);
 };
@@ -122,7 +128,15 @@ const parseMutation = async (ctx: MachineContext) => {
 // Guards
 // ============================================================================
 const requiresPreQuery = () => {
+	// return preQueryGuard(ctx.bql.current, ctx.config);
 	return true;
+};
+
+const requiresPreHookDependencies = (ctx: MachineContext) => {
+	// const needs = dependenciesGuard(ctx.bql.current);
+	// console.log('needs: ', JSON.stringify({ needs, bql: ctx.bql.current }, null, 2));
+	return dependenciesGuard(ctx.bql.current);
+	// return true;
 };
 
 /*const requiresParseBQL = (ctx: MachineContext) => {
@@ -161,7 +175,17 @@ export const machine = createMachine(
 			transition('done', 'parseBQL', reduce(updateBqlReq)),
 			errorTransition,
 		),
-		preQuery: invoke(preQuery, transition('done', 'parseBQL', reduce(updateBqlReq)), errorTransition),
+		preHookDependencies: invoke(
+			preQueryDependencies,
+			transition('done', 'enrich', reduce(updateBqlReq)),
+			errorTransition,
+		),
+		preQuery: invoke(
+			preQuery,
+			transition('done', 'preHookDependencies', guard(requiresPreHookDependencies), reduce(updateBqlReq)),
+			transition('done', 'parseBQL', reduce(updateBqlReq)),
+			errorTransition,
+		),
 		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
 		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),
 		runMutation: invoke(runMutation, transition('done', 'parseMutation', reduce(updateTQLRes)), errorTransition),

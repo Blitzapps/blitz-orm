@@ -429,4 +429,440 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 			});
 		}
 	});
+
+	it('tf1[transform, fields] Use $fields for dbNode', async () => {
+		expect(ctx).toBeDefined();
+
+		try {
+			await ctx.mutate([
+				{
+					$entity: 'User',
+					id: 'mf1-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf1-space',
+							dataFields: [
+								{
+									id: 'mf1-dataField-1',
+									values: [
+										{
+											id: 'mf1-dataValue',
+										},
+									],
+									expression: { $op: 'create', id: 'mf1-expression-1' },
+								},
+								{
+									id: 'mf1-dataField-2',
+									values: [{ id: 'mf1-dataValue-2' }],
+								},
+								{
+									id: 'mf1-dataField-3',
+									expression: { $op: 'create', id: 'mf1-expression-2' },
+								},
+								{
+									id: 'mf1-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			/// This test throws an error if failed, it happens inside the transformation itself
+			await ctx.mutate({
+				$thing: 'User',
+				$id: 'mf1-user',
+				name: 'Jack',
+				$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+			});
+		} finally {
+			//clean
+			await ctx.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'mf1-user',
+			});
+		}
+	});
+
+	it('tf2[transform, fields] Use $fields for dbNode nested', async () => {
+		expect(ctx).toBeDefined();
+
+		try {
+			// console.log('===== CREATING =====');
+
+			await ctx.mutate([
+				{
+					$entity: 'User',
+					id: 'mf2-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf2-space',
+							dataFields: [
+								{
+									id: 'mf2-dataField-1',
+									values: [
+										{
+											id: 'mf2-dataValue-1',
+										},
+									],
+									expression: { $op: 'create', id: 'mf2-expression-1' },
+								},
+								{
+									id: 'mf2-dataField-2',
+									values: [{ id: 'mf2-dataValue-2' }],
+								},
+								{
+									id: 'mf2-dataField-3',
+									expression: { $op: 'create', id: 'mf2-expression-2' },
+								},
+								{
+									id: 'mf2-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			// console.log('===== MUTATING =====');
+
+			await ctx.mutate({
+				$thing: 'User',
+				$id: 'mf2-user',
+				name: 'Jack',
+				spaces: [
+					{
+						dataFields: [
+							{
+								values: [{ $fields: ['id', 'type'], type: 'test-type', $op: 'update' }],
+								expression: { $fields: ['id', 'type'], type: 'test-type', $op: 'update' },
+								$fields: ['values', 'expression'],
+								type: 'test-type',
+								$op: 'update',
+							},
+						],
+						$fields: ['id', 'dataFields'],
+						$op: 'update',
+					},
+				],
+				$fields: ['id', 'email'],
+			});
+		} finally {
+			//clean
+			await ctx.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$op: 'delete',
+				$id: 'mf2-user',
+			});
+		}
+	});
+
+	it('tf3[transform, fields] Use $fields for transformation', async () => {
+		expect(ctx).toBeDefined();
+
+		try {
+			await ctx.mutate([
+				{
+					$thing: 'Color',
+					$fields: ['id', 'value'],
+					id: 'color-test',
+					value: 'gold',
+				},
+			]);
+
+			const res1 = await ctx.query(
+				{
+					$thing: 'Color',
+					$thingType: 'entity',
+					$id: 'color-test',
+					$fields: ['id', 'value'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(res1).toEqual({
+				id: 'color-test',
+				value: 'gold',
+			});
+
+			await ctx.mutate([
+				{
+					$thing: 'Color',
+					$fields: ['id', 'value'],
+					$id: 'color-test',
+					value: 'gold',
+				},
+			]);
+
+			const res2 = await ctx.query(
+				{
+					$thing: 'Color',
+					$thingType: 'entity',
+					$id: 'color-test',
+					$fields: ['id', 'value'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(res2).toEqual({
+				id: 'color-test',
+				value: 'bronze',
+			});
+
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$id: 'mf1-user',
+			// 	name: 'Jack',
+			// 	$fields: ['email', { $path: 'spaces', $fields: [{ $path: 'dataFields', $fields: ['values', 'expression'] }] }],
+			// });
+		} finally {
+			//clean
+			await ctx.mutate({
+				$thing: 'Color',
+				$thingType: 'entity',
+				$id: 'gold',
+				$op: 'delete',
+			});
+		}
+	});
+
+	it('TODO:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
+		// this test should pass when we add more protections over nested $ids not being the same as parent $ids in a mutation
+		expect(ctx).toBeDefined();
+
+		try {
+			await ctx.mutate([
+				{
+					$relation: 'CascadeRelation',
+					id: 'cr-1',
+					things: [
+						{
+							id: 't-1',
+							cascadeRelations: [
+								{
+									id: 'cr-2',
+									things: [
+										{
+											id: 't-3',
+										},
+										{
+											id: 't-4',
+										},
+									],
+								},
+								{
+									id: 'cr-3',
+									things: [
+										{
+											id: 't-5',
+										},
+										{
+											id: 't-6',
+										},
+									],
+								},
+							],
+						},
+						{
+							id: 't-2',
+							cascadeRelations: [
+								{
+									id: 'cr-4',
+									things: [
+										{
+											id: 't-7',
+										},
+										{
+											id: 't-8',
+										},
+									],
+								},
+								{
+									id: 'cr-5',
+									things: [
+										{
+											id: 't-9',
+										},
+										{
+											id: 't-10',
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			const q1 = await ctx.query({
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+				$fields: ['things'],
+			});
+
+			const q2 = await ctx.query(
+				{
+					$thing: 'CascadeThing',
+					$thingType: 'entity',
+					$fields: ['id'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(q1, 'id')).toEqual({
+				things: ['t-1', 't-2'],
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+			});
+
+			expect(deepSort(q2, 'id')).toEqual([
+				{
+					id: 't-1',
+				},
+				{
+					id: 't-10',
+				},
+				{
+					id: 't-2',
+				},
+				{
+					id: 't-3',
+				},
+				{
+					id: 't-4',
+				},
+				{
+					id: 't-5',
+				},
+				{
+					id: 't-6',
+				},
+				{
+					id: 't-7',
+				},
+				{
+					id: 't-8',
+				},
+				{
+					id: 't-9',
+				},
+			]);
+
+			await ctx.mutate({
+				$thing: 'CascadeRelation',
+				$id: 'cr-1',
+				$op: 'delete',
+				$fields: ['things'],
+			});
+
+			const q3 = await ctx.query({
+				$thing: 'CascadeRelation',
+				$thingType: 'relation',
+				$id: 'cr-1',
+				$fields: ['things'],
+			});
+
+			const q4 = await ctx.query({
+				$thing: 'CascadeThing',
+				$thingType: 'entity',
+			});
+
+			expect(q3).toEqual(null);
+			expect(q4).toEqual(null);
+		} finally {
+			// //clean
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$thingType: 'entity',
+			// 	$op: 'delete',
+			// 	$id: 'mf2-user',
+			// });
+		}
+	});
+
+	it('tf5[transform, fields] Use $fields nested looping through transformations', async () => {
+		expect(ctx).toBeDefined();
+
+		try {
+			await ctx.mutate([
+				{
+					$entity: 'User',
+					id: 'mf5-user',
+					name: 'John',
+					email: 'john@email.com',
+					spaces: [
+						{
+							id: 'mf5-space',
+							dataFields: [
+								{
+									id: 'mf5-dataField-1',
+								},
+								{
+									id: 'mf5-dataField-2',
+								},
+								{
+									id: 'mf5-dataField-3',
+								},
+								{
+									id: 'mf5-dataField-4',
+								},
+							],
+						},
+					],
+				},
+			]);
+
+			// cascade delete
+
+			await ctx.mutate([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+					$op: 'delete',
+					$fields: ['spaces'],
+				},
+			]);
+
+			await ctx.query([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+				},
+			]);
+
+			const res = await ctx.query([
+				{
+					$entity: 'User',
+					$id: 'mf5-user',
+				},
+				{
+					$entity: 'Space',
+					$id: 'mf5-space',
+				},
+				{
+					$relation: 'DataField',
+					$id: ['mf5-dataField-1', 'mf5-dataField-4', 'mf5-dataField-3', 'mf5-dataField-4'],
+				},
+			]);
+
+			expect(res).toEqual([null, null, null]);
+		} finally {
+			// //clean
+			// await bormClient.mutate({
+			// 	$thing: 'User',
+			// 	$thingType: 'entity',
+			// 	$op: 'delete',
+			// 	$id: 'mf2-user',
+			// });
+		}
+	});
 });
