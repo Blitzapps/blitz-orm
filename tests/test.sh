@@ -26,7 +26,7 @@ docker exec -it $CONTAINER_NAME ./surreal import -u tester -p tester --namespace
 docker exec -it $CONTAINER_NAME ./surreal import -u tester -p tester --namespace multi_db_test --database test --endpoint http://localhost:8000  ./tests/multidb/mocks/data.surql
 
 # Always stop container, but exit with 1 when tests are failing
-if CONTAINER_NAME=${CONTAINER_NAME} npx jest $@;then
+if CONTAINER_NAME=${CONTAINER_NAME} npx vitest run $@;then
     docker stop ${CONTAINER_NAME}
 else
     docker stop ${CONTAINER_NAME} && exit 1
