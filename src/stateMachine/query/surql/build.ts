@@ -203,16 +203,16 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 };
 
 const getSubtypeRecursive = (schema: EnrichedBormSchema, thingType: 'entity' | 'relation', thing: string): string[] => {
-	const subTypes = getSubtype2(schema, thingType, thing);
+	const subTypes = getSubtype(schema, thingType, thing);
 	let i = 0;
 	while (subTypes[i]) {
-		subTypes.push(...getSubtype2(schema, thingType, subTypes[i]));
+		subTypes.push(...getSubtype(schema, thingType, subTypes[i]));
 		i++;
 	}
 	return subTypes;
 };
 
-const getSubtype2 = (schema: EnrichedBormSchema, thingType: 'entity' | 'relation', thing: string): string[] => {
+const getSubtype = (schema: EnrichedBormSchema, thingType: 'entity' | 'relation', thing: string): string[] => {
 	const subtypes = Object.values(thingType === 'entity' ? schema.entities : schema.relations)
 		.filter((itemSchema) => itemSchema.extends === thing)
 		.map((itemSchema) => itemSchema.name as string);

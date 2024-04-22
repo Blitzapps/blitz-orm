@@ -299,28 +299,25 @@ export const schema: BormSchema = {
 								message: 'Failed test tf1',
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, { email: dbEmail, spaces: dbSpaces }) => {
-									if ($op === 'update' && $id === 'mf1-user') {
-										if (dbEmail !== 'john@email.com') {
-											throw new Error(
-												'The email of the test tf1 should be recovered here from the db and be john@email.com',
-											);
-										}
-										if (
-											!(
-												dbSpaces.length === 1 &&
-												dbSpaces[0].dataFields?.length === 4 &&
-												dbSpaces[0].dataFields.find((df: any) => df.$id === 'mf1-dataField-1').expression ===
-													'mf1-expression-1'
-											)
-										) {
-											throw new Error(
-												'The user should have one space and 4 datafields. Datafield 1 should have expression mf1-expression already in db',
-											);
-										}
-										return true;
-									} else {
+									if ($op !== 'update' || $id !== 'mf1-user') {
 										return true;
 									}
+									if (dbEmail !== 'john@email.com') {
+										throw new Error(
+											'The email of the test tf1 should be recovered here from the db and be john@email.com',
+										);
+									}
+									if (
+										dbSpaces.length === 1 ||
+										dbSpaces[0].dataFields?.length === 4 ||
+										dbSpaces[0].dataFields.some((df: any) => df.$id === 'mf1-dataField-1').expression ===
+											'mf1-expression-1'
+									) {
+										return true;
+									}
+									throw new Error(
+										'The user should have one space and 4 datafields. Datafield 1 should have expression mf1-expression already in db',
+									);
 								},
 							},
 							{
@@ -330,16 +327,15 @@ export const schema: BormSchema = {
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, dbNode) => {
 									const { email: dbEmail } = dbNode;
-									if ($op === 'update' && $id === 'mf2-user') {
-										if (dbEmail !== 'john@email.com') {
-											throw new Error(
-												'The email of the test tf2 should be recovered here from the db and be john@email.com',
-											);
-										}
-										return true;
-									} else {
+									if ($op !== 'update' || $id !== 'mf2-user') {
 										return true;
 									}
+									if (dbEmail === 'john@email.com') {
+										return true;
+									}
+									throw new Error(
+										'The email of the test tf2 should be recovered here from the db and be john@email.com',
+									);
 								},
 							},
 							{
@@ -370,19 +366,16 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op, $id }, b, c, { spaces: dbSpaces }) => {
-									if ($id === 'mf5-user' && $op === 'delete') {
-										return {
-											spaces: dbSpaces.map((id: string) => {
-												return {
-													$op: 'delete',
-													$id: id,
-													$fields: ['dataFields'],
-												};
-											}),
-										};
-									} else {
+									if ($id !== 'mf5-user' || $op !== 'delete') {
 										return {};
 									}
+									return {
+										spaces: dbSpaces.map((id: string) => ({
+											$op: 'delete',
+											$id: id,
+											$fields: ['dataFields'],
+										})),
+									};
 								},
 							},
 						],
@@ -433,16 +426,15 @@ export const schema: BormSchema = {
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, dbNode) => {
 									const { dataFields: dbDataFields } = dbNode;
-									if ($op === 'update' && $id === 'mf2-space') {
-										if (!(dbDataFields?.length === 4)) {
-											throw new Error(
-												'The user should have one space and 4 datafields. Datafield 1 should have expression mf2-expression already in db',
-											);
-										}
-										return true;
-									} else {
+									if ($op !== 'update' || $id !== 'mf2-space') {
 										return true;
 									}
+									if (!(dbDataFields?.length !== 4)) {
+										return true;
+									}
+									throw new Error(
+										'The user should have one space and 4 datafields. Datafield 1 should have expression mf2-expression already in db',
+									);
 								},
 							},
 						],
@@ -452,18 +444,15 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op, $id }, b, c, { dataFields: dbDataFields }) => {
-									if ($id === 'mf5-space' && $op === 'delete') {
-										return {
-											dataFields: dbDataFields.map((id: string) => {
-												return {
-													$op: 'delete',
-													$id: id,
-												};
-											}),
-										};
-									} else {
+									if ($id !== 'mf5-space' || $op !== 'delete') {
 										return {};
 									}
+									return {
+										dataFields: dbDataFields.map((id: string) => ({
+											$op: 'delete',
+											$id: id,
+										})),
+									};
 								},
 							},
 						],
@@ -585,16 +574,12 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op, value }, b, c, dbNode) => {
+									console.log('preHook/transform', JSON.stringify(dbNode));
 									const { value: dbValue } = dbNode;
-									if (value) {
-										if ($op === 'update' && value && value === dbValue && value === 'gold') {
-											return { value: 'bronze' };
-										} else {
-											return {};
-										}
-									} else {
+									if ($op !== 'update' || !value || value !== dbValue || value !== 'gold') {
 										return {};
 									}
+									return { value: 'bronze' };
 								},
 							},
 						],
@@ -683,20 +668,16 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op }, b, c, { things: dbThings }) => {
-									if ($op === 'delete' && dbThings.length > 0) {
-										console.log('dbThings', JSON.stringify(dbThings, null, 2));
-										return {
-											things: dbThings.map((id: string) => {
-												return {
-													$op: 'delete',
-													$id: id,
-													$fields: ['cascadeRelations'],
-												};
-											}),
-										};
-									} else {
+									if ($op !== 'delete' || dbThings.length === 0) {
 										return {};
 									}
+									return {
+										things: dbThings.map((id: string) => ({
+											$op: 'delete',
+											$id: id,
+											$fields: ['cascadeRelations'],
+										})),
+									};
 								},
 							},
 						],
@@ -799,9 +780,8 @@ export const schema: BormSchema = {
 										return {
 											id: `${id}-YES!`,
 										};
-									} else {
-										return {};
 									}
+									return {};
 								},
 							},
 						],
@@ -905,37 +885,38 @@ export const schema: BormSchema = {
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, dbNode) => {
 									const { expression: dbExpression, values: dbValues } = dbNode;
-									if ($op === 'update') {
-										if ($id === 'mf2-dataField-1') {
-											if (
-												dbValues.length !== 1 ||
-												!dbValues.find((id: string) => id === 'mf2-dataValue-1') ||
-												dbExpression !== 'mf2-expression-1'
-											) {
-												throw new Error('The df should have one value and 1 expression');
-											}
-											return true;
-										} else if ($id === 'mf2-dataField-2') {
-											if (dbValues.length !== 1 || !dbValues.find((id: string) => id === 'mf2-dataValue-2')) {
-												throw new Error('The df should have one value');
-											}
-											return true;
-										} else if ($id === 'mf2-dataField-3') {
-											if (dbExpression !== 'mf2-expression-2') {
-												throw new Error('The df should have one expression');
-											}
-											return true;
-										} else if ($id === 'mf2-dataField-4') {
-											if (dbExpression || dbValues) {
-												throw new Error('The df should have no expression and no values');
-											}
-											return true;
-										} else {
-											return true;
-										}
-									} else {
+									if ($op !== 'update') {
 										return true;
 									}
+									if ($id === 'mf2-dataField-1') {
+										if (
+											dbValues.length !== 1 ||
+											!dbValues.find((id: string) => id === 'mf2-dataValue-1') ||
+											dbExpression !== 'mf2-expression-1'
+										) {
+											throw new Error('The df should have one value and 1 expression');
+										}
+										return true;
+									}
+									if ($id === 'mf2-dataField-2') {
+										if (dbValues.length !== 1 || !dbValues.some((id: string) => id === 'mf2-dataValue-2')) {
+											throw new Error('The df should have one value');
+										}
+										return true;
+									}
+									if ($id === 'mf2-dataField-3') {
+										if (dbExpression !== 'mf2-expression-2') {
+											throw new Error('The df should have one expression');
+										}
+										return true;
+									}
+									if ($id === 'mf2-dataField-4') {
+										if (dbExpression || dbValues) {
+											throw new Error('The df should have no expression and no values');
+										}
+										return true;
+									}
+									return true;
 								},
 							},
 						],
@@ -980,21 +961,16 @@ export const schema: BormSchema = {
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, dbNode) => {
 									const { id: dbId } = dbNode;
-									if ($op === 'update') {
-										if ($id === 'mf2-expression-1') {
-											if (dbId !== 'mf2-expression-1') {
-												throw new Error('The df should have one expression');
-											}
-										}
-										if ($id === 'mf2-expression-2') {
-											if (dbId !== 'mf2-expression-2') {
-												throw new Error('The df should have one expression');
-											}
-										}
-										return true;
-									} else {
+									if ($op !== 'update') {
 										return true;
 									}
+									if ($id === 'mf2-expression-1' && dbId !== 'mf2-expression-1') {
+										throw new Error('The df should have one expression');
+									}
+									if ($id === 'mf2-expression-2' && dbId !== 'mf2-expression-2') {
+										throw new Error('The df should have one expression');
+									}
+									return true;
 								},
 							},
 						],
@@ -1019,21 +995,16 @@ export const schema: BormSchema = {
 								severity: 'error',
 								fn: ({ $op, $id }, _parent, _context, dbNode) => {
 									const { id: dbId } = dbNode;
-									if ($op === 'update') {
-										if ($id === 'mf2-dataValue-1') {
-											if (dbId !== 'mf2-dataValue-1') {
-												throw new Error('The df should have one dv');
-											}
-										}
-										if ($id === 'mf2-dataValue-2') {
-											if (dbId !== 'mf2-dataValue-2') {
-												throw new Error('The df should have one dv');
-											}
-										}
-										return true;
-									} else {
+									if ($op !== 'update') {
 										return true;
 									}
+									if ($id === 'mf2-dataValue-1' && dbId !== 'mf2-dataValue-1') {
+										throw new Error('The df should have one dv');
+									}
+									if ($id === 'mf2-dataValue-2' && dbId !== 'mf2-dataValue-2') {
+										throw new Error('The df should have one dv');
+									}
+									return true;
 								},
 							},
 						],
@@ -1088,9 +1059,7 @@ export const schema: BormSchema = {
 						actions: [
 							{
 								type: 'validate',
-								fn: ({ hookTypeA }) => {
-									return !isArray(hookTypeA);
-								},
+								fn: ({ hookTypeA }) => !isArray(hookTypeA),
 								severity: 'error',
 								message: "Can't be an array",
 							},
