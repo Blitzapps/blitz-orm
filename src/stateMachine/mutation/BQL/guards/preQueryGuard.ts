@@ -27,4 +27,4 @@ export const preQueryGuard = (mut: EnrichedBQLMutationBlock | EnrichedBQLMutatio
 	}
 
 	return false;
-}
+};

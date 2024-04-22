@@ -25,4 +25,4 @@ export const dependenciesGuard = (mut: EnrichedBQLMutationBlock | EnrichedBQLMut
 	}
 
 	return false;
-}
+};

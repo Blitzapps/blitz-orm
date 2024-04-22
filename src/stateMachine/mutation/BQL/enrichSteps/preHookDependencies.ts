@@ -39,10 +39,10 @@ export const preHookDependencies = async (
 const FORBIDDEN_ROOT_QUERY_PROP = new Set(['$op', '$bzId', '$parentKey']);
 const FORBIDDEN_SUB_QUERY_PROP = new Set(['$relation', '$entity', '$id', ...FORBIDDEN_ROOT_QUERY_PROP]);
 
-type FieldQuery = string | { $path: string, $fields?: FieldQuery[] };
+type FieldQuery = string | { $path: string; $fields?: FieldQuery[] };
 
 const mutationToQuery = (block: FilledBQLMutationBlock, root: boolean) => {
-	let $fields: Record<string, FieldQuery> = {};
+	const $fields: Record<string, FieldQuery> = {};
 	block.$fields?.forEach((f: any) => {
 		if (typeof f === 'string') {
 			$fields[f] = f;
@@ -108,7 +108,7 @@ const setDbNode = (props: {
 	const subNodeMap = getNodeMap(node);
 	if (Array.isArray(mut)) {
 		return mut.map((subMut) => {
-		const subNode = subNodeMap[subMut.$id];
+			const subNode = subNodeMap[subMut.$id];
 			if (!subNode) {
 				return subMut;
 			}
@@ -136,12 +136,12 @@ const setDbNodeSingle = (props: {
 	node?: DbNode;
 	schema: EnrichedBormSchema;
 	thing: EnrichedBormEntity | EnrichedBormRelation;
-	dataFieldMap: Record<string, EnrichedDataField>,
-	linkFieldMap: Record<string, EnrichedLinkField>,
-	roleFieldMap: Record<string, EnrichedRoleField>,
+	dataFieldMap: Record<string, EnrichedDataField>;
+	linkFieldMap: Record<string, EnrichedLinkField>;
+	roleFieldMap: Record<string, EnrichedRoleField>;
 }) => {
 	const { mut, node, schema, thing, dataFieldMap, linkFieldMap, roleFieldMap } = props;
-	const { $fields, ..._mut } = mut;
+	const { $fields: _, ..._mut } = mut;
 	if (!node) {
 		return _mut;
 	}
@@ -198,9 +198,9 @@ const getDbNode = (props: {
 	node: DbNode;
 	schema: EnrichedBormSchema;
 	thing: EnrichedBormEntity | EnrichedBormRelation;
-	dataFieldMap: Record<string, EnrichedDataField>,
-	linkFieldMap: Record<string, EnrichedLinkField>,
-	roleFieldMap: Record<string, EnrichedRoleField>,
+	dataFieldMap: Record<string, EnrichedDataField>;
+	linkFieldMap: Record<string, EnrichedLinkField>;
+	roleFieldMap: Record<string, EnrichedRoleField>;
 }) => {
 	const { $fields, node, schema, thing, dataFieldMap, linkFieldMap, roleFieldMap } = props;
 	const fields = $fields ? $fields : getAllFields(thing);
@@ -276,9 +276,9 @@ const getDbNodeFromDbValue = (props: {
 	value: DbValue;
 	schema: EnrichedBormSchema;
 	thing: EnrichedBormEntity | EnrichedBormRelation;
-	dataFieldMap: Record<string, EnrichedDataField>,
-	linkFieldMap: Record<string, EnrichedLinkField>,
-	roleFieldMap: Record<string, EnrichedRoleField>,
+	dataFieldMap: Record<string, EnrichedDataField>;
+	linkFieldMap: Record<string, EnrichedLinkField>;
+	roleFieldMap: Record<string, EnrichedRoleField>;
 }) => {
 	const { value } = props;
 	if (!value || typeof value !== 'object' || !value.$id) {
@@ -314,5 +314,5 @@ const getNodeMap = (value: DbValue | DbValue[]) => {
 		map[v.$id] = v;
 	});
 
-	return map
+	return map;
 };
