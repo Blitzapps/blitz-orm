@@ -9,3 +9,4 @@ export const EdgeSchema = Symbol.for('edgeSchema');
 
 export const DBNode = Symbol.for('dbNode');
 export const IsTransformed = Symbol.for('isTransformed');
+export const IsFilter = Symbol.for('isFilter');

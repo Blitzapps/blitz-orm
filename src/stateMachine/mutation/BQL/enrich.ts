@@ -15,6 +15,7 @@ import { preHookTransformations } from './enrichSteps/preHookTransformations';
 import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
+import { IsFilter } from '../../../types/symbols';
 
 /*
 const getParentBzId = (node: BQLMutationBlock) => {
@@ -72,10 +73,14 @@ export const enrichBQLMutation = (
 				return;
 			}
 			if (isObject(value)) {
+				if ('$filter' in value) {
+					// @ts-expect-error todo
+					value.$filter[IsFilter] = true;
+				}
 				if ('$root' in value) {
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
-					const toIgnore = ['$fields', '$dbNode'];
+					const toIgnore = ['$fields', '$dbNode', '$filter'];
 					const paths: string[] = meta.nodePath?.split('.') || [];
 					const lastPath = paths[paths.length - 1];
 					const secondToLastPath = paths[paths.length - 2];
@@ -93,11 +98,15 @@ export const enrichBQLMutation = (
 				Object.keys(node).forEach((field) => {
 					///1. Clean step
 					cleanStep(node, field);
+					// @ts-expect-error todo
+					if (field !== '$root' && node[IsFilter]) {
+						return;
+					}
 
 					if (field !== '$root' && (field.startsWith('$') || field.startsWith('%'))) {
 						return;
 					}
-
+					// console.log('Field stuff:', JSON.stringify({ node, field }, null, 2));
 					const fieldSchema =
 						field !== '$root' ? getFieldSchema(schema, node, field) : ({ fieldType: 'rootField' } as any);
 					if (!fieldSchema) {
