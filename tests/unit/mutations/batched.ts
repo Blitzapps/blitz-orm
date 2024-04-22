@@ -1,5 +1,3 @@
-import 'jest';
-
 import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';

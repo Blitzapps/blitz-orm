@@ -16,21 +16,6 @@ import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
 
-/*
-const getParentBzId = (node: BQLMutationBlock) => {
-	if ('$root' in node) {
-		return `R_${uuidv4()}`;
-	} else {
-		if (node.$tempId) {
-			return node.$tempId;
-		} else if (node.$bzId) {
-			return node.$bzId;
-		} else {
-			throw new Error(`[Internal] No bzId found in ${JSON.stringify(isDraft(node) ? current(node) : node)}`);
-		}
-	}
-};*/
-
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
 		delete node[field];
@@ -61,8 +46,6 @@ export const enrichBQLMutation = (
 	schema: EnrichedBormSchema,
 	config: BormConfig,
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
-	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
-
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	// @ts-expect-error todo
 	const hasFields = dependenciesGuard(Array.isArray(blocks) ? blocks : [blocks]);
@@ -76,7 +59,7 @@ export const enrichBQLMutation = (
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
 					const toIgnore = ['$fields', '$dbNode'];
-					const paths: string[] = meta.nodePath?.split('.') || [];
+					const paths = meta.nodePath?.split('.') || [];
 					const lastPath = paths[paths.length - 1];
 					const secondToLastPath = paths[paths.length - 2];
 					if (key === '$root') {

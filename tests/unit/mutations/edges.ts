@@ -1,5 +1,3 @@
-import 'jest';
-
 import { deepSort } from '../../helpers/matchers';
 import type { KindType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';

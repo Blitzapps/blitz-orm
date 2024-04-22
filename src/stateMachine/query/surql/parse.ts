@@ -43,15 +43,13 @@ const parseFieldResult = (query: EnrichedFieldQuery, value: any) => {
 		if (query.$filterByUnique) {
 			// TODO: Look up what the id field is in the schema.
 			return value[0]?.id ?? null;
-		} else {
-			// TODO: Look up what the id field is in the schema.
-			return value?.map((i: Record<string, any>) => i.id) ?? [];
 		}
+		// TODO: Look up what the id field is in the schema.
+		return value?.map((i: Record<string, any>) => i.id) ?? [];
 	} else {
 		if (query.$filterByUnique) {
 			return parseObj(query, value[0]);
-		} else {
-			return parseRes(query, value);
 		}
+		return parseRes(query, value);
 	}
 };
