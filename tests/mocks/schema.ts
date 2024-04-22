@@ -181,20 +181,16 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op }, b, c, { cascadeRelations: dbCascadeRelations }) => {
-									if ($op === 'delete' && dbCascadeRelations.length > 0) {
-										console.log('dbCascadeRelations', JSON.stringify(dbCascadeRelations, null, 2));
-										return {
-											cascadeRelations: dbCascadeRelations.map((id: string) => {
-												return {
-													$op: 'delete',
-													$id: id,
-													$fields: ['things'],
-												};
-											}),
-										};
-									} else {
+									if ($op !== 'delete' || dbCascadeRelations.length === 0) {
 										return {};
 									}
+									return {
+										cascadeRelations: dbCascadeRelations.map((id: string) => ({
+											$op: 'delete',
+											$id: id,
+											$fields: ['things'],
+										})),
+									};
 								},
 							},
 						],
@@ -574,7 +570,6 @@ export const schema: BormSchema = {
 							{
 								type: 'transform',
 								fn: ({ $op, value }, b, c, dbNode) => {
-									console.log('preHook/transform', JSON.stringify(dbNode));
 									const { value: dbValue } = dbNode;
 									if ($op !== 'update' || !value || value !== dbValue || value !== 'gold') {
 										return {};
