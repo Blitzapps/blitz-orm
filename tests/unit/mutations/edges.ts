@@ -2685,7 +2685,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		]);
 	});
 
-	it('TODO:f2[filter with pre query] complete a mutation by filter', async () => {
+	it('f2[filter with pre query] complete a mutation by filter', async () => {
 		// creating
 		console.log('===== CREATING =====');
 		await ctx.mutate([

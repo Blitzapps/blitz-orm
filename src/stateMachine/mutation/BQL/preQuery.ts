@@ -121,7 +121,7 @@ export const mutationPreQuery = async (
 								// $filter: undefined,
 							};
 							// todo: make sure it keeps the one with the most keys
-							if (!$fields.find((o) => o.$path === newField.$path)) {
+							if (!$fields.find((o) => o.$path === newField.$path && !o.$filter)) {
 								$fields = [...$fields, ...[newField]];
 							}
 						});
