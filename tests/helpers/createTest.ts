@@ -1,7 +1,6 @@
-import 'jest';
-
 import BormClient from "../../src";
 import { assertDefined } from '../../src/helpers';
+import { afterAll, beforeAll, describe } from 'vitest';
 
 type TestContext = {
 	query: BormClient['query'];

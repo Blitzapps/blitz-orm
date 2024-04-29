@@ -1,8 +1,8 @@
-import 'jest';
 import { v4 as uuidv4 } from 'uuid';
 
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	// some random issues forced a let here

@@ -1,6 +1,5 @@
-import 'jest';
-
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testUnsupportedMutation = createTest('Mutation: Unsupported', (ctx) => {
 	it("notYet1[format] Can't update on link", async () => {

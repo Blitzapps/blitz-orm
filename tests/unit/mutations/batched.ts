@@ -1,7 +1,6 @@
-import 'jest';
-
 import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testBatchedMutation = createTest('Mutations: batched and tempId', (ctx) => {
 		it('c1[multi, create, link] Simple tempIds', async () => {

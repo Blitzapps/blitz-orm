@@ -10,7 +10,10 @@ import { schema } from '../mocks/schema';
 export const init = async () => {
 	const typeDBConnector = config.dbConnectors.find((c) => c.provider === 'typeDB') as TypeDBProvider;
 	const newTypeDBConnector = await setupTypeDB(typeDBConnector);
-	const dbConnectors = config.dbConnectors.map((i) => i.provider === 'typeDB' ? newTypeDBConnector : i) as [Provider, ...Provider[]];
+	const dbConnectors = config.dbConnectors.map((i) => (i.provider === 'typeDB' ? newTypeDBConnector : i)) as [
+		Provider,
+		...Provider[],
+	];
 	const dbNameMap = Object.fromEntries(Object.values(dbConnectors).map((i) => [i.id, i.dbName]));
 	const bormClient = new BormClient({
 		schema,
@@ -52,7 +55,7 @@ const cleanup = async (client: BormClient, dbNameMap: Record<string, string>) =>
 
 	const dbHandles = client.getDbHandles();
 	const typeDB = dbHandles?.typeDB;
-	[...typeDB||[]].forEach(async ([id, typeDB]) => {
+	[...(typeDB || [])].forEach(async ([id, typeDB]) => {
 		const database = await typeDB.client.databases.get(dbNameMap[id]);
 		await database.delete();
 	});

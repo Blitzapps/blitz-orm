@@ -1,7 +1,6 @@
-import 'jest';
-
 import { deepSort } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
+import { expect, it } from 'vitest';
 
 export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	// field level
@@ -431,8 +430,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	});
 
 	it('tf1[transform, fields] Use $fields for dbNode', async () => {
-		expect(ctx).toBeDefined();
-
 		try {
 			await ctx.mutate([
 				{
@@ -489,8 +486,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	});
 
 	it('tf2[transform, fields] Use $fields for dbNode nested', async () => {
-		expect(ctx).toBeDefined();
-
 		try {
 			// console.log('===== CREATING =====');
 
@@ -565,8 +560,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	});
 
 	it('tf3[transform, fields] Use $fields for transformation', async () => {
-		expect(ctx).toBeDefined();
-
 		try {
 			await ctx.mutate([
 				{
@@ -635,8 +628,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 
 	it('TODO:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
 		// this test should pass when we add more protections over nested $ids not being the same as parent $ids in a mutation
-		expect(ctx).toBeDefined();
-
 		try {
 			await ctx.mutate([
 				{
@@ -790,8 +781,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 	});
 
 	it('tf5[transform, fields] Use $fields nested looping through transformations', async () => {
-		expect(ctx).toBeDefined();
-
 		try {
 			await ctx.mutate([
 				{
@@ -864,5 +853,66 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 			// 	$id: 'mf2-user',
 			// });
 		}
+	});
+
+	it('tf6', async () => {
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				id: 'mf6-user',
+				name: 'John',
+				email: 'john@email.com',
+				spaces: [
+					{
+						id: 'mf6-space',
+						name: 'My space',
+						dataFields: [
+							{
+								id: 'mf6-dataField-1',
+								type: 'TEXT',
+								computeType: 'COMPUTED',
+							},
+							{
+								id: 'mf6-dataField-2',
+								type: 'EMAIL',
+								computeType: 'EDITABLE',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await ctx.mutate([
+			{
+				$op: 'update',
+				$entity: 'User',
+				$id: ['mf6-user'],
+				$fields: ['spaces', 'email', { $path: 'spaces', $fields: ['name'] }],
+				email: 'jhon@gmail.com',
+				spaces: [
+					{
+						$op: 'update',
+						// $id: 'mf6-space',
+						$fields: ['dataFields', 'name'],
+						name: 'Our space',
+						dataFields: [
+							{
+								$op: 'update',
+								$id: ['mf6-dataField-1', 'mf6-dataField-2'],
+								$fields: ['type'],
+								type: 'NUMBER',
+							},
+							// {
+							// 	$op: 'update',
+							// 	$id: 'mf6-dataField-2',
+							// 	$fields: ['computeType'],
+							// 	type: 'NUMBER',
+							// },
+						]
+					}
+				]
+			},
+		]);
 	});
 });

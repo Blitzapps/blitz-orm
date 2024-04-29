@@ -62,8 +62,6 @@ export const enrichBQLMutation = (
 	schema: EnrichedBormSchema,
 	config: BormConfig,
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
-	//console.log('Before enrich', JSON.stringify(blocks, null, 2));
-
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	// @ts-expect-error todo
 	const hasFields = dependenciesGuard(Array.isArray(blocks) ? blocks : [blocks]);
@@ -81,7 +79,7 @@ export const enrichBQLMutation = (
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
 					const toIgnore = ['$fields', '$dbNode', '$filter'];
-					const paths: string[] = meta.nodePath?.split('.') || [];
+					const paths = meta.nodePath?.split('.') || [];
 					const lastPath = paths[paths.length - 1];
 					const secondToLastPath = paths[paths.length - 2];
 					if (key === '$root') {
