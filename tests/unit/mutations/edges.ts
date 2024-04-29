@@ -2551,7 +2551,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 
 	it('f1[filter with pre query] complete a mutation by filter', async () => {
 		// creating
-		console.log('===== CREATING =====');
 		await ctx.mutate([
 			{
 				$entity: 'User',
@@ -2581,7 +2580,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				],
 			},
 		]);
-		console.log('===== MUTATING =====');
 
 		await ctx.mutate({
 			$entity: 'User',
@@ -2601,7 +2599,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				},
 			],
 		});
-		console.log('===== QUERYING =====');
 
 		const res = await ctx.query({
 			$entity: 'User',
@@ -2665,7 +2662,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$id: 'f1-user',
 			id: 'f1-user',
 		});
-		console.log('===== CLEANING =====');
 
 		// cleaning
 		await ctx.mutate([
@@ -2686,7 +2682,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 
 	it('f2[filter with pre query] complete a mutation by filter', async () => {
 		// creating
-		console.log('===== CREATING =====');
 		await ctx.mutate([
 			{
 				$entity: 'User',
@@ -2716,7 +2711,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				],
 			},
 		]);
-		console.log('===== MUTATING =====');
 
 		await ctx.mutate({
 			$entity: 'User',
@@ -2743,7 +2737,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				},
 			],
 		});
-		console.log('===== QUERYING =====');
 
 		const res = await ctx.query({
 			$entity: 'User',
@@ -2807,7 +2800,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$id: 'f1-user',
 			id: 'f1-user',
 		});
-		console.log('===== CLEANING =====');
 
 		// cleaning
 		await ctx.mutate([

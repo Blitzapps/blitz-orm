@@ -118,11 +118,10 @@ export const mutationPreQuery = async (
 								$path: k,
 								...processBlock(opBlock),
 								...(opBlock.$filter && { $as: opBlock.$bzId }),
-								// $filter: undefined,
 							};
 							// todo: make sure it keeps the one with the most keys
 							if (!$fields.find((o) => o.$path === newField.$path && !o.$filter)) {
-								$fields = [...$fields, ...[newField]];
+								$fields = [...$fields, newField];
 							}
 						});
 					} else {
@@ -130,10 +129,8 @@ export const mutationPreQuery = async (
 							$path: k,
 							...processBlock(v),
 							...(!v.$filter && { $as: v.$bzId }),
-
-							// $filter: undefined,
 						};
-						$fields = [...$fields, ...[newField]];
+						$fields = [...$fields, newField];
 					}
 				} else {
 					// @ts-expect-error todo
@@ -326,14 +323,8 @@ export const mutationPreQuery = async (
 								const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}`, $filterBzId: block.$bzId };
 								newBlocks.push(newBlock);
 							});
-						} else {
-							// return null;
-							// newBlocks.push(block);
 						}
 					});
-					// if (!cachesFound.includes(null)) {
-					// } else {
-					// }
 				} else {
 					const cacheKey = objectPathToKey(block.$objectPath);
 					const cacheFound = cache[cacheKey];
@@ -734,9 +725,9 @@ export const mutationPreQuery = async (
 					values.forEach((thing) => {
 						// todo: If user op is trying to link something that already has it's role filled by something else
 
-						const cacheFound = thing.$filter
-							? cache[objectPathToKey({ ...thing.$objectPath, key: thing.$filterBzId })]
-							: cache[objectPathToKey(thing.$objectPath)];
+						const $objectPath = thing.$filter ? { ...thing.$objectPath, key: thing.$filterBzId } : thing.$objectPath
+						const cacheKey = objectPathToKey($objectPath);
+						const cacheFound = cache[cacheKey];
 
 						const processArrayIdsFound = (arrayOfIds: string[], cacheOfIds: string[]) => {
 							return arrayOfIds.every((id) => cacheOfIds.includes(id));

@@ -104,7 +104,6 @@ export const enrichBQLMutation = (
 					if (field !== '$root' && (field.startsWith('$') || field.startsWith('%'))) {
 						return;
 					}
-					// console.log('Field stuff:', JSON.stringify({ node, field }, null, 2));
 					const fieldSchema =
 						field !== '$root' ? getFieldSchema(schema, node, field) : ({ fieldType: 'rootField' } as any);
 					if (!fieldSchema) {
