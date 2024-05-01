@@ -1272,6 +1272,142 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
+	it('nf3[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
+		const res = await ctx.query({
+			$entity: 'Space',
+			$fields: [
+				'name',
+				{
+					$path: 'users',
+					$filter: { 'user-tags': ['tag-1', 'tag-2'] },
+					$fields: ['name'],
+				},
+			],
+		});
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+
+		expect(deepSort(res)).toEqual([
+			{
+				users: [
+					{
+						name: 'Antoine',
+						$id: 'user1',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'Space',
+				$thingType: 'entity',
+				name: 'Production',
+				$id: 'space-1'
+			},
+			{
+				users: [
+					{
+						name: 'Antoine',
+						$id: 'user1',
+						$thing: 'User',
+						$thingType: 'entity'
+					},
+					{
+						name: 'Ann',
+						$id: 'user3',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'Space',
+				$thingType: 'entity',
+				name: 'Dev',
+				$id: 'space-2'
+			},
+			{
+				$thing: 'Space',
+				$thingType: 'entity',
+				name: 'Not-owned',
+				$id: 'space-3'
+			}
+		]);
+	});
+
+	it('nf4[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
+		const res = await ctx.query({
+			$relation: 'UserTag',
+			$fields: [
+				'name',
+				{
+					$path: 'users',
+					$filter: { 'spaces': ['space-1', 'space-2'] },
+					$fields: ['name'],
+				},
+			],
+		});
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+
+		expect(deepSort(res)).toEqual([
+			{
+				users: [
+					{
+						name: 'Antoine',
+						$id: 'user1',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				$id: 'tag-1'
+			},
+			{
+				users: [
+					{
+						name: 'Antoine',
+						$id: 'user1',
+						$thing: 'User',
+						$thingType: 'entity'
+					},
+					{
+						name: 'Ann',
+						$id: 'user3',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				$id: 'tag-2'
+			},
+			{
+				users: [
+					{
+						name: 'Loic',
+						$id: 'user2',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				$id: 'tag-3'
+			},
+			{
+				users: [
+					{
+						name: 'Loic',
+						$id: 'user2',
+						$thing: 'User',
+						$thingType: 'entity'
+					}
+				],
+				$thing: 'UserTag',
+				$thingType: 'relation',
+				$id: 'tag-4'
+			}
+		]);
+	});
+
 	it('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
 		expect(true).toEqual(false);
 	});

@@ -36,7 +36,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 			}
 			// if (k.startsWith('$') || !v) return '';
 			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			// console.log('currentDataField', currentDataField);
 			const fieldDbPath = currentDataField?.path;
 
 			if (!fieldDbPath) {
@@ -73,7 +72,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 			}
 			// if (k.startsWith('$') || !v) return '';
 			const currentDataField = currentSchema.dataFields?.find((x) => x.path === k);
-			// console.log('currentDataField', currentDataField);
 			const fieldDbPath = currentDataField?.path;
 
 			if (!fieldDbPath) {
@@ -196,10 +194,8 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		});
 
 		const roles = fromRoleFields.length > 0 ? `( ${fromRoleFieldsTql.join(' , ')} )` : '';
-
-		// console.log('roles', roles);
-
 		const edgeType = node[EdgeType];
+
 		if (!edgeType) {
 			throw new Error('[internal error] Symbol edgeType not defined');
 		}
@@ -342,17 +338,10 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 	const arrayNodeOperations = Array.isArray(nodeOperations) ? nodeOperations : [nodeOperations];
 	const edgeOperations = toTypeQL(edges, 'edges');
 	const arrayEdgeOperations = Array.isArray(edgeOperations) ? edgeOperations : [edgeOperations];
-	//console.log('nodeOperations', nodeOperations);
-	//console.log('edgeOperations', edgeOperations);
-
 	const allOperations = [...arrayNodeOperations, ...arrayEdgeOperations];
-	//console.log('allOperations', allOperations);
 
 	// todo: split BQL mutation in N DBstreams per DB
 	// todo: then pack them per DB,
-	// const dbHandleList = config.dbConnectors.map((x) => x.id);
-
-	// const creations = [];
 
 	const tqlMutation = shake(
 		{
@@ -378,6 +367,5 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 		(x) => !x,
 	);
 
-	//console.log('tqlMutation', tqlMutation);
 	return tqlMutation;
 };

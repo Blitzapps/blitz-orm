@@ -24,7 +24,6 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 	if (!mutateTransaction) {
 		throw new Error("Can't create transaction");
 	}
-	//console.log('tqlMutation!', JSON.stringify(tqlMutation, null, 2));
 
 	// deletes and pre-update deletes
 	const tqlDeletion =
@@ -39,16 +38,13 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 
 	// does not receive a result
 	if (tqlDeletion) {
-		// console.log('DELETING: ', tqlDeletion);
 		await mutateTransaction.query.delete(tqlDeletion);
-		// console.log('X: ', x);
 	}
 
 	const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 
 	try {
 		const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
-		// console.log('INSERTION: ', insertionsRes);
 
 		await mutateTransaction.commit();
 		await mutateTransaction.close();

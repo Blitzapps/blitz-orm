@@ -128,24 +128,12 @@ const parseMutation = async (ctx: MachineContext) => {
 // Guards
 // ============================================================================
 const requiresPreQuery = () => {
-	// return preQueryGuard(ctx.bql.current, ctx.config);
 	return true;
 };
 
 const requiresPreHookDependencies = (ctx: MachineContext) => {
-	// const needs = dependenciesGuard(ctx.bql.current);
-	// console.log('needs: ', JSON.stringify({ needs, bql: ctx.bql.current }, null, 2));
 	return dependenciesGuard(ctx.bql.current);
-	// return true;
 };
-
-/*const requiresParseBQL = (ctx: MachineContext) => {
-	//this would be more complicated than this, like count the entities requiring this, not just the root
-	const root = ctx.bql.current;
-	const rootBase = isArray(root) ? root[0] : root;
-	const { requiresParseBQL } = getCurrentSchema(ctx.schema, rootBase).dbContext.mutation;
-	return requiresParseBQL;
-};*/
 
 // Transitions
 // ============================================================================

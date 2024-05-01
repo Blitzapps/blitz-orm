@@ -192,7 +192,7 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 		newUsedAttributes.forEach((attribute: Attribute) => {
 			attributes += `${attribute.dbPath} sub attribute,\n`;
 			// All conditions for BORM to TQL attribute types
-			if (attribute.contentType === 'TEXT' || attribute.contentType === 'ID') {
+			if (attribute.contentType === 'TEXT' || attribute.contentType === 'ID' || attribute.contentType === 'JSON') {
 				attributes += '    value string;\n';
 			} else if (attribute.contentType === 'EMAIL') {
 				attributes += '    value string,\n';
@@ -204,6 +204,10 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 				attributes += '    value boolean;\n';
 			} else if (attribute.contentType === 'NUMBER') {
 				attributes += '    value long;\n';
+			} else {
+				throw new Error(
+					`Conversion of borm schema to TypeDB schema for data type "${attribute.contentType}" is not implemented`,
+				);
 			}
 		});
 

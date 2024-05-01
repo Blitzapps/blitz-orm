@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.4(2024-05-01)
+
+- Feat: Filtered mutations
+
 ## 0.10.3(2024-04-22)
 
 - Refacto: Pre queries dependencies refacto

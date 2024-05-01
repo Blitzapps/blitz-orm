@@ -555,8 +555,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		//console.log('res', res);
-
 		// @ts-expect-error - TODO description
 		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
 		// @ts-expect-error - TODO description
@@ -637,8 +635,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		// console.log('res', res);
-
 		// @ts-expect-error - TODO description
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
 		// @ts-expect-error - TODO description
@@ -651,7 +647,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		expect(res2).toBeInstanceOf(Object);
 
 		// link the user to the spaces
-		//console.log('res3-3', spaceThree.id, spaceFour.id, thirdUser.id);
 		const res3 = await ctx.mutate(
 			{
 				$entity: 'User',
@@ -1099,7 +1094,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		);
 
 		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-		// console.log('myTestKind1Id', myTestKind1Id);
 
 		/// delete both things
 		await ctx.mutate(

@@ -448,8 +448,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
       $id: 'utg-2',
     }); */
 
-		// console.log('original', original);
-
 		await ctx.mutate(
 			{
 				$relation: 'UserTagGroup',
@@ -767,10 +765,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			],
 		});
 
-		const kindBook = (await ctx.query(
-			{ $relation: 'Kind', $id: 'kind-book' },
-			{ noMetadata: true },
-		)) as KindType;
+		const kindBook = (await ctx.query({ $relation: 'Kind', $id: 'kind-book' }, { noMetadata: true })) as KindType;
 		expect(kindBook?.dataFields).toEqual(['firstDataField']);
 
 		if (!newRelRes || !Array.isArray(newRelRes) || typeof newRelRes[0] === 'string') {
@@ -922,8 +917,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		//console.log('withoutColor', withoutColor);
-
 		expect(withoutColor).toEqual({
 			id: 'tag-2',
 			group: { id: 'utg-1' },
@@ -937,8 +930,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-
-		//console.log('allGroups', allGroups);
 
 		expect(deepSort(allGroups, 'id')).toEqual([
 			{
@@ -1571,7 +1562,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				space: 'space-1',
 			},
 		]);
-		// console.log('LINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1605,8 +1595,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-1',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1648,8 +1636,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	});
 
 	it('lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
-		// console.log('CREATING AND LINKING...');
-
 		await ctx.mutate({
 			$relation: 'Field',
 			id: 'link-many-2',
@@ -1676,8 +1662,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-2',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1731,15 +1715,11 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		// 	},
 		// ]);
 
-		// console.log('CREATING...');
-
 		await ctx.mutate({
 			$relation: 'Field',
 			id: 'link-many-3',
 			space: 'space-1',
 		});
-
-		// console.log('LINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1768,8 +1748,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$fields: ['kinds', 'id'],
 		});
 
-		// console.log('res1: ', JSON.stringify(res1, null, 2));
-
 		expect(deepSort(res1, 'id')).toEqual({
 			$thing: 'Field',
 			$thingType: 'relation',
@@ -1777,8 +1755,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-3',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1995,13 +1971,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				},
 			],
 		});
-
-		// const filterByNull = await bormClient.query({
-		// 	$relation: 'DataField',
-		// 	$filter: { expression: null },
-		// });
-
-		// console.log('filterByNull', JSON.stringify(filterByNull, null, 2));
 
 		const deleted = await ctx.query({
 			$entity: 'User',
@@ -2546,6 +2515,275 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 						$id: 'up-space-1',
 						$op: 'delete',
 						dataFields: [{ $op: 'delete', values: [{ $op: 'delete' }], expression: { $op: 'delete' } }],
+					},
+				],
+			},
+		]);
+	});
+
+	it('f1[filter with pre query] complete a mutation by filter', async () => {
+		// creating
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				id: 'f1-user',
+				spaces: [
+					{
+						id: 'f1-space-1',
+						dataFields: [
+							{
+								id: 'f1-dataField-1',
+								type: 'toChange',
+							},
+							{
+								id: 'f1-dataField-2',
+								type: 'toChange',
+							},
+							{
+								id: 'f1-dataField-3',
+								type: 'toStay',
+							},
+							{
+								id: 'f1-dataField-4',
+								type: 'toStay',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await ctx.mutate({
+			$entity: 'User',
+			$id: 'f1-user',
+			spaces: [
+				{
+					$id: 'f1-space-1',
+					dataFields: [
+						{
+							$op: 'update',
+							type: 'afterChange',
+							$filter: {
+								type: 'toChange',
+							},
+						},
+					],
+				},
+			],
+		});
+
+		const res = await ctx.query({
+			$entity: 'User',
+			$id: 'f1-user',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', 'type'],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(res, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'f1-space-1',
+					id: 'f1-space-1',
+					$thing: 'Space',
+					$thingType: 'entity',
+					dataFields: [
+						{
+							$id: 'f1-dataField-1',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'afterChange',
+							id: 'f1-dataField-1',
+						},
+						{
+							$id: 'f1-dataField-2',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							id: 'f1-dataField-2',
+							type: 'afterChange',
+						},
+						{
+							$id: 'f1-dataField-3',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'toStay',
+							id: 'f1-dataField-3',
+						},
+						{
+							$id: 'f1-dataField-4',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'toStay',
+							id: 'f1-dataField-4',
+						},
+					],
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'f1-user',
+			id: 'f1-user',
+		});
+
+		// cleaning
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				$id: 'f1-user',
+				$op: 'delete',
+				spaces: [
+					{
+						$id: 'f1-space-1',
+						$op: 'delete',
+						dataFields: [{ $op: 'delete' }],
+					},
+				],
+			},
+		]);
+	});
+
+	it('f2[filter with pre query] complete a mutation by filter', async () => {
+		// creating
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				id: 'f1-user',
+				spaces: [
+					{
+						id: 'f1-space-1',
+						dataFields: [
+							{
+								id: 'f1-dataField-1',
+								type: 'toChange-1',
+							},
+							{
+								id: 'f1-dataField-2',
+								type: 'toChange-1',
+							},
+							{
+								id: 'f1-dataField-3',
+								type: 'toChange-2',
+							},
+							{
+								id: 'f1-dataField-4',
+								type: 'toChange-2',
+							},
+						],
+					},
+				],
+			},
+		]);
+
+		await ctx.mutate({
+			$entity: 'User',
+			$id: 'f1-user',
+			spaces: [
+				{
+					$id: 'f1-space-1',
+					dataFields: [
+						{
+							$op: 'update',
+							type: 'afterChange-1',
+							$filter: {
+								type: 'toChange-1',
+							},
+						},
+						{
+							$op: 'update',
+							type: 'afterChange-2',
+							$filter: {
+								type: 'toChange-2',
+							},
+						},
+					],
+				},
+			],
+		});
+
+		const res = await ctx.query({
+			$entity: 'User',
+			$id: 'f1-user',
+			$fields: [
+				'id',
+				{
+					$path: 'spaces',
+					$fields: [
+						'id',
+						{
+							$path: 'dataFields',
+							$fields: ['id', 'type'],
+						},
+					],
+				},
+			],
+		});
+
+		expect(deepSort(res, 'id')).toEqual({
+			spaces: [
+				{
+					$id: 'f1-space-1',
+					id: 'f1-space-1',
+					$thing: 'Space',
+					$thingType: 'entity',
+					dataFields: [
+						{
+							$id: 'f1-dataField-1',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'afterChange-1',
+							id: 'f1-dataField-1',
+						},
+						{
+							$id: 'f1-dataField-2',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							id: 'f1-dataField-2',
+							type: 'afterChange-1',
+						},
+						{
+							$id: 'f1-dataField-3',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'afterChange-2',
+							id: 'f1-dataField-3',
+						},
+						{
+							$id: 'f1-dataField-4',
+							$thing: 'DataField',
+							$thingType: 'relation',
+							type: 'afterChange-2',
+							id: 'f1-dataField-4',
+						},
+					],
+				},
+			],
+			$thing: 'User',
+			$thingType: 'entity',
+			$id: 'f1-user',
+			id: 'f1-user',
+		});
+
+		// cleaning
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				$id: 'f1-user',
+				$op: 'delete',
+				spaces: [
+					{
+						$id: 'f1-space-1',
+						$op: 'delete',
+						dataFields: [{ $op: 'delete' }],
 					},
 				],
 			},
