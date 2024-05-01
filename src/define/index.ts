@@ -205,7 +205,9 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 			} else if (attribute.contentType === 'NUMBER') {
 				attributes += '    value long;\n';
 			} else {
-				throw new Error(`Conversion of borm schema to TypeDB schema for data type "${attribute.contentType}" is not implemented`);
+				throw new Error(
+					`Conversion of borm schema to TypeDB schema for data type "${attribute.contentType}" is not implemented`,
+				);
 			}
 		});
 

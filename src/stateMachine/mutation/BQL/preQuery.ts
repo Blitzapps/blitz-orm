@@ -12,7 +12,6 @@ import type {
 } from '../../../types';
 import { getCardinality, getCurrentSchema, getSymbols } from '../../../helpers';
 import { v4 as uuidv4 } from 'uuid';
-import { queryPipeline } from '../../../pipeline/pipeline';
 import { runQueryMachine } from '../../query/machine';
 
 export const preQueryPathSeparator = '___';
@@ -314,18 +313,16 @@ export const mutationPreQuery = async (
 			// todo: if block has a filter, do a filter search in the cache
 			if (!block.$id && !block.id && !block.$tempId) {
 				if (block.$filter) {
-					Object.keys(block.$filter).forEach((k) => {
-						const cacheKey = `${objectPathToKey({ ...block.$objectPath, key: block.$bzId })}`;
-						const cacheFound = cache[cacheKey];
+					const cacheKey = objectPathToKey({ ...block.$objectPath, key: block.$bzId });
+					const cacheFound = cache[cacheKey];
 
-						if (cacheFound) {
-							const ids = Array.isArray(cacheFound.$ids) ? cacheFound.$ids : [cacheFound.$ids];
-							ids.forEach((id) => {
-								const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}`, $filterBzId: block.$bzId };
-								newBlocks.push(newBlock);
-							});
-						}
-					});
+					if (cacheFound) {
+						const ids = Array.isArray(cacheFound.$ids) ? cacheFound.$ids : [cacheFound.$ids];
+						ids.forEach((id) => {
+							const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}`, $filterBzId: block.$bzId };
+							newBlocks.push(newBlock);
+						});
+					}
 				} else {
 					const cacheKey = objectPathToKey(block.$objectPath);
 					const cacheFound = cache[cacheKey];
@@ -711,7 +708,7 @@ export const mutationPreQuery = async (
 					values.forEach((thing) => {
 						// todo: If user op is trying to link something that already has it's role filled by something else
 
-						const $objectPath = thing.$filter ? { ...thing.$objectPath, key: thing.$filterBzId } : thing.$objectPath
+						const $objectPath = thing.$filter ? { ...thing.$objectPath, key: thing.$filterBzId } : thing.$objectPath;
 						const cacheKey = objectPathToKey($objectPath);
 						const cacheFound = cache[cacheKey];
 

@@ -37,8 +37,7 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const dataFieldStep = (node: BQLMutationBlock, field: string) => {
-};
+const dataFieldStep = (node: BQLMutationBlock, field: string) => {};
 
 export const enrichBQLMutation = (
 	blocks: BQLMutationBlock | BQLMutationBlock[] | EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
