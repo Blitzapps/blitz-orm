@@ -20,7 +20,6 @@ export const parseTQLMutation = async (
 			//! reads all the insertions and gets the first match. This means each id must be unique
 			// @ts-expect-error - TODO description
 			const currentNode = tqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
-			// console.log('current:', JSON.stringify(x));
 			const $thing = exp.$thing || exp.$relation || exp.$entity;
 			const thing = $thing ? getThing(schema, $thing) : undefined;
 
@@ -75,8 +74,6 @@ export const parseTQLMutation = async (
 				return undefined;
 			}
 			throw new Error(`Unsupported op ${exp.$op}`);
-
-			// console.log('config', config);
 		})
 		.filter((z) => z);
 

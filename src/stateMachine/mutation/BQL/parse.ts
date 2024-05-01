@@ -20,9 +20,6 @@ export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
-	//console.log('blocks.NEW', JSON.stringify(blocks, null, 2));
-	//console.log('blocks.NEW', isArray(blocks) ? blocks[0]?.spaces : blocks.spaces);
-
 	const listNodes = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
 		// todo: make immutable
 
@@ -165,8 +162,6 @@ export const parseBQLMutation = async (
 				/// split nodes with multiple ids // why? //no longer doing that
 				toNodes(dataObj);
 
-				// console.log('value', isDraft(value) ? current(value) : value);
-
 				// CASE 1: HAVE A PARENT THROUGH LINKFIELDS
 				const edgeSchema = value[EdgeSchema] as EnrichedLinkField;
 
@@ -290,8 +285,6 @@ export const parseBQLMutation = async (
 						return [k, v];
 					});
 
-					// console.log('rolesObjOnlyIds', rolesObjOnlyIds);
-
 					const objWithMetaDataOnly = oFilter(val, (k, _v) => {
 						// @ts-expect-error - TODO description
 						return k.startsWith('$') || k.startsWith('Symbol');
@@ -324,7 +317,6 @@ export const parseBQLMutation = async (
 										if (v.length > 1) {
 											throw new Error(`[Error] Role ${k} is not a MANY relation`);
 										} else {
-											//console.log('v', v, blocks);
 											return [k, v[0].$bzId || v[0]];
 										}
 									}
@@ -334,7 +326,6 @@ export const parseBQLMutation = async (
 								//@ts-expect-error - TODO
 								return [k, v.$bzId || v];
 							});
-							// console.log('rolesObjOnlyIdsGrouped', rolesObjOnlyIdsGrouped);
 
 							// todo: validations
 							/// 1) each ONE role has only ONE element // 2) no delete ops // 3) no arrayOps, because it's empty (or maybe yes and just consider it an add?) ...
@@ -409,8 +400,6 @@ export const parseBQLMutation = async (
 				}
 			}
 		};
-		// console.log('[blocks]', JSON.stringify(blocks, null, 3));
-		// console.log('[blocks]', blocks);
 
 		traverse(blocks, listOp);
 
@@ -418,8 +407,6 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
-	//console.log('parsedThings', parsedThings);
-	//console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
@@ -516,9 +503,6 @@ export const parseBQLMutation = async (
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
 
-	//console.log('mergedThings', mergedThings);
-	//console.log('mergedEdges', mergedEdges);
-
 	/// VALIDATIONS
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
@@ -552,8 +536,6 @@ export const parseBQLMutation = async (
 		);
 	}
 
-	//console.log('mergedThings', mergedThings);
-	//console.log('mergedEdges', mergedEdges);
 	return {
 		mergedThings,
 		mergedEdges,

@@ -487,8 +487,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 
 	it('tf2[transform, fields] Use $fields for dbNode nested', async () => {
 		try {
-			// console.log('===== CREATING =====');
-
 			await ctx.mutate([
 				{
 					$entity: 'User',
@@ -524,8 +522,6 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 					],
 				},
 			]);
-
-			// console.log('===== MUTATING =====');
 
 			await ctx.mutate({
 				$thing: 'User',

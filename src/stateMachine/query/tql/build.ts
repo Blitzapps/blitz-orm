@@ -121,6 +121,7 @@ const processRoleFields = (
 		lines.push(indent(`$${$roleVar} isa ${roleField.$thing};`, nextDepth));
 		lines.push(
 			indent(
+				// TODO: The parent node already declare $path
 				`$${$path} (${roleField.$var}: $${$path}${separator}${roleField.$var}) isa ${roleField.$intermediary};`,
 				nextDepth,
 			),
@@ -223,8 +224,8 @@ const processLinkFields = (
 			lines.push(sorter.match);
 		}
 
-		// a. intermediary
 		if (linkField.$target === 'role') {
+			// a. intermediary
 			lines.push(
 				indent(
 					`$${$path}_intermediary (${linkField.$plays}: $${$path}, ${$playedBy.plays}: $${$linkVar}) isa ${linkField.$intermediary};`,
@@ -233,7 +234,14 @@ const processLinkFields = (
 			);
 		} else {
 			// b. no intermediary
-			lines.push(`\n$${$linkVar} (${linkField.$plays}: $${$path}) isa ${linkField.$thing};`);
+			lines.push(
+				indent(
+					// TODO: There can't be multiple "isa" for the same variable
+					// TODO: There can't be multiple relation constraints for the same variable. The filter may contain multiple relation constraints.
+					`$${$linkVar} (${linkField.$plays}: $${$path});`,
+					nextDepth,
+				),
+			);
 		}
 
 		if ($fields) {
@@ -372,24 +380,32 @@ const buildFilter = (props: {
 					throw new Error(`"${player.thing}" does not have an id field`);
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
+				const filterId = uuidv4();
+				const filterVar = `${$var}_${filterId}`;
 				if (value === null) {
-					matches.push(indent(`$${$var} (${player.plays}: ${playerVar});`, depth));
+					matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
+					matches.push(indent(`$${filterVar} (${player.plays}: ${playerVar});`, depth));
+					matches.push(indent(`$${$var} is $${filterVar};`, depth));
 				} else if (Array.isArray(value)) {
 					value.forEach((v) => {
+						matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
 						matches.push(
 							indent(
-								`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar}); };`,
+								`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${filterVar} (${player.plays}: $${playerVar}); };`,
 								depth,
 							),
 						);
+						matches.push(indent(`$${$var} is $${filterVar};`, depth));
 					});
 				} else {
+					matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
 					matches.push(
 						indent(
-							`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar}); };`,
+							`not { $${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${filterVar} (${player.plays}: $${playerVar}); };`,
 							depth,
 						),
 					);
+					matches.push(indent(`$${$var} is $${filterVar};`, depth));
 				}
 				return;
 			}
@@ -480,24 +496,32 @@ const buildFilter = (props: {
 					throw new Error(`"${player.thing}" does not have an id field`);
 				}
 				const playerVar = `${player.thing}_${uuidv4()}`;
+				const filterId = uuidv4();
+				const filterVar = `${$var}_${filterId}`;
 				if (value === null) {
-					matches.push(indent(`not { $${$var} (${player.plays}: ${playerVar}); };`, depth));
+					matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
+					matches.push(indent(`not { $${filterVar} (${player.plays}: ${playerVar}); };`, depth));
+					matches.push(indent(`$${$var} is $${filterVar};`, depth));
 				} else if (Array.isArray(value)) {
 					const alt = value.map(
 						(v) =>
-							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${$var} (${player.plays}: $${playerVar});`,
+							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(v)}; $${filterVar} (${player.plays}: $${playerVar});`,
 					);
 					const match = joinAlt(alt);
 					if (match) {
+						matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
 						matches.push(indent(match, depth));
+						matches.push(indent(`$${$var} is $${filterVar};`, depth));
 					}
 				} else {
+					matches.push(indent(`$${filterVar} isa ${$thing};`, depth));
 					matches.push(
 						indent(
-							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${$var} (${player.plays}: $${playerVar});`,
+							`$${playerVar} isa ${player.thing}, has ${playerIdField} ${serializeValue(value)}; $${filterVar} (${player.plays}: $${playerVar});`,
 							depth,
 						),
 					);
+					matches.push(indent(`$${$var} is $${filterVar};`, depth));
 				}
 				return;
 			}

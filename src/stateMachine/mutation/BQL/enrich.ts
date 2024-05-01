@@ -15,22 +15,6 @@ import { preHookTransformations } from './enrichSteps/preHookTransformations';
 import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
-import { IsFilter } from '../../../types/symbols';
-
-/*
-const getParentBzId = (node: BQLMutationBlock) => {
-	if ('$root' in node) {
-		return `R_${uuidv4()}`;
-	} else {
-		if (node.$tempId) {
-			return node.$tempId;
-		} else if (node.$bzId) {
-			return node.$bzId;
-		} else {
-			throw new Error(`[Internal] No bzId found in ${JSON.stringify(isDraft(node) ? current(node) : node)}`);
-		}
-	}
-};*/
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -54,7 +38,6 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const dataFieldStep = (node: BQLMutationBlock, field: string) => {
-	//console.log(`${field}:node[field]`);
 };
 
 export const enrichBQLMutation = (
@@ -71,15 +54,11 @@ export const enrichBQLMutation = (
 				return;
 			}
 			if (isObject(value)) {
-				if ('$filter' in value) {
-					// @ts-expect-error todo
-					value.$filter[IsFilter] = true;
-				}
+				const paths = meta.nodePath?.split('.') || [];
 				if ('$root' in value) {
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
 					const toIgnore = ['$fields', '$dbNode', '$filter'];
-					const paths = meta.nodePath?.split('.') || [];
 					const lastPath = paths[paths.length - 1];
 					const secondToLastPath = paths[paths.length - 2];
 					if (key === '$root') {
@@ -92,12 +71,12 @@ export const enrichBQLMutation = (
 				}
 
 				const node = value as EnrichedBQLMutationBlock;
+				const isFilter = paths.includes('$filter');
 
 				Object.keys(node).forEach((field) => {
 					///1. Clean step
 					cleanStep(node, field);
-					// @ts-expect-error todo
-					if (field !== '$root' && node[IsFilter]) {
+					if (field !== '$root' && isFilter) {
 						return;
 					}
 
@@ -123,9 +102,7 @@ export const enrichBQLMutation = (
 					if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 						///In the next steps we have (isArray(node[field]) ? node[field] : [node[field]]) multiple times, because it might mutate, can't replace by a var
 
-						//console.log('Before enrich', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						/// 3.2.1 replaces
-						//console.log('Before replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
 							if (node[field] === null) {
 								unlinkAll(node, field, fieldSchema);
@@ -133,7 +110,6 @@ export const enrichBQLMutation = (
 								replaceToObj(node, field, fieldSchema);
 							}
 						}
-						//console.log('After replace', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						//3.2.2 root $thing
 						if (fieldSchema.fieldType === 'rootField') {
@@ -142,13 +118,12 @@ export const enrichBQLMutation = (
 							}
 							const rootNode = node as unknown as { $root: BQLMutationBlock | BQLMutationBlock[] };
 							setRootMeta(rootNode, schema);
-							//console.log('After rootMeta', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 						}
 
 						// 3.2.3 BQL pre-validations => All validations should happen on subNode, if else, leaves are skipped
 						const preValidate = isArray(node[field]) ? node[field] : [node[field]];
 
-						const cleanPath = meta.nodePath?.split('.').slice(1).join('.');
+						const cleanPath = paths.slice(1).join('.');
 						preValidate.forEach((subNode: BQLMutationBlock) => {
 							if (!subNode) {
 								return;
@@ -187,16 +162,11 @@ export const enrichBQLMutation = (
 
 						//3.2.5 splitIds()
 						splitMultipleIds(node, field, schema);
-						//console.log('After splitIds', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
-
-						//console.log('After enrichChildren', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						/// 3.2.6 Field computes
 						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							//console.log('toBeComputed', node, field);
 							computeFields(node, field, schema);
 						}
-						//console.log('After computeFields', JSON.stringify(isDraft(node) ? current(node) : node, null, 2));
 
 						// 3.2.7
 						//#region BQL validations
@@ -255,8 +225,6 @@ export const enrichBQLMutation = (
 			}
 		}),
 	);
-	//console.log('After enrich', result.$rootWrap.$root);
-	//console.log('After enrich', JSON.stringify(result.$rootWrap.$root, null, 2));
 
 	if (isArray(result.$rootWrap.$root)) {
 		return result.$rootWrap.$root as EnrichedBQLMutationBlock[];

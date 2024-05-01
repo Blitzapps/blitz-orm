@@ -30,8 +30,6 @@ export const computeFields = (node: BQLMutationBlock, field: string, schema: Enr
 
 		// fill computed values
 		missingComputedFields.forEach((fieldPath) => {
-			//console.log('fieldPath', fieldPath);
-
 			const currentFieldDef = currentSchema.dataFields?.find((x) => x.path === fieldPath);
 			const currentLinkDef = currentSchema.linkFields?.find((x) => x.path === fieldPath);
 			// todo: multiple playedBy

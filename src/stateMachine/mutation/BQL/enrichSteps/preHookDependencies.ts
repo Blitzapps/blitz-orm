@@ -1,5 +1,6 @@
 import { isObject } from 'radash';
 import type {
+	BQLResponse,
 	BormConfig,
 	DBHandles,
 	EnrichedBQLMutationBlock,
@@ -12,8 +13,8 @@ import type {
 	FilledBQLMutationBlock,
 } from '../../../../types';
 import { getThing } from '../../../../helpers';
-import { queryPipeline } from '../../../../pipeline/pipeline';
 import { DBNode } from '../../../../types/symbols';
+import { runQueryMachine } from '../../../query/machine';
 
 export const preHookDependencies = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -23,13 +24,19 @@ export const preHookDependencies = async (
 ) => {
 	const mutations = Array.isArray(blocks) ? blocks : [blocks];
 	const transformationPreQueryReq = mutations.map((m) => mutationToQuery(m, true));
-	// @ts-expect-error todo
-	const transformationPreQueryRes = await queryPipeline(transformationPreQueryReq, config, schema, dbHandles);
-	return mutations.map((mut) => {
+	const res = await runQueryMachine(
+		// @ts-expect-error todo
+		transformationPreQueryReq,
+		schema,
+		config,
+		dbHandles,
+	);
+	const transformationPreQueryRes = res.bql.res as BQLResponse[];
+	return mutations.map((mut, i) => {
 		const thing = getThing(schema, mut.$thing);
 		return setDbNode({
 			mut: mut as Mutation,
-			node: transformationPreQueryRes as DbValue,
+			node: transformationPreQueryRes[i] as DbValue,
 			schema,
 			thing,
 		});

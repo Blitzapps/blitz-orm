@@ -26,7 +26,6 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		};
 
 		const res = await ctx.mutate(mutation);
-		// console.log('res', res);
 		expect(res).toStrictEqual([
 			{
 				$id: 'non-existing-user-tag-group',

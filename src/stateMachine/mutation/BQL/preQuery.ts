@@ -3,6 +3,7 @@ import { produce } from 'immer';
 import { traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import type {
+	BQLResponse,
 	BormConfig,
 	DBHandles,
 	EnrichedBQLMutationBlock,
@@ -12,6 +13,7 @@ import type {
 import { getCardinality, getCurrentSchema, getSymbols } from '../../../helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { queryPipeline } from '../../../pipeline/pipeline';
+import { runQueryMachine } from '../../query/machine';
 
 export const preQueryPathSeparator = '___';
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };
@@ -30,7 +32,6 @@ export const mutationPreQuery = async (
 				if (noDataFields) {
 					const currentSchema = getCurrentSchema(schema, block);
 					if (currentSchema.dataFields?.find((field) => field.path === key)) {
-						// console.log('key is df', key);
 						return false;
 					} else {
 						return true;
@@ -147,13 +148,15 @@ export const mutationPreQuery = async (
 
 	const preQueryReq = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
 
-	// console.log('preQueryReq', JSON.stringify({ preQueryReq }, null, 2));
-
 	/// 3. Perform query
-	// @ts-expect-error todo
-	const preQueryRes = await queryPipeline(preQueryReq, config, schema, dbHandles);
-
-	// console.log('preQueryRes', JSON.stringify({ preQueryRes }, null, 2));
+	const res = await runQueryMachine(
+		// @ts-expect-error todo
+		preQueryReq,
+		schema,
+		config,
+		dbHandles,
+	);
+	const preQueryRes = res.bql.res as BQLResponse[];
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;
@@ -259,8 +262,6 @@ export const mutationPreQuery = async (
 	//@ts-expect-error - todo
 	cachePaths(preQueryRes || {});
 
-	// console.log('cache', JSON.stringify(cache, null, 2));
-
 	/// 5. Fill all nodes with their correct object paths
 
 	const fillObjectPaths = (
@@ -354,15 +355,9 @@ export const mutationPreQuery = async (
 		});
 		return finalBlocks;
 	};
-	// console.log('filledBql', JSON.stringify([blocks], null, 2));
 
 	const bqlFilledIds = fillIds(Array.isArray(bqlWithObjectPaths) ? bqlWithObjectPaths : [bqlWithObjectPaths]);
-
-	// console.log('bqlFilledIds', JSON.stringify(bqlFilledIds, null, 2));
-
 	const newFilled = fillObjectPaths(bqlFilledIds);
-
-	// console.log('newFilled', JSON.stringify(newFilled, null, 2));
 
 	/// 7. For every node that is a multiple (many $ids or $filter), find all combinations that are based on the pre-query
 
@@ -455,10 +450,8 @@ export const mutationPreQuery = async (
 					const keys = getFieldKeys(combinationBlock, true);
 
 					if (combinationBlock.$op === 'create') {
-						// console.log('Case 1: ', JSON.stringify(combinationBlock, null, 2));
 						combinationsToKeep.push(combinationBlock);
 					} else if (combinationBlock.$id) {
-						// console.log('Case 2: ', JSON.stringify(combinationBlock, null, 2));
 						// check result for if there exists one with the kinds of keys
 						const cacheKey = objectPathToKey(combinationBlock.$objectPath);
 						const foundKeys: { key: string; ids: string[] }[] = [];
@@ -502,7 +495,6 @@ export const mutationPreQuery = async (
 					}
 					// When the block is not from the root level
 					else if (combinationBlock.$objectPath) {
-						// console.log('Case 3: ', JSON.stringify(combinationBlock, null, 2));
 						const parentKey = objectPathToKey(combinationBlock.$objectPath);
 						// d. get all ids of the parent block
 						const idsOfParent = cache[parentKey]?.$ids || [];
@@ -553,7 +545,6 @@ export const mutationPreQuery = async (
 							}
 						});
 					} else {
-						// console.log('Case 4: ', JSON.stringify(combinationBlock, null, 2));
 						combinationsToKeep.push(combinationBlock);
 					}
 				});
@@ -594,7 +585,6 @@ export const mutationPreQuery = async (
 	};
 
 	const splitBql = splitBzIds(Array.isArray(newFilled) ? newFilled : [newFilled]);
-	// console.log('splitBql', JSON.stringify(splitBql, null, 2));
 
 	/// 8. For each replace, make sure you prune existing ids from pre-query that want to be kept, and add deletes for all other ids
 
@@ -640,8 +630,6 @@ export const mutationPreQuery = async (
 
 				const cacheKey = objectPathToKey(replaceBlock.$objectPath);
 				const cacheKeys = convertManyPaths(cacheKey);
-				// console.log('cacheKey: ', JSON.stringify({ cacheKey, cacheKeys }, null, 2));
-
 				const foundKeys = cacheKeys.map((cacheKey) => {
 					return cache[cacheKey];
 				});
@@ -700,8 +688,6 @@ export const mutationPreQuery = async (
 
 	// @ts-expect-error todo
 	const processedReplaces = fillObjectPaths(processReplaces(fillObjectPaths(splitBql)));
-
-	// console.log('processedReplaces', JSON.stringify(processedReplaces, null, 2));
 
 	/// 9. Throw any error case
 
@@ -830,8 +816,6 @@ export const mutationPreQuery = async (
 		}
 		return 0; // Keep the original order if both have the same $op value or don't involve 'create'
 	});
-
-	// console.log('post-preQuery', JSON.stringify(sortedArray, null, 2));
 
 	return sortedArray;
 };

@@ -234,7 +234,6 @@ export const bormDefine = async (config: BormConfig, schema: BormSchema, dbHandl
 	// 3. Defining new schema
 	const schemaTransaction = await schemaSession.transaction(TransactionType.WRITE);
 
-	console.log('typeDBString\n', typeDBString);
 	await schemaTransaction.query.define(typeDBString);
 	await schemaTransaction.commit();
 	await schemaTransaction.close();

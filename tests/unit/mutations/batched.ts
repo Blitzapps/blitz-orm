@@ -164,7 +164,6 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 					},
 				],
 			};
-			// console.log('user');
 			// @ts-expect-error - TODO description
 			expectArraysInObjectToContainSameElements(user, expectedUser);
 

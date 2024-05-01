@@ -448,8 +448,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
       $id: 'utg-2',
     }); */
 
-		// console.log('original', original);
-
 		await ctx.mutate(
 			{
 				$relation: 'UserTagGroup',
@@ -919,8 +917,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		//console.log('withoutColor', withoutColor);
-
 		expect(withoutColor).toEqual({
 			id: 'tag-2',
 			group: { id: 'utg-1' },
@@ -934,8 +930,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-
-		//console.log('allGroups', allGroups);
 
 		expect(deepSort(allGroups, 'id')).toEqual([
 			{
@@ -1568,7 +1562,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				space: 'space-1',
 			},
 		]);
-		// console.log('LINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1602,8 +1595,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-1',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1645,8 +1636,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	});
 
 	it('lm-ni2[link and unlink many] linking and unlinking many things at once without intermediary, batched, on-create', async () => {
-		// console.log('CREATING AND LINKING...');
-
 		await ctx.mutate({
 			$relation: 'Field',
 			id: 'link-many-2',
@@ -1673,8 +1662,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-2',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1728,15 +1715,11 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		// 	},
 		// ]);
 
-		// console.log('CREATING...');
-
 		await ctx.mutate({
 			$relation: 'Field',
 			id: 'link-many-3',
 			space: 'space-1',
 		});
-
-		// console.log('LINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1765,8 +1748,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$fields: ['kinds', 'id'],
 		});
 
-		// console.log('res1: ', JSON.stringify(res1, null, 2));
-
 		expect(deepSort(res1, 'id')).toEqual({
 			$thing: 'Field',
 			$thingType: 'relation',
@@ -1774,8 +1755,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			id: 'link-many-3',
 			kinds: ['k1', 'k2', 'k3'],
 		});
-
-		// console.log('UNLINKING...');
 
 		await ctx.mutate({
 			$relation: 'Field',
@@ -1992,13 +1971,6 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				},
 			],
 		});
-
-		// const filterByNull = await bormClient.query({
-		// 	$relation: 'DataField',
-		// 	$filter: { expression: null },
-		// });
-
-		// console.log('filterByNull', JSON.stringify(filterByNull, null, 2));
 
 		const deleted = await ctx.query({
 			$entity: 'User',
