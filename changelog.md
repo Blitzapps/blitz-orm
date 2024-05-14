@@ -2,6 +2,9 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.5(2024-05-14)
+- Fix: Minor error silenced
+
 ## 0.10.4(2024-05-01)
 
 - Feat: Filtered mutations
