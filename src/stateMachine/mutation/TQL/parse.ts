@@ -42,9 +42,9 @@ export const parseTQLMutation = async (
 							}
 							if (exp.$thingType === 'relation') {
 								const matchedThings = expected.filter((x) => x.$id && x.$bzId === v);
-								if (matchedThings.length > 1) {
+								/*if (matchedThings.length > 1) { //todo: maybe we still need to throw this error and fix it in the root side?
 									throw new Error(`Multiple things with the same bzId ${v}`);
-								} else if (matchedThings.length === 1) {
+								} else*/ if (matchedThings.length === 1) {
 									acc[k] = matchedThings[0].$id;
 									return acc;
 								}
