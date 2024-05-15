@@ -3,7 +3,7 @@ import type { QueryPath } from '../symbols';
 
 export type Sorter = { field: string; desc?: boolean } | string;
 
-export type FilterValue = string | number | boolean | string[] | number[] | boolean[];
+export type FilterValue = string | number | boolean | string[] | number[] | boolean[] | null;
 export type PositiveFilter = { [field: string]: FilterValue };
 export type NegativeFilter = { $not?: PositiveFilter };
 export type Filter = PositiveFilter | NegativeFilter;
