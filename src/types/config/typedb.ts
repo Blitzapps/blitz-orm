@@ -1,4 +1,4 @@
-import type { TypeDBDriver, TypeDBCredential, TypeDBSession } from 'typedb-driver';
+import type { TypeDBDriver, TypeDBSession } from 'typedb-driver';
 import type { CommonProvider } from './base';
 
 export interface TypeDBProvider extends CommonProvider {
