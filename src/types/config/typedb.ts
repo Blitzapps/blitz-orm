@@ -1,4 +1,4 @@
-import type { TypeDBDriver, TypeDBCredential, TypeDBSession } from 'typedb-driver';
+import type { TypeDBDriver, TypeDBSession } from 'typedb-driver';
 import type { CommonProvider } from './base';
 
 export interface TypeDBProvider extends CommonProvider {
@@ -9,7 +9,9 @@ export interface TypeDBProvider extends CommonProvider {
 export interface TypeDBClusterProvider extends CommonProvider {
 	provider: 'typeDBCluster';
 	addresses: string[];
-	credentials: TypeDBCredential;
+	username: string;
+	password: string;
+	tlsRootCAPath?: string;
 }
 
 export type TypeDBHandles = Map<string, { client: TypeDBDriver; session: TypeDBSession }>;

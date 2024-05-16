@@ -1,4 +1,4 @@
-import { testMutationPrehooks } from "../../../unit/mutations/prehooks";
+import { testMutationPrehooks } from "../../../unit/mutations/preHooks";
 import { init } from "../../helpers/init";
 
 testMutationPrehooks(init);

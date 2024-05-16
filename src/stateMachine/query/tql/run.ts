@@ -15,16 +15,16 @@ export const runTQLQuery = async (props: {
 
 	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 	const transaction = await session.transaction(TransactionType.READ, options);
-	if (!transaction) {
-		throw new Error("Can't create transaction");
-	}
 
-	//todo: add try-catch here
-	const resArray = await parallel(tqlRequest.length, tqlRequest, async (queryString) => {
-		const tqlStream = transaction.query.fetch(queryString as string);
-		const tqlRes = await tqlStream.collect();
-		return tqlRes;
-	});
-	// todo: type the rawTqlRes
-	return resArray;
+	try {
+		const resArray = await parallel(tqlRequest.length, tqlRequest, async (queryString) => {
+			const tqlStream = transaction.query.fetch(queryString as string);
+			const tqlRes = await tqlStream.collect();
+			return tqlRes;
+		});
+		// todo: type the rawTqlRes
+		return resArray;
+	} finally {
+		await transaction.close();
+	}
 };

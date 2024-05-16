@@ -1,5 +1,5 @@
 import { tryit } from 'radash';
-import { TypeDB, SessionType } from 'typedb-driver';
+import { TypeDB, SessionType, TypeDBCredential } from 'typedb-driver';
 import { Surreal } from 'surrealdb.node';
 
 import { defaultConfig } from './default.config';
@@ -86,7 +86,8 @@ class BormClient {
 					}
 				}
 				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
-					const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, dbc.credentials);
+					const credential = new TypeDBCredential(dbc.username, dbc.password, dbc.tlsRootCAPath);
+					const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, credential);
 
 					if (clientErr) {
 						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${

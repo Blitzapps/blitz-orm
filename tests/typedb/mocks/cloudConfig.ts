@@ -1,5 +1,4 @@
-import { TypeDBCredential } from 'typedb-driver';
-import { BormConfig } from '../../../src';
+import type { BormConfig } from '../../../src';
 
 export const cloudConfig: BormConfig = {
 	server: {
@@ -14,7 +13,9 @@ export const cloudConfig: BormConfig = {
 				// temporally replace it by hand
 				'myUrl_1729',
 			],
-			credentials: new TypeDBCredential('admin', 'password', './tests/certs/rootCA.pem'),
+			username: 'admin',
+			password: 'password',
+			tlsRootCAPath: './tests/certs/rootCA.pem',
 		},
 	],
 };

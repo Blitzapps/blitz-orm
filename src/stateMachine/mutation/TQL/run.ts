@@ -18,12 +18,7 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 	}
 
 	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
-
 	const mutateTransaction = await session.transaction(TransactionType.WRITE);
-
-	if (!mutateTransaction) {
-		throw new Error("Can't create transaction");
-	}
 
 	// deletes and pre-update deletes
 	const tqlDeletion =
@@ -36,21 +31,20 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 		tqlMutation.insertions &&
 		`${tqlMutation.insertionMatches ? `match ${tqlMutation.insertionMatches}` : ''} insert ${tqlMutation.insertions}`;
 
-	// does not receive a result
-	if (tqlDeletion) {
-		await mutateTransaction.query.delete(tqlDeletion);
-	}
-
-	const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
-
 	try {
+		// does not receive a result
+		if (tqlDeletion) {
+			await mutateTransaction.query.delete(tqlDeletion);
+		}
+
+		const insertionsStream = tqlInsertion && mutateTransaction.query.insert(tqlInsertion);
 		const insertionsRes = insertionsStream ? await insertionsStream.collect() : undefined;
 
 		await mutateTransaction.commit();
-		await mutateTransaction.close();
 		return { insertions: insertionsRes };
 	} catch (e: any) {
-		await mutateTransaction.close();
 		throw new Error(`Transaction failed: ${e.message}`);
+	} finally {
+		await mutateTransaction.close();
 	}
 };
