@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.7(2024-05-21)
+
+- Update: Typedb adapter
+
 ## 0.10.6(2024-05-16)
 
 - Fix: TypeDB cloud adapter
