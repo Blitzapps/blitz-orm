@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { BormSchema, DataField } from "../../../src";
+import type { BormSchema, DataField } from '../../../src';
 
 const id: DataField = {
 	path: 'id',
@@ -111,8 +111,8 @@ const typeDBSchema: BormSchema = {
 				},
 			],
 		},
-  },
-  relations: {
+	},
+	relations: {
 		SpaceOwner: {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'typeDB', path: 'SpaceOwner' },
@@ -149,7 +149,7 @@ const typeDBSchema: BormSchema = {
 				executor: { cardinality: 'ONE' },
 			},
 		},
-  },
+	},
 };
 
 const surrealDBSchema: BormSchema = {
@@ -174,8 +174,8 @@ const surrealDBSchema: BormSchema = {
 				},
 			],
 		},
-  },
-  relations: {
+	},
+	relations: {
 		company: {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'surrealDB', path: 'company' },
@@ -189,8 +189,7 @@ const surrealDBSchema: BormSchema = {
 			roles: {
 				employees: { cardinality: 'MANY' },
 			},
-			linkFields: [
-			],
+			linkFields: [],
 		},
 		person: {
 			idFields: ['id'],
@@ -218,17 +217,17 @@ const surrealDBSchema: BormSchema = {
 					target: 'relation',
 				},
 			],
-		}
-  },
+		},
+	},
 };
 
 export const schema: BormSchema = {
 	entities: {
 		...typeDBSchema.entities,
 		...surrealDBSchema.entities,
-  },
-  relations: {
+	},
+	relations: {
 		...typeDBSchema.relations,
 		...surrealDBSchema.relations,
-  },
+	},
 };

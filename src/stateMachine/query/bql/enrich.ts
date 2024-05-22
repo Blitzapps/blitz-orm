@@ -111,11 +111,7 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 						const newFields = allFields
 							?.flatMap((field: any) => {
 								const processed = processField(field, currentSchema, schema);
-								if (Array.isArray(processed)) {
-									return processed;
-								} else {
-									return [processed];
-								}
+								return Array.isArray(processed) ? processed : [processed];
 							})
 							.filter(Boolean);
 						value.$fields = newFields;

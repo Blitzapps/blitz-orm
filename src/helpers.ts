@@ -73,11 +73,25 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					}
 
 					/// IMPORT THE EXTENDED SCHEMA
-					const extendedSchema = draft.entities[value.extends] || draft.relations[value.extends];
+					const extendedSchema = (draft.entities[value.extends] || draft.relations[value.extends]) as
+						| EnrichedBormRelation
+						| EnrichedBormEntity;
 					/// find out all the thingTypes this thingType is extending
-					// @ts-expect-error allExtends does not belong to the nonEnriched schema so this ts error is expecte
-					value.allExtends = [value.extends, ...(extendedSchema.allExtends || [])];
+					const allExtends = [value.extends, ...(extendedSchema.allExtends || [])];
+					value.allExtends = allExtends;
 					value as BormEntity | BormRelation;
+
+					allExtends.forEach((ext) => {
+						if (draft.entities[ext]) {
+							//@ts-expect-error : it's normal is just a draft
+							draft.entities[ext].subTypes = [key, ...(draft.entities[ext].subTypes || [])];
+						} else if (draft.relations[ext]) {
+							//@ts-expect-error : it's normal is just a draft
+							draft.relations[ext].subTypes = [key, ...(draft.relations[ext].subTypes || [])];
+						} else {
+							throw new Error(`[Schema] ${key} is extending a thing that does not exist in the schema: ${ext}`);
+						}
+					});
 
 					value.idFields = extendedSchema.idFields
 						? (value.idFields || []).concat(extendedSchema.idFields)
@@ -160,7 +174,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	});
 
 	// * Enrich the schema
-	const enrichedSchema = produce(withExtensionsSchema, (draft) =>
+	const enrichedSchema = produce(withExtensionsSchema, (draft: Partial<EnrichedBormSchema>) =>
 		traverse(draft, ({ value, key, meta }: TraversalCallbackContext) => {
 			// id things
 			if (meta.depth === 2 && value.idFields && !value.id) {
@@ -282,30 +296,33 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				// @ts-expect-error - TODO
 				const draftSchema = draft[type][thingId] as EnrichedBormEntity;
 
-				if (value.validations) {
-					if (value.validations.required) {
-						draftSchema.requiredFields.push(value.path);
+				if (!isArray(value) && typeof value === 'object') {
+					//skip meta.depth 4 when its arrays or undefined or not an object
+					if (value.validations) {
+						if (value.validations.required) {
+							draftSchema.requiredFields.push(value.path);
+						}
+						if (value.validations.enum) {
+							draftSchema.enumFields.push(value.path);
+						}
+						if (value.validations.fn) {
+							draftSchema.fnValidatedFields.push(value.path);
+						}
 					}
-					if (value.validations.enum) {
-						draftSchema.enumFields.push(value.path);
-					}
-					if (value.validations.fn) {
-						draftSchema.fnValidatedFields.push(value.path);
-					}
-				}
 
-				if (value.default) {
-					if (value.isVirtual) {
-						// default and virtual means computed
-						draftSchema.virtualFields.push(value.path);
+					if (value.default) {
+						if (value.isVirtual) {
+							// default and virtual means computed
+							draftSchema.virtualFields.push(value.path);
+						} else {
+							//default but not virtual means pre-computed (default value), borm side
+							draftSchema.computedFields.push(value.path);
+						}
 					} else {
-						//default but not virtual means pre-computed (default value), borm side
-						draftSchema.computedFields.push(value.path);
-					}
-				} else {
-					if (value.isVirtual) {
-						//not default but isVirtual means, computed in the DB side, not borm side
-						draftSchema.virtualFields.push(value.path);
+						if (value.isVirtual) {
+							//not default but isVirtual means, computed in the DB side, not borm side
+							draftSchema.virtualFields.push(value.path);
+						}
 					}
 				}
 			}

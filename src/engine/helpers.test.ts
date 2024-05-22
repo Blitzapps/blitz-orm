@@ -1,5 +1,5 @@
 import { getDependencies } from './helpers';
-
+import { test, expect } from 'vitest';
 test('Should get the dependencies', () => {
 	const fn = (
 		{ name }: { name: string },

@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.8(2024-05-22)
+
+- Feat(WIP): Basic surrealDB queries
+
 ## 0.10.7(2024-05-21)
 
 - Update: Typedb adapter

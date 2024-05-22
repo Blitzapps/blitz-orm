@@ -9,9 +9,11 @@ import type {
 	PositiveFilter,
 } from '../../../types';
 import { indent } from '../../../helpers';
+import { QueryPath } from '../../../types/symbols';
 
 export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
 	const { queries, schema } = props;
+	//console.log('queries!', queries);
 	return queries.map((query) => buildQuery({ query, schema }));
 };
 
@@ -26,22 +28,40 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 
 	lines.push('SELECT');
 
-	const fieldLines = buildFieldsQuery({ queries: query.$fields, level: 1, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: query.$fields, level: 1, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}
 
+	const currentSchema = schema.entities[query.$thing] || schema.relations[query.$thing];
+	if (!currentSchema) {
+		throw new Error(`Schema for ${query.$thing} not found`);
+	}
+	const allTypes = currentSchema.subTypes ? [query.$thing, ...currentSchema.subTypes] : [query.$thing];
+
+	lines.push(`FROM ${allTypes.join(',')}`);
+
 	const filter = (query.$filter && buildFilter(query.$filter, 0)) || [];
 	lines.push(...filter);
-
-	lines.push(`FROM ${query.$thing}`);
 
 	return lines.join('\n');
 };
 
-const buildFieldsQuery = (props: { queries: EnrichedFieldQuery[]; schema: EnrichedBormSchema; level: number }) => {
-	const { queries, schema, level } = props;
+const buildFieldsQuery = (props: {
+	queries: EnrichedFieldQuery[];
+	schema: EnrichedBormSchema;
+	level: number;
+	parentQuery: EnrichedBQLQuery | EnrichedRoleQuery | EnrichedLinkQuery;
+}) => {
+	const { queries, schema, level, parentQuery } = props;
 	const lines: string[] = [];
+
+	const queryPath = parentQuery[QueryPath];
+	//Metadata
+	lines.push(indent(`"${queryPath}" as \`$$queryPath\``, level));
+	lines.push(indent('meta::id(id) as `$id`', level));
+	lines.push(indent('meta::tb(id) as `$thing`', level));
+
 	queries.forEach((i) => {
 		const line = buildFieldQuery({ query: i, level, schema });
 		if (line) {
@@ -107,7 +127,7 @@ const buildLinkQuery = (props: {
 	lines.push(indent('SELECT', queryLevel));
 
 	const fieldLevel = queryLevel + 1;
-	const fieldLines = buildFieldsQuery({ queries: query.$fields, level: fieldLevel, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: query.$fields, level: fieldLevel, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}
@@ -158,7 +178,7 @@ const buildRoleQuery = (props: {
 	lines.push(indent('SELECT', queryLevel));
 
 	const fieldLevel = queryLevel + 1;
-	const fieldLines = buildFieldsQuery({ queries: query.$fields, level: fieldLevel, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: query.$fields, level: fieldLevel, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}

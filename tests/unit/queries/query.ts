@@ -338,7 +338,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('opt3a[options, returnNulll] - empty fields option in entity', async () => {
+	it('opt3a[options, returnNull] - empty fields option in entity', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user4',
@@ -351,6 +351,25 @@ export const testQuery = createTest('Query', (ctx) => {
 			'$id': 'user4',
 			'spaces': null, //example linkfield from intermediary relation
 			'user-tags': null, //example linkfield from direct relation
+		};
+		const res = await ctx.query(query, { returnNulls: true });
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual(expectedRes);
+	});
+
+	it('opt3b[options, returnNull] - empty fields option in entity, dont return explicit', async () => {
+		const query = {
+			$entity: 'User',
+			$id: 'user4',
+			$fields: ['spaces', 'email'],
+		};
+		const expectedRes = {
+			$thing: 'User',
+			$thingType: 'entity',
+			email: null, //Example field
+			$id: 'user4',
+			spaces: null, //example linkfield from intermediary relation
 		};
 		const res = await ctx.query(query, { returnNulls: true });
 		expect(res).toBeDefined();
@@ -1294,13 +1313,13 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Antoine',
 						$id: 'user1',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'Space',
 				$thingType: 'entity',
 				name: 'Production',
-				$id: 'space-1'
+				$id: 'space-1',
 			},
 			{
 				users: [
@@ -1308,26 +1327,26 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Antoine',
 						$id: 'user1',
 						$thing: 'User',
-						$thingType: 'entity'
+						$thingType: 'entity',
 					},
 					{
 						name: 'Ann',
 						$id: 'user3',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'Space',
 				$thingType: 'entity',
 				name: 'Dev',
-				$id: 'space-2'
+				$id: 'space-2',
 			},
 			{
 				$thing: 'Space',
 				$thingType: 'entity',
 				name: 'Not-owned',
-				$id: 'space-3'
-			}
+				$id: 'space-3',
+			},
 		]);
 	});
 
@@ -1338,7 +1357,7 @@ export const testQuery = createTest('Query', (ctx) => {
 				'name',
 				{
 					$path: 'users',
-					$filter: { 'spaces': ['space-1', 'space-2'] },
+					$filter: { spaces: ['space-1', 'space-2'] },
 					$fields: ['name'],
 				},
 			],
@@ -1353,12 +1372,12 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Antoine',
 						$id: 'user1',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'UserTag',
 				$thingType: 'relation',
-				$id: 'tag-1'
+				$id: 'tag-1',
 			},
 			{
 				users: [
@@ -1366,18 +1385,18 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Antoine',
 						$id: 'user1',
 						$thing: 'User',
-						$thingType: 'entity'
+						$thingType: 'entity',
 					},
 					{
 						name: 'Ann',
 						$id: 'user3',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'UserTag',
 				$thingType: 'relation',
-				$id: 'tag-2'
+				$id: 'tag-2',
 			},
 			{
 				users: [
@@ -1385,12 +1404,12 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Loic',
 						$id: 'user2',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'UserTag',
 				$thingType: 'relation',
-				$id: 'tag-3'
+				$id: 'tag-3',
 			},
 			{
 				users: [
@@ -1398,13 +1417,13 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Loic',
 						$id: 'user2',
 						$thing: 'User',
-						$thingType: 'entity'
-					}
+						$thingType: 'entity',
+					},
 				],
 				$thing: 'UserTag',
 				$thingType: 'relation',
-				$id: 'tag-4'
-			}
+				$id: 'tag-4',
+			},
 		]);
 	});
 
@@ -1550,13 +1569,13 @@ export const testQuery = createTest('Query', (ctx) => {
 	});
 
 	it('s1[self] Relation playing a a role defined by itself', async () => {
-    const res = await ctx.query({ $relation: 'Self' }, { noMetadata: true });
-    expect(deepSort(res, 'id')).toEqual([
-      { id: 'self1', owned: ['self2'], space: 'space-2' },
-      { id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
-      { id: 'self3', owner: 'self2', space: 'space-2' },
-      { id: 'self4', owner: 'self2', space: 'space-2' },
-    ]);
+		const res = await ctx.query({ $relation: 'Self' }, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual([
+			{ id: 'self1', owned: ['self2'], space: 'space-2' },
+			{ id: 'self2', owned: ['self3', 'self4'], owner: 'self1', space: 'space-2' },
+			{ id: 'self3', owner: 'self2', space: 'space-2' },
+			{ id: 'self4', owner: 'self2', space: 'space-2' },
+		]);
 	});
 
 	it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
@@ -1577,10 +1596,7 @@ export const testQuery = createTest('Query', (ctx) => {
 
 	it('ex2[extends] Query of the parent', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
-		const res = await ctx.query(
-			{ $entity: 'Space', $id: 'space-2', $fields: ['objects'] },
-			{ noMetadata: true },
-		);
+		const res = await ctx.query({ $entity: 'Space', $id: 'space-2', $fields: ['objects'] }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual({
 			objects: ['kind-book', 'self1', 'self2', 'self3', 'self4'],
 		});
@@ -1777,10 +1793,7 @@ export const testQuery = createTest('Query', (ctx) => {
 
 	it('vi1[virtual, attribute] Virtual DB field', async () => {
 		//This works with TypeDB rules
-		const res = await ctx.query(
-			{ $entity: 'Account', $fields: ['id', 'isSecureProvider'] },
-			{ noMetadata: true },
-		);
+		const res = await ctx.query({ $entity: 'Account', $fields: ['id', 'isSecureProvider'] }, { noMetadata: true });
 
 		expect(deepSort(res, 'id')).toEqual([
 			{

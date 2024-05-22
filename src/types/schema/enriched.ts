@@ -18,12 +18,13 @@ type SharedEnrichedProps = {
 	dataFields?: EnrichedDataField[];
 	db: DBHandleKey;
 	dbContext: AdapterContext;
+	allExtends?: string[];
+	subTypes?: string[];
 };
 
 export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
 	extends?: string;
 	thingType: 'entity';
-	allExtends?: string[];
 	idFields: string[];
 } & SharedEnrichedProps;
 

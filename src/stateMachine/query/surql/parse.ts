@@ -1,3 +1,4 @@
+import { isArray } from 'radash';
 import type {
 	BormConfig,
 	EnrichedBormSchema,
@@ -6,6 +7,7 @@ import type {
 	EnrichedLinkQuery,
 	EnrichedRoleQuery,
 } from '../../../types';
+import { QueryPath } from '../../../types/symbols';
 
 export const parse = (props: {
 	res: Record<string, any>[][];
@@ -14,15 +16,28 @@ export const parse = (props: {
 	config: BormConfig;
 }) => {
 	const { res, queries } = props;
-	return res.map((r, i) => parseRes(queries[i], r));
+	//console.log('res', res);
+	const result = res.map((r, i) => parseRes(queries[i], r));
+	//console.log('result', result);
+	return result;
 };
 
 const parseRes = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuery, res: Record<string, any>[]) => {
+	if (isArray(res) && res.length === 0) {
+		return null;
+	}
 	return res.map((r) => parseObj(query, r));
 };
 
 const parseObj = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuery, obj: Record<string, any>) => {
-	const newObj: Record<string, any> = {};
+	const newObj: Record<string, any> = {
+		//init with symbols
+		[QueryPath]: obj['$$queryPath'],
+		$id: obj['$id'],
+		$thing: obj['$thing'],
+		$thingType: query.$thingType, //This is actually not true always, will need to be fetched from the $thing
+	};
+
 	query.$fields.forEach((f) => {
 		const key = f.$as;
 		const value = obj[key];

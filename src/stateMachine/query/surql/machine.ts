@@ -32,7 +32,7 @@ const errorTransition = transition(
 	}),
 );
 
-const typeDbQueryMachine = createMachine(
+const surrealDbQueryMachine = createMachine(
 	'build',
 	{
 		build: invoke(
@@ -106,7 +106,7 @@ const awaitQueryMachine = async (context: SurrealDbMachineContext) => {
 	return new Promise<any[]>((resolve, reject) => {
 		// @ts-expect-error Bad type
 		interpret(
-			typeDbQueryMachine,
+			surrealDbQueryMachine,
 			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
