@@ -94,7 +94,6 @@ export type EnrichedLinkQuery = {
 	$idNotIncluded?: boolean;
 	$filter?: Filter;
 	$filterByUnique: boolean;
-	$filterProcessed: boolean;
 	$sort?: Sorter[];
 	$offset?: number;
 	$limit?: number;
@@ -118,7 +117,6 @@ export type EnrichedRoleQuery = {
 	$filter?: Filter;
 	$filterByUnique: boolean;
 	$playedBy: PlayedBy;
-	$filterProcessed: boolean;
 	$sort?: Sorter[];
 	$offset?: number;
 	$limit?: number;

@@ -9,8 +9,6 @@ import type {
 	EnrichedAttributeQuery,
 	EnrichedLinkQuery,
 	EnrichedRoleQuery,
-	Filter,
-	PositiveFilter,
 	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
@@ -77,9 +75,6 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 					const currentSchema = getCurrentSchema(schema, node);
 					if (value.$filter) {
 						value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
-						if (!value.$filterProcessed) {
-							value.$filter = value.$filter && mapFilterKeys(value.$filter, currentSchema);
-						}
 					}
 					// if no fields, then it's all fields
 					if (value.$fields) {
@@ -153,38 +148,6 @@ const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | E
 		}
 		return false;
 	});
-};
-
-const mapFilterKeys = (filter: Filter, thingSchema: EnrichedBormEntity | EnrichedBormRelation) => {
-	const mapper: Record<string, string> = {};
-
-	thingSchema.dataFields?.forEach((df) => {
-		if (df.path !== df.dbPath) {
-			mapper[df.path] = df.dbPath;
-		}
-	});
-
-	if (Object.keys(mapper).length === 0) {
-		return filter;
-	}
-
-	const { $not, ...f } = filter;
-	const newFilter: Filter = mapPositiveFilterKeys(f, mapper);
-
-	if ($not) {
-		newFilter.$not = mapPositiveFilterKeys($not as PositiveFilter, mapper);
-	}
-
-	return newFilter;
-};
-
-const mapPositiveFilterKeys = (filter: PositiveFilter, mapper: Record<string, string>) => {
-	const newFilter: PositiveFilter = {};
-	Object.entries(filter).forEach(([key, filterValue]) => {
-		const newKey = mapper[key] || key;
-		newFilter[newKey] = filterValue;
-	});
-	return newFilter;
 };
 
 const isId = (currentSchema: EnrichedBormEntity | EnrichedBormRelation, field: any) =>
@@ -273,10 +236,9 @@ const createLinkField = (props: {
 			$intermediary: playedBy.relation,
 			$justId,
 			$id: field.$id,
-			$filter: field.$filter && mapFilterKeys(field.$filter, currentSchema),
+			$filter: field.$filter,
 			$idNotIncluded: idNotIncluded,
 			$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
-			$filterProcessed: true,
 			$sort: field.$sort,
 			$offset: field.$offset,
 			$limit: field.$limit,
@@ -343,11 +305,10 @@ const createRoleField = (props: {
 			$intermediary: relation,
 			$justId,
 			$id: field.$id,
-			$filter: field.$filter && mapFilterKeys(field.$filter, currentSchema),
+			$filter: field.$filter,
 			$idNotIncluded: idNotIncluded,
 			$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 			$playedBy: playedBy,
-			$filterProcessed: true,
 			$sort: field.$sort,
 			$offset: field.$offset,
 			$limit: field.$limit,

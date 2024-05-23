@@ -1,12 +1,14 @@
 import { getIdFieldKey, getThing, indent } from '../../../helpers';
 import type {
 	EnrichedAttributeQuery,
+	EnrichedBormEntity,
+	EnrichedBormRelation,
 	EnrichedBormSchema,
 	EnrichedBQLQuery,
 	EnrichedLinkQuery,
 	EnrichedRoleQuery,
 } from '../../../types';
-import type { Filter } from '../../../types/requests/queries';
+import type { Filter, PositiveFilter } from '../../../types/requests/queries';
 import { QueryPath } from '../../../types/symbols';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -290,6 +292,38 @@ const processLinkFields = (
 	return lines;
 };
 
+const mapFilterKeys = (filter: Filter, thingSchema: EnrichedBormEntity | EnrichedBormRelation) => {
+	const mapper: Record<string, string> = {};
+
+	thingSchema.dataFields?.forEach((df) => {
+		if (df.path !== df.dbPath) {
+			mapper[df.path] = df.dbPath;
+		}
+	});
+
+	if (Object.keys(mapper).length === 0) {
+		return filter;
+	}
+
+	const { $not, ...f } = filter;
+	const newFilter: Filter = mapPositiveFilterKeys(f, mapper);
+
+	if ($not) {
+		newFilter.$not = mapPositiveFilterKeys($not as PositiveFilter, mapper);
+	}
+
+	return newFilter;
+};
+
+const mapPositiveFilterKeys = (filter: PositiveFilter, mapper: Record<string, string>) => {
+	const newFilter: PositiveFilter = {};
+	Object.entries(filter).forEach(([key, filterValue]) => {
+		const newKey = mapper[key] || key;
+		newFilter[newKey] = filterValue;
+	});
+	return newFilter;
+};
+
 const buildFilter = (props: {
 	$filter: Filter;
 	$var: string;
@@ -297,7 +331,9 @@ const buildFilter = (props: {
 	schema: EnrichedBormSchema;
 	depth: number;
 }) => {
-	const { $filter, $var, $thing, schema, depth } = props;
+	const { $filter: $nonMapedFilter, $var, $thing, schema, depth } = props;
+	const $filter = mapFilterKeys($nonMapedFilter, getThing(schema, $thing));
+
 	const { $not, ...rest } = $filter;
 
 	const thing = getThing(schema, $thing);

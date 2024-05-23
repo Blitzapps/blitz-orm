@@ -1,4 +1,4 @@
-import { testBasicMutation } from "../../../unit/mutations/basic";
-import { init } from "../../helpers/init";
+import { testBasicMutation } from '../../../unit/mutations/basic';
+import { init } from '../../helpers/init';
 
 testBasicMutation(init);
