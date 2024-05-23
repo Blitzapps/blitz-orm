@@ -10,6 +10,7 @@ import type {
 } from '../../../types';
 import { indent } from '../../../helpers';
 import { QueryPath } from '../../../types/symbols';
+import { isArray } from 'radash';
 
 export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
 	const { queries, schema } = props;
@@ -39,8 +40,17 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 	}
 	const allTypes = currentSchema.subTypes ? [query.$thing, ...currentSchema.subTypes] : [query.$thing];
 
-	if (query.$id && query.$id.length > 0) {
-		lines.push(`FROM ${allTypes.map((t) => `${t}:${query.$id}`).join(',')}`);
+	if (query.$id) {
+		if (typeof query.$id === 'string') {
+			lines.push(`FROM ${allTypes.map((t) => `${t}:\`${query.$id}\``).join(',')}`);
+		} else if (isArray(query.$id)) {
+			const $ids = query.$id;
+			const allCombinations = allTypes.flatMap((t) => $ids?.map((id) => `${t}:\`${id}\``));
+			lines.push(`FROM ${allCombinations.join(',')}`);
+			//throw new Error('Multiple ids not supported');
+		} else {
+			throw new Error('Invalid $id');
+		}
 	} else {
 		lines.push(`FROM ${allTypes.join(',')}`);
 	}
@@ -158,6 +168,16 @@ const buildLinkQuery = (props: {
 	}
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
+	if (query.$filter || query.$id) {
+		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
+		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
+		const $WithIdFilter = {
+			...query.$filter,
+			...($ids ? { ['meta::id(id)']: `INSIDE [${$ids.map((id) => `"${id}"`).join(', ')}] ` } : {}),
+		};
+		lines.push(...buildFilter($WithIdFilter, queryLevel));
+	}
+
 	lines.push(indent(`) AS \`${query.$as}\``, level));
 
 	return lines.join('\n');
@@ -193,8 +213,14 @@ const buildRoleQuery = (props: {
 		.join(', ');
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
-	if (query.$filter) {
-		lines.push(...buildFilter(query.$filter, queryLevel));
+	if (query.$filter || query.$id) {
+		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
+		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
+		const $WithIdFilter = {
+			...query.$filter,
+			...($ids ? { ['meta::id(id)']: `INSIDE [${$ids.map((id) => `"${id}"`).join(', ')}] ` } : {}),
+		};
+		lines.push(...buildFilter($WithIdFilter, queryLevel));
 	}
 
 	lines.push(indent(`) AS \`${query.$as}\``, level));
@@ -207,7 +233,12 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 	const { $not, ...f } = filter;
 	const conditionLevel = level + 1;
 	Object.entries(f).forEach(([key, value]) => {
-		conditions.push(indent(`${key}=${JSON.stringify(value)}`, conditionLevel));
+		if (key === 'meta::id(id)') {
+			//todo: special filter stuff, like IN, INCLUDED etc
+			conditions.push(indent(`${key} ${value}`, conditionLevel));
+		} else {
+			conditions.push(indent(`${key}=${JSON.stringify(value)}`, conditionLevel));
+		}
 	});
 	if ($not) {
 		Object.entries($not as PositiveFilter).forEach(([key, value]) => {

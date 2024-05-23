@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.11(2024-05-23)
+
+- Feat(WIP): SurrealDB id filters, nested filters and cardinality check 28✅/34❌
+
 ## 0.10.10(2024-05-23)
 
 - Feat(WIP): SurrealDB output format 13✅/49❌

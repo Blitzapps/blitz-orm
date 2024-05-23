@@ -1,5 +1,5 @@
-import type { BQLField } from '..';
-import type { QueryPath } from '../symbols';
+import type { BQLField, EnrichedDataField, EnrichedLinkField, EnrichedRoleField } from '..';
+import type { FieldSchema, QueryPath } from '../symbols';
 
 export type Sorter = { field: string; desc?: boolean } | string;
 
@@ -28,6 +28,7 @@ export type EnrichedAttributeQuery = {
 	$justId: boolean;
 	$id: string;
 	$isVirtual?: boolean;
+	[FieldSchema]: EnrichedDataField;
 };
 
 // TODO: Update type based on these example
@@ -98,6 +99,7 @@ export type EnrichedLinkQuery = {
 	$offset?: number;
 	$limit?: number;
 	[QueryPath]: string;
+	[FieldSchema]: EnrichedLinkField;
 };
 
 export type EnrichedRoleQuery = {
@@ -121,6 +123,7 @@ export type EnrichedRoleQuery = {
 	$offset?: number;
 	$limit?: number;
 	[QueryPath]: string;
+	[FieldSchema]: EnrichedRoleField;
 };
 
 export type EnrichedFieldQuery = EnrichedAttributeQuery | EnrichedLinkQuery | EnrichedRoleQuery;

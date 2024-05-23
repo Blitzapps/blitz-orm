@@ -174,10 +174,10 @@ RELATE UserTagGroup:`utg-2` -> UserTagGroup_space -> Space:`space-3`;
 
 
 INSERT INTO ⟨Kind⟩ [
-  { id: "kind_book", name: "book" }
+  { id: "kind-book", name: "book" }
 ];
 
-RELATE Kind:`kind_book` -> Kind_space -> Space:`space-2`;
+RELATE Kind:`kind-book` -> Kind_space -> Space:`space-2`;
 
 INSERT INTO ⟨Self⟩ [
   { id: "self1" },

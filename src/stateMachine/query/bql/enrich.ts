@@ -11,11 +11,14 @@ import type {
 	EnrichedRoleQuery,
 	Filter,
 	PositiveFilter,
+	EnrichedDataField,
+	EnrichedLinkField,
+	EnrichedRoleField,
 } from '../../../types';
 import { traverse } from 'object-traversal';
 import { getCurrentSchema } from '../../../helpers';
 import { isObject } from 'radash';
-import { QueryPath } from '../../../types/symbols';
+import { FieldSchema, QueryPath } from '../../../types/symbols';
 
 export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormSchema): EnrichedBQLQuery[] => {
 	for (const item of rawBqlQuery) {
@@ -193,8 +196,9 @@ const createDataField = (props: {
 	$justId: boolean;
 	dbPath: string;
 	isVirtual?: boolean;
+	fieldSchema: EnrichedDataField;
 }): EnrichedAttributeQuery => {
-	const { field, fieldStr, $justId, dbPath, isVirtual } = props;
+	const { field, fieldStr, $justId, dbPath, isVirtual, fieldSchema } = props;
 	// todo: get all dependencies of the virtual field in the query and then remove from the output
 	return {
 		$path: fieldStr,
@@ -206,6 +210,7 @@ const createDataField = (props: {
 		$justId,
 		$id: field.$id,
 		$isVirtual: isVirtual,
+		[FieldSchema]: fieldSchema,
 	};
 };
 
@@ -216,8 +221,9 @@ const createLinkField = (props: {
 	$justId: boolean;
 	dbPath: string;
 	schema: EnrichedBormSchema;
+	fieldSchema: EnrichedLinkField;
 }): EnrichedLinkQuery => {
-	const { field, fieldStr, linkField, $justId, dbPath, schema } = props;
+	const { field, fieldStr, linkField, $justId, dbPath, schema, fieldSchema } = props;
 	const { target, oppositeLinkFieldsPlayedBy } = linkField;
 	return oppositeLinkFieldsPlayedBy.map((playedBy: any) => {
 		const $thingType = target === 'role' ? playedBy.thingType : 'relation';
@@ -274,6 +280,7 @@ const createLinkField = (props: {
 			$sort: field.$sort,
 			$offset: field.$offset,
 			$limit: field.$limit,
+			[FieldSchema]: fieldSchema,
 		};
 	});
 };
@@ -285,8 +292,9 @@ const createRoleField = (props: {
 	$justId: boolean;
 	dbPath: string;
 	schema: EnrichedBormSchema;
+	fieldSchema: EnrichedRoleField;
 }): EnrichedRoleQuery => {
-	const { field, fieldStr, roleField, $justId, dbPath, schema } = props;
+	const { field, fieldStr, roleField, $justId, dbPath, schema, fieldSchema } = props;
 
 	return roleField.playedBy.map((playedBy: any) => {
 		const { thing, thingType, relation } = playedBy;
@@ -343,6 +351,7 @@ const createRoleField = (props: {
 			$sort: field.$sort,
 			$offset: field.$offset,
 			$limit: field.$limit,
+			[FieldSchema]: fieldSchema,
 		};
 	});
 };
@@ -366,6 +375,7 @@ const processField = (
 			$justId,
 			dbPath: dataField.dbPath,
 			isVirtual,
+			fieldSchema: dataField,
 		}); //ignore computed ones
 	} else if (linkField) {
 		return createLinkField({
@@ -375,6 +385,7 @@ const processField = (
 			$justId,
 			dbPath: linkField.path,
 			schema,
+			fieldSchema: linkField,
 		});
 	} else if (roleField) {
 		return createRoleField({
@@ -384,6 +395,7 @@ const processField = (
 			$justId,
 			dbPath: fieldStr,
 			schema,
+			fieldSchema: roleField,
 		});
 	}
 	return null;
