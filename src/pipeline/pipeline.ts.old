@@ -12,13 +12,13 @@ import type {
 	Request,
 	BaseResponse,
 } from '../types';
-import { buildTQLQuery } from './preprocess/query/buildTQLQuery';
-import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery';
+import { buildTQLQuery } from './preprocess/query/buildTQLQuery.ts.old';
+import { enrichBQLQuery } from './preprocess/query/enrichBQLQuery.ts.old';
 import { runTQLQuery } from './transaction/runTQLQuery';
 import { parseTQLQuery } from './postprocess/query/parseTQLQuery';
 import { postHooks } from './postprocess/query/postHooks';
 import { cleanQueryRes } from './postprocess/query/cleanQueryRes';
-import { SurrealDbPipelines } from '../adapters/surrealDB';
+import { SurrealDbPipelines } from '../adapters/surrealDB/index.ts.old';
 
 export type RelationName = string;
 export type EntityName = string;

@@ -94,7 +94,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					});
 
 					value.idFields = extendedSchema.idFields
-						? (value.idFields || []).concat(extendedSchema.idFields)
+						? Array.from(new Set((value.idFields || []).concat(extendedSchema.idFields)))
 						: value.idFields;
 
 					value.dataFields = extendedSchema.dataFields
@@ -394,6 +394,16 @@ export const getCurrentSchema = (
 		return schema.relations[node.$relation] as EnrichedBormRelation;
 	}
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
+};
+
+export const getIdFieldKey = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>) => {
+	const currentSchema = getCurrentSchema(schema, node);
+	if (currentSchema?.idFields?.length && currentSchema?.idFields?.length > 1) {
+		throw new Error(`Multiple ids not yet enabled / composite ids: ${currentSchema?.idFields}`);
+	}
+
+	const [idField] = currentSchema.idFields; //todo composed ids
+	return idField;
 };
 
 export const getThingType = (rootNode: BQLMutationBlock, schema: EnrichedBormSchema): ThingType => {

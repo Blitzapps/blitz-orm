@@ -1,4 +1,4 @@
-import { getThing, indent } from '../../../helpers';
+import { getIdFieldKey, getThing, indent } from '../../../helpers';
 import type {
 	EnrichedAttributeQuery,
 	EnrichedBormSchema,
@@ -19,7 +19,7 @@ export const buildTQLQuery = async (props: { queries: EnrichedBQLQuery[]; schema
 
 const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema }) => {
 	const { query, schema } = props;
-	const { $path, $thing, $filter, $fields, $sort, $offset, $limit } = query;
+	const { $path, $thing, $filter, $fields, $sort, $offset, $limit, $id } = query;
 
 	if (!$path) {
 		throw new Error('Path is not defined');
@@ -30,8 +30,10 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 	lines.push('match');
 	lines.push(`$${$path} isa ${$thing};`);
 
-	if ($filter) {
-		const filter = buildFilter({ $filter: $filter as any, $var: $path, $thing, schema, depth: 0 });
+	if ($filter || $id) {
+		const idField = getIdFieldKey(schema, query);
+		const $WithIdFilter = { ...$filter, ...($id ? { [idField]: $id } : {}) };
+		const filter = buildFilter({ $filter: $WithIdFilter as any, $var: $path, $thing, schema, depth: 0 });
 		lines.push(`\n${filter}`);
 	}
 
@@ -127,10 +129,12 @@ const processRoleFields = (
 			),
 		);
 
-		if (roleField.$filter) {
+		if (roleField.$filter || roleField.$id) {
+			const idField = getIdFieldKey(schema, roleField);
+			const $WithIdFilter = { ...roleField.$filter, ...(roleField.$id ? { [idField]: roleField.$id } : {}) };
 			lines.push(
 				buildFilter({
-					$filter: roleField.$filter as any,
+					$filter: $WithIdFilter,
 					$var: $roleVar,
 					$thing: roleField.$thing,
 					schema,
@@ -206,10 +210,12 @@ const processLinkFields = (
 		const $linkVar = `${$path}${separator}${linkField.$var}`;
 		lines.push(indent(`$${$linkVar} isa ${linkField.$thing};`, nextDepth));
 
-		if (linkField.$filter) {
+		if (linkField.$filter || linkField.$id) {
+			const idField = getIdFieldKey(schema, linkField);
+			const $WithIdFilter = { ...linkField.$filter, ...(linkField.$id ? { [idField]: linkField.$id } : {}) };
 			lines.push(
 				buildFilter({
-					$filter: linkField.$filter as any,
+					$filter: $WithIdFilter,
 					$var: $linkVar,
 					$thing: linkField.$thing,
 					schema,

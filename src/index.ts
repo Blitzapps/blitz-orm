@@ -111,7 +111,6 @@ class BormClient {
 		);
 		const enrichedSchema = enrichSchema(this.schema, dbHandles);
 
-		// @ts-expect-error - it becomes enrichedSchema here
 		this.schema = enrichedSchema as EnrichedBormSchema;
 		this.dbHandles = dbHandles;
 	};

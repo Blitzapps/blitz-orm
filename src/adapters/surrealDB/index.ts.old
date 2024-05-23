@@ -1,7 +1,7 @@
 import { trainCase } from 'case-anything';
 import type { Pipeline } from '../../types/pipeline/base';
 import type { EnrichedBormSchema, PipelineOperation } from '../../types';
-import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery';
+import { enrichBQLQuery } from '../../pipeline/preprocess/query/enrichBQLQuery.ts.old';
 import { cleanQueryRes } from './pipeline/postprocess/query/cleanQueryRes';
 import { pascal, dash } from 'radash';
 import { QueryPath } from '../../types/symbols';

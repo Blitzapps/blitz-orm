@@ -1,7 +1,8 @@
 import { mapEntries } from 'radash';
 
 import type { BQLMutationBlock, PipelineOperation } from '../../../types';
-import type { TypeDbResponse } from '../../pipeline';
+//import type { TypeDbResponse } from '../../pipeline.ts.old';
+type TypeDbResponse = any;
 
 export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { bqlRequest, config, tqlRequest } = req;
@@ -32,7 +33,7 @@ export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, r
 		const result = expected
 			.map((exp) => {
 				//! reads all the insertions and gets the first match. This means each id must be unique
-				const currentNode = rawTqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
+				const currentNode = rawTqlRes.insertions?.find((y: any) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
 
 				// console.log('current:', JSON.stringify(x));
 

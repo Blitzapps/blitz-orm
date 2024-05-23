@@ -47,12 +47,7 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 					if (!Array.isArray(value.$id)) {
 						value.$filterByUnique = true;
 					}
-					// todo: composite ids
-					if (currentSchema?.idFields?.length === 1) {
-						const [idField] = currentSchema.idFields;
-						value.$filter = { ...value.$filter, ...{ [idField]: value.$id } };
-						delete value.$id;
-					} else {
+					if (currentSchema?.idFields?.length !== 1) {
 						throw new Error('Multiple ids not yet enabled / composite ids');
 					}
 				} else if ('$entity' in value || '$relation' in value || '$thing' in value) {

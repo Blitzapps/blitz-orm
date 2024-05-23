@@ -4,7 +4,8 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 
 import type { BormConfig, BQLMutationBlock, RawBQLQuery, PipelineOperation } from '../../../types';
-import type { TypeDbResponse } from '../../pipeline';
+//import type { TypeDbResponse } from '../../pipeline.ts.old';
+type TypeDbResponse = any;
 
 const cleanOutput = (obj: RawBQLQuery | BQLMutationBlock | BQLMutationBlock[], config: BormConfig) =>
 	produce(obj, (draft) =>
@@ -99,7 +100,7 @@ export const buildBQLTree: PipelineOperation<TypeDbResponse> = async (req, res) 
 		throw new Error('BQL request not parsed');
 	}
 
-	// @ts-expect-error - TODO description
+	// -@ts-expect-error - TODO description
 	const resItems = res.bqlRes[0] ? res.bqlRes : [res.bqlRes];
 	const things = req.bqlRequest?.mutation?.things;
 	// @ts-expect-error - TODO description
@@ -109,7 +110,7 @@ export const buildBQLTree: PipelineOperation<TypeDbResponse> = async (req, res) 
 		const replaced = replaceBzIds(resItems, things);
 		res.bqlRes = replaced[1] ? replaced : replaced[0];
 	}
-	// @ts-expect-error - TODO description
+	// -@ts-expect-error - TODO description
 	const output = cleanOutput(res.bqlRes, config);
 	res.bqlRes = output;
 

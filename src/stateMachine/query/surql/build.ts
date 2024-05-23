@@ -39,7 +39,11 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 	}
 	const allTypes = currentSchema.subTypes ? [query.$thing, ...currentSchema.subTypes] : [query.$thing];
 
-	lines.push(`FROM ${allTypes.join(',')}`);
+	if (query.$id && query.$id.length > 0) {
+		lines.push(`FROM ${allTypes.map((t) => `${t}:${query.$id}`).join(',')}`);
+	} else {
+		lines.push(`FROM ${allTypes.join(',')}`);
+	}
 
 	const filter = (query.$filter && buildFilter(query.$filter, 0)) || [];
 	lines.push(...filter);

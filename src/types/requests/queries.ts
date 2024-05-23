@@ -126,13 +126,14 @@ export type EnrichedRoleQuery = {
 export type EnrichedFieldQuery = EnrichedAttributeQuery | EnrichedLinkQuery | EnrichedRoleQuery;
 
 export type EnrichedEntityQuery = {
+	$id?: string | string[];
 	$thingType: 'entity';
 	$thing: string;
-	$path: string;
+	$path: string; //todo: To replace by symbol as only user facing metadata will have this $format
 	$fields: (EnrichedAttributeQuery | EnrichedLinkQuery)[];
-	$idNotIncluded?: boolean;
+	$idNotIncluded?: boolean; //todo: To replace by symbol as only user facing metadata will have this $format
 	$filter?: Filter;
-	$filterByUnique: boolean;
+	$filterByUnique: boolean; //todo: To replace by symbol as only user facing metadata will have this $format
 	$sort?: Sorter[];
 	$offset?: number;
 	$limit?: number;
@@ -140,6 +141,7 @@ export type EnrichedEntityQuery = {
 };
 
 export type EnrichedRelationQuery = {
+	$id?: string | string[];
 	$thingType: 'relation';
 	$thing: string;
 	$path: string;

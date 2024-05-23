@@ -1,5 +1,5 @@
 import { TransactionType } from 'typedb-driver';
-import { getSessionOrOpenNewOne } from '../../../pipeline/transaction/helpers';
+import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
 import type { BormConfig, DBHandles } from '../../../types';
 
 export type TqlMutation = {

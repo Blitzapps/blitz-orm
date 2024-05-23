@@ -1,8 +1,10 @@
 import { TransactionType } from 'typedb-driver';
 
-import type { TypeDbResponse } from '../pipeline';
 import type { PipelineOperation } from '../../types';
-import { getSessionOrOpenNewOne } from './helpers';
+import { getSessionOrOpenNewOne } from '../../adapters/typeDB/helpers';
+
+//import type { TypeDbResponse } from '../../pipeline.ts.old';
+type TypeDbResponse = any;
 
 export const runTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
 	const { dbHandles, tqlRequest, bqlRequest, config } = req;

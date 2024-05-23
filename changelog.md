@@ -2,6 +2,13 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.9(2024-05-23)
+
+- Fix: Several minor fixes
+- Chore: .old files
+- Chore: $id as individual filter instead of prebuilt, to be treated by each adapter
+- Feat(WIP): SurrealDB subtypes query 7✅
+
 ## 0.10.8(2024-05-22)
 
 - Feat(WIP): Basic surrealDB queries

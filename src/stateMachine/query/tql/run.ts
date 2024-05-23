@@ -1,6 +1,6 @@
 import { parallel } from 'radash';
 import { TransactionType, TypeDBOptions } from 'typedb-driver';
-import { getSessionOrOpenNewOne } from '../../../pipeline/transaction/helpers';
+import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
 import type { BormConfig, DBHandles } from '../../../types';
 
 export const runTQLQuery = async (props: {

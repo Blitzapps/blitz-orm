@@ -1,1 +1,1 @@
-export * from './runTQLQuery';
+//export * from './runTQLQuery.ts.old';

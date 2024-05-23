@@ -9,7 +9,8 @@ import type {
 	RawBQLQuery,
 } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
-import type { TypeDbResponse } from '../../../pipeline/pipeline';
+
+type TypeDbResponse = Record<string, any>; //TODO
 
 export const parseTQLQuery = async (props: {
 	rawBqlRequest: RawBQLQuery[];

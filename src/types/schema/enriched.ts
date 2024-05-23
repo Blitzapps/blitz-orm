@@ -31,6 +31,7 @@ export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'd
 export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields'> & {
 	thingType: 'relation';
 	roles: { [key: string]: EnrichedRoleField };
+	idFields: string[];
 } & SharedEnrichedProps;
 
 export type EnrichedRoleField = RoleField & {
