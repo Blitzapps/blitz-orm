@@ -11,6 +11,7 @@ import type {
 import { indent } from '../../../helpers';
 import { QueryPath } from '../../../types/symbols';
 import { isArray } from 'radash';
+import { prepareTableNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 
 export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
 	const { queries, schema } = props;
@@ -39,20 +40,21 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 		throw new Error(`Schema for ${query.$thing} not found`);
 	}
 	const allTypes = currentSchema.subTypes ? [query.$thing, ...currentSchema.subTypes] : [query.$thing];
+	const allTypesNormed = allTypes.map((t) => prepareTableNameSurrealDB(t));
 
 	if (query.$id) {
 		if (typeof query.$id === 'string') {
-			lines.push(`FROM ${allTypes.map((t) => `${t}:\`${query.$id}\``).join(',')}`);
+			lines.push(`FROM ${allTypesNormed.map((t) => `${t}:\`${query.$id}\``).join(',')}`);
 		} else if (isArray(query.$id)) {
 			const $ids = query.$id;
-			const allCombinations = allTypes.flatMap((t) => $ids?.map((id) => `${t}:\`${id}\``));
+			const allCombinations = allTypesNormed.flatMap((t) => $ids?.map((id) => `${t}:\`${id}\``));
 			lines.push(`FROM ${allCombinations.join(',')}`);
 			//throw new Error('Multiple ids not supported');
 		} else {
 			throw new Error('Invalid $id');
 		}
 	} else {
-		lines.push(`FROM ${allTypes.join(',')}`);
+		lines.push(`FROM ${allTypesNormed.join(',')}`);
 	}
 
 	const filter = (query.$filter && buildFilter(query.$filter, 0)) || [];

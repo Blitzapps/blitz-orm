@@ -8,6 +8,7 @@ import type {
 	EnrichedRoleQuery,
 } from '../../../types';
 import { FieldSchema, QueryPath } from '../../../types/symbols';
+import { sanitizeTableNameSurrealDb } from '../../../adapters/surrealDB/helpers';
 
 export const parse = (props: {
 	res: Record<string, any>[][];
@@ -16,10 +17,9 @@ export const parse = (props: {
 	config: BormConfig;
 }) => {
 	const { res, queries } = props;
-	//console.log('res', res);
+	//console.log('res!', res[0]);
 	const result = res.map((r, i) => parseRes(queries[i], r));
 	//console.log('result', result);
-	//console.log('queries!', queries[0].$fields[1]);
 	return result;
 };
 
@@ -31,8 +31,9 @@ const parseRes = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuer
 		if (query.$filterByUnique) {
 			if (res.length > 1) {
 				throw new Error('Multiple results found for unique query');
+			} else {
+				return parseObj(query, res[0]);
 			}
-			return parseObj(query, res[0]);
 		}
 		if (res.length >= 1) {
 			return res.map((r) => parseObj(query, r));
@@ -47,11 +48,12 @@ const parseObj = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuer
 		//init with symbols
 		[QueryPath]: obj['$$queryPath'],
 		$id: obj['$id'],
-		$thing: obj['$thing'],
+		$thing: sanitizeTableNameSurrealDb(obj['$thing']),
 		$thingType: query.$thingType, //This is actually not true always, will need to be fetched from the $thing
 	};
 
 	query.$fields.forEach((f) => {
+		//console.log('FIELD', f.$dbPath, 'object', obj);
 		const key = f.$as;
 		const value = obj[key];
 		// TODO: Look up what the id field is in the schema.
@@ -64,10 +66,10 @@ const parseObj = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuer
 };
 
 const parseFieldResult = (query: EnrichedFieldQuery, value: any) => {
+	if (!value || (isArray(value) && value.length === 0)) {
+		return null;
+	}
 	if (query.$fieldType === 'data') {
-		if (!value || (isArray(value) && value.length === 0)) {
-			return null;
-		}
 		if (query[FieldSchema].cardinality === 'ONE') {
 			isArray(value) ? value[0] : value;
 		}

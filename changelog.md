@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.12(2024-05-23)
+
+- Feat(WIP): SurrealDB fix empty arrays and tableName sanitizing 37✅/25❌
+
 ## 0.10.11(2024-05-23)
 
 - Feat(WIP): SurrealDB id filters, nested filters and cardinality check 28✅/34❌
