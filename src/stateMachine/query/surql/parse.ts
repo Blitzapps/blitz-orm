@@ -18,15 +18,27 @@ export const parse = (props: {
 	const { res, queries } = props;
 	//console.log('res', res);
 	const result = res.map((r, i) => parseRes(queries[i], r));
-	//console.log('result', result);
+	console.log('result', result);
 	return result;
 };
 
 const parseRes = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuery, res: Record<string, any>[]) => {
-	if (isArray(res) && res.length === 0) {
-		return null;
+	if (isArray(res)) {
+		if (res.length === 0) {
+			return null;
+		}
+		if (query.$filterByUnique) {
+			if (res.length > 1) {
+				throw new Error('Multiple results found for unique query');
+			}
+			return parseObj(query, res[0]);
+		}
+		if (res.length > 1) {
+			return res.map((r) => parseObj(query, r));
+		}
+	} else {
+		throw new Error('res is unexpectedly not an array');
 	}
-	return res.map((r) => parseObj(query, r));
 };
 
 const parseObj = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuery, obj: Record<string, any>) => {
