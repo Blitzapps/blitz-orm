@@ -121,15 +121,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 					if ('roles' in extendedSchema) {
 						const val = value as BormRelation;
-						const extendedRelationSchema = extendedSchema as BormRelation;
-						val.roles = val.roles || {};
+
+						//val.roles = val.roles || {};
 						val.roles = {
-							...val.roles,
-							...extendedRelationSchema.roles,
+							...(val.roles || {}),
+							...extendedSchema.roles,
 						};
-						if (Object.keys(val.roles).length === 0) {
-							val.roles = {};
-						}
+						//if (Object.keys(val.roles).length === 0) {
+						//	val.roles = {};
+						//}
 					}
 
 					//todo: Do some checks, and potentially simplify the hooks structure

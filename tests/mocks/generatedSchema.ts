@@ -259,7 +259,78 @@ export const typesSchema = {
           ]
         }
       ],
+      "subTypes": [
+        "SubthingTwo",
+        "SubthingOne"
+      ],
       "name": "Thing",
+      "thingType": "entity",
+      "computedFields": [
+        "id"
+      ],
+      "virtualFields": [],
+      "requiredFields": [
+        "id"
+      ],
+      "enumFields": [],
+      "fnValidatedFields": []
+    },
+    "CascadeThing": {
+      "idFields": [
+        "id"
+      ],
+      "defaultDBConnector": {
+        "id": "default",
+        "path": "CascadeThing"
+      },
+      "dataFields": [
+        {
+          "shared": true,
+          "path": "id",
+          "default": {
+            "type": "fn"
+          },
+          "validations": {
+            "required": true,
+            "unique": true
+          },
+          "contentType": "ID",
+          "rights": [
+            "CREATE"
+          ],
+          "cardinality": "ONE",
+          "dbPath": "id"
+        }
+      ],
+      "linkFields": [
+        {
+          "path": "cascadeRelations",
+          "cardinality": "MANY",
+          "relation": "CascadeRelation",
+          "plays": "things",
+          "target": "relation",
+          "fieldType": "linkField",
+          "oppositeLinkFieldsPlayedBy": [
+            {
+              "plays": "cascadeRelations",
+              "thing": "CascadeRelation",
+              "thingType": "relation"
+            }
+          ]
+        }
+      ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "CascadeThing",
       "thingType": "entity",
       "computedFields": [
         "id"
@@ -518,6 +589,12 @@ export const typesSchema = {
           "isVirtual": true,
           "cardinality": "ONE",
           "dbPath": "Account·isSecureProvider"
+        },
+        {
+          "path": "profile",
+          "contentType": "JSON",
+          "cardinality": "ONE",
+          "dbPath": "Account·profile"
         }
       ],
       "linkFields": [
@@ -686,6 +763,18 @@ export const typesSchema = {
             "triggers": {},
             "actions": [
               {
+                "name": "Validate tf1 test",
+                "type": "validate",
+                "message": "Failed test tf1",
+                "severity": "error"
+              },
+              {
+                "name": "Validate tf2 test",
+                "type": "validate",
+                "message": "Failed test tf2",
+                "severity": "error"
+              },
+              {
                 "name": "Add children",
                 "type": "transform"
               },
@@ -695,9 +784,28 @@ export const typesSchema = {
                 "type": "transform"
               }
             ]
+          },
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "description": "Use %var to replace name",
+                "type": "transform"
+              }
+            ]
           }
         ]
       },
+      "subTypes": [
+        "God",
+        "SuperUser"
+      ],
       "name": "User",
       "thingType": "entity",
       "computedFields": [
@@ -846,6 +954,54 @@ export const typesSchema = {
             }
           ]
         }
+      ],
+      "hooks": {
+        "pre": [
+          {
+            "triggers": {},
+            "actions": [
+              {
+                "name": "Validate tf1 test",
+                "type": "validate",
+                "message": "Failed test tf1",
+                "severity": "error"
+              },
+              {
+                "name": "Validate tf2 test",
+                "type": "validate",
+                "message": "Failed test tf2",
+                "severity": "error"
+              },
+              {
+                "name": "Add children",
+                "type": "transform"
+              },
+              {
+                "name": "from context",
+                "description": "Add space from context",
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "description": "Use %var to replace name",
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "subTypes": [
+        "God"
       ],
       "name": "SuperUser",
       "thingType": "entity",
@@ -1003,6 +1159,51 @@ export const typesSchema = {
           ]
         }
       ],
+      "hooks": {
+        "pre": [
+          {
+            "triggers": {},
+            "actions": [
+              {
+                "name": "Validate tf1 test",
+                "type": "validate",
+                "message": "Failed test tf1",
+                "severity": "error"
+              },
+              {
+                "name": "Validate tf2 test",
+                "type": "validate",
+                "message": "Failed test tf2",
+                "severity": "error"
+              },
+              {
+                "name": "Add children",
+                "type": "transform"
+              },
+              {
+                "name": "from context",
+                "description": "Add space from context",
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "description": "Use %var to replace name",
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
       "name": "God",
       "thingType": "entity",
       "computedFields": [
@@ -1021,6 +1222,27 @@ export const typesSchema = {
       ],
       "defaultDBConnector": {
         "id": "default"
+      },
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "name": "Validate tf2 test in space",
+                "type": "validate",
+                "message": "Failed test tf2 in space",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
       },
       "dataFields": [
         {
@@ -1234,6 +1456,12 @@ export const typesSchema = {
           },
           "cardinality": "ONE",
           "dbPath": "Color·totalUserTags"
+        },
+        {
+          "path": "value",
+          "contentType": "TEXT",
+          "cardinality": "ONE",
+          "dbPath": "Color·value"
         }
       ],
       "linkFields": [
@@ -1272,6 +1500,17 @@ export const typesSchema = {
           ]
         }
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
       "name": "Color",
       "thingType": "entity",
       "computedFields": [
@@ -1573,6 +1812,74 @@ export const typesSchema = {
         }
       },
       "name": "ThingRelation",
+      "thingType": "relation",
+      "computedFields": [
+        "id"
+      ],
+      "virtualFields": [],
+      "requiredFields": [
+        "id"
+      ],
+      "enumFields": [],
+      "fnValidatedFields": []
+    },
+    "CascadeRelation": {
+      "idFields": [
+        "id"
+      ],
+      "defaultDBConnector": {
+        "id": "default",
+        "path": "CascadeRelation"
+      },
+      "dataFields": [
+        {
+          "shared": true,
+          "path": "id",
+          "default": {
+            "type": "fn"
+          },
+          "validations": {
+            "required": true,
+            "unique": true
+          },
+          "contentType": "ID",
+          "rights": [
+            "CREATE"
+          ],
+          "cardinality": "ONE",
+          "dbPath": "id"
+        }
+      ],
+      "roles": {
+        "things": {
+          "cardinality": "MANY",
+          "fieldType": "roleField",
+          "playedBy": [
+            {
+              "path": "cascadeRelations",
+              "cardinality": "MANY",
+              "relation": "CascadeRelation",
+              "plays": "things",
+              "target": "relation",
+              "thing": "CascadeThing",
+              "thingType": "entity"
+            }
+          ],
+          "name": "things"
+        }
+      },
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "CascadeRelation",
       "thingType": "relation",
       "computedFields": [
         "id"
@@ -2071,6 +2378,24 @@ export const typesSchema = {
           "name": "space"
         }
       },
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "subTypes": [
+        "Self",
+        "DataField",
+        "Field",
+        "Kind",
+        "SpaceDef"
+      ],
       "name": "SpaceObj",
       "thingType": "relation",
       "computedFields": [
@@ -2140,6 +2465,22 @@ export const typesSchema = {
           "name": "space"
         }
       },
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "subTypes": [
+        "DataField",
+        "Field",
+        "Kind"
+      ],
       "name": "SpaceDef",
       "thingType": "relation",
       "computedFields": [
@@ -2229,6 +2570,13 @@ export const typesSchema = {
       },
       "hooks": {
         "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          },
           {
             "triggers": {},
             "actions": [
@@ -2372,6 +2720,20 @@ export const typesSchema = {
       "idFields": [
         "id"
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
+      "subTypes": [
+        "DataField"
+      ],
       "name": "Field",
       "thingType": "relation",
       "computedFields": [
@@ -2436,6 +2798,27 @@ export const typesSchema = {
           "dbPath": "id"
         }
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          },
+          {
+            "actions": [
+              {
+                "name": "Validate tf2 test in datafield",
+                "type": "validate",
+                "message": "Failed test tf2 in datafield",
+                "severity": "error"
+              }
+            ]
+          }
+        ]
+      },
       "linkFields": [
         {
           "path": "values",
@@ -2563,8 +2946,28 @@ export const typesSchema = {
           ],
           "cardinality": "ONE",
           "dbPath": "Expression·value"
+        },
+        {
+          "contentType": "TEXT",
+          "path": "type",
+          "cardinality": "ONE",
+          "dbPath": "Expression·type"
         }
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "name": "Validate tf2 test in expression",
+                "type": "validate",
+                "message": "Failed test tf2 in expression",
+                "severity": "error"
+              }
+            ]
+          }
+        ]
+      },
       "roles": {
         "dataField": {
           "cardinality": "ONE",
@@ -2624,6 +3027,20 @@ export const typesSchema = {
           "dbPath": "DataValue·type"
         }
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "name": "Validate tf2 test in expression",
+                "type": "validate",
+                "message": "Failed test tf2 in expression",
+                "severity": "error"
+              }
+            ]
+          }
+        ]
+      },
       "roles": {
         "dataField": {
           "cardinality": "ONE",
@@ -2660,7 +3077,6 @@ export const typesSchema = {
     },
     "Self": {
       "idFields": [
-        "id",
         "id"
       ],
       "extends": "SpaceObj",
@@ -2742,6 +3158,17 @@ export const typesSchema = {
       "allExtends": [
         "SpaceObj"
       ],
+      "hooks": {
+        "pre": [
+          {
+            "actions": [
+              {
+                "type": "transform"
+              }
+            ]
+          }
+        ]
+      },
       "name": "Self",
       "thingType": "relation",
       "computedFields": [

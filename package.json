@@ -26,7 +26,6 @@
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
 		"test": "./tests/test.sh --coverage",
-		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\"",
 		"test:multidb": "./tests/test.sh multidb",
 		"test:query": "./tests/test.sh query.test.ts",
@@ -36,6 +35,7 @@
 		"test:typedb-query": "vitest run typedb/unit/queries --watch",
 		"test:typedb-schema": "vitest run typedb/unit/schema",
 		"types": "tsc --noEmit",
+		"types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"prepare": "husky"
 	},
 	"private": false,

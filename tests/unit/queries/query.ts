@@ -1653,40 +1653,19 @@ export const testQuery = createTest('Query', (ctx) => {
 	});
 
 	it('xf1[excludedFields] Testing excluded fields', async () => {
-		let godUser = {
-			$entity: 'God',
-			id: 'squarepusher',
-			name: 'Tom Jenkinson',
-			email: 'tom@warp.com',
-			power: 'rhythm',
-			isEvil: false,
-		};
-		// Create a new godUser
-		const mutationRes = await ctx.mutate(godUser, { noMetadata: true });
-		const [user] = mutationRes;
-
-		expect(user).toEqual({
-			id: expect.any(String),
-			name: 'Tom Jenkinson',
-			email: 'tom@warp.com',
-			power: 'rhythm',
-			isEvil: false,
-		});
-		godUser = { ...godUser, id: user.id };
-
 		const queryRes = await ctx.query(
 			{
 				$entity: 'God',
-				$id: godUser.id,
+				$id: 'god1',
 				$excludedFields: ['email', 'isEvil'],
 			},
 			{ noMetadata: true },
 		);
 
 		expect(queryRes).toEqual({
-			id: godUser.id,
-			name: 'Tom Jenkinson',
-			power: 'rhythm',
+			id: 'god1',
+			name: 'Richard David James',
+			power: 'mind control',
 		});
 	});
 

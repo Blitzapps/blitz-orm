@@ -177,7 +177,7 @@ INSERT INTO ⟨Kind⟩ [
   { id: "kind-book", name: "book" }
 ];
 
-RELATE Kind:`kind-book` -> Kind_space -> Space:`space-2`;
+RELATE Kind:`kind-book` -> SpaceObj_space -> Space:`space-2`;
 
 INSERT INTO ⟨Self⟩ [
   { id: "self1" },
