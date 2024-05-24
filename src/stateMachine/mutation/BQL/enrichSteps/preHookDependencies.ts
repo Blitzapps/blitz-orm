@@ -12,9 +12,9 @@ import type {
 	EnrichedRoleField,
 	FilledBQLMutationBlock,
 } from '../../../../types';
-import { getThing } from '../../../../helpers';
 import { DBNode } from '../../../../types/symbols';
 import { runQueryMachine } from '../../../query/machine';
+import { getSchemaByThing } from '../../../../helpers';
 
 export const preHookDependencies = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -33,7 +33,7 @@ export const preHookDependencies = async (
 	);
 	const transformationPreQueryRes = res.bql.res as BQLResponse[];
 	return mutations.map((mut, i) => {
-		const thing = getThing(schema, mut.$thing);
+		const thing = getSchemaByThing(schema, mut.$thing);
 		return setDbNode({
 			mut: mut as Mutation,
 			node: transformationPreQueryRes[i] as DbValue,
@@ -178,7 +178,7 @@ const setDbNodeSingle = (props: {
 		if (!$thing) {
 			throw new Error(`"${thing.name}" does not have field "${key}"`);
 		}
-		const subThing = getThing(schema, $thing);
+		const subThing = getSchemaByThing(schema, $thing);
 		newMut[key] = setDbNode({
 			mut: value,
 			schema,
@@ -232,7 +232,7 @@ const getDbNode = (props: {
 			}
 			return;
 		}
-		const subThing = getThing(schema, $thing);
+		const subThing = getSchemaByThing(schema, $thing);
 		const fieldMap = getFieldMap(subThing);
 		newNode[key] = Array.isArray(value)
 			? value.map((v) => getDbNodeFromDbValue({ ...fieldMap, $fields: f.$fields, value: v, schema, thing: subThing }))

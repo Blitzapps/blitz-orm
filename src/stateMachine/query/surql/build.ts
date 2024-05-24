@@ -21,8 +21,9 @@ export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBorm
 
 const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema }): string | null => {
 	const { query, schema } = props;
+	const { $thing, $fields, $filter, $offset, $limit } = query;
 
-	if (query.$fields.length === 0) {
+	if ($fields.length === 0) {
 		return null;
 	}
 
@@ -30,16 +31,16 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 
 	lines.push('SELECT');
 
-	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: query.$fields, level: 1, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: $fields, level: 1, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}
 
-	const currentSchema = schema.entities[query.$thing] || schema.relations[query.$thing];
+	const currentSchema = schema.entities[$thing] || schema.relations[$thing];
 	if (!currentSchema) {
-		throw new Error(`Schema for ${query.$thing} not found`);
+		throw new Error(`Schema for ${$thing} not found`);
 	}
-	const allTypes = currentSchema.subTypes ? [query.$thing, ...currentSchema.subTypes] : [query.$thing];
+	const allTypes = currentSchema.subTypes ? [$thing, ...currentSchema.subTypes] : [$thing];
 	const allTypesNormed = allTypes.map((t) => prepareTableNameSurrealDB(t));
 
 	if (query.$id) {
@@ -57,8 +58,16 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 		lines.push(`FROM ${allTypesNormed.join(',')}`);
 	}
 
-	const filter = (query.$filter && buildFilter(query.$filter, 0)) || [];
+	const filter = ($filter && buildFilter($filter, 0)) || [];
 	lines.push(...filter);
+
+	if (typeof $limit === 'number') {
+		lines.push(`LIMIT ${$limit}`);
+	}
+
+	if (typeof $offset === 'number') {
+		lines.push(`START ${$offset}`);
+	}
 
 	return lines.join('\n');
 };
@@ -130,8 +139,9 @@ const buildLinkQuery = (props: {
 	level: number;
 }): string | null => {
 	const { query, schema, level } = props;
+	const { $fields, $filter, $offset, $limit } = query;
 
-	if (query.$fields.length === 0) {
+	if ($fields.length === 0) {
 		return null;
 	}
 
@@ -143,7 +153,7 @@ const buildLinkQuery = (props: {
 	lines.push(indent('SELECT', queryLevel));
 
 	const fieldLevel = queryLevel + 1;
-	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: query.$fields, level: fieldLevel, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: $fields, level: fieldLevel, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}
@@ -170,7 +180,7 @@ const buildLinkQuery = (props: {
 	}
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
-	if (query.$filter || query.$id) {
+	if ($filter || query.$id) {
 		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
 		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
 		const $WithIdFilter = {
@@ -178,6 +188,14 @@ const buildLinkQuery = (props: {
 			...($ids ? { ['meta::id(id)']: `INSIDE [${$ids.map((id) => `"${id}"`).join(', ')}] ` } : {}),
 		};
 		lines.push(...buildFilter($WithIdFilter, queryLevel));
+	}
+
+	if (typeof $limit === 'number') {
+		lines.push(indent(`LIMIT ${$limit}`, queryLevel));
+	}
+
+	if (typeof $offset === 'number') {
+		lines.push(indent(`START ${$offset}`, queryLevel));
 	}
 
 	lines.push(indent(`) AS \`${query.$as}\``, level));
@@ -242,7 +260,7 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 			//todo: special filter stuff, like IN, INCLUDED etc
 			conditions.push(indent(`${key} ${value}`, conditionLevel));
 		} else {
-			conditions.push(indent(`${key}=${JSON.stringify(value)}`, conditionLevel));
+			conditions.push(indent(`\`${key}\`=${JSON.stringify(value)}`, conditionLevel));
 		}
 	});
 	if ($not) {

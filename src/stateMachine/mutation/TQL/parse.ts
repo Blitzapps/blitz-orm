@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { getThing } from '../../../helpers';
+import { getSchemaByThing } from '../../../helpers';
 import type { BQLMutationBlock, BormConfig, EnrichedBormSchema } from '../../../types';
 import { clone } from 'radash';
 
@@ -21,7 +21,7 @@ export const parseTQLMutation = async (
 			// @ts-expect-error - TODO description
 			const currentNode = tqlRes.insertions?.find((y) => y.get(`${exp.$bzId}`))?.get(`${exp.$bzId}`);
 			const $thing = exp.$thing || exp.$relation || exp.$entity;
-			const thing = $thing ? getThing(schema, $thing) : undefined;
+			const thing = $thing ? getSchemaByThing(schema, $thing) : undefined;
 
 			if (exp.$op === 'create' || exp.$op === 'update' || exp.$op === 'link') {
 				/// Creation and links should show an $error. Update on the other hand might not get here as typeDB does not return deleted thibgs.

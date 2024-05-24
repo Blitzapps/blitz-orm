@@ -1488,7 +1488,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('slo1[$sort, $limit, $offset] sub level', async () => {
+	it('slo2[$sort, $limit, $offset] sub level', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1516,7 +1516,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
+	it('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',

@@ -1,4 +1,4 @@
-import { getIdFieldKey, getThing, indent } from '../../../helpers';
+import { getIdFieldKey, getSchemaByThing, indent } from '../../../helpers';
 import type {
 	EnrichedAttributeQuery,
 	EnrichedBormEntity,
@@ -332,11 +332,11 @@ const buildFilter = (props: {
 	depth: number;
 }) => {
 	const { $filter: $nonMapedFilter, $var, $thing, schema, depth } = props;
-	const $filter = mapFilterKeys($nonMapedFilter, getThing(schema, $thing));
+	const $filter = mapFilterKeys($nonMapedFilter, getSchemaByThing(schema, $thing));
 
 	const { $not, ...rest } = $filter;
 
-	const thing = getThing(schema, $thing);
+	const thing = getSchemaByThing(schema, $thing);
 	const matches: string[] = [];
 
 	Object.entries($not || {}).forEach(([key, value]) => {
@@ -357,7 +357,7 @@ const buildFilter = (props: {
 		const lf = thing.linkFields?.find((lf) => lf.path === key);
 		if (lf) {
 			const [opposite] = lf.oppositeLinkFieldsPlayedBy;
-			const oppositeThing = getThing(schema, opposite.thing);
+			const oppositeThing = getSchemaByThing(schema, opposite.thing);
 			const oppositeIdField = oppositeThing.idFields?.[0];
 			if (!oppositeIdField) {
 				throw new Error(`"${opposite.thing}" does not have an id field`);
@@ -416,7 +416,7 @@ const buildFilter = (props: {
 			const role = thing.roles[key];
 			if (role) {
 				const [player] = role.playedBy || [];
-				const playerThing = getThing(schema, player.thing);
+				const playerThing = getSchemaByThing(schema, player.thing);
 				const playerIdField = playerThing.idFields?.[0];
 				if (!playerIdField) {
 					throw new Error(`"${player.thing}" does not have an id field`);
@@ -474,7 +474,7 @@ const buildFilter = (props: {
 		const lf = thing.linkFields?.find((lf) => lf.path === key);
 		if (lf) {
 			const [opposite] = lf.oppositeLinkFieldsPlayedBy;
-			const oppositeThing = getThing(schema, opposite.thing);
+			const oppositeThing = getSchemaByThing(schema, opposite.thing);
 			const oppositeIdField = oppositeThing.idFields?.[0];
 			if (!oppositeIdField) {
 				throw new Error(`"${opposite.thing}" does not have an id field`);
@@ -532,7 +532,7 @@ const buildFilter = (props: {
 			const role = thing.roles[key];
 			if (role) {
 				const [player] = role.playedBy || [];
-				const playerThing = getThing(schema, player.thing);
+				const playerThing = getSchemaByThing(schema, player.thing);
 				const playerIdField = playerThing.idFields?.[0];
 				if (!playerIdField) {
 					throw new Error(`"${player.thing}" does not have an id field`);
@@ -612,7 +612,7 @@ const buildSorter = (props: {
 }) => {
 	const { $var, $thing, schema, $sort, depth } = props;
 
-	const thing = getThing(schema, $thing);
+	const thing = getSchemaByThing(schema, $thing);
 	const sortMatch: string[] = [];
 	const sorter: string[] = [];
 

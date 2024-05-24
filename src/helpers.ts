@@ -334,7 +334,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	return enrichedSchema;
 };
 
-export const getThing = (
+export const getSchemaByThing = (
 	schema: BormSchema | EnrichedBormSchema,
 	$thing: string,
 ): EnrichedBormEntity | EnrichedBormRelation => {
