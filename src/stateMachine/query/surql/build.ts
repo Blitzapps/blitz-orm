@@ -116,7 +116,7 @@ const buildAttributeQuery = (props: { query: EnrichedAttributeQuery; level: numb
 	}
 	// TODO: Get the field id from the schema.
 	if (query.$path === 'id') {
-		return indent(`meta::id(\`${query.$path}\`) AS ${query.$as}`, level);
+		return indent(`meta::id(${query.$path}) AS ${query.$as}`, level);
 	}
 	if (query.$path === query.$as) {
 		return indent(`\`${query.$path}\``, level);
@@ -235,7 +235,10 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 	const { $not, ...f } = filter;
 	const conditionLevel = level + 1;
 	Object.entries(f).forEach(([key, value]) => {
-		if (key === 'meta::id(id)') {
+		//id is a reserved one, this is not right all the time tho...
+		if (key === 'id') {
+			conditions.push(indent(`meta::id(id)=${JSON.stringify(value)}`, conditionLevel));
+		} else if (key === 'meta::id(id)') {
 			//todo: special filter stuff, like IN, INCLUDED etc
 			conditions.push(indent(`${key} ${value}`, conditionLevel));
 		} else {

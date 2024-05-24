@@ -84,7 +84,7 @@ INSERT INTO ⟨Space⟩ [
 ];
 
 INSERT INTO ⟨Account⟩ [
-  { id: "account1-1", "provider": "google" },
+  { id: "account1-1", "provider": "google", profile: {hobby:["Running"]}},
   { id: "account1-2", "provider": "facebook" },
   { id: "account1-3", "provider": "github" },
   { id: "account2-1", "provider": "google" },

@@ -29,7 +29,9 @@ DEFINE FIELD stuff ON TABLE SubthingTwo TYPE string;
 
 DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD provider ON TABLE Account TYPE string;
-DEFINE FIELD isSecureProvider ON TABLE Account TYPE option<bool>;
+DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
+DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
+
 
 DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
@@ -62,32 +64,32 @@ DEFINE TABLE ThingRelation_things SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
 DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
 
-DEFINE TABLE `User-Accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `User-Accounts_user` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Accounts_user` TYPE record<`User-Accounts`>;
-DEFINE FIELD out ON TABLE `User-Accounts_user` TYPE record<User>;
-DEFINE TABLE `User-Accounts_accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Accounts_accounts` TYPE record<`User-Accounts`>;
-DEFINE FIELD out ON TABLE `User-Accounts_accounts` TYPE record<Account>;
+DEFINE TABLE ⟨`User-Accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`User-Accounts_user`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<⟨`User-Accounts`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`User-Accounts_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<⟨`User-Accounts`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<Account>;
 
-DEFINE TABLE `User-Sessions` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `User-Sessions_user` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Sessions_user` TYPE record<`User-Sessions`>;
-DEFINE FIELD out ON TABLE `User-Sessions_user` TYPE record<User>;
-DEFINE TABLE `User-Sessions_accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Sessions_accounts` TYPE record<`User-Sessions`>;
-DEFINE FIELD out ON TABLE `User-Sessions_accounts` TYPE record<Session>;
+DEFINE TABLE ⟨`User-Sessions`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`User-Sessions_user`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<⟨`User-Sessions`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`User-Sessions_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<⟨`User-Sessions`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<Session>;
 
-DEFINE TABLE `Space-User` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `Space-User_spaces` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_spaces` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_spaces` TYPE record<Space>;
-DEFINE TABLE `Space-User_users` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_users` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_users` TYPE record<User>;
-DEFINE TABLE `Space-User_power` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_power` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_power` TYPE record<Power>;
+DEFINE TABLE ⟨`Space-User`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`Space-User_spaces`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<Space>;
+DEFINE TABLE ⟨`Space-User_users`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_users`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_users`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`Space-User_power`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_power`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_power`⟩ TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;

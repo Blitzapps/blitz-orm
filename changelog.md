@@ -7,6 +7,8 @@
 - Test: Added benchmark
 - Feat: SurrealDB queries
 -> $filter map to dbPath is now done only for TQL
+-> Fix false values, fix workaround for reserved id field, Fix defined table names
+-> Virtual values onRead (futures) in schema, JSON values in schema
 
 ## 0.10.12(2024-05-23)
 
