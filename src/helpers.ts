@@ -3,7 +3,7 @@ import type { Draft } from 'immer';
 import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
-import { isArray, isObject, listify } from 'radash';
+import { isArray, isObject, listify, mapEntries } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -76,6 +76,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					const extendedSchema = (draft.entities[value.extends] || draft.relations[value.extends]) as
 						| EnrichedBormRelation
 						| EnrichedBormEntity;
+
 					/// find out all the thingTypes this thingType is extending
 					const allExtends = [value.extends, ...(extendedSchema.allExtends || [])];
 					value.allExtends = allExtends;
@@ -110,27 +111,42 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									return {
 										...df,
 										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+										inheritanceOrigin: df.inheritanceOrigin ?? value.extends,
 									};
 								}),
 							)
 						: value.dataFields;
 
-					value.linkFields = extendedSchema.linkFields
-						? (value.linkFields || []).concat(extendedSchema.linkFields)
-						: value.linkFields;
-
 					if ('roles' in extendedSchema) {
 						const val = value as BormRelation;
+						const extendedRelationSchema = extendedSchema as BormRelation;
+						if (extendedRelationSchema.roles) {
+							const extendedRelationSchemaWithOrigin = mapEntries(extendedRelationSchema.roles, (roleKey, role) => {
+								return [
+									roleKey,
+									{
+										...role,
+										//@ts-expect-error - Is normal because we are extending it here
+										inheritanceOrigin: role.inheritanceOrigin ?? value.extends,
+									},
+								];
+							});
 
-						//val.roles = val.roles || {};
-						val.roles = {
-							...(val.roles || {}),
-							...extendedSchema.roles,
-						};
-						//if (Object.keys(val.roles).length === 0) {
-						//	val.roles = {};
-						//}
+							val.roles = {
+								...(val.roles || {}),
+								...extendedRelationSchemaWithOrigin,
+							};
+						}
 					}
+
+					value.linkFields = extendedSchema.linkFields
+						? (value.linkFields || []).concat(
+								extendedSchema.linkFields.map((lf) => ({
+									...lf,
+									inheritanceOrigin: lf.inheritanceOrigin ?? value.extends,
+								})),
+							)
+						: value.linkFields;
 
 					//todo: Do some checks, and potentially simplify the hooks structure
 					if (extendedSchema?.hooks?.pre) {

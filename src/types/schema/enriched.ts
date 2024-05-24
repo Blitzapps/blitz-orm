@@ -38,10 +38,12 @@ export type EnrichedRoleField = RoleField & {
 	playedBy?: LinkedFieldWithThing[]; // computed variable.
 	name: string;
 	fieldType: 'roleField';
+	inheritanceOrigin: string; // can be itself if the field is not inherited
 };
 
 export type EnrichedDataField = DataField & {
 	dbPath: string;
+	inheritanceOrigin: string;
 };
 
 export type EnrichedLinkField = LinkField & {
@@ -49,6 +51,7 @@ export type EnrichedLinkField = LinkField & {
 	relation: string;
 	plays: string;
 	fieldType: 'linkField';
+	inheritanceOrigin: string;
 } & (
 		| {
 				target: 'role';
