@@ -60,6 +60,6 @@ export type EnrichedLinkField = LinkField & {
 		  }
 		| {
 				target: 'relation';
-				oppositeLinkFieldsPlayedBy: Pick<LinkedFieldWithThing, 'thing' | 'thingType' | 'plays'>[]; // * just a copy of the information already in base level
+				oppositeLinkFieldsPlayedBy: Pick<LinkedFieldWithThing, 'thing' | 'thingType' | 'plays' | 'inheritanceOrigin'>[]; // * just a copy of the information already in base level
 		  }
 	);

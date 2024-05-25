@@ -74,6 +74,7 @@ export type PlayedBy = {
 	target: 'role' | 'relation';
 	thing: string;
 	thingType: 'entity' | 'relation';
+	inheritanceOrigin?: string;
 };
 
 export type EnrichedLinkQuery = {

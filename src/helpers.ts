@@ -111,6 +111,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									return {
 										...df,
 										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+										//@ts-expect-error - Normal because we are extending the dataField
 										inheritanceOrigin: df.inheritanceOrigin ?? value.extends,
 									};
 								}),
@@ -241,11 +242,16 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						linkField.fieldType = 'linkField';
 
 						if (linkField.target === 'relation') {
+							const inheritanceOrigin =
+								// @ts-expect-error - This is fine, extensions schema is a middle state
+								withExtensionsSchema.relations[linkField.relation].roles?.[linkField.plays]?.inheritanceOrigin;
+
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
 									plays: linkField.path,
 									thing: linkField.relation,
 									thingType: 'relation',
+									inheritanceOrigin,
 								},
 							];
 							return;

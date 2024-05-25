@@ -8,7 +8,7 @@ import type {
 	Filter,
 	PositiveFilter,
 } from '../../../types';
-import { indent } from '../../../helpers';
+import { getSchemaByThing, indent } from '../../../helpers';
 import { QueryPath } from '../../../types/symbols';
 import { isArray } from 'radash';
 import { prepareTableNameSurrealDB } from '../../../adapters/surrealDB/helpers';
@@ -150,6 +150,8 @@ const buildLinkQuery = (props: {
 	lines.push(indent('(', level));
 
 	const queryLevel = level + 1;
+	//console.log('query!!', query);
+
 	lines.push(indent('SELECT', queryLevel));
 
 	const fieldLevel = queryLevel + 1;
@@ -158,28 +160,27 @@ const buildLinkQuery = (props: {
 		lines.push(fieldLines);
 	}
 
-	const things = [
-		query.$playedBy.thing,
-		...getSubtypeRecursive(schema, query.$playedBy.thingType, query.$playedBy.thing),
-	];
-	let from: string;
+	/// FROM
+
+	const currentSchema = getSchemaByThing(schema, query.$playedBy.thing);
+	const subTypes = currentSchema?.subTypes || [];
+	const things = [query.$playedBy.thing, ...subTypes];
+
 	if (query.$target === 'relation') {
 		// [Space]<-SpaceObj_spaces<-SpaceObj
 		// NOTE:
 		// Convention: The thing that owns the role has "out"-ward arrow
 		// and the thing that has the linkField has "in"-ward arrow.
-		from = things.map((thing) => `<-\`${query.$playedBy.thing}_${query.$plays}\`<-\`${thing}\``).join(', ');
+		const relationName = query.$playedBy.inheritanceOrigin ?? query.$playedBy.thing;
+		const from = `<-\`${relationName}_${query.$plays}\`<-(\`${things.join('`,`')}\`)`;
+		lines.push(indent(`FROM ${from}`, queryLevel));
 	} else {
 		// [Space]<-Space-User_spaces<-Space-User->Space-User_users->User
-		from = things
-			.map(
-				(thing) =>
-					`<-\`${query.$playedBy.relation}_${query.$plays}\`<-\`${query.$playedBy.relation}\`->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->\`${thing}\``,
-			)
-			.join(', ');
+		const from = `<-\`${query.$playedBy.relation}_${query.$plays}\`<-\`${query.$playedBy.relation}\`->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->(\`${things.join('`,`')}\`)`;
+		lines.push(indent(`FROM ${from}`, queryLevel));
 	}
-	lines.push(indent(`FROM ${from}`, queryLevel));
 
+	/// FILTER WHERE
 	if ($filter || query.$id) {
 		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
 		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
@@ -190,6 +191,7 @@ const buildLinkQuery = (props: {
 		lines.push(...buildFilter($WithIdFilter, queryLevel));
 	}
 
+	/// SORT AND PAGINATION
 	if (typeof $limit === 'number') {
 		lines.push(indent(`LIMIT ${$limit}`, queryLevel));
 	}
@@ -227,10 +229,11 @@ const buildRoleQuery = (props: {
 		lines.push(fieldLines);
 	}
 
-	const things = [query.$playedBy.thing, ...getSubtypeRecursive(schema, query.$thingType, query.$thing)];
-	const from = things
-		.map((thing) => `->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->\`${thing}\``)
-		.join(', ');
+	const currentSchema = getSchemaByThing(schema, query.$playedBy.thing);
+	const subTypes = currentSchema?.subTypes || [];
+	const things = [query.$playedBy.thing, ...subTypes];
+
+	const from = `->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->(\`${things.join('`,`')}\`)`;
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
 	if (query.$filter || query.$id) {
@@ -278,21 +281,4 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 		];
 	}
 	return conditions;
-};
-
-const getSubtypeRecursive = (schema: EnrichedBormSchema, thingType: 'entity' | 'relation', thing: string): string[] => {
-	const subTypes = getSubtype(schema, thingType, thing);
-	let i = 0;
-	while (subTypes[i]) {
-		subTypes.push(...getSubtype(schema, thingType, subTypes[i]));
-		i++;
-	}
-	return subTypes;
-};
-
-const getSubtype = (schema: EnrichedBormSchema, thingType: 'entity' | 'relation', thing: string): string[] => {
-	const subtypes = Object.values(thingType === 'entity' ? schema.entities : schema.relations)
-		.filter((itemSchema) => itemSchema.extends === thing)
-		.map((itemSchema) => itemSchema.name as string);
-	return subtypes;
 };
