@@ -318,7 +318,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'Thing',
 				},
 				{
 					path: 'stuff',
@@ -326,7 +325,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 					cardinality: 'ONE',
 					dbPath: 'Thing·stuff',
-					inheritanceOrigin: 'Thing',
 				},
 			],
 			allExtends: ['Thing'],
@@ -338,7 +336,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'things',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -354,7 +351,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -370,7 +366,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'extra',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -411,7 +406,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'Thing',
 				},
 				{
 					path: 'stuff',
@@ -419,7 +413,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'UPDATE', 'DELETE'],
 					cardinality: 'ONE',
 					dbPath: 'Thing·stuff',
-					inheritanceOrigin: 'Thing',
 				},
 			],
 			allExtends: ['Thing'],
@@ -431,7 +424,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'things',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -447,7 +439,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'root',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -463,7 +454,6 @@ export const typesSchema = {
 					relation: 'ThingRelation',
 					plays: 'extra',
 					target: 'relation',
-					inheritanceOrigin: 'Thing',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -750,7 +740,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'User',
 				},
 				{
 					shared: true,
@@ -759,7 +748,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'UPDATE'],
 					cardinality: 'ONE',
 					dbPath: 'name',
-					inheritanceOrigin: 'User',
 				},
 				{
 					path: 'email',
@@ -770,7 +758,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
 					cardinality: 'ONE',
 					dbPath: 'User·email',
-					inheritanceOrigin: 'User',
 				},
 			],
 			allExtends: ['User'],
@@ -782,7 +769,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -802,7 +788,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -822,7 +807,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -842,7 +826,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -926,7 +909,6 @@ export const typesSchema = {
 					contentType: 'TEXT',
 					cardinality: 'ONE',
 					dbPath: 'SuperUser·power',
-					inheritanceOrigin: 'SuperUser',
 				},
 				{
 					shared: true,
@@ -942,7 +924,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'User',
 				},
 				{
 					shared: true,
@@ -951,7 +932,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'UPDATE'],
 					cardinality: 'ONE',
 					dbPath: 'name',
-					inheritanceOrigin: 'User',
 				},
 				{
 					path: 'email',
@@ -962,7 +942,6 @@ export const typesSchema = {
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
 					cardinality: 'ONE',
 					dbPath: 'User·email',
-					inheritanceOrigin: 'User',
 				},
 			],
 			allExtends: ['SuperUser', 'User'],
@@ -974,7 +953,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -994,7 +972,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -1014,7 +991,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -1034,7 +1010,6 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
-					inheritanceOrigin: 'User',
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -2199,7 +2174,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'SpaceObj',
 				},
 			],
 			allExtends: ['SpaceObj'],
@@ -2207,7 +2181,6 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
-					inheritanceOrigin: 'SpaceObj',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2259,7 +2232,6 @@ export const typesSchema = {
 					contentType: 'TEXT',
 					cardinality: 'ONE',
 					dbPath: 'description',
-					inheritanceOrigin: 'SpaceDef',
 				},
 				{
 					shared: true,
@@ -2275,7 +2247,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'SpaceObj',
 				},
 			],
 			linkFields: [
@@ -2349,7 +2320,6 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
-					inheritanceOrigin: 'SpaceObj',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2394,7 +2364,6 @@ export const typesSchema = {
 					contentType: 'TEXT',
 					cardinality: 'ONE',
 					dbPath: 'description',
-					inheritanceOrigin: 'SpaceDef',
 				},
 				{
 					shared: true,
@@ -2410,7 +2379,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'SpaceObj',
 				},
 			],
 			roles: {
@@ -2432,7 +2400,6 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
-					inheritanceOrigin: 'SpaceObj',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2495,14 +2462,12 @@ export const typesSchema = {
 					path: 'name',
 					cardinality: 'ONE',
 					dbPath: 'Field·name',
-					inheritanceOrigin: 'Field',
 				},
 				{
 					contentType: 'TEXT',
 					path: 'cardinality',
 					cardinality: 'ONE',
 					dbPath: 'Field·cardinality',
-					inheritanceOrigin: 'Field',
 				},
 				{
 					shared: true,
@@ -2510,7 +2475,6 @@ export const typesSchema = {
 					contentType: 'TEXT',
 					cardinality: 'ONE',
 					dbPath: 'description',
-					inheritanceOrigin: 'SpaceDef',
 				},
 				{
 					shared: true,
@@ -2526,7 +2490,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'SpaceObj',
 				},
 			],
 			hooks: {
@@ -2592,7 +2555,6 @@ export const typesSchema = {
 			roles: {
 				kinds: {
 					cardinality: 'MANY',
-					inheritanceOrigin: 'Field',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2609,7 +2571,6 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
-					inheritanceOrigin: 'SpaceObj',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2806,7 +2767,6 @@ export const typesSchema = {
 				},
 				space: {
 					cardinality: 'ONE',
-					inheritanceOrigin: 'SpaceObj',
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2854,7 +2814,6 @@ export const typesSchema = {
 					rights: ['CREATE'],
 					cardinality: 'ONE',
 					dbPath: 'id',
-					inheritanceOrigin: 'SpaceObj',
 				},
 			],
 			allExtends: ['SpaceObj'],
@@ -2981,6 +2940,22 @@ export const typesSchema = {
 						},
 					],
 					name: 'hookTypeA',
+				},
+				otherHooks: {
+					cardinality: 'MANY',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'tagA',
+							cardinality: 'MANY',
+							relation: 'HookATag',
+							plays: 'otherHooks',
+							target: 'role',
+							thing: 'Hook',
+							thingType: 'entity',
+						},
+					],
+					name: 'otherHooks',
 				},
 			},
 			hooks: {

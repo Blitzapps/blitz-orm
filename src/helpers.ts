@@ -25,6 +25,8 @@ import type {
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
+import { SharedMetadata, SuqlMetadata } from './types/symbols';
+import { getSurrealLinkFieldQueryPath } from './adapters/surrealDB/enrichSchema/helpers';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
 	shared ? attribute : `${thing}·${attribute}`;
@@ -66,7 +68,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				}
 				if (value.extends) {
 					if (!value.defaultDBConnector.as) {
-						//todo: CCheck if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
+						//todo: Check if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
 						throw new Error(
 							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
 						);
@@ -111,8 +113,10 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									return {
 										...df,
 										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
-										//@ts-expect-error - Normal because we are extending the dataField
-										inheritanceOrigin: df.inheritanceOrigin ?? value.extends,
+										[SharedMetadata]: {
+											//@ts-expect-error - Is normal because we are extending it here
+											inheritanceOrigin: df[SharedMetadata]?.inheritanceOrigin || value.extends,
+										},
 									};
 								}),
 							)
@@ -127,8 +131,10 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									roleKey,
 									{
 										...role,
-										//@ts-expect-error - Is normal because we are extending it here
-										inheritanceOrigin: role.inheritanceOrigin ?? value.extends,
+										[SharedMetadata]: {
+											//@ts-expect-error - Is normal because we are extending it here
+											inheritanceOrigin: role[SharedMetadata]?.inheritanceOrigin || value.extends,
+										},
 									},
 								];
 							});
@@ -144,7 +150,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						? (value.linkFields || []).concat(
 								extendedSchema.linkFields.map((lf) => ({
 									...lf,
-									inheritanceOrigin: lf.inheritanceOrigin ?? value.extends,
+									[SharedMetadata]: {
+										inheritanceOrigin: lf[SharedMetadata]?.inheritanceOrigin || value.extends,
+									},
 								})),
 							)
 						: value.linkFields;
@@ -162,7 +170,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	);
 	// #endregion
 
-	// * Gather linkfields
+	// * Gather linkFields
 	traverse(schema, ({ key, value, meta }: TraversalCallbackContext) => {
 		if (key === 'linkFields') {
 			const getThingTypes = () => {
@@ -224,7 +232,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				value.enumFields = [];
 				value.fnValidatedFields = [];
 
-				// adding all the linkfields to roles
+				// adding all the linkFields to roles
 				if ('roles' in value) {
 					const val = value as EnrichedBormRelation;
 
@@ -240,57 +248,65 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 					val.linkFields?.forEach((linkField) => {
 						linkField.fieldType = 'linkField';
+						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation];
+
+						if (linkFieldRelation.roles?.[linkField.plays] === undefined) {
+							throw new Error(
+								`The role ${linkField.plays} is not defined in the relation ${linkField.relation} (linkField: ${linkField.path})`,
+							);
+						}
+
+						//#region SHARED METADATA
 
 						if (linkField.target === 'relation') {
-							const inheritanceOrigin =
-								// @ts-expect-error - This is fine, extensions schema is a middle state
-								withExtensionsSchema.relations[linkField.relation].roles?.[linkField.plays]?.inheritanceOrigin;
-
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
 									plays: linkField.path,
 									thing: linkField.relation,
 									thingType: 'relation',
-									inheritanceOrigin,
 								},
 							];
-							return;
 						}
+						if (linkField.target === 'role') {
+							///target role
+							const allOppositeLinkFields =
+								allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];
 
-						const allOppositeLinkFields =
-							allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];
+							// by default, all oppositeLinkFields
+							linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields;
 
-						// by default, all oppositeLinkFields
-						linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields;
-
-						// #region FILTERING OPPOSITE LINKFIELDS
-						const { filter } = linkField;
-						// todo: not sure about this
-						linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-							(x) => x.target === 'role',
-						);
-						if (filter && Array.isArray(filter)) {
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter((lf) =>
-								// @ts-expect-error - TODO description
-								filter.some((ft) => lf.thing === ft.$role),
-							);
-
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter((lf) =>
-								// @ts-expect-error - TODO description
-								filter.some((ft) => lf.thing === ft.$thing),
-							);
-						}
-						if (filter && !Array.isArray(filter)) {
+							// We remove the target relation ones
 							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-								// @ts-expect-error - TODO description
-								(lf) => lf.$role === filter.$role,
+								(x) => x.target === 'role',
 							);
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-								// @ts-expect-error - TODO description
-								(lf) => lf.thing === filter.$thing,
-							);
+
+							// #region FILTERING OPPOSITE LINKFIELDS
+							// const { targetRoles, filter } = linkField;
+							// Example targetRoles: ['color', 'users']
+							//Can be combined with filter, for instance to automatically filter by $thing
+
+							//If after the filters, we still have 2, then the schema is wrong
+							if (linkField.oppositeLinkFieldsPlayedBy.length > 1) {
+								throw new Error(
+									`Not supported: LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
+								);
+							}
+							// #endregion
 						}
-						// #endregion
+						//#endregion
+
+						//#region SUREALDB METADATA
+
+						// We take the original relation as its the one that holds the name of the relation in surrealDB
+						const originalRelation =
+							// @ts-expect-error - This is fine, extensions schema is a middle state
+							linkFieldRelation.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
+						const queryPath = getSurrealLinkFieldQueryPath({ linkField, originalRelation, withExtensionsSchema });
+
+						linkField[SuqlMetadata] = {
+							queryPath,
+						};
+						//#endregion
 					});
 				}
 			}

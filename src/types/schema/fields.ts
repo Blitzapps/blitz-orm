@@ -35,7 +35,6 @@ export type LinkField = BormField & {
 export type LinkedFieldWithThing = LinkField & {
 	thing: string;
 	thingType: ThingType;
-	inheritanceOrigin?: string;
 };
 type StringField = BormField & {
 	contentType:

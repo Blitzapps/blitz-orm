@@ -1043,6 +1043,7 @@ export const schema: BormSchema = {
 			dataFields: [{ ...id }],
 			roles: {
 				hookTypeA: { cardinality: 'ONE' },
+				otherHooks: { cardinality: 'MANY' },
 			},
 			hooks: {
 				pre: [

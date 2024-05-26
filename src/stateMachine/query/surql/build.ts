@@ -9,7 +9,7 @@ import type {
 	PositiveFilter,
 } from '../../../types';
 import { getSchemaByThing, indent } from '../../../helpers';
-import { QueryPath } from '../../../types/symbols';
+import { FieldSchema, QueryPath, SuqlMetadata } from '../../../types/symbols';
 import { isArray } from 'radash';
 import { prepareTableNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 
@@ -21,7 +21,7 @@ export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBorm
 
 const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema }): string | null => {
 	const { query, schema } = props;
-	const { $thing, $fields, $filter, $offset, $limit } = query;
+	const { $thing, $fields, $filter, $offset, $limit, $sort } = query;
 
 	if ($fields.length === 0) {
 		return null;
@@ -60,6 +60,10 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 
 	const filter = ($filter && buildFilter($filter, 0)) || [];
 	lines.push(...filter);
+
+	if ($sort) {
+		lines.push(buildSorter($sort));
+	}
 
 	if (typeof $limit === 'number') {
 		lines.push(`LIMIT ${$limit}`);
@@ -139,7 +143,7 @@ const buildLinkQuery = (props: {
 	level: number;
 }): string | null => {
 	const { query, schema, level } = props;
-	const { $fields, $filter, $offset, $limit } = query;
+	const { $fields, $filter, $offset, $limit, $sort } = query;
 
 	if ($fields.length === 0) {
 		return null;
@@ -150,35 +154,16 @@ const buildLinkQuery = (props: {
 	lines.push(indent('(', level));
 
 	const queryLevel = level + 1;
-	//console.log('query!!', query);
-
 	lines.push(indent('SELECT', queryLevel));
 
-	const fieldLevel = queryLevel + 1;
-	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: $fields, level: fieldLevel, schema });
+	const fieldLines = buildFieldsQuery({ parentQuery: query, queries: $fields, level: queryLevel + 1, schema });
 	if (fieldLines) {
 		lines.push(fieldLines);
 	}
 
 	/// FROM
-
-	const currentSchema = getSchemaByThing(schema, query.$playedBy.thing);
-	const subTypes = currentSchema?.subTypes || [];
-	const things = [query.$playedBy.thing, ...subTypes];
-
-	if (query.$target === 'relation') {
-		// [Space]<-SpaceObj_spaces<-SpaceObj
-		// NOTE:
-		// Convention: The thing that owns the role has "out"-ward arrow
-		// and the thing that has the linkField has "in"-ward arrow.
-		const relationName = query.$playedBy.inheritanceOrigin ?? query.$playedBy.thing;
-		const from = `<-\`${relationName}_${query.$plays}\`<-(\`${things.join('`,`')}\`)`;
-		lines.push(indent(`FROM ${from}`, queryLevel));
-	} else {
-		// [Space]<-Space-User_spaces<-Space-User->Space-User_users->User
-		const from = `<-\`${query.$playedBy.relation}_${query.$plays}\`<-\`${query.$playedBy.relation}\`->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->(\`${things.join('`,`')}\`)`;
-		lines.push(indent(`FROM ${from}`, queryLevel));
-	}
+	const from = query[FieldSchema][SuqlMetadata].queryPath;
+	lines.push(indent(`FROM ${from}`, queryLevel));
 
 	/// FILTER WHERE
 	if ($filter || query.$id) {
@@ -192,6 +177,10 @@ const buildLinkQuery = (props: {
 	}
 
 	/// SORT AND PAGINATION
+	if ($sort) {
+		lines.push(indent(buildSorter($sort), queryLevel));
+	}
+
 	if (typeof $limit === 'number') {
 		lines.push(indent(`LIMIT ${$limit}`, queryLevel));
 	}
@@ -271,6 +260,7 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 			conditions.push(`${key}!=${JSON.stringify(value)}`);
 		});
 	}
+
 	const [firstCondition, ...restConditions] = conditions;
 	if (firstCondition) {
 		return [
@@ -281,4 +271,15 @@ const buildFilter = (filter: Filter, level: number): string[] => {
 		];
 	}
 	return conditions;
+};
+
+const buildSorter = (sort: ({ field: string; desc?: boolean } | string)[]) => {
+	const sorters = sort.map((i) => {
+		if (typeof i === 'string') {
+			return i;
+		}
+		const { field, desc } = i;
+		return `${field}${desc ? ' DESC' : ' ASC'}`;
+	});
+	return `ORDER BY ${sorters.join(', ')}`;
 };
