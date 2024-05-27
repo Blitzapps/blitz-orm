@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import { produce } from 'immer';
 import type {
 	BQLMutationBlock,
@@ -12,10 +13,11 @@ import type {
 	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
+	Filter,
 } from '../../../types';
 import { traverse } from 'object-traversal';
-import { getCurrentSchema } from '../../../helpers';
-import { isObject } from 'radash';
+import { getCurrentSchema, getFieldType } from '../../../helpers';
+import { isArray, isObject } from 'radash';
 import { FieldSchema, QueryPath } from '../../../types/symbols';
 
 export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormSchema): EnrichedBQLQuery[] => {
@@ -36,9 +38,14 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 		traverse(draft, (context) => {
 			const { value: val, meta } = context;
 			const value: BQLMutationBlock = val;
+
 			if (isObject(value)) {
 				// 1. Moving $id into filter based on schema's idFields
 				if (value.$id) {
+					//Skip the filter branch
+					if (meta.nodePath?.includes('.$filter')) {
+						return;
+					}
 					const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
 					const currentSchema = getCurrentSchema(schema, node);
 					if (!currentSchema?.name) {
@@ -69,12 +76,13 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 					delete value.$relation;
 				}
 
-				if (isObject(value) && '$thing' in value) {
+				if (isObject(value) && '$thing' in value && value.$thing) {
 					const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
 					value[QueryPath as any] = meta.nodePath;
 					const currentSchema = getCurrentSchema(schema, node);
 					if (value.$filter) {
 						value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
+						value.$filter = enrichFilter(value.$filter, value.$thing, schema);
 					}
 					// if no fields, then it's all fields
 					if (value.$fields) {
@@ -136,15 +144,15 @@ const getAllFields = (currentSchema: EnrichedBormEntity | EnrichedBormRelation) 
 
 const checkFilterByUnique = ($filter: any, currentSchema: EnrichedBormEntity | EnrichedBormRelation) => {
 	const fields = Object.keys($filter || {});
-
 	return fields.some((field) => {
 		if (!Array.isArray($filter[field])) {
 			const isIdField = currentSchema.idFields?.includes(field);
 			const isUniqueDataField = currentSchema.dataFields?.some(
 				(f) => (f.dbPath === field || f.path === field) && f?.validations?.unique,
 			);
+			const isSingle$id = field === '$id' && !Array.isArray($filter[field]);
 
-			return isIdField || isUniqueDataField;
+			return isIdField || isUniqueDataField || isSingle$id;
 		}
 		return false;
 	});
@@ -220,6 +228,11 @@ const createLinkField = (props: {
 			});
 		}
 
+		const $filter =
+			field.$id || field.$filter //skip if no $id and not $filter. In the future $thing can filter too
+				? { ...(field.$id ? { $id: field.$id } : {}), ...enrichFilter(field.$filter, $thing, schema) }
+				: undefined;
+
 		return {
 			$thingType,
 			$plays: linkField.plays,
@@ -236,7 +249,7 @@ const createLinkField = (props: {
 			$intermediary: playedBy.relation,
 			$justId,
 			$id: field.$id,
-			$filter: field.$filter,
+			$filter,
 			$idNotIncluded: idNotIncluded,
 			$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 			$sort: field.$sort,
@@ -292,6 +305,11 @@ const createRoleField = (props: {
 			});
 		}
 
+		const $filter =
+			field.$id || field.$filter //skip if no $id and not $filter. In the future $thing can filter too
+				? { ...(field.$id ? { $id: field.$id } : {}), ...enrichFilter(field.$filter, thing, schema) }
+				: undefined;
+
 		return {
 			$thingType: thingType,
 			$path: fieldStr,
@@ -305,7 +323,8 @@ const createRoleField = (props: {
 			$intermediary: relation,
 			$justId,
 			$id: field.$id,
-			$filter: field.$filter,
+			$filter,
+			//$filter: field.$filter,
 			$idNotIncluded: idNotIncluded,
 			$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
 			$playedBy: playedBy,
@@ -360,4 +379,64 @@ const processField = (
 		});
 	}
 	return null;
+};
+
+// Recursive enrich filter that checks all the tree of filters. Sometimes is dataFields, which is easier, but sometimes is linkFields or roleFields so we need to keep drilling
+const enrichFilter = ($filter: Filter | Filter[], $thing: string, schema: EnrichedBormSchema) => {
+	if ($filter === null || $filter === undefined) {
+		return $filter;
+	}
+	const wasArray = isArray($filter);
+
+	const filterArray = wasArray ? $filter : [$filter];
+
+	const resultArray = filterArray.map((filter: any) => {
+		const keys = Object.keys(filter);
+
+		const enrichedFilter = keys.reduce((acc: any, key: string) => {
+			const value = filter[key];
+
+			const valueAsArray = isArray(value) ? value : [value];
+
+			if (key.startsWith('$')) {
+				if (['$id', '$thing'].includes(key)) {
+					acc[key] = value;
+				} else {
+					// we don't want to enrich the special keys, for instance $or: ... stays as it is but we enrich nested things:
+					acc[key] = enrichFilter(value, $thing, schema); //$thing does not change as we are just jumping throws reserved words like $or, $eq etc
+				}
+			} else {
+				// must be a field
+				const currentSchema = $thing in schema.entities ? schema.entities[$thing] : schema.relations[$thing];
+				const [fieldType, fieldSchema] = getFieldType(currentSchema, key);
+
+				if (fieldType === 'dataField') {
+					acc[key] = value;
+				} else if (fieldType === 'linkField' || fieldType === 'roleField') {
+					const fieldSchemaTyped = fieldSchema as EnrichedLinkField | EnrichedRoleField;
+					const [childrenThing] = fieldSchemaTyped.$things; //todo: Manage polymorphism
+					if (valueAsArray.every((v: any) => typeof v === 'string')) {
+						acc[key] = { $id: valueAsArray, $thing: childrenThing }; //Avoid the traverse to check this
+					} else if (valueAsArray.every((v: any) => isObject(v))) {
+						acc[key] = isArray(value)
+							? { $or: enrichFilter(value, childrenThing, schema) }
+							: enrichFilter(value, childrenThing, schema);
+					}
+					return acc;
+				} else {
+					throw new Error(`Field ${key} not found in schema of ${$thing}`);
+				}
+			}
+			return acc;
+		}, {});
+		return enrichedFilter;
+	});
+
+	if (!wasArray) {
+		return resultArray[0];
+	} else if (resultArray.length === 1) {
+		return resultArray[0];
+	} else {
+		return { $or: resultArray };
+	}
 };

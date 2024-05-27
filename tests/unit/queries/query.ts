@@ -1430,7 +1430,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(true).toEqual(false);
 	});
 
-	it('lf[$filter] Filter by a link field with cardinality ONE', async () => {
+	it('lf1[$filter] Filter by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1442,7 +1442,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua1-1' }, { id: 'ua1-2' }, { id: 'ua1-3' }]);
 	});
 
-	it('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+	it('lf2[$filter, $not] Filter out by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1456,7 +1456,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua2-1' }, { id: 'ua3-1' }]);
 	});
 
-	it('lf[$filter] Filter by a link field with cardinality MANY', async () => {
+	it('lf3[$filter] Filter by a link field with cardinality MANY', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1468,6 +1468,20 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
 	});
 
+	it('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
+		//!: FAILS IN TQL
+		const res = await ctx.query(
+			{
+				$entity: 'User',
+				//@ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
+				$filter: [{ spaces: ['space-1'] }, { email: 'ann@test.com' }],
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user3' }, { id: 'user5' }]);
+	});
+
 	it('slo1[$sort, $limit, $offset] root', async () => {
 		const res = await ctx.query(
 			{
@@ -1475,14 +1489,14 @@ export const testQuery = createTest('Query', (ctx) => {
 				$sort: [{ field: 'provider', desc: false }, 'id'],
 				$offset: 1,
 				$limit: 2,
-				$fields: ['id'],
+				$fields: ['id', 'provider'],
 			},
 			{ noMetadata: true },
 		);
 		expect(res).toMatchObject([
 			// { id: 'account1-2'},
-			{ id: 'account3-1' },
-			{ id: 'account1-3' },
+			{ id: 'account3-1', provider: 'facebook' },
+			{ id: 'account1-3', provider: 'github' },
 			// { id: 'account1-1'},
 			// { id: 'account2-1'},
 		]);
@@ -1497,7 +1511,7 @@ export const testQuery = createTest('Query', (ctx) => {
 					'id',
 					{
 						$path: 'accounts',
-						$fields: ['id'],
+						$fields: ['id', 'provider'],
 						$sort: ['provider'],
 						$offset: 1,
 						$limit: 1,
@@ -1508,8 +1522,8 @@ export const testQuery = createTest('Query', (ctx) => {
 		);
 		expect(res).toMatchObject({
 			accounts: [
-				// { id: 'account1-2' },
-				{ id: 'account1-3' },
+				// \\{ id: 'account1-2' },
+				{ id: 'account1-3', provider: 'github' },
 				// { id: 'account1-1' },
 			],
 			id: 'user1',
@@ -1517,6 +1531,7 @@ export const testQuery = createTest('Query', (ctx) => {
 	});
 
 	it('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
+		//! fails in SURQL
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1556,7 +1571,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('i1[inherired, attributes] Entity with inherited attributes', async () => {
+	it('i1[inherited, attributes] Entity with inherited attributes', async () => {
 		const res = await ctx.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
 		expect(res).toEqual({
 			id: 'god1',

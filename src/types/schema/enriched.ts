@@ -36,11 +36,15 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 } & SharedEnrichedProps;
 
 export type EnrichedRoleField = RoleField & {
-	playedBy?: LinkedFieldWithThing[]; // computed variable.
 	name: string;
+	playedBy?: LinkedFieldWithThing[]; // computed variable.
+	$things: string[]; //all potential candidates
 	fieldType: 'roleField';
 	[SharedMetadata]: {
 		inheritanceOrigin: string;
+	};
+	[SuqlMetadata]: {
+		queryPath: string;
 	};
 };
 
@@ -55,6 +59,7 @@ export type EnrichedLinkField = LinkField & {
 	name: string; // same as the key it has, maybe to rename to key
 	relation: string;
 	plays: string;
+	$things: string[]; //all potential candidates
 	fieldType: 'linkField';
 	[SharedMetadata]: {
 		inheritanceOrigin: string;

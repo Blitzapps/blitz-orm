@@ -3,14 +3,15 @@ import type {
 	EnrichedBQLQuery,
 	EnrichedBormSchema,
 	EnrichedFieldQuery,
+	EnrichedLinkField,
 	EnrichedLinkQuery,
+	EnrichedRoleField,
 	EnrichedRoleQuery,
 	Filter,
-	PositiveFilter,
 } from '../../../types';
-import { getSchemaByThing, indent } from '../../../helpers';
+import { getFieldType, indent } from '../../../helpers';
 import { FieldSchema, QueryPath, SuqlMetadata } from '../../../types/symbols';
-import { isArray } from 'radash';
+import { isArray, isObject, shake } from 'radash';
 import { prepareTableNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 
 export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
@@ -58,8 +59,11 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 		lines.push(`FROM ${allTypesNormed.join(',')}`);
 	}
 
-	const filter = ($filter && buildFilter($filter, 0)) || [];
-	lines.push(...filter);
+	if ($filter) {
+		const parsed = parseFilter($filter, $thing, schema);
+		const filter = buildSuqlFilter(parsed);
+		lines.push(`WHERE ${filter}`);
+	}
 
 	if ($sort) {
 		lines.push(buildSorter($sort));
@@ -166,14 +170,10 @@ const buildLinkQuery = (props: {
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
 	/// FILTER WHERE
-	if ($filter || query.$id) {
-		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
-		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
-		const $WithIdFilter = {
-			...query.$filter,
-			...($ids ? { ['meta::id(id)']: `INSIDE [${$ids.map((id) => `"${id}"`).join(', ')}] ` } : {}),
-		};
-		lines.push(...buildFilter($WithIdFilter, queryLevel));
+	if ($filter) {
+		const parsed = parseFilter($filter, query.$thing, schema);
+		const built = buildSuqlFilter(parsed);
+		lines.push(`WHERE ${built}`);
 	}
 
 	/// SORT AND PAGINATION
@@ -218,21 +218,13 @@ const buildRoleQuery = (props: {
 		lines.push(fieldLines);
 	}
 
-	const currentSchema = getSchemaByThing(schema, query.$playedBy.thing);
-	const subTypes = currentSchema?.subTypes || [];
-	const things = [query.$playedBy.thing, ...subTypes];
-
-	const from = `->\`${query.$playedBy.relation}_${query.$playedBy.plays}\`->(\`${things.join('`,`')}\`)`;
+	const from = query[FieldSchema][SuqlMetadata].queryPath;
 	lines.push(indent(`FROM ${from}`, queryLevel));
 
-	if (query.$filter || query.$id) {
-		const $ids = !query.$id ? null : isArray(query.$id) ? query.$id : [query.$id];
-		///Using it only in roleQuery and linkQuery as the rootOne is done with the table names
-		const $WithIdFilter = {
-			...query.$filter,
-			...($ids ? { ['meta::id(id)']: `INSIDE [${$ids.map((id) => `"${id}"`).join(', ')}] ` } : {}),
-		};
-		lines.push(...buildFilter($WithIdFilter, queryLevel));
+	if (query.$filter) {
+		const parsed = parseFilter(query.$filter, query.$playedBy.thing, schema);
+		const built = buildSuqlFilter(parsed);
+		lines.push(`WHERE ${built}`);
 	}
 
 	lines.push(indent(`) AS \`${query.$as}\``, level));
@@ -240,37 +232,121 @@ const buildRoleQuery = (props: {
 	return lines.join('\n');
 };
 
-const buildFilter = (filter: Filter, level: number): string[] => {
-	const conditions: string[] = [];
-	const { $not, ...f } = filter;
-	const conditionLevel = level + 1;
-	Object.entries(f).forEach(([key, value]) => {
-		//id is a reserved one, this is not right all the time tho...
-		if (key === 'id') {
-			conditions.push(indent(`meta::id(id)=${JSON.stringify(value)}`, conditionLevel));
-		} else if (key === 'meta::id(id)') {
-			//todo: special filter stuff, like IN, INCLUDED etc
-			conditions.push(indent(`${key} ${value}`, conditionLevel));
-		} else {
-			conditions.push(indent(`\`${key}\`=${JSON.stringify(value)}`, conditionLevel));
-		}
+const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter => {
+	if (filter === null || filter === undefined) {
+		return filter;
+	}
+	const wasArray = isArray(filter);
+	const arrayFilter = wasArray ? filter : [filter];
+
+	const resultArray = arrayFilter.map((f) => {
+		const keys = Object.keys(f);
+		const result = keys.reduce((acc, key) => {
+			const value = f[key];
+			if (key.startsWith('$')) {
+				if (key === '$not') {
+					return { ...acc, $not: undefined, ['$!']: parseFilter(value, currentThing, schema) };
+				}
+				if (key === '$or') {
+					return { ...acc, $or: undefined, $OR: parseFilter(value, currentThing, schema) };
+				}
+				if (key === '$and') {
+					return { ...acc, $and: undefined, $AND: parseFilter(value, currentThing, schema) };
+				}
+				if (key === '$eq') {
+					return { ...acc, '$nor': undefined, '$=': parseFilter(value, currentThing, schema) };
+				}
+				if (key === '$id') {
+					return { ...acc, '$id': undefined, 'meta::id(id)': { $IN: isArray(value) ? value : [value] } };
+				}
+				if (key === '$thing') {
+					return acc; //do nothing for now, but in the future we will need to filter by tables as well, maybe meta::tb(id) ...
+				}
+				return { ...acc, [key]: parseFilter(value, currentThing, schema) };
+			}
+			const currentSchema =
+				currentThing in schema.entities ? schema.entities[currentThing] : schema.relations[currentThing];
+
+			const [fieldType, fieldSchema] = getFieldType(currentSchema, key);
+			if (fieldType === 'dataField') {
+				if (currentSchema.idFields.length > 1) {
+					throw new Error('Multiple id fields not supported');
+				} //todo: When composed id, this changes:
+				if (key === currentSchema.idFields[0]) {
+					return { ...acc, 'meta::id(id)': { $IN: isArray(value) ? value : [value] } };
+				}
+				return { ...acc, [key]: value }; //Probably good place to add ONLY and other stuff depending on the fieldSchema
+			}
+			if (fieldType === 'linkField' || fieldType === 'roleField') {
+				const fieldSchemaTyped = fieldSchema as EnrichedLinkField | EnrichedRoleField;
+				const [childrenThing] = fieldSchemaTyped.$things;
+				const surrealDBKey = fieldSchemaTyped[SuqlMetadata].queryPath;
+
+				return { ...acc, [surrealDBKey]: parseFilter(value, childrenThing, schema) };
+			}
+			throw new Error(`Field ${key} not found in schema, Defined in $filter`);
+		}, {});
+		return shake(result);
 	});
-	if ($not) {
-		Object.entries($not as PositiveFilter).forEach(([key, value]) => {
-			conditions.push(`${key}!=${JSON.stringify(value)}`);
-		});
+	return wasArray ? resultArray : resultArray[0];
+};
+
+const buildSuqlFilter = (filter: object) => {
+	if (filter === null || filter === undefined) {
+		return '';
 	}
 
-	const [firstCondition, ...restConditions] = conditions;
-	if (firstCondition) {
-		return [
-			indent('WHERE (', level),
-			indent(firstCondition, conditionLevel),
-			...restConditions.map((i) => indent(`AND ${i}`, conditionLevel)),
-			indent(')', level),
-		];
-	}
-	return conditions;
+	const entries = Object.entries(filter);
+	const parts: string[] = [];
+
+	entries.forEach(([key, value]) => {
+		//TODO: probably better to do it by key first, instead of filtering by the type of value, but it works so to refacto once needed.
+		if (['$OR', '$AND', '$!'].includes(key)) {
+			const logicalOperator = key.replace('$', '');
+			const nestedFilters = Array.isArray(value) ? value.map((v) => buildSuqlFilter(v)) : [buildSuqlFilter(value)];
+			if (logicalOperator === '!') {
+				parts.push(`!(${nestedFilters.join(` ${logicalOperator} `)})`);
+			} else {
+				parts.push(`(${nestedFilters.join(` ${logicalOperator} `)})`);
+			}
+			return;
+		}
+		if (isObject(value)) {
+			if (key.includes('<-') || key.includes('->')) {
+				const nestedFilter = buildSuqlFilter(value);
+				parts.push(`${key}[WHERE ${nestedFilter}]`);
+			} else if (key.startsWith('$')) {
+				throw new Error(`Invalid key ${key}`);
+			} else {
+				if (Object.keys.length === 1 && Object.keys(value)[0].startsWith('$')) {
+					// This is the case where the filter has an operator manually defined
+					const [operator] = Object.keys(value);
+					//@ts-expect-error its ok, single key
+					const nextValue = value[operator];
+					if (isArray(nextValue)) {
+						parts.push(`${key} ${operator.replace('$', '')} [${nextValue.map((v) => `'${v}'`).join(', ')}]`);
+					} else if (isObject(nextValue)) {
+						const nestedFilter = buildSuqlFilter(nextValue);
+						parts.push(`${key} ${operator.replace('$', '')} ${nestedFilter}`);
+					} else {
+						parts.push(`${key} ${operator.replace('$', '')} '${nextValue}'`);
+					}
+				} else {
+					throw new Error(`Invalid key ${key}`);
+				}
+			}
+		} else {
+			if (Array.isArray(value)) {
+				const operator = key.startsWith('$') ? key.replace('$', '') : 'IN';
+				parts.push(`${key} ${operator} [${value.map((v) => `'${v}'`).join(', ')}]`);
+			} else {
+				const operator = key.startsWith('$') ? key.replace('$', '') : '=';
+				parts.push(`${key} ${operator} '${value}'`);
+			}
+		}
+	});
+
+	return parts.join(' AND ');
 };
 
 const buildSorter = (sort: ({ field: string; desc?: boolean } | string)[]) => {

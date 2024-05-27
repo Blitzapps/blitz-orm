@@ -2,13 +2,16 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.10.13(2024-05-24)
+## 0.10.13(2024-05-27)
 
 - Test: Added benchmark
+- Fix: TypeDB errors being printed again
 - Feat: SurrealDB queries
--> $filter map to dbPath is now done only for TQL
+-> Multiple refactoring to keep shared vs TQL vs SURQL
 -> Fix false values, fix workaround for reserved id field, Fix defined table names
 -> Virtual values onRead (futures) in schema, JSON values in schema
+-> Deeply nested filters, on local and remote fields
+-> NOT, OR, AND filters
 
 ## 0.10.12(2024-05-23)
 

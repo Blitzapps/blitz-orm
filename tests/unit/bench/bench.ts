@@ -1,13 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 
+import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import type { typesSchema } from '../../mocks/generatedSchema';
+import type { TypeGen } from '../../../src/types/typeGen';
+import type { WithBormMetadata } from '../../../src/index';
+import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
 import { bench, expect } from 'vitest';
-import { deepRemoveMetaData, deepSort } from '../../helpers/matchers';
-import type { WithBormMetadata, TypeGen } from '../../../src';
-import type { typesSchema } from '../../mocks/generatedSchema';
-import type { UserType } from '../../types/testTypes';
 
-export const allBench = createTest('Bench', (ctx) => {
+export const testQuery = createTest('Query', (ctx) => {
 	bench('v1[validation] - $entity missing', async () => {
 		// @ts-expect-error - $entity is missing
 		await expect(ctx.query({})).rejects.toThrow();
@@ -1001,8 +1002,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(res).toEqual([{ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' }]);
 	});
 
-	// can also be the id field!
-	bench('ef6[entity,filter] - $filter by unique field', async () => {
+	bench('ef6[entity,filter,id] - $filter by id in filter', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { id: 'user1' },
@@ -1011,10 +1011,10 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(res).toEqual({ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' });
 	});
 
-	bench('ef7[entity,unique] - $filter unique field', async () => {
+	bench('ef7[entity,unique] - $filter by unique field', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
-			$filter: { id: 'user1' }, // not $id, just being used as a regular field
+			$filter: { email: 'antoine@test.com' },
 			$fields: ['name', 'email'],
 		});
 		// and now its not an array again, we used at least one property in the filter that is either the single key specified in idFields: ['id'] or has a validations.unique:true
@@ -1430,7 +1430,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(true).toEqual(false);
 	});
 
-	bench('lf[$filter] Filter by a link field with cardinality ONE', async () => {
+	bench('lf1[$filter] Filter by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1442,7 +1442,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua1-1' }, { id: 'ua1-2' }, { id: 'ua1-3' }]);
 	});
 
-	bench('lf[$filter] Filter out by a link field with cardinality ONE', async () => {
+	bench('lf2[$filter, $not] Filter out by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1456,7 +1456,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua2-1' }, { id: 'ua3-1' }]);
 	});
 
-	bench('lf[$filter] Filter by a link field with cardinality MANY', async () => {
+	bench('lf3[$filter] Filter by a link field with cardinality MANY', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1468,6 +1468,20 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
 	});
 
+	bench('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
+		//TODO: Enable in typeDB adapter
+		const res = await ctx.query(
+			{
+				$entity: 'User',
+				//@ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
+				$filter: [{ spaces: ['space-1'] }, { email: 'ann@test.com' }],
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user3' }, { id: 'user5' }]);
+	});
+
 	bench('slo1[$sort, $limit, $offset] root', async () => {
 		const res = await ctx.query(
 			{
@@ -1475,20 +1489,20 @@ export const allBench = createTest('Bench', (ctx) => {
 				$sort: [{ field: 'provider', desc: false }, 'id'],
 				$offset: 1,
 				$limit: 2,
-				$fields: ['id'],
+				$fields: ['id', 'provider'],
 			},
 			{ noMetadata: true },
 		);
 		expect(res).toMatchObject([
 			// { id: 'account1-2'},
-			{ id: 'account3-1' },
-			{ id: 'account1-3' },
+			{ id: 'account3-1', provider: 'facebook' },
+			{ id: 'account1-3', provider: 'github' },
 			// { id: 'account1-1'},
 			// { id: 'account2-1'},
 		]);
 	});
 
-	bench('slo1[$sort, $limit, $offset] sub level', async () => {
+	bench('slo2[$sort, $limit, $offset] sub level', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1497,7 +1511,7 @@ export const allBench = createTest('Bench', (ctx) => {
 					'id',
 					{
 						$path: 'accounts',
-						$fields: ['id'],
+						$fields: ['id', 'provider'],
 						$sort: ['provider'],
 						$offset: 1,
 						$limit: 1,
@@ -1508,15 +1522,15 @@ export const allBench = createTest('Bench', (ctx) => {
 		);
 		expect(res).toMatchObject({
 			accounts: [
-				// { id: 'account1-2' },
-				{ id: 'account1-3' },
+				// \\{ id: 'account1-2' },
+				{ id: 'account1-3', provider: 'github' },
 				// { id: 'account1-1' },
 			],
 			id: 'user1',
 		});
 	});
 
-	bench('slo1[$sort, $limit, $offset] with an empty attribute', async () => {
+	bench('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1556,7 +1570,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		]);
 	});
 
-	bench('i1[inherired, attributes] Entity with inherited attributes', async () => {
+	bench('i1[inherited, attributes] Entity with inherited attributes', async () => {
 		const res = await ctx.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
 		expect(res).toEqual({
 			id: 'god1',
@@ -1653,40 +1667,19 @@ export const allBench = createTest('Bench', (ctx) => {
 	});
 
 	bench('xf1[excludedFields] Testing excluded fields', async () => {
-		let godUser = {
-			$entity: 'God',
-			id: 'squarepusher',
-			name: 'Tom Jenkinson',
-			email: 'tom@warp.com',
-			power: 'rhythm',
-			isEvil: false,
-		};
-		// Create a new godUser
-		const mutationRes = await ctx.mutate(godUser, { noMetadata: true });
-		const [user] = mutationRes;
-
-		expect(user).toEqual({
-			id: expect.any(String),
-			name: 'Tom Jenkinson',
-			email: 'tom@warp.com',
-			power: 'rhythm',
-			isEvil: false,
-		});
-		godUser = { ...godUser, id: user.id };
-
 		const queryRes = await ctx.query(
 			{
 				$entity: 'God',
-				$id: godUser.id,
+				$id: 'god1',
 				$excludedFields: ['email', 'isEvil'],
 			},
 			{ noMetadata: true },
 		);
 
 		expect(queryRes).toEqual({
-			id: godUser.id,
-			name: 'Tom Jenkinson',
-			power: 'rhythm',
+			id: 'god1',
+			name: 'Richard David James',
+			power: 'mind control',
 		});
 	});
 

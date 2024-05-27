@@ -4,6 +4,7 @@ import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify, mapEntries } from 'radash';
+import { SharedMetadata, SuqlMetadata } from './types/symbols';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -22,10 +23,12 @@ import type {
 	DBHandleKey,
 	ThingType,
 	PositiveFilter,
+	EnrichedDataField,
+	EnrichedLinkField,
+	EnrichedRoleField,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
-import { SharedMetadata, SuqlMetadata } from './types/symbols';
 import { getSurrealLinkFieldQueryPath } from './adapters/surrealDB/enrichSchema/helpers';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
@@ -122,6 +125,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							)
 						: value.dataFields;
 
+					//Only for roles in th extended schema
 					if ('roles' in extendedSchema) {
 						const val = value as BormRelation;
 						const extendedRelationSchema = extendedSchema as BormRelation;
@@ -239,8 +243,31 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					Object.entries(val.roles).forEach(([roleKey, role]) => {
 						// eslint-disable-next-line no-param-reassign
 						role.fieldType = 'roleField';
-						role.playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+						role.playedBy = playedBy;
 						role.name = roleKey;
+						const $things = [...new Set(playedBy.map((x) => x.thing))];
+						role.$things = $things;
+
+						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
+
+						if ($things.length > 1) {
+							throw new Error(
+								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
+							);
+						}
+						//get all subTyped for each potential player
+						const playerThingsWithSubTypes = $things.flatMap((playerThing) => {
+							const playerSchema = getSchemaByThing(schema, playerThing);
+							const subTypes = playerSchema?.subTypes || [];
+							return [playerThing, ...subTypes];
+						});
+
+						const queryPath = `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
+
+						role[SuqlMetadata] = {
+							queryPath,
+						};
 					});
 				}
 				if ('linkFields' in value && value.linkFields) {
@@ -259,6 +286,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						//#region SHARED METADATA
 
 						if (linkField.target === 'relation') {
+							linkField.$things = [linkField.relation];
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
 									plays: linkField.path,
@@ -279,6 +307,8 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
 								(x) => x.target === 'role',
 							);
+
+							linkField.$things = linkField.oppositeLinkFieldsPlayedBy.map((x) => x.thing);
 
 							// #region FILTERING OPPOSITE LINKFIELDS
 							// const { targetRoles, filter } = linkField;
@@ -434,6 +464,24 @@ export const getCurrentSchema = (
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
+export const getFieldType = (
+	currentSchema: EnrichedBormRelation | EnrichedBormEntity,
+	key: string,
+): ['dataField' | 'linkField' | 'roleField', EnrichedDataField | EnrichedLinkField | EnrichedRoleField] => {
+	const dataFieldSchema = currentSchema.dataFields?.find((dataField: any) => dataField.path === key);
+	if (dataFieldSchema) {
+		return ['dataField', dataFieldSchema];
+	}
+	const linkFieldSchema = currentSchema.linkFields?.find((linkField: any) => linkField.path === key);
+	if (linkFieldSchema) {
+		return ['linkField', linkFieldSchema];
+	}
+	const roleFieldSchema = 'roles' in currentSchema ? currentSchema.roles[key] : undefined;
+	if (roleFieldSchema) {
+		return ['roleField', roleFieldSchema];
+	}
+	throw new Error(`Field ${key} not found in schema, Defined in $filter`);
+};
 export const getIdFieldKey = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>) => {
 	const currentSchema = getCurrentSchema(schema, node);
 	if (currentSchema?.idFields?.length && currentSchema?.idFields?.length > 1) {

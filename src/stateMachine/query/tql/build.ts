@@ -1,3 +1,4 @@
+import { isArray, isObject } from 'radash';
 import { getIdFieldKey, getSchemaByThing, indent } from '../../../helpers';
 import type {
 	EnrichedAttributeQuery,
@@ -35,7 +36,7 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 	if ($filter || $id) {
 		const idField = getIdFieldKey(schema, query);
 		const $WithIdFilter = { ...$filter, ...($id ? { [idField]: $id } : {}) };
-		const filter = buildFilter({ $filter: $WithIdFilter as any, $var: $path, $thing, schema, depth: 0 });
+		const filter = buildFilter({ $filter: $WithIdFilter, $var: $path, $thing, schema, depth: 0 });
 		lines.push(`\n${filter}`);
 	}
 
@@ -133,10 +134,12 @@ const processRoleFields = (
 
 		if (roleField.$filter || roleField.$id) {
 			const idField = getIdFieldKey(schema, roleField);
-			const $WithIdFilter = { ...roleField.$filter, ...(roleField.$id ? { [idField]: roleField.$id } : {}) };
+			const withId = roleField.$id ? { [idField]: roleField.$id } : {};
+			const withIdFilter = { ...roleField.$filter, ...withId };
+
 			lines.push(
 				buildFilter({
-					$filter: $WithIdFilter,
+					$filter: withIdFilter,
 					$var: $roleVar,
 					$thing: roleField.$thing,
 					schema,
@@ -214,10 +217,11 @@ const processLinkFields = (
 
 		if (linkField.$filter || linkField.$id) {
 			const idField = getIdFieldKey(schema, linkField);
-			const $WithIdFilter = { ...linkField.$filter, ...(linkField.$id ? { [idField]: linkField.$id } : {}) };
+			const withId = linkField.$id ? { [idField]: linkField.$id } : {};
+			const withIdFilter = { ...linkField.$filter, ...withId };
 			lines.push(
 				buildFilter({
-					$filter: $WithIdFilter,
+					$filter: withIdFilter,
 					$var: $linkVar,
 					$thing: linkField.$thing,
 					schema,
@@ -293,10 +297,12 @@ const processLinkFields = (
 };
 
 const mapFilterKeys = (filter: Filter, thingSchema: EnrichedBormEntity | EnrichedBormRelation) => {
+	//? This does not work recursively?
 	const mapper: Record<string, string> = {};
 
 	thingSchema.dataFields?.forEach((df) => {
 		if (df.path !== df.dbPath) {
+			//todo dbPath into TQLMetadata instead of a global dbPath. To be done during enrichment
 			mapper[df.path] = df.dbPath;
 		}
 	});
@@ -331,8 +337,8 @@ const buildFilter = (props: {
 	schema: EnrichedBormSchema;
 	depth: number;
 }) => {
-	const { $filter: $nonMapedFilter, $var, $thing, schema, depth } = props;
-	const $filter = mapFilterKeys($nonMapedFilter, getSchemaByThing(schema, $thing));
+	const { $filter: $nonMappedFilter, $var, $thing, schema, depth } = props;
+	const $filter = mapFilterKeys($nonMappedFilter, getSchemaByThing(schema, $thing));
 
 	const { $not, ...rest } = $filter;
 
@@ -340,6 +346,9 @@ const buildFilter = (props: {
 	const matches: string[] = [];
 
 	Object.entries($not || {}).forEach(([key, value]) => {
+		if (key.startsWith('$')) {
+			return; //todo: buildFilter should look similar to the surrealDB one, where we actually check the $or, $and, $not, $id, $thing etc. Aso we can split it in two step, parse to get all the keys etc, and build that only changes the format
+		}
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
@@ -455,6 +464,9 @@ const buildFilter = (props: {
 	});
 
 	Object.entries(rest).forEach(([key, value]) => {
+		if (key.startsWith('$')) {
+			return; //todo: buildFilter should look similar to the surrealDB one, where we actually check the $or, $and, $not, $id, $thing etc
+		}
 		const df = thing.dataFields?.find((df) => df.dbPath === key);
 		if (df) {
 			if (value === null) {
@@ -583,12 +595,22 @@ const joinAlt = (alt: string[]): string | undefined => {
 	return match;
 };
 
-const serializeValue = (value: string | number | boolean | Date) => {
+const serializeValue = (value: string | number | boolean | Date | object) => {
 	if (typeof value === 'string') {
 		return `'${value}'`;
 	}
 	if (value instanceof Date) {
 		return `'${value.toISOString().replace('Z', '')}'`;
+	}
+
+	if (isObject(value)) {
+		//Todo: Temporal fix, enhance on filters refacto. Btw the dbPath to be added also in the fields as [TypeDBMeta]
+		if ('$id' in value) {
+			if (isArray(value.$id)) {
+				return `like "^(${value.$id.join('|')})$"`;
+			}
+			return `"${value.$id}"`;
+		}
 	}
 	return `${value}`;
 };
