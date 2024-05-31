@@ -109,23 +109,16 @@ DEFINE FIELD in ON TABLE UserTagGroup_color TYPE record<UserTagGroup>;
 DEFINE FIELD out ON TABLE UserTagGroup_color TYPE record<Color>;
 
 DEFINE TABLE HookParent SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookParent_mainHook SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_mainHook TYPE record<HookParent>;
-DEFINE FIELD out ON TABLE HookParent_mainHook TYPE record<Hook>;
-DEFINE TABLE HookParent_hooks SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_hooks TYPE record<HookParent>;
-DEFINE FIELD out ON TABLE HookParent_hooks TYPE record<Hook>;
+DEFINE TABLE HookParent_mainHook SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
+DEFINE TABLE HookParent_hooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
+
 
 DEFINE TABLE HookATag SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookATag_hookTypeA SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_hookTypeA TYPE record<HookATag>;
-DEFINE FIELD out ON TABLE HookParent_hookTypeA TYPE record<Hook>;
-DEFINE TABLE HookATag_otherHooks SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_otherHooks TYPE record<HookATag>;
-DEFINE FIELD out ON TABLE HookParent_otherHooks TYPE record<Hook>;
+DEFINE TABLE HookATag_hookTypeA SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
+DEFINE TABLE HookATag_otherHooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
 
 DEFINE TABLE SpaceObj SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE SpaceObj_space TYPE RELATION IN SpaceObj|SpaceDef|Kind|Self OUT Space SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE SpaceObj_space SCHEMAFULL PERMISSIONS FULL TYPE RELATION in SpaceObj|SpaceDef|Kind|Self out Space;
 
 DEFINE TABLE SpaceDef SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD description ON SpaceDef TYPE string;
@@ -166,21 +159,7 @@ DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 
 -- relations END
 
--- Not sure how to migrate this to SurrealDB
--- #1 Secure provider rule
--- rule add-secure-provider: when {
--- 	  $account isa Account, has Account·provider "google";
--- } then {
--- 	  $account has Account·isSecureProvider true;
--- };
-
--- rule add-non-secure-provider: when {
--- 	  $account isa Account;
--- 		not { $account has Account·isSecureProvider true; };
--- } then {
--- 	  $account has Account·isSecureProvider false;
--- };
-
+DEFINE FIELD otherHooks ON TABLE Hook VALUE <future> {RETURN SELECT VALUE id FROM Hook};
 
 -- #2 With parent tag rule	
 -- rule add-hook-type-a-tag: when {

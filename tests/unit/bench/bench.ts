@@ -8,7 +8,7 @@ import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
 import { bench, expect } from 'vitest';
 
-export const testQuery = createTest('Query', (ctx) => {
+export const allBench = createTest('Bench', (ctx) => {
 	bench('v1[validation] - $entity missing', async () => {
 		// @ts-expect-error - $entity is missing
 		await expect(ctx.query({})).rejects.toThrow();
