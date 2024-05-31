@@ -16,7 +16,6 @@ type EnrichedBQLQueryThingProps = {
 	$var: string;
 	$fieldType: string;
 	$filter?: Record<string, string>;
-	$filterProcessed: boolean;
 };
 
 type EnrichedBqlQueryRelationOrEntityProps = {

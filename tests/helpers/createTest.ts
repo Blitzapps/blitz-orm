@@ -1,4 +1,4 @@
-import BormClient from "../../src";
+import type BormClient from '../../src';
 import { assertDefined } from '../../src/helpers';
 import { afterAll, beforeAll, describe } from 'vitest';
 
@@ -24,7 +24,7 @@ export const createTest = (name: string, test: (ctx: TestContext) => void) => {
 			mutate: (...params) => {
 				assertDefined(client);
 				return client.mutate(...params);
-			}
+			},
 		};
 
 		beforeAll(async () => {

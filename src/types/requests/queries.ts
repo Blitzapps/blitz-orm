@@ -7,6 +7,8 @@ export type FilterValue = string | number | boolean | string[] | number[] | bool
 export type PositiveFilter = { [field: string]: FilterValue };
 export type NegativeFilter = { $not?: PositiveFilter };
 export type Filter = PositiveFilter | NegativeFilter;
+//TODO: BqlFilter, EnrichedBQLFilter, then in the adapters, the TqlParsedFilter and BqlParsedFilter
+//TODO: Refacto of Filter types for more flexibility, $or, $and etc
 
 export type RawBQLQuery = {
 	$id?: string | string[];
@@ -94,7 +96,6 @@ export type EnrichedLinkQuery = {
 	$idNotIncluded?: boolean;
 	$filter?: Filter;
 	$filterByUnique: boolean;
-	$filterProcessed: boolean;
 	$sort?: Sorter[];
 	$offset?: number;
 	$limit?: number;
@@ -118,7 +119,6 @@ export type EnrichedRoleQuery = {
 	$filter?: Filter;
 	$filterByUnique: boolean;
 	$playedBy: PlayedBy;
-	$filterProcessed: boolean;
 	$sort?: Sorter[];
 	$offset?: number;
 	$limit?: number;

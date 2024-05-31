@@ -17,7 +17,7 @@ export const parse = (props: {
 	config: BormConfig;
 }) => {
 	const { res, queries } = props;
-	//console.log('res!', res[0]);
+	//console.log('res!', res);
 	const result = res.map((r, i) => parseRes(queries[i], r));
 	//console.log('result', result);
 	return result;
@@ -66,7 +66,7 @@ const parseObj = (query: EnrichedBQLQuery | EnrichedLinkQuery | EnrichedRoleQuer
 };
 
 const parseFieldResult = (query: EnrichedFieldQuery, value: any) => {
-	if (!value || (isArray(value) && value.length === 0)) {
+	if (value === undefined || value === null || (isArray(value) && value.length === 0)) {
 		return null;
 	}
 	if (query.$fieldType === 'data') {

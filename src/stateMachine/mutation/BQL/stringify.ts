@@ -1,4 +1,4 @@
-import { getThing } from '../../../helpers';
+import { getSchemaByThing } from '../../../helpers';
 import type {
 	BQLMutationBlock,
 	EnrichedBQLMutationBlock,
@@ -37,7 +37,7 @@ const tObject = (
 		tree.forEach((i) => tObject(schema, i, $thing));
 		return;
 	}
-	const thing = getThing(schema, $thing || tree.$entity || tree.$relation || tree.$thing);
+	const thing = getSchemaByThing(schema, $thing || tree.$entity || tree.$relation || tree.$thing);
 	Object.entries(tree).forEach(([k]) => {
 		if (k.startsWith('$')) {
 			return;

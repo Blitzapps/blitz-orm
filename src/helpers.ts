@@ -3,7 +3,8 @@ import type { Draft } from 'immer';
 import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
-import { isArray, isObject, listify } from 'radash';
+import { isArray, isObject, listify, mapEntries } from 'radash';
+import { SharedMetadata, SuqlMetadata } from './types/symbols';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -22,9 +23,13 @@ import type {
 	DBHandleKey,
 	ThingType,
 	PositiveFilter,
+	EnrichedDataField,
+	EnrichedLinkField,
+	EnrichedRoleField,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
+import { getSurrealLinkFieldQueryPath } from './adapters/surrealDB/enrichSchema/helpers';
 
 const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
 	shared ? attribute : `${thing}·${attribute}`;
@@ -66,7 +71,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				}
 				if (value.extends) {
 					if (!value.defaultDBConnector.as) {
-						//todo: CCheck if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
+						//todo: Check if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
 						throw new Error(
 							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
 						);
@@ -76,6 +81,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					const extendedSchema = (draft.entities[value.extends] || draft.relations[value.extends]) as
 						| EnrichedBormRelation
 						| EnrichedBormEntity;
+
 					/// find out all the thingTypes this thingType is extending
 					const allExtends = [value.extends, ...(extendedSchema.allExtends || [])];
 					value.allExtends = allExtends;
@@ -110,27 +116,50 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									return {
 										...df,
 										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+										[SharedMetadata]: {
+											//@ts-expect-error - Is normal because we are extending it here
+											inheritanceOrigin: df[SharedMetadata]?.inheritanceOrigin || value.extends,
+										},
 									};
 								}),
 							)
 						: value.dataFields;
 
-					value.linkFields = extendedSchema.linkFields
-						? (value.linkFields || []).concat(extendedSchema.linkFields)
-						: value.linkFields;
-
+					//Only for roles in th extended schema
 					if ('roles' in extendedSchema) {
 						const val = value as BormRelation;
 						const extendedRelationSchema = extendedSchema as BormRelation;
-						val.roles = val.roles || {};
-						val.roles = {
-							...val.roles,
-							...extendedRelationSchema.roles,
-						};
-						if (Object.keys(val.roles).length === 0) {
-							val.roles = {};
+						if (extendedRelationSchema.roles) {
+							const extendedRelationSchemaWithOrigin = mapEntries(extendedRelationSchema.roles, (roleKey, role) => {
+								return [
+									roleKey,
+									{
+										...role,
+										[SharedMetadata]: {
+											//@ts-expect-error - Is normal because we are extending it here
+											inheritanceOrigin: role[SharedMetadata]?.inheritanceOrigin || value.extends,
+										},
+									},
+								];
+							});
+
+							val.roles = {
+								...(val.roles || {}),
+								...extendedRelationSchemaWithOrigin,
+							};
 						}
 					}
+
+					value.linkFields = extendedSchema.linkFields
+						? (value.linkFields || []).concat(
+								extendedSchema.linkFields.map((lf) => ({
+									...lf,
+									[SharedMetadata]: {
+										inheritanceOrigin: lf[SharedMetadata]?.inheritanceOrigin || value.extends,
+									},
+								})),
+							)
+						: value.linkFields;
 
 					//todo: Do some checks, and potentially simplify the hooks structure
 					if (extendedSchema?.hooks?.pre) {
@@ -145,7 +174,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	);
 	// #endregion
 
-	// * Gather linkfields
+	// * Gather linkFields
 	traverse(schema, ({ key, value, meta }: TraversalCallbackContext) => {
 		if (key === 'linkFields') {
 			const getThingTypes = () => {
@@ -207,15 +236,38 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				value.enumFields = [];
 				value.fnValidatedFields = [];
 
-				// adding all the linkfields to roles
+				// adding all the linkFields to roles
 				if ('roles' in value) {
 					const val = value as EnrichedBormRelation;
 
 					Object.entries(val.roles).forEach(([roleKey, role]) => {
 						// eslint-disable-next-line no-param-reassign
 						role.fieldType = 'roleField';
-						role.playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+						role.playedBy = playedBy;
 						role.name = roleKey;
+						const $things = [...new Set(playedBy.map((x) => x.thing))];
+						role.$things = $things;
+
+						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
+
+						if ($things.length > 1) {
+							throw new Error(
+								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
+							);
+						}
+						//get all subTyped for each potential player
+						const playerThingsWithSubTypes = $things.flatMap((playerThing) => {
+							const playerSchema = getSchemaByThing(schema, playerThing);
+							const subTypes = playerSchema?.subTypes || [];
+							return [playerThing, ...subTypes];
+						});
+
+						const queryPath = `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
+
+						role[SuqlMetadata] = {
+							queryPath,
+						};
 					});
 				}
 				if ('linkFields' in value && value.linkFields) {
@@ -223,8 +275,18 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 					val.linkFields?.forEach((linkField) => {
 						linkField.fieldType = 'linkField';
+						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation];
+
+						if (linkFieldRelation.roles?.[linkField.plays] === undefined) {
+							throw new Error(
+								`The role ${linkField.plays} is not defined in the relation ${linkField.relation} (linkField: ${linkField.path})`,
+							);
+						}
+
+						//#region SHARED METADATA
 
 						if (linkField.target === 'relation') {
+							linkField.$things = [linkField.relation];
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
 									plays: linkField.path,
@@ -232,43 +294,49 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									thingType: 'relation',
 								},
 							];
-							return;
 						}
+						if (linkField.target === 'role') {
+							///target role
+							const allOppositeLinkFields =
+								allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];
 
-						const allOppositeLinkFields =
-							allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];
+							// by default, all oppositeLinkFields
+							linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields;
 
-						// by default, all oppositeLinkFields
-						linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields;
-
-						// #region FILTERING OPPOSITE LINKFIELDS
-						const { filter } = linkField;
-						// todo: not sure about this
-						linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-							(x) => x.target === 'role',
-						);
-						if (filter && Array.isArray(filter)) {
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter((lf) =>
-								// @ts-expect-error - TODO description
-								filter.some((ft) => lf.thing === ft.$role),
-							);
-
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter((lf) =>
-								// @ts-expect-error - TODO description
-								filter.some((ft) => lf.thing === ft.$thing),
-							);
-						}
-						if (filter && !Array.isArray(filter)) {
+							// We remove the target relation ones
 							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-								// @ts-expect-error - TODO description
-								(lf) => lf.$role === filter.$role,
+								(x) => x.target === 'role',
 							);
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-								// @ts-expect-error - TODO description
-								(lf) => lf.thing === filter.$thing,
-							);
+
+							linkField.$things = linkField.oppositeLinkFieldsPlayedBy.map((x) => x.thing);
+
+							// #region FILTERING OPPOSITE LINKFIELDS
+							// const { targetRoles, filter } = linkField;
+							// Example targetRoles: ['color', 'users']
+							//Can be combined with filter, for instance to automatically filter by $thing
+
+							//If after the filters, we still have 2, then the schema is wrong
+							if (linkField.oppositeLinkFieldsPlayedBy.length > 1) {
+								throw new Error(
+									`Not supported: LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
+								);
+							}
+							// #endregion
 						}
-						// #endregion
+						//#endregion
+
+						//#region SUREALDB METADATA
+
+						// We take the original relation as its the one that holds the name of the relation in surrealDB
+						const originalRelation =
+							// @ts-expect-error - This is fine, extensions schema is a middle state
+							linkFieldRelation.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
+						const queryPath = getSurrealLinkFieldQueryPath({ linkField, originalRelation, withExtensionsSchema });
+
+						linkField[SuqlMetadata] = {
+							queryPath,
+						};
+						//#endregion
 					});
 				}
 			}
@@ -334,7 +402,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 	return enrichedSchema;
 };
 
-export const getThing = (
+export const getSchemaByThing = (
 	schema: BormSchema | EnrichedBormSchema,
 	$thing: string,
 ): EnrichedBormEntity | EnrichedBormRelation => {
@@ -396,6 +464,24 @@ export const getCurrentSchema = (
 	throw new Error(`Wrong schema or query for ${JSON.stringify(node, null, 2)}`);
 };
 
+export const getFieldType = (
+	currentSchema: EnrichedBormRelation | EnrichedBormEntity,
+	key: string,
+): ['dataField' | 'linkField' | 'roleField', EnrichedDataField | EnrichedLinkField | EnrichedRoleField] => {
+	const dataFieldSchema = currentSchema.dataFields?.find((dataField: any) => dataField.path === key);
+	if (dataFieldSchema) {
+		return ['dataField', dataFieldSchema];
+	}
+	const linkFieldSchema = currentSchema.linkFields?.find((linkField: any) => linkField.path === key);
+	if (linkFieldSchema) {
+		return ['linkField', linkFieldSchema];
+	}
+	const roleFieldSchema = 'roles' in currentSchema ? currentSchema.roles[key] : undefined;
+	if (roleFieldSchema) {
+		return ['roleField', roleFieldSchema];
+	}
+	throw new Error(`Field ${key} not found in schema, Defined in $filter`);
+};
 export const getIdFieldKey = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>) => {
 	const currentSchema = getCurrentSchema(schema, node);
 	if (currentSchema?.idFields?.length && currentSchema?.idFields?.length > 1) {

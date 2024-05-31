@@ -1,4 +1,5 @@
-import { parallel } from 'radash';
+import type { AggregateError } from 'radash';
+import { parallel, tryit } from 'radash';
 import { TransactionType, TypeDBOptions } from 'typedb-driver';
 import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
 import type { BormConfig, DBHandles } from '../../../types';
@@ -16,15 +17,20 @@ export const runTQLQuery = async (props: {
 	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 	const transaction = await session.transaction(TransactionType.READ, options);
 
-	try {
-		const resArray = await parallel(tqlRequest.length, tqlRequest, async (queryString) => {
-			const tqlStream = transaction.query.fetch(queryString as string);
-			const tqlRes = await tqlStream.collect();
-			return tqlRes;
-		});
-		// todo: type the rawTqlRes
-		return resArray;
-	} finally {
-		await transaction.close();
+	//console.log('query', JSON.stringify(tqlRequest, null, 2));
+	const [err, resArray] = await tryit(parallel)(tqlRequest.length, tqlRequest, async (queryString) => {
+		const tqlStream = transaction.query.fetch(queryString as string);
+		const tqlRes = await tqlStream.collect();
+		return tqlRes;
+	});
+
+	if (err) {
+		await transaction.rollback();
+		const error = err as AggregateError;
+		throw new Error(`Error running TQL query: ${error.errors}`);
 	}
+	await transaction.close();
+
+	// todo: type the rawTqlRes
+	return resArray;
 };

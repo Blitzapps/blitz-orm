@@ -12,3 +12,9 @@ export const IsTransformed = Symbol.for('isTransformed');
 
 /// Fields
 export const FieldSchema = Symbol.for('fieldSchema');
+
+/// Shared schema metadata
+export const SharedMetadata = Symbol.for('sharedMetadata');
+
+/// SurrealDB schema metadata
+export const SuqlMetadata = Symbol.for('suqlMetadata');

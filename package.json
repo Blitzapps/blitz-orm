@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.10.12",
+	"version": "0.10.13",
 	"main": "dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -13,6 +13,8 @@
 		}
 	},
 	"scripts": {
+		"bench:surrealdb": "./tests/bench.sh surrealdb/bench",
+		"bench:typedb": "vitest bench typedb/bench",
 		"build": "tsup src/index.ts --format cjs,esm --clean --dts --treeshake --minify",
 		"dev": "tsup --dts --watch --sourcemap",
 		"knip": "knip",
@@ -24,17 +26,16 @@
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
 		"test": "./tests/test.sh --coverage",
-		"test:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"test:ignoreTodo": "./tests/test.sh -t \"^(?!.*TODO:).*\"",
 		"test:multidb": "./tests/test.sh multidb",
 		"test:query": "./tests/test.sh query.test.ts",
 		"test:surrealdb-query": "./tests/test.sh surrealdb/unit/queries/query.test.ts",
 		"test:typedb-ignoreTodo": "vitest run typedb -t \"^(?!.*TODO:).*\" ",
 		"test:typedb-mutation": "vitest run typedb/unit/mutations",
-		"test:typedb-query": "vitest run typedb/unit/queries",
+		"test:typedb-query": "vitest run typedb/unit/queries --watch",
 		"test:typedb-schema": "vitest run typedb/unit/schema",
-		"test:watch": "./tests/test.sh --watch",
 		"types": "tsc --noEmit",
+		"types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
 		"prepare": "husky"
 	},
 	"private": false,

@@ -6,24 +6,24 @@ import type { TypeGen } from '../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../src/index';
 import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
-import { expect, it } from 'vitest';
+import { bench, expect } from 'vitest';
 
-export const testQuery = createTest('Query', (ctx) => {
-	it('v1[validation] - $entity missing', async () => {
+export const allBench = createTest('Bench', (ctx) => {
+	bench('v1[validation] - $entity missing', async () => {
 		// @ts-expect-error - $entity is missing
 		await expect(ctx.query({})).rejects.toThrow();
 	});
 
-	it('v2[validation] - $entity not in schema', async () => {
+	bench('v2[validation] - $entity not in schema', async () => {
 		await expect(ctx.query({ $entity: 'fakeEntity' })).rejects.toThrow();
 	});
 
-	it('v3[validation] - $id not existing', async () => {
+	bench('v3[validation] - $id not existing', async () => {
 		const res = await ctx.query({ $entity: 'User', $id: 'nonExisting' });
 		await expect(res).toBeNull();
 	});
 
-	it('e1[entity] - basic and direct link to relation', async () => {
+	bench('e1[entity] - basic and direct link to relation', async () => {
 		const query = { $entity: 'User' };
 		const expectedRes = [
 			{
@@ -103,7 +103,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('e1.b[entity] - basic and direct link to relation sub entity', async () => {
+	bench('e1.b[entity] - basic and direct link to relation sub entity', async () => {
 		const query = { $entity: 'God' };
 		const expectedRes = [
 			{
@@ -123,7 +123,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('e2[entity] - filter by single $id', async () => {
+	bench('e2[entity] - filter by single $id', async () => {
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			// '$entity': 'User',
@@ -151,7 +151,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		// expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('e3[entity, nested] - direct link to relation, query nested ', async () => {
+	bench('e3[entity, nested] - direct link to relation, query nested ', async () => {
 		const query = { $entity: 'User', $fields: ['id', { $path: 'user-tags' }] };
 		const expectedRes = [
 			{
@@ -256,7 +256,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('opt1[options, noMetadata', async () => {
+	bench('opt1[options, noMetadata', async () => {
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'name': 'Antoine',
@@ -280,7 +280,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('TODO:opt2[options, debugger', async () => {
+	bench('TODO:opt2[options, debugger', async () => {
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'$id': 'user1',
@@ -338,7 +338,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('opt3a[options, returnNull] - empty fields option in entity', async () => {
+	bench('opt3a[options, returnNull] - empty fields option in entity', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user4',
@@ -358,7 +358,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('opt3b[options, returnNull] - empty fields option in entity, dont return explicit', async () => {
+	bench('opt3b[options, returnNull] - empty fields option in entity, dont return explicit', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user4',
@@ -377,7 +377,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('r1[relation] - basic', async () => {
+	bench('r1[relation] - basic', async () => {
 		const query = { $relation: 'User-Accounts' };
 		const expectedRes = [
 			{
@@ -440,7 +440,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		);
 	});
 
-	it('r2[relation] - filtered fields', async () => {
+	bench('r2[relation] - filtered fields', async () => {
 		const query = { $relation: 'User-Accounts', $fields: ['user'] };
 		const expectedRes = [
 			{
@@ -486,7 +486,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		);
 	});
 
-	it('r3[relation, nested] - nested entity', async () => {
+	bench('r3[relation, nested] - nested entity', async () => {
 		const query = {
 			$relation: 'User-Accounts',
 			$fields: ['id', { $path: 'user', $fields: ['name'] }],
@@ -564,7 +564,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r4[relation, nested, direct] - nested relation direct on relation', async () => {
+	bench('r4[relation, nested, direct] - nested relation direct on relation', async () => {
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -623,7 +623,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
+	bench('r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
 		const query = {
 			$entity: 'Color',
 			$fields: ['id', 'user-tags', 'group'],
@@ -658,7 +658,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
+	bench('r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
 		const query = {
 			$relation: 'UserTag',
 		};
@@ -710,7 +710,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r7[relation, nested, direct] - nested on nested', async () => {
+	bench('r7[relation, nested, direct] - nested on nested', async () => {
 		const query = {
 			$relation: 'UserTag',
 			$fields: [
@@ -844,7 +844,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r8[relation, nested, deep] - deep nested', async () => {
+	bench('r8[relation, nested, deep] - deep nested', async () => {
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -906,7 +906,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('r9[relation, nested, ids]', async () => {
+	bench('r9[relation, nested, ids]', async () => {
 		const query = {
 			$relation: 'UserTagGroup',
 			$id: 'utg-1',
@@ -925,7 +925,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('ef1[entity] - $id single', async () => {
+	bench('ef1[entity] - $id single', async () => {
 		const wrongRes = await ctx.query({ $entity: 'User', $id: uuidv4() });
 		expect(wrongRes).toEqual(null);
 		const validRes = await ctx.query({
@@ -936,7 +936,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(validRes).toEqual({ $thing: 'User', $thingType: 'entity', $id: 'user1', id: 'user1' });
 	});
 
-	it('ef2[entity] - $id multiple', async () => {
+	bench('ef2[entity] - $id multiple', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2'],
@@ -951,7 +951,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('ef3[entity] - $fields single', async () => {
+	bench('ef3[entity] - $fields single', async () => {
 		const res = await ctx.query({ $entity: 'User', $fields: ['id'] });
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
@@ -977,7 +977,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('ef4[entity] - $fields multiple', async () => {
+	bench('ef4[entity] - $fields multiple', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
@@ -992,7 +992,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('ef5[entity,filter] - $filter single', async () => {
+	bench('ef5[entity,filter] - $filter single', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { name: 'Antoine' },
@@ -1002,7 +1002,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res).toEqual([{ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' }]);
 	});
 
-	it('ef6[entity,filter,id] - $filter by id in filter', async () => {
+	bench('ef6[entity,filter,id] - $filter by id in filter', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { id: 'user1' },
@@ -1011,7 +1011,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res).toEqual({ $thing: 'User', $thingType: 'entity', $id: 'user1', name: 'Antoine' });
 	});
 
-	it('ef7[entity,unique] - $filter by unique field', async () => {
+	bench('ef7[entity,unique] - $filter by unique field', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$filter: { email: 'antoine@test.com' },
@@ -1027,7 +1027,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('n1[nested] Only ids', async () => {
+	bench('n1[nested] Only ids', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
@@ -1045,7 +1045,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('n2[nested] First level all fields', async () => {
+	bench('n2[nested] First level all fields', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
@@ -1121,7 +1121,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('n3[nested, $fields] First level filtered fields', async () => {
+	bench('n3[nested, $fields] First level filtered fields', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
@@ -1141,7 +1141,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('n4a[nested, $id] Local filter on nested, by id', async () => {
+	bench('n4a[nested, $id] Local filter on nested, by id', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
@@ -1186,7 +1186,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('n4b[nested, $id] Local filter on nested depth two, by id', async () => {
+	bench('n4b[nested, $id] Local filter on nested depth two, by id', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
@@ -1218,7 +1218,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('nf1[nested, $filters] Local filter on nested, single id', async () => {
+	bench('nf1[nested, $filters] Local filter on nested, single id', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user1',
@@ -1247,7 +1247,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
+	bench('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
 		const res = await ctx.query({
 			$entity: 'User',
 			$id: ['user1', 'user2', 'user3'],
@@ -1290,7 +1290,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('nf3[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
+	bench('nf3[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
 		const res = await ctx.query({
 			$entity: 'Space',
 			$fields: [
@@ -1349,7 +1349,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('nf4[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
+	bench('nf4[nested, $filters] Local filter on nested, by link field, multiple sources', async () => {
 		const res = await ctx.query({
 			$relation: 'UserTag',
 			$fields: [
@@ -1426,11 +1426,11 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
+	bench('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
 		expect(true).toEqual(false);
 	});
 
-	it('lf1[$filter] Filter by a link field with cardinality ONE', async () => {
+	bench('lf1[$filter] Filter by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1442,7 +1442,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua1-1' }, { id: 'ua1-2' }, { id: 'ua1-3' }]);
 	});
 
-	it('lf2[$filter, $not] Filter out by a link field with cardinality ONE', async () => {
+	bench('lf2[$filter, $not] Filter out by a link field with cardinality ONE', async () => {
 		const res = await ctx.query(
 			{
 				$relation: 'User-Accounts',
@@ -1456,7 +1456,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'ua2-1' }, { id: 'ua3-1' }]);
 	});
 
-	it('lf3[$filter] Filter by a link field with cardinality MANY', async () => {
+	bench('lf3[$filter] Filter by a link field with cardinality MANY', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1468,8 +1468,8 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
 	});
 
-	it('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
-		//!: FAILS IN TQL
+	bench('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
+		//TODO: Enable in typeDB adapter
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1482,7 +1482,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user3' }, { id: 'user5' }]);
 	});
 
-	it('slo1[$sort, $limit, $offset] root', async () => {
+	bench('slo1[$sort, $limit, $offset] root', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Account',
@@ -1502,7 +1502,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('slo2[$sort, $limit, $offset] sub level', async () => {
+	bench('slo2[$sort, $limit, $offset] sub level', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1530,8 +1530,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
-		//! fails in SURQL
+	bench('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1571,7 +1570,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('i1[inherited, attributes] Entity with inherited attributes', async () => {
+	bench('i1[inherited, attributes] Entity with inherited attributes', async () => {
 		const res = await ctx.query({ $entity: 'God', $id: 'god1' }, { noMetadata: true });
 		expect(res).toEqual({
 			id: 'god1',
@@ -1582,7 +1581,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('s1[self] Relation playing a a role defined by itself', async () => {
+	bench('s1[self] Relation playing a a role defined by itself', async () => {
 		const res = await ctx.query({ $relation: 'Self' }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual([
 			{ id: 'self1', owned: ['self2'], space: 'space-2' },
@@ -1592,7 +1591,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
+	bench('ex1[extends] Query where an object plays 3 different roles because it extends 2 types', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
 
 		const res = await ctx.query({ $entity: 'Space', $id: 'space-2' }, { noMetadata: true });
@@ -1608,7 +1607,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('ex2[extends] Query of the parent', async () => {
+	bench('ex2[extends] Query of the parent', async () => {
 		/// note: fixed with an ugly workaround (getEntityName() in parseTQL.ts)
 		const res = await ctx.query({ $entity: 'Space', $id: 'space-2', $fields: ['objects'] }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual({
@@ -1616,7 +1615,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
+	bench('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1644,7 +1643,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
+	bench('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1667,7 +1666,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('xf1[excludedFields] Testing excluded fields', async () => {
+	bench('xf1[excludedFields] Testing excluded fields', async () => {
 		const queryRes = await ctx.query(
 			{
 				$entity: 'God',
@@ -1684,7 +1683,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('xf2[excludedFields, deep] - deep nested', async () => {
+	bench('xf2[excludedFields, deep] - deep nested', async () => {
 		const query = {
 			$entity: 'Space',
 			$id: 'space-2',
@@ -1746,7 +1745,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('xf3[excludedFields, deep] - Exclude virtual field', async () => {
+	bench('xf3[excludedFields, deep] - Exclude virtual field', async () => {
 		const query = {
 			$entity: 'User',
 			$id: 'user2',
@@ -1784,7 +1783,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
-	it('vi1[virtual, attribute] Virtual DB field', async () => {
+	bench('vi1[virtual, attribute] Virtual DB field', async () => {
 		//This works with TypeDB rules
 		const res = await ctx.query({ $entity: 'Account', $fields: ['id', 'isSecureProvider'] }, { noMetadata: true });
 
@@ -1812,7 +1811,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('vi2[virtual, edge] Virtual DB edge field', async () => {
+	bench('vi2[virtual, edge] Virtual DB edge field', async () => {
 		//This works with TypeDB rules
 		const res = await ctx.query({ $entity: 'Hook' }, { noMetadata: true });
 
@@ -1845,7 +1844,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('co1[computed] Virtual computed field', async () => {
+	bench('co1[computed] Virtual computed field', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
 			{ noMetadata: true },
@@ -1863,7 +1862,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('co2[computed] Computed virtual field depending on edge id', async () => {
+	bench('co2[computed] Computed virtual field depending on edge id', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'user-tags', 'totalUserTags'] },
 			{ noMetadata: true },
@@ -1883,7 +1882,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
+	bench('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
@@ -1902,7 +1901,7 @@ export const testQuery = createTest('Query', (ctx) => {
 	});
 
 	/*
-  it('[entity,nested, filter] - $filter on children property', async () => {
+  bench('[entity,nested, filter] - $filter on children property', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -1916,7 +1915,7 @@ export const testQuery = createTest('Query', (ctx) => {
       name: 'Antoine',
     });
   });
-  it('[entity,nested,filter] - Simplified filter', async () => {
+  bench('[entity,nested,filter] - Simplified filter', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -1931,7 +1930,7 @@ export const testQuery = createTest('Query', (ctx) => {
       },
     ]);
   });
-  it('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
+  bench('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'post',
@@ -1947,7 +1946,7 @@ export const testQuery = createTest('Query', (ctx) => {
       { $entity: 'post', $id: 'post2', id: 'post2' },
     ]);
   });
-  it('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
+  bench('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'post',
@@ -1962,7 +1961,7 @@ export const testQuery = createTest('Query', (ctx) => {
       { $entity: 'post', $id: 'post3', id: 'post3' },
     ]);
   });
-  it('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
+  bench('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'post',
@@ -1978,7 +1977,7 @@ export const testQuery = createTest('Query', (ctx) => {
       { $entity: 'post', $id: 'post3', id: 'post3' },
     ]);
   });
-  it('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
+  bench('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -1986,7 +1985,7 @@ export const testQuery = createTest('Query', (ctx) => {
     });
     expect(res).toThrow(TypeError);
   });
-  it('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
+  bench('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -1995,7 +1994,7 @@ export const testQuery = createTest('Query', (ctx) => {
     expect(res).toThrow(TypeError);
   });
   // OPERATORS: NOT
-  it('[entity,filter,not] - filter by field', async () => {
+  bench('[entity,filter,not] - filter by field', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -2010,7 +2009,7 @@ export const testQuery = createTest('Query', (ctx) => {
       { $entity: 'User', $id: 'user2', id: 'user3' },
     ]);
   });
-  it('[entity,filter,not,array,includes] filter item cardinality many', async () => {
+  bench('[entity,filter,not,array,includes] filter item cardinality many', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'post',
@@ -2021,7 +2020,7 @@ export const testQuery = createTest('Query', (ctx) => {
   });
   // OPERATORS: OR
   // typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
-  it('[entity,OR] or filter two different fields', async () => {
+  bench('[entity,OR] or filter two different fields', async () => {
     expect(bormClient).toBeDefined();
     const res = await bormClient.query({
       $entity: 'User',
@@ -2040,7 +2039,7 @@ export const testQuery = createTest('Query', (ctx) => {
 
 	// NESTED
 
-	it('a1[$as] - as for attributes and roles and links', async () => {
+	bench('a1[$as] - as for attributes and roles and links', async () => {
 		const expectedRes = {
 			'email_as': 'antoine@test.com',
 			'id': 'user1',
@@ -2091,7 +2090,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
 	});
 
-	it('bq1[batched query] - as for attributes and roles and links', async () => {
+	bench('bq1[batched query] - as for attributes and roles and links', async () => {
 		const expectedRes = [
 			{
 				id: 'user1',
@@ -2121,7 +2120,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res).toEqual(expectedRes);
 	});
 
-	it('j1[json] Query a thing with a JSON attribute', async () => {
+	bench('j1[json] Query a thing with a JSON attribute', async () => {
 		const entity = await ctx.query({
 			$entity: 'Account',
 			$id: 'account1-1',
@@ -2132,7 +2131,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('j2[json] Query a thing with an empty JSON attribute', async () => {
+	bench('j2[json] Query a thing with an empty JSON attribute', async () => {
 		const entity = await ctx.query({
 			$entity: 'Account',
 			$id: 'account1-2',
@@ -2141,7 +2140,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect((entity as any).profile).toBeUndefined();
 	});
 
-	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
+	bench('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
 		const expectedRes = {
 			users: {
 				id: 'user1',

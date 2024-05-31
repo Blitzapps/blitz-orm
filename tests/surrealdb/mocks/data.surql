@@ -84,7 +84,7 @@ INSERT INTO ⟨Space⟩ [
 ];
 
 INSERT INTO ⟨Account⟩ [
-  { id: "account1-1", "provider": "google" },
+  { id: "account1-1", "provider": "google", profile: {hobby:["Running"]}},
   { id: "account1-2", "provider": "facebook" },
   { id: "account1-3", "provider": "github" },
   { id: "account2-1", "provider": "google" },
@@ -164,11 +164,11 @@ INSERT INTO ⟨UserTagGroup⟩ [
   { id: "utg-2" },
 ];
 
-RELATE UserTagGroup:`utg-1` -> UserTagGroup_color -> Color:yellow;
+RELATE ONLY UserTagGroup:`utg-1` -> UserTagGroup_color -> Color:yellow;
 RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-1`;
 RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-2`;
 
-RELATE UserTagGroup:`utg-2` -> UserTagGroup_color -> Color:blue;
+RELATE ONLY UserTagGroup:`utg-2` -> UserTagGroup_color -> Color:blue;
 RELATE UserTagGroup:`utg-2` -> UserTagGroup_tags -> UserTag:`tag-3`;
 RELATE UserTagGroup:`utg-2` -> UserTagGroup_space -> Space:`space-3`;
 
@@ -177,7 +177,7 @@ INSERT INTO ⟨Kind⟩ [
   { id: "kind-book", name: "book" }
 ];
 
-RELATE Kind:`kind-book` -> Kind_space -> Space:`space-2`;
+RELATE Kind:`kind-book` -> SpaceObj_space -> Space:`space-2`;
 
 INSERT INTO ⟨Self⟩ [
   { id: "self1" },
@@ -186,12 +186,12 @@ INSERT INTO ⟨Self⟩ [
   { id: "self4" },
 ];
 
-RELATE Self:self1 -> Self_space -> Space:`space-2`;
-RELATE Self:self2 -> Self_space -> Space:`space-2`;
+RELATE Self:self1 -> SpaceObj_space -> Space:`space-2`;
+RELATE Self:self2 -> SpaceObj_space -> Space:`space-2`;
 RELATE Self:self2 -> Self_owner -> Self:self1;
-RELATE Self:self3 -> Self_space -> Space:`space-2`;
+RELATE Self:self3 -> SpaceObj_space -> Space:`space-2`;
 RELATE Self:self3 -> Self_owner -> Self:self2;
-RELATE Self:self4 -> Self_space -> Space:`space-2`;
+RELATE Self:self4 -> SpaceObj_space -> Space:`space-2`;
 RELATE Self:self4 -> Self_owner -> Self:self2;
 
 INSERT INTO ⟨Hook⟩ [

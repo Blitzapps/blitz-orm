@@ -29,7 +29,9 @@ DEFINE FIELD stuff ON TABLE SubthingTwo TYPE string;
 
 DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD provider ON TABLE Account TYPE string;
-DEFINE FIELD isSecureProvider ON TABLE Account TYPE option<bool>;
+DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
+DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
+
 
 DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
@@ -62,36 +64,36 @@ DEFINE TABLE ThingRelation_things SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
 DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
 
-DEFINE TABLE `User-Accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `User-Accounts_user` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Accounts_user` TYPE record<`User-Accounts`>;
-DEFINE FIELD out ON TABLE `User-Accounts_user` TYPE record<User>;
-DEFINE TABLE `User-Accounts_accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Accounts_accounts` TYPE record<`User-Accounts`>;
-DEFINE FIELD out ON TABLE `User-Accounts_accounts` TYPE record<Account>;
+DEFINE TABLE ⟨`User-Accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`User-Accounts_user`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<⟨`User-Accounts`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`User-Accounts_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<⟨`User-Accounts`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<Account>;
 
-DEFINE TABLE `User-Sessions` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `User-Sessions_user` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Sessions_user` TYPE record<`User-Sessions`>;
-DEFINE FIELD out ON TABLE `User-Sessions_user` TYPE record<User>;
-DEFINE TABLE `User-Sessions_accounts` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `User-Sessions_accounts` TYPE record<`User-Sessions`>;
-DEFINE FIELD out ON TABLE `User-Sessions_accounts` TYPE record<Session>;
+DEFINE TABLE ⟨`User-Sessions`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`User-Sessions_user`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<⟨`User-Sessions`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`User-Sessions_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<⟨`User-Sessions`⟩>;
+DEFINE FIELD out ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<Session>;
 
-DEFINE TABLE `Space-User` SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE `Space-User_spaces` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_spaces` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_spaces` TYPE record<Space>;
-DEFINE TABLE `Space-User_users` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_users` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_users` TYPE record<User>;
-DEFINE TABLE `Space-User_power` SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE `Space-User_power` TYPE record<`Space-User`>;
-DEFINE FIELD out ON TABLE `Space-User_power` TYPE record<Power>;
+DEFINE TABLE ⟨`Space-User`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨`Space-User_spaces`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<Space>;
+DEFINE TABLE ⟨`Space-User_users`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_users`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_users`⟩ TYPE record<User>;
+DEFINE TABLE ⟨`Space-User_power`⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨`Space-User_power`⟩ TYPE record<⟨`Space-User`⟩>;
+DEFINE FIELD out ON TABLE ⟨`Space-User_power`⟩ TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
-DEFINE TABLE UserTag_users SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE UserTag_users SCHEMAFULL PERMISSIONS FULL type RELATION;
 DEFINE FIELD in ON TABLE UserTag_users TYPE record<UserTag>;
 DEFINE FIELD out ON TABLE UserTag_users TYPE record<User>;
 
@@ -107,35 +109,23 @@ DEFINE FIELD in ON TABLE UserTagGroup_color TYPE record<UserTagGroup>;
 DEFINE FIELD out ON TABLE UserTagGroup_color TYPE record<Color>;
 
 DEFINE TABLE HookParent SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookParent_mainHook SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_mainHook TYPE record<HookParent>;
-DEFINE FIELD out ON TABLE HookParent_mainHook TYPE record<Hook>;
-DEFINE TABLE HookParent_hooks SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_hooks TYPE record<HookParent>;
-DEFINE FIELD out ON TABLE HookParent_hooks TYPE record<Hook>;
+DEFINE TABLE HookParent_mainHook SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
+DEFINE TABLE HookParent_hooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
+
 
 DEFINE TABLE HookATag SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookATag_hookTypeA SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_hookTypeA TYPE record<HookATag>;
-DEFINE FIELD out ON TABLE HookParent_hookTypeA TYPE record<Hook>;
-DEFINE TABLE HookATag_otherHooks SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE HookParent_otherHooks TYPE record<HookATag>;
-DEFINE FIELD out ON TABLE HookParent_otherHooks TYPE record<Hook>;
+DEFINE TABLE HookATag_hookTypeA SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
+DEFINE TABLE HookATag_otherHooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
 
--- DEFINE TABLE SpaceObj SCHEMAFULL PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE SpaceObj TYPE record<Space>;
--- DEFINE FIELD out ON TABLE SpaceObj TYPE record<Space>;
+DEFINE TABLE SpaceObj SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE SpaceObj_space SCHEMAFULL PERMISSIONS FULL TYPE RELATION in SpaceObj|SpaceDef|Kind|Self out Space;
 
--- DEFINE TABLE SpaceDef SCHEMAFULL PERMISSIONS FULL;
--- DEFINE FIELD in ON TABLE SpaceDef TYPE record<SpaceObj>;
--- DEFINE FIELD out ON TABLE SpaceDef TYPE record<SpaceObj>;
--- DEFINE FIELD description ON SpaceDef TYPE string;
+DEFINE TABLE SpaceDef SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD description ON SpaceDef TYPE string;
 
 DEFINE TABLE Kind SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON Table Kind TYPE string;
-DEFINE TABLE Kind_space SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE Kind_space TYPE record<Kind>;
-DEFINE FIELD out ON TABLE Kind_space TYPE record<Space>;
+
 
 -- DEFINE TABLE Field SCHEMAFULL PERMISSIONS FULL;
 -- DEFINE FIELD in ON TABLE Field TYPE record<SpaceDef>;
@@ -169,21 +159,7 @@ DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 
 -- relations END
 
--- Not sure how to migrate this to SurrealDB
--- #1 Secure provider rule
--- rule add-secure-provider: when {
--- 	  $account isa Account, has Account·provider "google";
--- } then {
--- 	  $account has Account·isSecureProvider true;
--- };
-
--- rule add-non-secure-provider: when {
--- 	  $account isa Account;
--- 		not { $account has Account·isSecureProvider true; };
--- } then {
--- 	  $account has Account·isSecureProvider false;
--- };
-
+DEFINE FIELD otherHooks ON TABLE Hook VALUE <future> {RETURN SELECT VALUE id FROM Hook};
 
 -- #2 With parent tag rule	
 -- rule add-hook-type-a-tag: when {
