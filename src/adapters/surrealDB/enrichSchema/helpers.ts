@@ -9,6 +9,11 @@ export const getSurrealLinkFieldQueryPath = ({
 	originalRelation: string;
 	withExtensionsSchema: BormSchema;
 }) => {
+	// For virtuals, it is managed by the database schema
+	if (linkField.isVirtual) {
+		return `$this.${linkField.path}.id`;
+	}
+
 	// And the subtypes of the current relation, as only the currentSubtypes are included in the path
 	const targetRelationSubTypes =
 		(withExtensionsSchema.relations[linkField.relation] as EnrichedBormRelation).subTypes || [];

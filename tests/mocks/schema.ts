@@ -91,6 +91,7 @@ export const schema: BormSchema = {
 					relation: 'HookATag',
 					plays: 'hookTypeA',
 					target: 'role',
+					isVirtual: true,
 				},
 				{
 					path: 'tagA',
@@ -98,6 +99,7 @@ export const schema: BormSchema = {
 					relation: 'HookATag',
 					plays: 'otherHooks',
 					target: 'role',
+					isVirtual: true,
 				},
 			],
 			hooks: {

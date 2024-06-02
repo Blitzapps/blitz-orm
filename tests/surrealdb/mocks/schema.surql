@@ -4,12 +4,15 @@ USE DB test;
 DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE User TYPE string;
 DEFINE FIELD email ON TABLE User TYPE option<string>;
--- there is no subtyping in SurrealDB
+
+
+-- there is no subtyping in SurrealDB, we need to duplicate the fields
 DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE SuperUser TYPE string;
 DEFINE FIELD email ON TABLE SuperUser TYPE string;
 DEFINE FIELD power ON TABLE SuperUser TYPE string;
--- there is no subtyping in SurrealDB
+
+-- there is no subtyping in SurrealDB, we need to duplicate the fields
 DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE God TYPE string;
 DEFINE FIELD email ON TABLE God TYPE string;
@@ -51,6 +54,19 @@ DEFINE FIELD timestamp ON TABLE Hook TYPE option<datetime>;
 DEFINE FIELD requiredOption ON TABLE Hook TYPE string;
 DEFINE FIELD manyOptions ON TABLE Hook TYPE option<string>;
 DEFINE FIELD fnValidatedField ON TABLE Hook TYPE option<string>;
+DEFINE FIELD otherTags ON TABLE Hook VALUE <future> {
+  RETURN 
+  IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a"))
+  ELSE RETURN []
+  END;
+};
+DEFINE FIELD tagA ON TABLE Hook VALUE <future> {
+  RETURN 
+  IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a"))
+  ELSE RETURN []
+  END;
+};
+
 
 -- relationship
 DEFINE TABLE ThingRelation SCHEMAFULL PERMISSIONS FULL;
@@ -158,8 +174,6 @@ DEFINE FIELD in ON TABLE Self_owner TYPE record<Self>;
 DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 
 -- relations END
-
-DEFINE FIELD otherHooks ON TABLE Hook VALUE <future> {RETURN SELECT VALUE id FROM Hook};
 
 -- #2 With parent tag rule	
 -- rule add-hook-type-a-tag: when {

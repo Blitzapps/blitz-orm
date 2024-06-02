@@ -22,6 +22,7 @@ export type LinkField = BormField & {
 	relation: string;
 	cardinality: DiscreteCardinality;
 	plays: string;
+	isVirtual?: boolean; // LinkFields might be virtual, but roleField cant!
 } & (
 		| {
 				target: 'role';
