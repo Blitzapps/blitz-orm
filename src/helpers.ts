@@ -509,21 +509,25 @@ export const getThingType = (rootNode: BQLMutationBlock, schema: EnrichedBormSch
 	throw new Error('No thing found');
 };
 
-export const getFieldSchema = (schema: EnrichedBormSchema, node: Partial<BQLMutationBlock>, field: string) => {
+export const getFieldSchema = (
+	schema: EnrichedBormSchema,
+	node: Partial<BQLMutationBlock>,
+	field: string,
+): EnrichedDataField | EnrichedLinkField | EnrichedRoleField => {
 	const currentSchema = getCurrentSchema(schema, node);
 	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
 	if (foundLinkField) {
-		return foundLinkField;
+		return foundLinkField as EnrichedLinkField;
 	}
 	const foundDataField = currentSchema.dataFields?.find((lf) => lf.path === field);
 	if (foundDataField) {
-		return foundDataField;
+		return foundDataField as EnrichedDataField;
 	}
 	const foundRoleField = 'roles' in currentSchema ? currentSchema.roles?.[field] : undefined;
 	if (foundRoleField) {
-		return foundRoleField;
+		return foundRoleField as EnrichedRoleField;
 	}
-	return undefined;
+	throw new Error(`Field ${field} not found in schema`);
 };
 
 export const getCardinality = (
