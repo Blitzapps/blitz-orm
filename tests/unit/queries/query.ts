@@ -6,7 +6,8 @@ import type { TypeGen } from '../../../src/types/typeGen';
 import type { WithBormMetadata } from '../../../src/index';
 import type { UserType } from '../../types/testTypes';
 import { createTest } from '../../helpers/createTest';
-import { expect, it } from 'vitest';
+import { expect, it, test } from 'vitest';
+import { runQuery } from '../../helpers/queryRunner';
 
 export const testQuery = createTest('Query', (ctx) => {
 	it('v1[validation] - $entity missing', async () => {
@@ -951,29 +952,380 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('ef3[entity] - $fields single', async () => {
-		const res = await ctx.query({ $entity: 'User', $fields: ['id'] });
-		expect(res).toBeDefined();
-		expect(res).not.toBeInstanceOf(String);
+	// Test retrieving all attributes of an entity using $fields
+	test('should retrieve all attributes of an entity using $fields', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
+			},
+			// ... other users
+		]);
+	});
 
-		expect(deepSort(res)).toEqual([
+	// Test retrieving a subset of attributes using $fields
+	test('should retrieve a subset of attributes using $fields', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
 			{
-				$id: 'god1',
-				$thing: 'God',
-				$thingType: 'entity',
-				id: 'god1',
+				id: 'user1',
+				name: 'John Doe',
+			},
+			// ... other users
+		]);
+	});
+
+	// Test retrieving an entity by its unique identifier using $id
+	test('should retrieve an entity by its unique identifier using $id', async () => {
+		const query = {
+			$entity: 'User',
+			$id: 'user1',
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual({
+			id: 'user1',
+			name: 'John Doe',
+			email: 'john@example.com',
+			age: 30,
+		});
+	});
+
+	// Test retrieving multiple entities by their unique identifiers using $id with an array
+	test('should retrieve multiple entities by their unique identifiers using $id with an array', async () => {
+		const query = {
+			$entity: 'User',
+			$id: ['user1', 'user2'],
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
 			},
 			{
-				$id: 'superuser1',
-				$thing: 'SuperUser',
-				$thingType: 'entity',
-				id: 'superuser1',
+				id: 'user2',
+				name: 'Jane Smith',
+				email: 'jane@example.com',
+				age: 25,
 			},
-			{ $thing: 'User', $thingType: 'entity', $id: 'user1', id: 'user1' },
-			{ $thing: 'User', $thingType: 'entity', $id: 'user2', id: 'user2' },
-			{ $thing: 'User', $thingType: 'entity', $id: 'user3', id: 'user3' },
-			{ $thing: 'User', $thingType: 'entity', $id: 'user4', id: 'user4' },
-			{ $thing: 'User', $thingType: 'entity', $id: 'user5', id: 'user5' },
+		]);
+	});
+
+	// Test retrieving entities based on a specific attribute value using $filter
+	test('should retrieve entities based on a specific attribute value using $filter', async () => {
+		const query = {
+			$entity: 'User',
+			$filter: {
+				age: 30,
+			},
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
+			},
+		]);
+	});
+
+	// Test retrieving entities based on multiple attribute values using $filter with $and
+	test('should retrieve entities based on multiple attribute values using $filter with $and', async () => {
+		const query = {
+			$entity: 'User',
+			$filter: {
+				$and: [{ age: 30 }, { name: 'John Doe' }],
+			},
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
+			},
+		]);
+	});
+
+	// Test retrieving entities based on multiple attribute values using $filter with $or
+	test('should retrieve entities based on multiple attribute values using $filter with $or', async () => {
+		const query = {
+			$entity: 'User',
+			$filter: {
+				$or: [{ age: 30 }, { name: 'Jane Smith' }],
+			},
+			$fields: ['id', 'name', 'email', 'age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
+			},
+			{
+				id: 'user2',
+				name: 'Jane Smith',
+				email: 'jane@example.com',
+				age: 25,
+			},
+		]);
+	});
+
+	// Test retrieving entities with a specific role field value
+	test('should retrieve entities with a specific role field value', async () => {
+		const query = {
+			$relation: 'UserTag',
+			$fields: ['id', 'users', 'tags'],
+			users: {
+				$fields: ['id', 'name'],
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'usertag1',
+				users: [
+					{
+						id: 'user1',
+						name: 'John Doe',
+					},
+				],
+				tags: ['tag1'],
+			},
+			// ... other user tags
+		]);
+	});
+
+	// Test retrieving entities with a specific link field value targeting a role
+	test('should retrieve entities with a specific link field value targeting a role', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'spaces'],
+			spaces: {
+				$fields: ['id', 'name'],
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				spaces: [
+					{
+						id: 'space1',
+						name: 'Space 1',
+					},
+				],
+			},
+			// ... other users
+		]);
+	});
+
+	// Test retrieving entities with a specific link field value targeting a relation
+	test('should retrieve entities with a specific link field value targeting a relation', async () => {
+		const query = {
+			$entity: 'Thing',
+			$fields: ['id', 'name', 'things'],
+			things: {
+				$fields: ['id', 'name'],
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'thing1',
+				name: 'Thing 1',
+				things: [
+					{
+						id: 'thingrelation1',
+						name: 'Thing Relation 1',
+					},
+				],
+			},
+			// ... other things
+		]);
+	});
+
+	// Test retrieving entities sorted by a specific attribute in ascending order using $sort
+	test('should retrieve entities sorted by a specific attribute in ascending order using $sort', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'age'],
+			$sort: ['age'],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user2',
+				name: 'Jane Smith',
+				age: 25,
+			},
+			{
+				id: 'user1',
+				name: 'John Doe',
+				age: 30,
+			},
+		]);
+	});
+
+	// Test retrieving entities sorted by a specific attribute in descending order using $sort
+	test('should retrieve entities sorted by a specific attribute in descending order using $sort', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'age'],
+			$sort: [{ field: 'age', desc: true }],
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				age: 30,
+			},
+			{
+				id: 'user2',
+				name: 'Jane Smith',
+				age: 25,
+			},
+		]);
+	});
+
+	// Test retrieving a paginated subset of entities using $offset and $limit
+	test('should retrieve a paginated subset of entities using $offset and $limit', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'age'],
+			$offset: 1,
+			$limit: 1,
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user2',
+				name: 'Jane Smith',
+				age: 25,
+			},
+		]);
+	});
+
+	// Test retrieving entities with nested link fields, traversing multiple levels of relationships
+	test('should retrieve entities with nested link fields, traversing multiple levels of relationships', async () => {
+		const query = {
+			$entity: 'User',
+			$fields: ['id', 'name', 'spaces'],
+			spaces: {
+				$fields: ['id', 'name', 'objects'],
+				objects: {
+					$fields: ['id', 'name'],
+				},
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				spaces: [
+					{
+						id: 'space1',
+						name: 'Space 1',
+						objects: [
+							{
+								id: 'spaceobj1',
+								name: 'Space Object 1',
+							},
+						],
+					},
+				],
+			},
+			// ... other users
+		]);
+	});
+
+	// Test retrieving entities with nested role fields, traversing multiple levels of relationships
+	test('should retrieve entities with nested role fields, traversing multiple levels of relationships', async () => {
+		const query = {
+			$relation: 'UserTag',
+			$fields: ['id', 'users', 'tags'],
+			users: {
+				$fields: ['id', 'name', 'spaces'],
+				spaces: {
+					$fields: ['id', 'name'],
+				},
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'usertag1',
+				users: [
+					{
+						id: 'user1',
+						name: 'John Doe',
+						spaces: [
+							{
+								id: 'space1',
+								name: 'Space 1',
+							},
+						],
+					},
+				],
+				tags: ['tag1'],
+			},
+			// ... other user tags
+		]);
+	});
+
+	// Test combining multiple query features in a single query
+	test('should combine multiple query features in a single query', async () => {
+		const query = {
+			$entity: 'User',
+			$filter: {
+				age: 30,
+			},
+			$fields: ['id', 'name', 'email', 'age', 'spaces'],
+			$sort: ['name'],
+			$offset: 0,
+			$limit: 1,
+			spaces: {
+				$fields: ['id', 'name'],
+			},
+		};
+		const result = await runQuery(query);
+		expect(result).toEqual([
+			{
+				id: 'user1',
+				name: 'John Doe',
+				email: 'john@example.com',
+				age: 30,
+				spaces: [
+					{
+						id: 'space1',
+						name: 'Space 1',
+					},
+				],
+			},
 		]);
 	});
 
