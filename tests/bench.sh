@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
+set -e
+
 CONTAINER_NAME=borm_test
 
 # Start the container
-docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:latest start --allow-all -u tester -p tester
+docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:latest start --allow-all -u tester -p tester || { echo "Failed to start SurrealDB container"; exit 1; }
 
 until [ "`docker inspect -f {{.State.Running}} $CONTAINER_NAME`"=="true" ]; do
     sleep 0.1;
