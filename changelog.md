@@ -3,7 +3,9 @@
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
 ## 0.10.14(2024-06-08)
-- Feat: MultiValues query (not filters, not mutation)
+- Feat: 
+   - TypeDB: Multi-values query and edit (not filter)
+	 - SurrealDB: query and filter Multi-values
 - Test: ignoreTodo depending on tested DB
 
 ## 0.10.13(2024-05-27)
