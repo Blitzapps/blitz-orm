@@ -672,7 +672,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('TODO:b4.3[update, link] Link ALL (without ids)', async () => {
+	it('TODO{TS}:b4.3[update, link] Link ALL (without ids)', async () => {
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -701,7 +701,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('TODO:b4.4[create, link] Create and link ALL (without ids)', async () => {
+	it('TODO{TS}:b4.4[create, link] Create and link ALL (without ids)', async () => {
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -786,7 +786,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			[
 				{
 					$entity: 'Color',
-					id: 'red',
+					id: 'teal',
 				},
 				{
 					$entity: 'Color',
@@ -797,7 +797,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		);
 		expect(JSON.parse(JSON.stringify(res))).toEqual([
 			{
-				id: 'red',
+				id: 'teal',
 			},
 			{ id: 'green' },
 		]);
@@ -807,7 +807,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{
 				$entity: 'Color',
 				$op: 'delete',
-				$id: 'red',
+				$id: 'teal',
 			},
 			{
 				$entity: 'Color',
@@ -887,6 +887,115 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				id: expect.any(String),
 				sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
 				user: 'user1',
+			},
+		]);
+	});
+
+	it('mv1[create, multiVal] ', async () => {
+		await ctx.mutate(
+			[
+				{
+					$thing: 'Color',
+					id: 'numberColor',
+					freeForAll: 12,
+				},
+				{
+					$thing: 'Color',
+					id: 'stringColor',
+					freeForAll: 'hello',
+				},
+				{
+					$thing: 'Color',
+					id: 'dateColor',
+					freeForAll: new Date('2023-06-10T14:58:09.066Z'),
+				},
+			],
+
+			{ noMetadata: true },
+		);
+
+		try {
+			const colors = await ctx.query(
+				{
+					$entity: 'Color',
+					$id: ['numberColor', 'stringColor', 'dateColor'],
+					$fields: ['id', 'freeForAll'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(colors, 'id')).toEqual([
+				{
+					id: 'dateColor',
+					freeForAll: '2023-06-10T14:58:09.066Z',
+				},
+				{
+					id: 'numberColor',
+					freeForAll: 12,
+				},
+				{
+					id: 'stringColor',
+					freeForAll: 'hello',
+				},
+			]);
+		} finally {
+			await ctx.mutate(
+				{
+					$thing: 'Color',
+					$op: 'delete',
+					$id: ['numberColor', 'stringColor', 'dateColor'],
+				},
+				{ noMetadata: true },
+			);
+		}
+	});
+
+	it('mv2[create, edit] ', async () => {
+		await ctx.mutate(
+			[
+				{
+					$thing: 'Color',
+					$id: 'yellow',
+					$op: 'update',
+					freeForAll: 13, //keep same type
+				},
+				{
+					$thing: 'Color',
+					$id: 'red',
+					$op: 'update',
+					freeForAll: 'bye', //change it to string
+				},
+				{
+					$thing: 'Color',
+					$id: 'blue',
+					$op: 'update',
+					freeForAll: new Date('2023-06-10T14:58:09.066Z'), //change it to date
+				},
+			],
+			{ noMetadata: true },
+		);
+
+		const colors = await ctx.query(
+			{
+				$entity: 'Color',
+				$id: ['yellow', 'red', 'blue'],
+				$fields: ['id', 'freeForAll'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(colors, 'id')).toEqual([
+			{
+				id: 'blue',
+				freeForAll: '2023-06-10T14:58:09.066Z',
+			},
+			{
+				id: 'red',
+				freeForAll: 'bye',
+			},
+			{
+				id: 'yellow',
+				freeForAll: 13,
 			},
 		]);
 	});

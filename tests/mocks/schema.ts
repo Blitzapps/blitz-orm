@@ -539,6 +539,11 @@ export const schema: BormSchema = {
 					},
 				},
 				{
+					path: 'freeForAll',
+					cardinality: 'ONE',
+					contentType: 'FLEX',
+				},
+				{
 					path: 'totalUserTags',
 					contentType: 'NUMBER',
 					isVirtual: true,

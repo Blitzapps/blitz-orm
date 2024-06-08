@@ -88,10 +88,14 @@ $tag-4 (users: $user-2) isa UserTag, has id 'tag-4';
 $group-1 (tags: $tag-1, tags: $tag-2, color: $yellow) isa UserTagGroup, has id 'utg-1';
 $group-2 (tags: $tag-3, color:$blue, space: $space-3) isa UserTagGroup, has id 'utg-2';
 
-#$red isa Color, has Color·name 'red';
-#$blue isa Color, has Color·name 'blue';
-$yellow isa Color, has id 'yellow';
-$blue isa Color, has id 'blue';
+
+$yellowFreeForAll "yellowFreeForAll" isa Color·freeForAll, has longAttribute 7;
+$blueFreeForAll "blueFreeForAll" isa Color·freeForAll, has stringAttribute "hey";
+$redFreeForAll "redFreeForAll" isa Color·freeForAll, has stringAttribute "yay";
+
+$red isa Color, has id 'red', has Color·freeForAll $redFreeForAll;
+$yellow isa Color, has id 'yellow', has Color·freeForAll $yellowFreeForAll;
+$blue isa Color, has id 'blue', has Color·freeForAll $blueFreeForAll;
 
 $kind-book (space: $space-2) isa Kind, has id 'kind-book', has Kind·name 'book';
 

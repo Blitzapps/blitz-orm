@@ -37,6 +37,16 @@ export type LinkedFieldWithThing = LinkField & {
 	thing: string;
 	thingType: ThingType;
 };
+
+type MultiField = BormField & {
+	contentType: 'FLEX';
+	default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => unknown } | { type: 'value'; value: unknown };
+	validations?: {
+		enum?: unknown[];
+		unique?: boolean;
+		fn?: (value: unknown) => boolean;
+	};
+};
 type StringField = BormField & {
 	contentType:
 		| 'ID'
@@ -87,7 +97,7 @@ type BooleanField = BormField & {
 	};
 };
 
-type AllDataField = StringField | NumberField | DateField | BooleanField;
+type AllDataField = StringField | NumberField | DateField | BooleanField | MultiField;
 
 export type DataField = BormField & {
 	cardinality?: Cardinality;

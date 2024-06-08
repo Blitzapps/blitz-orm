@@ -264,7 +264,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (ctx) => {
 		});
 	});
 
-	it('TODO:ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
+	it('TODO{TS}:ri1-d[ignore ids pre-query delete] delete something that does not exist', async () => {
 		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
@@ -295,7 +295,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (ctx) => {
 		});
 	});
 
-	it('TODO:ri1-ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
+	it('TODO{TS}:ri1-ul[ignore ids pre-query unlink] unlink something that does not exist', async () => {
 		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',
@@ -326,7 +326,7 @@ export const testReplaceMutation = createTest('Mutation: Replaces', (ctx) => {
 		});
 	});
 
-	it('TODO:ri1-up[ignore ids pre-query update] update something that does not exist', async () => {
+	it('TODO{TS}:ri1-up[ignore ids pre-query update] update something that does not exist', async () => {
 		await ctx.mutate(
 			{
 				$relation: 'ThingRelation',

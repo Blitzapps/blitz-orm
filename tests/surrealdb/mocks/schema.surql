@@ -41,6 +41,7 @@ DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
 
 DEFINE TABLE Color SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE Color TYPE option<string>;
+DEFINE FIELD freeForAll ON TABLE Color FLEXIBLE TYPE option<string|number|datetime|bool>;
 
 DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD description ON TABLE Power TYPE string;

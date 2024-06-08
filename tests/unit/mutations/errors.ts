@@ -86,7 +86,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		}
 	});
 
-	it('TODO:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
+	it('TODO{TS}:e5[relation] breaking the cardinality rule in a batch mutation', async () => {
 		try {
 			await ctx.mutate([
 				{
@@ -256,7 +256,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:m1l[link, missing] Link a non existing $id', async () => {
+	it('TODO{TS}:m1l[link, missing] Link a non existing $id', async () => {
 		// needs more than regular pre query
 		try {
 			await ctx.mutate({
@@ -497,7 +497,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('TODO:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
+	it('TODO{TS}:e-id1[replace, many, wrongId] Replace many by non existing field', async () => {
 		/// create
 		await ctx.mutate({
 			$relation: 'UserTagGroup',
@@ -539,7 +539,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		});
 	});
 
-	it('TODO:e-lm[link and unlink many] linking to things that do not exist', async () => {
+	it('TODO{TS}:e-lm[link and unlink many] linking to things that do not exist', async () => {
 		try {
 			await ctx.mutate({
 				$relation: 'Field',

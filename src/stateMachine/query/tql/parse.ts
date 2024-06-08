@@ -84,20 +84,29 @@ const parseObj = (res: any, rawBqlRequest: RawBQLQuery, schema: EnrichedBormSche
 
 const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 	const keys = Object.keys(obj);
-
 	// Find and process $dataFields
 	const dataFieldsKey = keys.find((key) => key.endsWith('.$dataFields'));
+	const multiValKeys = keys.filter((key) => key.endsWith('.$multiVal'));
 	if (!dataFieldsKey) {
-		throw new Error('No datafields');
+		throw new Error('No dataFields');
 	}
 
+	//if there are multiValKeys, we replace it in the Object
+	if (multiValKeys?.length > 0) {
+		multiValKeys.forEach((multiValKey) => {
+			const multiValKeyWithout$multiVal = multiValKey.replace(/\.\$multiVal$/, '');
+			const realValue = obj[multiValKey][0][multiValKeyWithout$multiVal].attribute; //there is an easier way for sure
+			// eslint-disable-next-line no-param-reassign
+			obj[dataFieldsKey][multiValKeyWithout$multiVal] = realValue;
+		});
+	}
 	const dataFields = obj[dataFieldsKey];
 
 	const metaDataKey = dataFieldsKey.split('.')[dataFieldsKey.split('.').length - 2];
 	dataFields.$metaData = metaDataKey;
 
 	if (dataFields.length === 0) {
-		throw new Error('No datafields');
+		throw new Error('No dataFields');
 	}
 
 	const dataFieldsThing = dataFields.type;
@@ -165,8 +174,8 @@ const parseDataFields = (
 			let fieldValue;
 			if (field?.cardinality === 'ONE') {
 				fieldValue = value[0] ? value[0].value : config.query?.returnNulls ? null : undefined;
-				/// date fields need to be converted to ISO format including the timezone
-				if (field.contentType === 'DATE') {
+				if (field.contentType === 'DATE' || (field.contentType === 'FLEX' && value[0].type.value_type === 'datetime')) {
+					/// date fields need to be converted to ISO format including the timezone
 					fieldValue = fieldValue ? `${fieldValue}Z` : fieldValue;
 				} else if (field.contentType === 'JSON') {
 					fieldValue = fieldValue && JSON.parse(fieldValue);
@@ -187,6 +196,14 @@ const parseDataFields = (
 				if (field.contentType === 'DATE') {
 					fieldValue = value.map((o) => {
 						return `${o.value}Z`;
+					});
+				} else if (field.contentType === 'FLEX') {
+					fieldValue = value.map((o) => {
+						if (o.type.value_type === 'datetime') {
+							return `${o.value}Z`;
+						} else {
+							return o.value;
+						}
 					});
 				} else if (field.contentType === 'JSON') {
 					fieldValue = value.map((o) => {
