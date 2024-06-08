@@ -10,7 +10,7 @@ import type {
 	EnrichedRoleQuery,
 } from '../../../types';
 import type { Filter, PositiveFilter } from '../../../types/requests/queries';
-import { QueryPath } from '../../../types/symbols';
+import { FieldSchema, QueryPath } from '../../../types/symbols';
 import { v4 as uuidv4 } from 'uuid';
 
 const separator = '___';
@@ -87,10 +87,14 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 const processDataFields = (dataFields: EnrichedAttributeQuery[], $path: string, depth: number) => {
 	const postStrParts: string[] = [];
 	const asMetaDataParts: string[] = [];
+	const multiVals: { path: string }[] = [];
 
 	for (let i = 0; i < dataFields.length; i++) {
 		if (!dataFields[i].$isVirtual) {
 			postStrParts.push(dataFields[i].$dbPath);
+		}
+		if (dataFields[i][FieldSchema].contentType === 'FLEX') {
+			multiVals.push({ path: dataFields[i][FieldSchema].dbPath });
 		}
 		asMetaDataParts.push(`{${dataFields[i].$dbPath}:${dataFields[i].$as}}`);
 	}
@@ -100,6 +104,16 @@ const processDataFields = (dataFields: EnrichedAttributeQuery[], $path: string, 
 	const $metaData = `$metadata:{as:[${$asMetaData}]}`;
 	const lines = [indent(`$${$path} as "${$path}.${$metaData}.$dataFields": ${postStr};`, depth)];
 
+	if (multiVals.length > 0) {
+		multiVals.forEach((multiVal) => {
+			lines.push(
+				indent(
+					`"${multiVal.path}.$multiVal": {match $${$path} has ${multiVal.path} $${multiVal.path}; fetch $${multiVal.path}: attribute;};`,
+					depth,
+				),
+			);
+		});
+	}
 	return lines;
 };
 

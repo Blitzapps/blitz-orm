@@ -87,17 +87,27 @@ const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 
 	// Find and process $dataFields
 	const dataFieldsKey = keys.find((key) => key.endsWith('.$dataFields'));
+	const multiValKeys = keys.filter((key) => key.endsWith('.$multiVal'));
 	if (!dataFieldsKey) {
-		throw new Error('No datafields');
+		throw new Error('No dataFields');
 	}
 
+	//if there are multiValKeys, we replace it in the Object
+	if (multiValKeys.length > 0) {
+		multiValKeys.forEach((multiValKey) => {
+			const multiValKeyWithout$multiVal = multiValKey.replace(/\.\$multiVal$/, '');
+			const realValue = obj[multiValKey][0][multiValKeyWithout$multiVal].attribute; //there is an easier way for sure
+			// eslint-disable-next-line no-param-reassign
+			obj[dataFieldsKey][multiValKeyWithout$multiVal] = realValue;
+		});
+	}
 	const dataFields = obj[dataFieldsKey];
 
 	const metaDataKey = dataFieldsKey.split('.')[dataFieldsKey.split('.').length - 2];
 	dataFields.$metaData = metaDataKey;
 
 	if (dataFields.length === 0) {
-		throw new Error('No datafields');
+		throw new Error('No dataFields');
 	}
 
 	const dataFieldsThing = dataFields.type;

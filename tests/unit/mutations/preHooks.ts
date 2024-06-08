@@ -223,7 +223,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('TODO:vflr3[validation, functions, nested, things] Check nested array, card ONE', async () => {
+	it('TODO{TS}:vflr3[validation, functions, nested, things] Check nested array, card ONE', async () => {
 		try {
 			await ctx.mutate({
 				$relation: 'HookATag',
@@ -622,7 +622,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('TODO:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
+	it('TODO{TS}:tf4[transform, fields] Use $fields for nested transformations with same types', async () => {
 		// this test should pass when we add more protections over nested $ids not being the same as parent $ids in a mutation
 		try {
 			await ctx.mutate([
@@ -905,9 +905,9 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 							// 	$fields: ['computeType'],
 							// 	type: 'NUMBER',
 							// },
-						]
-					}
-				]
+						],
+					},
+				],
 			},
 		]);
 	});

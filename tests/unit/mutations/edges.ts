@@ -1008,7 +1008,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		);
 	});
 
-	it('TODO:l16[replace, nested, create, replace] replacing nested under a create', async () => {
+	it('TODO{TS}:l16[replace, nested, create, replace] replacing nested under a create', async () => {
 		await ctx.mutate({
 			$entity: 'Thing',
 			id: 'temp1',
@@ -1035,7 +1035,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	});
 
 	// Todo: ask loic why there's an all link
-	it('TODO:rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+	it('TODO{TS}:rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
 		/// create
 		await ctx.mutate({
 			$relation: 'UserTagGroup',
@@ -1073,7 +1073,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		});
 	});
 
-	it('TODO:rep2c[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
+	it('TODO{TS}:rep2c[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
 		/// create
 		await ctx.mutate({
 			$relation: 'UserTagGroup',
@@ -1168,7 +1168,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		});
 	});
 
-	it('TODO:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {
+	it('TODO{TS}:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {
 		await ctx.mutate([
 			{
 				$entity: 'User',
@@ -1242,7 +1242,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		]);
 	});
 
-	it('TODO:h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
+	it('TODO{TS}:h2[link, hybrid] hybrid intermediary relation and direct relation', async () => {
 		await ctx.mutate([
 			{
 				$entity: 'Account',
@@ -2134,7 +2134,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		});
 	});
 
-	it('TODO:d-pq3[delete with pre query, intermediary, nested, nothing to delete] delete mutation from root and delete children but there are no children with intermediary', async () => {
+	it('TODO{TS}:d-pq3[delete with pre query, intermediary, nested, nothing to delete] delete mutation from root and delete children but there are no children with intermediary', async () => {
 		await ctx.mutate([
 			{
 				$entity: 'User',

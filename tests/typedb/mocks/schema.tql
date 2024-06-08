@@ -13,8 +13,6 @@ ThingRelation·moreStuff sub attribute, value string;
 
 # User
 User·email sub email;
-Color·name sub attribute, value string;
-Color·value sub attribute, value string;
 
 # SuperUser
 SuperUser·power sub attribute, value string;
@@ -161,10 +159,15 @@ UserTagGroup sub relation,
   relates space, #cardinality: One
   relates color;
 
+Color·name sub attribute, value string;
+Color·value sub attribute, value string;
+Color·freeForAll sub multiVal;
+
 Color sub entity,
   #owns Color·name @key,
   owns id @key,
   owns Color·value,
+  owns Color·freeForAll,
   plays UserTagGroup:color;
 
 SpaceObj sub relation,
@@ -266,4 +269,13 @@ rule add-hook-type-a-tag: when {
 };
 	
 	
-    
+#Tools
+  stringVal sub attribute,
+    value string;
+
+  longVal sub attribute,
+    value long;
+
+  multiVal sub attribute, abstract, value string, regex "^(string|long)$",
+    owns stringVal,
+    owns longVal;

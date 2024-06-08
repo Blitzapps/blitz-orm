@@ -1,7 +1,7 @@
 import { allBench } from '../../unit/bench/bench';
 import { init } from '../helpers/init';
 
-allBench(async () => {
+allBench(async (): Promise<any> => {
 	try {
 		await init();
 	} catch (error) {

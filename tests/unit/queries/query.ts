@@ -280,7 +280,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	it('TODO:opt2[options, debugger', async () => {
+	it('TODO{TS}:opt2[options, debugger', async () => {
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'$id': 'user1',
@@ -1426,7 +1426,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
+	it('TODO{TS}:nf2a[nested, $filters] Nested filter for array of ids', async () => {
 		expect(true).toEqual(false);
 	});
 
@@ -1468,7 +1468,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
 	});
 
-	it('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
+	it('TODO{T}:lf4[$filter, $or] Filter by a link field with cardinality MANY', async () => {
 		//!: FAILS IN TQL
 		const res = await ctx.query(
 			{
@@ -1530,7 +1530,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
+	it('TODO{S}:slo3[$sort, $limit, $offset] with an empty attribute', async () => {
 		//! fails in SURQL
 		const res = await ctx.query(
 			{
@@ -1616,7 +1616,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
+	it('TODO{TS}:re1[repeated] Query with repeated path, different nested ids', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1644,7 +1644,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
-	it('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
+	it('TODO{TS}:re2[repeated] Query with repeated path, different nested patterns', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1723,6 +1723,7 @@ export const testQuery = createTest('Query', (ctx) => {
 							'group': 'utg-2',
 							'user-tags': ['tag-3'],
 							'isBlue': true,
+							'freeForAll': 'hey',
 						},
 					},
 					{
@@ -1765,6 +1766,7 @@ export const testQuery = createTest('Query', (ctx) => {
 						'id': 'blue',
 						'group': 'utg-2',
 						'user-tags': ['tag-3'],
+						'freeForAll': 'hey',
 					},
 				},
 				{
@@ -1883,7 +1885,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
+	it('TODO{TS}:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
@@ -1897,6 +1899,35 @@ export const testQuery = createTest('Query', (ctx) => {
 			{
 				id: 'yellow',
 				totalUserTags: 2,
+			},
+		]);
+	});
+
+	it('mv1[multiVal, query, ONE], get multiVal', async () => {
+		const res = await ctx.query({ $entity: 'Color', $fields: ['id', 'freeForAll'] }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				freeForAll: 'hey',
+			},
+			{
+				id: 'yellow',
+				freeForAll: 7,
+			},
+		]);
+	});
+
+	it('TODO{TS}:mv2[multiVal, query, ONE], filter by multiVal', async () => {
+		const res = await ctx.query(
+			{ $entity: 'Color', $filter: { freeForAll: 'hey' }, $fields: ['id', 'freeForAll'] },
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				freeForAll: 'hey',
 			},
 		]);
 	});
@@ -2141,7 +2172,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect((entity as any).profile).toBeUndefined();
 	});
 
-	it('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
+	it('TODO{TS}:bq2[batched query with $as] - as for attributes and roles and links', async () => {
 		const expectedRes = {
 			users: {
 				id: 'user1',

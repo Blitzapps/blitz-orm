@@ -672,7 +672,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('TODO:b4.3[update, link] Link ALL (without ids)', async () => {
+	it('TODO{TS}:b4.3[update, link] Link ALL (without ids)', async () => {
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',
@@ -701,7 +701,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('TODO:b4.4[create, link] Create and link ALL (without ids)', async () => {
+	it('TODO{TS}:b4.4[create, link] Create and link ALL (without ids)', async () => {
 		const res = await ctx.mutate(
 			{
 				$entity: 'Space',

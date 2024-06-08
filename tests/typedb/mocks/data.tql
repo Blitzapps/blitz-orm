@@ -90,8 +90,12 @@ $group-2 (tags: $tag-3, color:$blue, space: $space-3) isa UserTagGroup, has id '
 
 #$red isa Color, has Color·name 'red';
 #$blue isa Color, has Color·name 'blue';
-$yellow isa Color, has id 'yellow';
-$blue isa Color, has id 'blue';
+
+$yellowFreeForAll "long" isa Color·freeForAll, has longVal 7;
+$blueFreeForAll "string" isa Color·freeForAll, has stringVal "hey";
+
+$yellow isa Color, has id 'yellow', has Color·freeForAll $yellowFreeForAll;
+$blue isa Color, has id 'blue', has Color·freeForAll $blueFreeForAll;
 
 $kind-book (space: $space-2) isa Kind, has id 'kind-book', has Kind·name 'book';
 
