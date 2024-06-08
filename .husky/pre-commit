@@ -1,1 +1,1 @@
-pnpm test:ignoreTodo
+pnpm precommit
