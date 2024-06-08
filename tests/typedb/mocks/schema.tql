@@ -161,7 +161,7 @@ UserTagGroup sub relation,
 
 Color·name sub attribute, value string;
 Color·value sub attribute, value string;
-Color·freeForAll sub multiVal;
+Color·freeForAll sub flexAttribute;
 
 Color sub entity,
   #owns Color·name @key,
@@ -269,13 +269,27 @@ rule add-hook-type-a-tag: when {
 };
 	
 	
-#Tools
-  stringVal sub attribute,
+#Tools, reserved for every schema using borm
+
+  stringAttribute sub attribute,
     value string;
 
-  longVal sub attribute,
+  longAttribute sub attribute,
     value long;
 
-  multiVal sub attribute, abstract, value string, regex "^(string|long)$",
-    owns stringVal,
-    owns longVal;
+  doubleAttribute sub attribute,
+    value double;
+
+  booleanAttribute sub attribute,
+    value boolean;
+
+  datetimeAttribute sub attribute,
+    value datetime;
+
+  flexAttribute sub attribute, abstract, value string,
+    owns stringAttribute,
+    owns longAttribute,
+    owns doubleAttribute,
+    owns booleanAttribute,
+    owns datetimeAttribute;
+    

@@ -3,6 +3,8 @@ import { isArray, listify, mapEntries, shake } from 'radash';
 import { getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { EdgeType } from '../../../types/symbols';
+import { parseFlexVal } from '../../../adapters/typeDB/parseFlexVal';
+import { nanoid } from 'nanoid';
 
 export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
 	// todo: Split attributes and edges
@@ -59,8 +61,20 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 				}
 				return `has ${dbField} ${new Date(v).toISOString().replace('Z', '')}`;
 			}
+			if (currentDataField.contentType === 'FLEX') {
+				//ex: $color isa Color, has id 'testi', has Color·freeForAll $tempId; $tempId "number" isa Color·freeForAll, has longVal 7;
+				const tempId = `bza${nanoid()}`;
+
+				const parsedVal = isArray(v) ? v.map((v) => parseFlexVal(v)) : parseFlexVal(v);
+				if (Array.isArray(parsedVal)) {
+					throw new Error('Array in FLEX fields not supported yet');
+				}
+				return `has ${dbField} $${tempId}; $${tempId} '${tempId}' isa ${dbField}, has ${parsedVal.type}Attribute ${parsedVal.value}`;
+			}
 			throw new Error(`Unsupported contentType ${currentDataField.contentType}`);
 		}).filter((x) => x);
+
+		console.log('attributes', attributes);
 
 		const attributesVar = `${bzId}-atts`;
 

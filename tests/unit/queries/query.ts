@@ -636,7 +636,13 @@ export const testQuery = createTest('Query', (ctx) => {
 				'id': 'blue',
 				'group': 'utg-2',
 				'user-tags': ['tag-3'],
-			}, // group 1's color
+			},
+			{
+				$id: 'red',
+				$thing: 'Color',
+				$thingType: 'entity',
+				id: 'red',
+			},
 			{
 				'$id': 'yellow',
 				'$thing': 'Color',
@@ -1910,6 +1916,10 @@ export const testQuery = createTest('Query', (ctx) => {
 			{
 				id: 'blue',
 				freeForAll: 'hey',
+			},
+			{
+				id: 'red',
+				freeForAll: 'yay',
 			},
 			{
 				id: 'yellow',

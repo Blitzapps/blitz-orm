@@ -156,7 +156,8 @@ RELATE UserTag:`tag-4` -> UserTag_users -> User:user2;
 
 INSERT INTO ⟨Color⟩ [
   { id: "yellow", freeForAll: 7 },
-  { id: "blue", freeForAll: "hey" }
+  { id: "blue", freeForAll: "hey" },
+	{ id: "red", freeForAll: "yay" }
 ];
 
 INSERT INTO ⟨UserTagGroup⟩ [

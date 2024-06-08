@@ -786,7 +786,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			[
 				{
 					$entity: 'Color',
-					id: 'red',
+					id: 'teal',
 				},
 				{
 					$entity: 'Color',
@@ -797,7 +797,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		);
 		expect(JSON.parse(JSON.stringify(res))).toEqual([
 			{
-				id: 'red',
+				id: 'teal',
 			},
 			{ id: 'green' },
 		]);
@@ -807,7 +807,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{
 				$entity: 'Color',
 				$op: 'delete',
-				$id: 'red',
+				$id: 'teal',
 			},
 			{
 				$entity: 'Color',
@@ -887,6 +887,54 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				id: expect.any(String),
 				sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
 				user: 'user1',
+			},
+		]);
+	});
+
+	it('b9[create, multiVal] ', async () => {
+		await ctx.mutate(
+			[
+				{
+					$thing: 'Color',
+					id: 'numberColor',
+					freeForAll: 12,
+				},
+				{
+					$thing: 'Color',
+					id: 'stringColor',
+					freeForAll: 'hello',
+				},
+				{
+					$thing: 'Color',
+					id: 'dateColor',
+					freeForAll: new Date('2023-06-10T14:58:09.066Z'),
+				},
+			],
+
+			{ noMetadata: true },
+		);
+
+		const colors = await ctx.query(
+			{
+				$entity: 'Color',
+				$id: ['numberColor', 'stringColor', 'dateColor'],
+				$fields: ['id', 'freeForAll'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(colors, 'id')).toEqual([
+			{
+				id: 'dateColor',
+				freeForAll: '2023-06-10T14:58:09.066Z',
+			},
+			{
+				id: 'numberColor',
+				freeForAll: 12,
+			},
+			{
+				id: 'stringColor',
+				freeForAll: 'hello',
 			},
 		]);
 	});

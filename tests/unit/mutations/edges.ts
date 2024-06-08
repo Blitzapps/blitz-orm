@@ -68,6 +68,9 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				id: 'blue',
 			},
 			{
+				id: 'red',
+			},
+			{
 				id: 'yellow',
 			},
 		]);
@@ -705,7 +708,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				{ noMetadata: true },
 			);
 
-			expect(deepSort(colors, 'id')).toEqual([{ id: 'blue' }, { id: 'yellow' }]);
+			expect(deepSort(colors, 'id')).toEqual([{ id: 'blue' }, { id: 'red' }, { id: 'yellow' }]);
 		}
 	});
 
@@ -2839,6 +2842,9 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			{
 				id: 'purple',
 				group: 'rep-del1-utg1',
+			},
+			{
+				id: 'red',
 			},
 			{
 				group: 'utg-1',
