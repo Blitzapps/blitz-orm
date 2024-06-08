@@ -891,7 +891,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('b9[create, multiVal] ', async () => {
+	it('mv1[create, multiVal] ', async () => {
 		await ctx.mutate(
 			[
 				{
@@ -914,10 +914,71 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
+		try {
+			const colors = await ctx.query(
+				{
+					$entity: 'Color',
+					$id: ['numberColor', 'stringColor', 'dateColor'],
+					$fields: ['id', 'freeForAll'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(colors, 'id')).toEqual([
+				{
+					id: 'dateColor',
+					freeForAll: '2023-06-10T14:58:09.066Z',
+				},
+				{
+					id: 'numberColor',
+					freeForAll: 12,
+				},
+				{
+					id: 'stringColor',
+					freeForAll: 'hello',
+				},
+			]);
+		} finally {
+			await ctx.mutate(
+				{
+					$thing: 'Color',
+					$op: 'delete',
+					$id: ['numberColor', 'stringColor', 'dateColor'],
+				},
+				{ noMetadata: true },
+			);
+		}
+	});
+
+	it('mv2[create, edit] ', async () => {
+		await ctx.mutate(
+			[
+				{
+					$thing: 'Color',
+					$id: 'yellow',
+					$op: 'update',
+					freeForAll: 13, //keep same type
+				},
+				{
+					$thing: 'Color',
+					$id: 'red',
+					$op: 'update',
+					freeForAll: 'bye', //change it to string
+				},
+				{
+					$thing: 'Color',
+					$id: 'blue',
+					$op: 'update',
+					freeForAll: new Date('2023-06-10T14:58:09.066Z'), //change it to date
+				},
+			],
+			{ noMetadata: true },
+		);
+
 		const colors = await ctx.query(
 			{
 				$entity: 'Color',
-				$id: ['numberColor', 'stringColor', 'dateColor'],
+				$id: ['yellow', 'red', 'blue'],
 				$fields: ['id', 'freeForAll'],
 			},
 			{ noMetadata: true },
@@ -925,16 +986,16 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 		expect(deepSort(colors, 'id')).toEqual([
 			{
-				id: 'dateColor',
+				id: 'blue',
 				freeForAll: '2023-06-10T14:58:09.066Z',
 			},
 			{
-				id: 'numberColor',
-				freeForAll: 12,
+				id: 'red',
+				freeForAll: 'bye',
 			},
 			{
-				id: 'stringColor',
-				freeForAll: 'hello',
+				id: 'yellow',
+				freeForAll: 13,
 			},
 		]);
 	});
