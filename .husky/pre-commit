@@ -1,1 +1,1 @@
-pnpm test:typedb-ignoreTodo
+pnpm test:ignoreTodo
