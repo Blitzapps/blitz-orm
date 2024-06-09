@@ -1,7 +1,11 @@
-import type { Surreal } from 'surrealdb.node';
+import type { Surreal } from 'surrealdb.js';
 
 export const run = async (props: { client: Surreal; queries: string[] }): Promise<any[][]> => {
 	const { client, queries } = props;
-	//console.log('queries', queries);
-	return await Promise.all(queries.map((query) => client.query(query)));
+	const batchedQuery = `
+	BEGIN TRANSACTION;
+	${queries.join(';')};
+	COMMIT TRANSACTION;
+	`;
+	return await client.query(batchedQuery);
 };

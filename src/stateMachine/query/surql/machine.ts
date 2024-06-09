@@ -1,4 +1,4 @@
-import type { Surreal } from 'surrealdb.node';
+import type { Surreal } from 'surrealdb.js';
 import type { BormConfig, EnrichedBQLQuery, EnrichedBormSchema } from '../../../types';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
 import { build } from './build';

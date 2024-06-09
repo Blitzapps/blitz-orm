@@ -74,8 +74,6 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 			throw new Error(`Unsupported contentType ${currentDataField.contentType}`);
 		}).filter((x) => x);
 
-		console.log('attributes', attributes);
-
 		const attributesVar = `${bzId}-atts`;
 
 		//@ts-expect-error - TODO

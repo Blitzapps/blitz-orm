@@ -2,7 +2,13 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.15(2024-06-09)
+
+- Fix: Replaced surrealdb.node => surrealdb.js
+
+
 ## 0.10.14(2024-06-08)
+
 - Feat: 
    - TypeDB: Multi-values query and edit (not filter)
 	 - SurrealDB: query and filter Multi-values

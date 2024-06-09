@@ -1,6 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType, TypeDBCredential } from 'typedb-driver';
-import { Surreal } from 'surrealdb.node';
+import { Surreal } from 'surrealdb.js';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -52,13 +52,15 @@ class BormClient {
 				if (dbc.provider === 'surrealDB') {
 					const db = new Surreal();
 
-					await db.connect(dbc.url);
-
-					await db.signin({
+					await db.connect(dbc.url, {
 						namespace: dbc.namespace,
 						database: dbc.dbName,
-						username: dbc.username,
-						password: dbc.password,
+						auth: {
+							namespace: dbc.namespace,
+							database: dbc.dbName,
+							username: dbc.username,
+							password: dbc.password,
+						},
 					});
 
 					dbHandles.surrealDB.set(dbc.id, { client: db });
