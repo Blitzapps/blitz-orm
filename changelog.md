@@ -7,16 +7,15 @@
 - Fix: EnrichSchema issues
 - Fix: Esm config issues
 
-
 ## 0.10.15(2024-06-09)
 
 - Fix: Replaced surrealdb.node => surrealdb.js
 
 ## 0.10.14(2024-06-08)
 
-- Feat: 
-   - TypeDB: Multi-values query and edit (not filter)
-	 - SurrealDB: query and filter Multi-values
+- Feat:
+  - TypeDB: Multi-values query and edit (not filter)
+  - SurrealDB: query and filter Multi-values
 - Test: ignoreTodo depending on tested DB
 
 ## 0.10.13(2024-05-27)
