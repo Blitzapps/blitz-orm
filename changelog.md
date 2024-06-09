@@ -2,10 +2,15 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.16(2024-06-09)
+
+- Fix: EnrichSchema issues
+- Fix: Esm config issues
+
+
 ## 0.10.15(2024-06-09)
 
 - Fix: Replaced surrealdb.node => surrealdb.js
-
 
 ## 0.10.14(2024-06-08)
 
