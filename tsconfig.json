@@ -1,14 +1,18 @@
 {
 	"compilerOptions": {
 		"target": "ES2022",
-		"module": "commonjs",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"isolatedModules": true,
 		"strict": true,
 		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
 		"declaration": true,
 		"skipLibCheck": true,
+		"resolveJsonModule": true,
 		"rootDir": ".",
+		"sourceMap": true,
 		"outDir": "dist"
 	},
 	"include": ["src", "tests"],

@@ -73,7 +73,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					if (!value.defaultDBConnector.as) {
 						//todo: Check if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
 						throw new Error(
-							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector`,
+							`[Schema] ${key} is extending a thing but missing the "as" property in its defaultDBConnector. Path:${meta.nodePath}`,
 						);
 					}
 
@@ -277,15 +277,27 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						linkField.fieldType = 'linkField';
 						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation];
 
-						if (linkFieldRelation.roles?.[linkField.plays] === undefined) {
-							throw new Error(
-								`The role ${linkField.plays} is not defined in the relation ${linkField.relation} (linkField: ${linkField.path})`,
-							);
+						if (!linkField.isVirtual) {
+							//its ok for virtual linkFields to don't have a relation
+							if (!linkFieldRelation) {
+								throw new Error(`The relation ${linkField.relation} does not exist in the schema`);
+							}
+
+							if (linkFieldRelation.roles?.[linkField.plays] === undefined) {
+								throw new Error(
+									`The role ${linkField.plays} is not defined in the relation ${linkField.relation} (linkField: ${linkField.path})`,
+								);
+							}
 						}
 
 						//#region SHARED METADATA
 
 						if (linkField.target === 'relation') {
+							if (linkField.isVirtual) {
+								throw new Error(
+									`[Schema] Virtual linkFields can't target a relation. Thing: "${val.name}" LinkField: "${linkField.path}. Path:${meta.nodePath}."`,
+								);
+							}
 							linkField.$things = [linkField.relation];
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
@@ -307,6 +319,12 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
 								(x) => x.target === 'role',
 							);
+
+							if (linkField.oppositeLinkFieldsPlayedBy.length === 0) {
+								throw new Error(
+									`[Schema] LinkFields require to have at least one opposite linkField playing an opposite role. Thing: "${val.name}" LinkField: "${linkField.path}. Path:${meta.nodePath}."`,
+								);
+							}
 
 							linkField.$things = linkField.oppositeLinkFieldsPlayedBy.map((x) => x.thing);
 
@@ -330,7 +348,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						// We take the original relation as its the one that holds the name of the relation in surrealDB
 						const originalRelation =
 							// @ts-expect-error - This is fine, extensions schema is a middle state
-							linkFieldRelation.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
+							linkFieldRelation?.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
 						const queryPath = getSurrealLinkFieldQueryPath({ linkField, originalRelation, withExtensionsSchema });
 
 						linkField[SuqlMetadata] = {
