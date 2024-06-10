@@ -6,19 +6,19 @@ import type {
 	EnrichedBQLMutationBlock,
 	EnrichedBormSchema,
 } from '../../types';
-import { enrichBQLMutation } from './BQL/enrich';
-import type { TqlMutation } from './TQL/run';
-import { runTQLMutation } from './TQL/run';
-import type { TqlRes } from './TQL/parse';
-import { parseTQLMutation } from './TQL/parse';
-import { parseBQLMutation } from './BQL/parse';
-import { buildTQLMutation } from './TQL/build';
-import { mutationPreQuery } from './BQL/preQuery';
+import { enrichBQLMutation } from './bql/enrich';
+import type { TqlMutation } from './tql/run';
+import { runTQLMutation } from './tql/run';
+import type { TqlRes } from './tql/parse';
+import { parseTQLMutation } from './tql/parse';
+import { parseBQLMutation } from './bql/parse';
+import { buildTQLMutation } from './tql/build';
+import { mutationPreQuery } from './bql/preQuery';
 
 import { createMachine, transition, reduce, guard, interpret, state, invoke } from '../robot3';
-import { stringify } from './BQL/stringify';
-import { preHookDependencies } from './BQL/enrichSteps/preHookDependencies';
-import { dependenciesGuard } from './BQL/guards/dependenciesGuard';
+import { stringify } from './bql/stringify';
+import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
+import { dependenciesGuard } from './bql/guards/dependenciesGuard';
 
 const final = state;
 type MachineContext = {
