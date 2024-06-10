@@ -18,8 +18,8 @@ import type {
 	RawBQLQuery,
 } from './types';
 import { enableMapSet } from 'immer';
-import { runMutationMachine } from './stateMachine/mutation/machine';
-import { runQueryMachine } from './stateMachine/query/machine';
+import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
+import { runQueryMachine } from './stateMachine/query/queryMachine';
 
 export * from './types';
 

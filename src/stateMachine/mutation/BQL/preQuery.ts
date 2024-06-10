@@ -12,7 +12,7 @@ import type {
 } from '../../../types';
 import { getCardinality, getCurrentSchema, getSymbols } from '../../../helpers';
 import { v4 as uuidv4 } from 'uuid';
-import { runQueryMachine } from '../../query/machine';
+import { runQueryMachine } from '../../query/queryMachine';
 
 export const preQueryPathSeparator = '___';
 type ObjectPath = { beforePath: string; ids: string | string[]; key: string };

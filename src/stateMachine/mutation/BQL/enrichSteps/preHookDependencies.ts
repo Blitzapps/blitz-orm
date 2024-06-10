@@ -13,7 +13,7 @@ import type {
 	FilledBQLMutationBlock,
 } from '../../../../types';
 import { DBNode } from '../../../../types/symbols';
-import { runQueryMachine } from '../../../query/machine';
+import { runQueryMachine } from '../../../query/queryMachine';
 import { getSchemaByThing } from '../../../../helpers';
 
 export const preHookDependencies = async (
