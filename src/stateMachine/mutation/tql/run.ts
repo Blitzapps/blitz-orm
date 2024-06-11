@@ -1,6 +1,7 @@
+import type { TypeDBDriver, TypeDBSession } from 'typedb-driver';
 import { TransactionType } from 'typedb-driver';
 import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
-import type { BormConfig, DBHandles } from '../../../types';
+import type { BormConfig } from '../../../types';
 
 export type TqlMutation = {
 	deletions: string;
@@ -9,7 +10,11 @@ export type TqlMutation = {
 	insertionMatches: string;
 };
 
-export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHandles, config: BormConfig) => {
+export const runTQLMutation = async (
+	tqlMutation: TqlMutation,
+	handler: { client: TypeDBDriver; session: TypeDBSession },
+	config: BormConfig,
+) => {
 	if (!tqlMutation) {
 		throw new Error('TQL request not built');
 	}
@@ -17,7 +22,7 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 		throw new Error('TQL request error, no things');
 	}
 
-	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
+	const { session } = await getSessionOrOpenNewOne(handler, config);
 	const mutateTransaction = await session.transaction(TransactionType.WRITE);
 
 	// deletes and pre-update deletes

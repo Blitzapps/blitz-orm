@@ -1,20 +1,21 @@
 import type { AggregateError } from 'radash';
 import { parallel, tryit } from 'radash';
+import type { TypeDBDriver, TypeDBSession } from 'typedb-driver';
 import { TransactionType, TypeDBOptions } from 'typedb-driver';
 import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
-import type { BormConfig, DBHandles } from '../../../types';
+import type { BormConfig } from '../../../types';
 
 export const runTQLQuery = async (props: {
 	tqlRequest: string[];
-	dbHandles: DBHandles;
+	handler: { client: TypeDBDriver; session: TypeDBSession };
 	config: BormConfig;
 }): Promise<any> => {
-	const { tqlRequest, dbHandles, config } = props;
+	const { tqlRequest, handler, config } = props;
 	//TODO condition this only to have infer if there are virtual fields (without default fn)
 	const options = new TypeDBOptions();
 	options.infer = true;
 
-	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
+	const { session } = await getSessionOrOpenNewOne(handler, config);
 	const transaction = await session.transaction(TransactionType.READ, options);
 
 	//console.log('query', JSON.stringify(tqlRequest, null, 2));

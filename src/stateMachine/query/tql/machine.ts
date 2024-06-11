@@ -1,27 +1,23 @@
+import type { TypeDBDriver, TypeDBSession } from 'typedb-driver';
 import { assertDefined } from '../../../helpers';
-import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import type { BormConfig, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
+import { awaitMachine } from '../../common/awaitMachine';
+import { errorTransition } from '../../common/errorTransition';
+import { createMachine, invoke, reduce, state, transition } from '../../robot3';
+import type { QueryMachineContext } from '../../types';
 import { buildTQLQuery } from './build';
 import { parseTQLQuery } from './parse';
 import { runTQLQuery } from './run';
 
-export type TypeDbMachineContext = {
-	bql: {
-		raw: RawBQLQuery[];
-		queries: EnrichedBQLQuery[];
-		res?: any[];
-	};
+export type TypeDbQueryMachineContext = Omit<QueryMachineContext, 'handles'> & {
 	tql: {
 		queries?: string[];
 		res?: any[];
 	};
-	schema: EnrichedBormSchema;
-	config: BormConfig;
-	handles: DBHandles;
-	error?: string | null;
+	handler: { client: TypeDBDriver; session: TypeDBSession };
 };
 
-const updateBqlRes = (ctx: TypeDbMachineContext, event: any): TypeDbMachineContext => {
+const updateBqlRes = (ctx: TypeDbQueryMachineContext, event: any): TypeDbQueryMachineContext => {
 	if (!event.data) {
 		return ctx;
 	}
@@ -31,7 +27,7 @@ const updateBqlRes = (ctx: TypeDbMachineContext, event: any): TypeDbMachineConte
 	};
 };
 
-const updateTqlReq = (ctx: TypeDbMachineContext, event: any): TypeDbMachineContext => {
+const updateTqlReq = (ctx: TypeDbQueryMachineContext, event: any): TypeDbQueryMachineContext => {
 	if (!event.data) {
 		return ctx;
 	}
@@ -41,7 +37,7 @@ const updateTqlReq = (ctx: TypeDbMachineContext, event: any): TypeDbMachineConte
 	};
 };
 
-const updateTqlRes = (ctx: TypeDbMachineContext, event: any): TypeDbMachineContext => {
+const updateTqlRes = (ctx: TypeDbQueryMachineContext, event: any): TypeDbQueryMachineContext => {
 	if (!event.data) {
 		return ctx;
 	}
@@ -51,29 +47,18 @@ const updateTqlRes = (ctx: TypeDbMachineContext, event: any): TypeDbMachineConte
 	};
 };
 
-const errorTransition = transition(
-	'error',
-	'error',
-	reduce((ctx: TypeDbMachineContext, event: any): TypeDbMachineContext => {
-		return {
-			...ctx,
-			error: event.error,
-		};
-	}),
-);
-
 export const typeDbQueryMachine = createMachine(
 	'build',
 	{
 		build: invoke(
-			async (ctx: TypeDbMachineContext) => buildTQLQuery({ queries: ctx.bql.queries, schema: ctx.schema }),
+			async (ctx: TypeDbQueryMachineContext) => buildTQLQuery({ queries: ctx.bql.queries, schema: ctx.schema }),
 			transition('done', 'run', reduce(updateTqlReq)),
 			errorTransition,
 		),
 		run: invoke(
-			async (ctx: TypeDbMachineContext) => {
+			async (ctx: TypeDbQueryMachineContext) => {
 				return runTQLQuery({
-					dbHandles: ctx.handles,
+					handler: ctx.handler,
 					tqlRequest: assertDefined(ctx.tql.queries),
 					config: ctx.config,
 				});
@@ -82,7 +67,7 @@ export const typeDbQueryMachine = createMachine(
 			errorTransition,
 		),
 		parse: invoke(
-			async (ctx: TypeDbMachineContext) =>
+			async (ctx: TypeDbQueryMachineContext) =>
 				parseTQLQuery({
 					rawBqlRequest: ctx.bql.raw,
 					enrichedBqlQuery: ctx.bql.queries,
@@ -97,36 +82,17 @@ export const typeDbQueryMachine = createMachine(
 		error: state(),
 	},
 	// @ts-expect-error Bad type
-	(ctx: TypeDbMachineContext) => ctx,
+	(ctx: TypeDbQueryMachineContext) => ctx,
 );
-
-const awaitQueryMachine = async (context: TypeDbMachineContext) => {
-	return new Promise<any[]>((resolve, reject) => {
-		// @ts-expect-error Bad type
-		interpret(
-			typeDbQueryMachine,
-			// @ts-expect-error Bad type
-			(service) => {
-				if (service.machine.state.name === 'success') {
-					resolve(service.context.bql.res);
-				}
-				if (service.machine.state.name === 'error') {
-					reject(service.context.error);
-				}
-			},
-			context,
-		);
-	});
-};
 
 export const runTypeDbQueryMachine = async (
 	bql: RawBQLQuery[],
 	enrichedBql: EnrichedBQLQuery[],
 	schema: EnrichedBormSchema,
 	config: BormConfig,
-	handles: DBHandles,
-) => {
-	return awaitQueryMachine({
+	handler: { client: TypeDBDriver; session: TypeDBSession },
+) =>
+	awaitMachine<TypeDbQueryMachineContext>(typeDbQueryMachine, {
 		bql: {
 			raw: bql,
 			queries: enrichedBql,
@@ -134,7 +100,6 @@ export const runTypeDbQueryMachine = async (
 		tql: {},
 		schema: schema,
 		config: config,
-		handles: handles,
+		handler,
 		error: null,
 	});
-};

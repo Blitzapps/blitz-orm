@@ -182,7 +182,7 @@ class BormClient {
 			throw error;
 		}
 
-		const result = res.bql.res as BQLResponse[];
+		const result = res as BQLResponse[];
 
 		return isBatched ? result : result[0];
 	};
@@ -213,9 +213,7 @@ class BormClient {
 			throw error;
 		}
 
-		const result = res.bql.res;
-
-		return result as BQLResponseMulti;
+		return res as BQLResponseMulti;
 	};
 
 	close = async () => {

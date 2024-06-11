@@ -52,6 +52,7 @@ export type EnrichedBQLMutationBlock = {
 	$op: BormOperation;
 	$thing: string;
 	$thingType: 'entity' | 'relation';
+	[Schema]: EnrichedBormEntity | EnrichedBormRelation;
 	[EdgeSchema]?: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
 	[EdgeType]?: 'linkField' | 'roleField';
 	[DBNode]?: EnrichedBQLMutationBlock | Record<string, never>;
