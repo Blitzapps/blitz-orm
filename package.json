@@ -27,7 +27,7 @@
 		"preinstall": "npx only-allow pnpm",
 		"pub": "pnpm build && pnpm publish",
 		"test": "./tests/test.sh --coverage",
-		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo",
+		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
 		"test:multidb": "./tests/test.sh multidb",
 		"test:query": "./tests/test.sh query.test.ts",
 		"test:surrealdb-ignoreTodo": "./tests/test.sh surrealdb/unit/queries -t \"^(?!.*TODO{.*[S].*}:).*\" ",

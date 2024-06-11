@@ -49,7 +49,7 @@ describe('Query', () => {
 			},
 		]);
 
-		expect(deepSort(res, 'id')).toMatchObject([
+		expect(deepSort(res, 'id')).toEqual([
 			[
 				{
 					members: [
@@ -245,18 +245,120 @@ describe('Query', () => {
 			[
 				{
 					id: 'company1',
+					$id: 'company1',
+					$thing: 'company',
+					$thingType: 'relation',
 					name: 'Google',
-					employees: [],
+					employees: [
+						{
+							$id: 'person1',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person1',
+							name: 'Antoine',
+							tasks: [
+								{
+									$id: 'task1',
+									id: 'task1',
+									name: 'Build search engine',
+									executors: ['person1'],
+									$thing: 'task',
+									$thingType: 'entity',
+								},
+							],
+						},
+						{
+							$id: 'person2',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person2',
+							name: 'Loic',
+							tasks: [
+								{
+									id: 'task2',
+									$id: 'task2',
+									name: 'Build Google Sheet',
+									executors: ['person2'],
+									$thing: 'task',
+									$thingType: 'entity',
+								},
+							],
+						},
+						{
+							$id: 'person3',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person3',
+							name: 'Ann',
+						},
+						{
+							$id: 'person4',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person4',
+							name: 'Ben',
+						},
+					],
 				},
 				{
+					$id: 'company2',
+					$thing: 'company',
+					$thingType: 'relation',
 					id: 'company2',
 					name: 'Apple',
-					employees: [],
+					employees: [
+						{
+							$id: 'person5',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person5',
+							name: 'Charlize',
+						},
+						{
+							$id: 'person6',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person6',
+							name: 'Susi',
+						},
+						{
+							$id: 'person7',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person7',
+							name: 'Budi',
+						},
+						{
+							$id: 'person8',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person8',
+							name: 'Intan',
+						},
+					],
 				},
 				{
+					$id: 'company3',
+					$thing: 'company',
+					$thingType: 'relation',
 					id: 'company3',
 					name: 'Microsoft',
-					employees: [],
+					employees: [
+						{
+							$id: 'person9',
+							$thing: 'person',
+							$thingType: 'relation',
+							id: 'person9',
+							name: 'Satya',
+						},
+					],
+				},
+				{
+					$id: 'company4',
+					$thing: 'company',
+					$thingType: 'relation',
+					id: 'company4',
+					name: 'Facebook',
 				},
 			],
 		]);
