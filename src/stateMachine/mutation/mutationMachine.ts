@@ -10,10 +10,11 @@ import { dependenciesGuard } from './bql/guards/dependenciesGuard';
 import type { MutationMachineContext } from '../types';
 import { runTqlMutationMachine } from './tql/tqlMutationMachine';
 import { cleanMutationRes } from './bql/clean';
-import { assertDefined } from '../../helpers';
 import { errorTransition } from '../common/errorTransition';
 import { awaitMachine } from '../common/awaitMachine';
 import { Schema } from '../../types/symbols';
+import { runSurqlMutationMachine } from './surql/surqlMutationMachine';
+import { assertDefined } from '../../helpers';
 
 const final = state;
 
@@ -116,7 +117,7 @@ export const machine = createMachine(
 					const { provider } = connector;
 					const things = ctx.bql.things.filter((t) => t[Schema].defaultDBConnector.id === dbId);
 					const edges = ctx.bql.edges.filter((e) => e[Schema].defaultDBConnector.id === dbId);
-					const handler = ctx.handles.typeDB?.get(connector.id);
+					const handler = ctx.handles[provider]?.get(connector.id);
 					if (!handler) {
 						throw new Error(`TypeDB client with id "${connector.id}" does not exist`);
 					}
@@ -126,8 +127,10 @@ export const machine = createMachine(
 				const promises = databases.map((db) => {
 					if (db.provider === 'typeDB') {
 						return runTqlMutationMachine(db.things, db.edges, ctx.config, ctx.schema, db.handler);
+					} else if (db.provider === 'surrealDB') {
+						return runSurqlMutationMachine(db.things, db.edges, ctx.config, ctx.schema, db.handler);
 					} else {
-						return Promise.resolve([]); //temp dummy
+						throw new Error(`Unsupported DB "${db.provider}"`);
 					}
 				});
 

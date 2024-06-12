@@ -204,7 +204,12 @@ class BormClient {
 			mConfig,
 			this.dbHandles as DBHandles,
 		);
+
 		if (errorRes) {
+			if (errorRes instanceof Error) {
+				throw errorRes;
+			}
+			console.log('errorRes', errorRes);
 			//console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			const error = new Error(errorRes.error.message);

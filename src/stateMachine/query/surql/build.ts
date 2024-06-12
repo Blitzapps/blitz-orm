@@ -232,7 +232,8 @@ const buildRoleQuery = (props: {
 	return lines.join('\n');
 };
 
-const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter => {
+//todo: Move away
+export const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter => {
 	if (filter === null || filter === undefined) {
 		return filter;
 	}
@@ -291,7 +292,8 @@ const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormS
 	return wasArray ? resultArray : resultArray[0];
 };
 
-const buildSuqlFilter = (filter: object) => {
+//todo: move away
+export const buildSuqlFilter = (filter: object) => {
 	if (filter === null || filter === undefined) {
 		return '';
 	}

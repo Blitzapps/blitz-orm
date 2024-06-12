@@ -12,7 +12,7 @@ export const awaitMachine = async <T>(machine: any, context: T) => {
 					resolve(service.context.bql.res);
 				}
 				if (service.machine.state.name === 'error') {
-					reject(service.context);
+					reject(service.context.error);
 				}
 			},
 			context,

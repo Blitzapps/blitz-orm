@@ -16,7 +16,7 @@ type TypeDbMutationMachineContext = Omit<MutationMachineContext, 'handles'> & {
 	handler: { client: TypeDBDriver; session: TypeDBSession };
 };
 
-// PARSERS
+// REDUCERS
 const updateTQLMutation = (ctx: TypeDbMutationMachineContext, event: any) => ({
 	...ctx,
 	typeDB: {
