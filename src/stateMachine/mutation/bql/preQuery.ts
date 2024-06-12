@@ -155,7 +155,7 @@ export const mutationPreQuery = async (
 		config,
 		dbHandles,
 	);
-	const preQueryRes = res.bql.res as BQLResponse[];
+	const preQueryRes = res as BQLResponse[];
 
 	const getObjectPath = (parent: any, key: string) => {
 		const idField: string | string[] = parent.$id || parent.id || parent.$bzId;

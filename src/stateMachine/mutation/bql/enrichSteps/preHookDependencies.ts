@@ -31,7 +31,7 @@ export const preHookDependencies = async (
 		config,
 		dbHandles,
 	);
-	const transformationPreQueryRes = res.bql.res as BQLResponse[];
+	const transformationPreQueryRes = res as BQLResponse[];
 	return mutations.map((mut, i) => {
 		const thing = getSchemaByThing(schema, mut.$thing);
 		return setDbNode({

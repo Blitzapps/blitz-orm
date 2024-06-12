@@ -1,47 +1,32 @@
 import type { Surreal } from 'surrealdb.js';
 import type { BormConfig, EnrichedBQLQuery, EnrichedBormSchema } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import { createMachine, invoke, reduce, state, transition } from '../../robot3';
 import { build } from './build';
 import { run } from './run';
 import { assertDefined } from '../../../helpers';
 import { parse } from './parse';
+import { errorTransition } from '../../common/errorTransition';
+import { awaitMachine } from '../../common/awaitMachine';
+import type { QueryMachineContext } from '../../types';
 
-export type SurrealDbMachineContext = {
-	bql: {
-		queries: EnrichedBQLQuery[];
-		res?: any[];
-	};
+export type SurrealDbQueryMachineContext = Omit<QueryMachineContext, 'handles'> & {
 	surql: {
 		queries?: string[];
 		res?: any[];
 	};
-	schema: EnrichedBormSchema;
-	config: BormConfig;
-	client: Surreal;
-	error?: string | null;
+	handler: { client: Surreal };
 };
-
-const errorTransition = transition(
-	'error',
-	'error',
-	reduce((ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => {
-		return {
-			...ctx,
-			error: event.error,
-		};
-	}),
-);
 
 const surrealDbQueryMachine = createMachine(
 	'build',
 	{
 		build: invoke(
-			async (ctx: SurrealDbMachineContext) => build({ queries: ctx.bql.queries, schema: ctx.schema }),
+			async (ctx: SurrealDbQueryMachineContext) => build({ queries: ctx.bql.queries, schema: ctx.schema }),
 			transition(
 				'done',
 				'run',
 				reduce(
-					(ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => ({
+					(ctx: SurrealDbQueryMachineContext, event: any): SurrealDbQueryMachineContext => ({
 						...ctx,
 						surql: {
 							...ctx.surql,
@@ -53,14 +38,14 @@ const surrealDbQueryMachine = createMachine(
 			errorTransition,
 		),
 		run: invoke(
-			async (ctx: SurrealDbMachineContext) => {
-				return run({ client: ctx.client, queries: assertDefined(ctx.surql.queries) });
+			async (ctx: SurrealDbQueryMachineContext) => {
+				return run({ client: ctx.handler.client, queries: assertDefined(ctx.surql.queries) });
 			},
 			transition(
 				'done',
 				'parse',
 				reduce(
-					(ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => ({
+					(ctx: SurrealDbQueryMachineContext, event: any): SurrealDbQueryMachineContext => ({
 						...ctx,
 						surql: {
 							...ctx.surql,
@@ -72,7 +57,7 @@ const surrealDbQueryMachine = createMachine(
 			errorTransition,
 		),
 		parse: invoke(
-			async (ctx: SurrealDbMachineContext) => {
+			async (ctx: SurrealDbQueryMachineContext) => {
 				return parse({
 					res: assertDefined(ctx.surql.res),
 					queries: ctx.bql.queries,
@@ -84,7 +69,7 @@ const surrealDbQueryMachine = createMachine(
 				'done',
 				'success',
 				reduce(
-					(ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => ({
+					(ctx: SurrealDbQueryMachineContext, event: any): SurrealDbQueryMachineContext => ({
 						...ctx,
 						bql: {
 							...ctx.bql,
@@ -99,42 +84,24 @@ const surrealDbQueryMachine = createMachine(
 		error: state(),
 	},
 	// @ts-expect-error Bad type
-	(ctx: SurrealDbMachineContext) => ctx,
+	(ctx: SurrealDbQueryMachineContext) => ctx,
 );
-
-const awaitQueryMachine = async (context: SurrealDbMachineContext) => {
-	return new Promise<any[]>((resolve, reject) => {
-		// @ts-expect-error Bad type
-		interpret(
-			surrealDbQueryMachine,
-			// @ts-expect-error Bad type
-			(service) => {
-				if (service.machine.state.name === 'success') {
-					resolve(service.context.bql.res);
-				}
-				if (service.machine.state.name === 'error') {
-					reject(service.context.error);
-				}
-			},
-			context,
-		);
-	});
-};
 
 export const runSurrealDbQueryMachine = async (
 	enrichedBql: EnrichedBQLQuery[],
 	schema: EnrichedBormSchema,
 	config: BormConfig,
-	client: Surreal,
+	handler: { client: Surreal },
 ) => {
-	return awaitQueryMachine({
+	return awaitMachine<SurrealDbQueryMachineContext>(surrealDbQueryMachine, {
 		bql: {
+			raw: [],
 			queries: enrichedBql,
 		},
 		surql: {},
 		schema: schema,
 		config: config,
-		client,
+		handler,
 		error: null,
 	});
 };

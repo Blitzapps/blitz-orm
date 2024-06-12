@@ -14,7 +14,7 @@ import type {
 } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
-import { EdgeSchema, EdgeType } from '../../../types/symbols';
+import { EdgeSchema, EdgeType, Schema } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -157,6 +157,7 @@ export const parseBQLMutation = async (
 					...shake(pick(value, dataFieldPaths || [''])),
 					$op: getChildOp() as BormOperation,
 					$bzId: value.$bzId,
+					[Schema]: currentThingSchema,
 				};
 
 				/// split nodes with multiple ids // why? //no longer doing that
@@ -171,7 +172,7 @@ export const parseBQLMutation = async (
 							if (value.$tempId) {
 								throw new Error("can't specify a existing and a new element at once. Use an id/filter or a tempId");
 							}
-							nodes.push({ ...value, $op: 'match' });
+							toNodes({ ...value, $op: 'match', [Schema]: currentThingSchema });
 						}
 						// we add a "linkable" version of it so we can query it in the insertion
 					}
@@ -241,7 +242,8 @@ export const parseBQLMutation = async (
 						[edgeSchema.plays]: parentId,
 
 						//Metadata
-						[EdgeSchema]: edgeSchema,
+						[EdgeSchema]: edgeSchema, //the schema of the linkfield/rolefield
+						[Schema]: relationSchema, //the schema of this edge
 						[EdgeType]: 'linkField',
 					};
 
@@ -262,6 +264,7 @@ export const parseBQLMutation = async (
 							$op: 'match',
 							[edgeSchema.plays]: parentId,
 							[EdgeSchema]: edgeSchema,
+							[Schema]: relationSchema,
 							[EdgeType]: 'linkField',
 						});
 					}
@@ -291,6 +294,8 @@ export const parseBQLMutation = async (
 					});
 
 					if (Object.keys(rolesObjFiltered).filter((x) => !x.startsWith('$')).length > 0) {
+						const relationSchema = getCurrentSchema(schema, value) as EnrichedBormRelation;
+
 						// 2.1 EDGE TYPE 2
 						if (value.$op === 'create' || value.$op === 'delete') {
 							/// if the relation is being created, then all objects in the roles are actually add
@@ -304,7 +309,7 @@ export const parseBQLMutation = async (
 								throw new Error('Unsupported parent of edge op');
 							};
 
-							const currentRoles = (getCurrentSchema(schema, value) as EnrichedBormRelation).roles;
+							const currentRoles = relationSchema.roles;
 							/// group ids when cardinality MANY
 							const rolesObjOnlyIdsGrouped = mapEntries(rolesObjOnlyIds, (k: string, v) => {
 								const currentRoleCardinality = currentRoles[k]?.cardinality;
@@ -337,6 +342,7 @@ export const parseBQLMutation = async (
 								...rolesObjOnlyIdsGrouped, // override role fields by ids or tempIDs
 								$bzId: value.$bzId,
 								[EdgeType]: 'roleField' as const,
+								[Schema]: relationSchema,
 							};
 
 							toEdges(edgeType2);
@@ -383,6 +389,7 @@ export const parseBQLMutation = async (
 										[role]: operation.$bzId,
 										$bzId: value.$bzId,
 										[EdgeType]: 'roleField' as const,
+										[Schema]: relationSchema,
 									};
 
 									toEdges(edgeType3);
@@ -502,6 +509,9 @@ export const parseBQLMutation = async (
 
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
+
+	//console.log('mergedThings', mergedThings);
+	//console.log('mergedEdges', mergedEdges);
 
 	/// VALIDATIONS
 
