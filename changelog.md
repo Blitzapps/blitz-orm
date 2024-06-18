@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.17(2024-06-18)
+
+- Fix: robot3 types
+- Fix: Issue that blocked entities from being updated in multiple branches of a mutation
+- breaking: dropped support to cjs
+
 ## 0.10.16(2024-06-09)
 
 - Fix: EnrichSchema issues

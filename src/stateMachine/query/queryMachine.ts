@@ -2,7 +2,7 @@ import type { Surreal } from 'surrealdb.js';
 import type { TypeDBDriver } from 'typedb-driver';
 import { assertDefined, getSchemaByThing } from '../../helpers';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import { cleanQueryRes } from './bql/clean';
 import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
@@ -155,16 +155,13 @@ export const queryMachine = createMachine(
 		success: state(),
 		error: state(),
 	},
-	// @ts-expect-error Bad type
 	(ctx: MachineContext) => ctx,
 );
 
 export const awaitQueryMachine = async (context: MachineContext) => {
 	return new Promise<MachineContext>((resolve, reject) => {
-		// @ts-expect-error Bad type
 		interpret(
 			queryMachine,
-			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
 					resolve(service.context);

@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 1f0a1baf493773da33852ec13d3d9a1195717e6f..0c4e6583a0b79d142ae1a00f9fdbed3663cfa5fc 100644
+--- a/package.json
++++ b/package.json
+@@ -6,6 +6,7 @@
+   "exports": {
+     ".": {
+       "require": "./dist/machine.js",
++      "types": "./index.d.ts",
+       "import": "./machine.js",
+       "default": "./machine.js"
+     }

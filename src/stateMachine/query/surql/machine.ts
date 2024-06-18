@@ -1,6 +1,6 @@
 import type { Surreal } from 'surrealdb.js';
 import type { BormConfig, EnrichedBQLQuery, EnrichedBormSchema } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import { build } from './build';
 import { run } from './run';
 import { assertDefined } from '../../../helpers';
@@ -98,18 +98,16 @@ const surrealDbQueryMachine = createMachine(
 		success: state(),
 		error: state(),
 	},
-	// @ts-expect-error Bad type
 	(ctx: SurrealDbMachineContext) => ctx,
 );
 
 const awaitQueryMachine = async (context: SurrealDbMachineContext) => {
 	return new Promise<any[]>((resolve, reject) => {
-		// @ts-expect-error Bad type
 		interpret(
 			surrealDbQueryMachine,
-			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
+					//@ts-expect-error = todo
 					resolve(service.context.bql.res);
 				}
 				if (service.machine.state.name === 'error') {

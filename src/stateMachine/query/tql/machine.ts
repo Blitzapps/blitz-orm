@@ -1,6 +1,6 @@
 import { assertDefined } from '../../../helpers';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import { buildTQLQuery } from './build';
 import { parseTQLQuery } from './parse';
 import { runTQLQuery } from './run';
@@ -96,18 +96,16 @@ export const typeDbQueryMachine = createMachine(
 		success: state(),
 		error: state(),
 	},
-	// @ts-expect-error Bad type
 	(ctx: TypeDbMachineContext) => ctx,
 );
 
 const awaitQueryMachine = async (context: TypeDbMachineContext) => {
 	return new Promise<any[]>((resolve, reject) => {
-		// @ts-expect-error Bad type
 		interpret(
 			typeDbQueryMachine,
-			// @ts-expect-error Bad type
 			(service) => {
 				if (service.machine.state.name === 'success') {
+					//@ts-expect-error = todo
 					resolve(service.context.bql.res);
 				}
 				if (service.machine.state.name === 'error') {

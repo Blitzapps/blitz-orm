@@ -408,6 +408,7 @@ export const parseBQLMutation = async (
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
 
+	//console.log('parsedThings', parsedThings);
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.
 	/// If it is only linked, we indeed need it with a "match" op, but if it is already there is no need to init it
@@ -433,9 +434,13 @@ export const parseBQLMutation = async (
 			// If existing is 'match' and current is 'create' or 'match', replace existing with current
 			return [...acc.slice(0, existingIndex), thing, ...acc.slice(existingIndex + 1)];
 		}
+		//if both are update, we simply merge them
+		if (acc[existingIndex].$op === 'update' && thing.$op === 'update') {
+			return [...acc.slice(0, existingIndex), { ...acc[existingIndex], ...thing }, ...acc.slice(existingIndex + 1)];
+		}
 		// For all other cases, throw an error
 		throw new Error(
-			`[Wrong format] Wrong operation combination for $tempId "${thing.$tempId}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
+			`[Wrong format] Wrong operation combination for $tempId/$id "${thing.$tempId || thing.$id}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
 		);
 	}, [] as BQLMutationBlock[]);
 

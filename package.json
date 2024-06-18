@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.10.16",
+	"version": "0.10.17",
 	"author": "blitznocode.com",
 	"main": "dist/index.cjs",
 	"module": "dist/index.mjs",
@@ -97,5 +97,10 @@
 		"ORM",
 		"database",
 		"graph-database"
-	]
+	],
+	"pnpm": {
+		"patchedDependencies": {
+			"robot3@0.4.1": "patches/robot3@0.4.1.patch"
+		}
+	}
 }

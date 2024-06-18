@@ -190,7 +190,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'[Wrong format] Wrong operation combination for $tempId "utg1". Existing: create. Current: create',
+					'[Wrong format] Wrong operation combination for $tempId/$id "utg1". Existing: create. Current: create',
 				);
 			} else {
 				expect(true).toBe(false);
