@@ -2,30 +2,29 @@
 	"name": "@blitznocode/blitz-orm",
 	"version": "0.10.17",
 	"author": "blitznocode.com",
-	"main": "dist/index.cjs",
+	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
+	"main": "dist/index.mjs",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": {
-			"require": "./dist/index.cjs",
-			"types": "./dist/index.d.ts",
 			"import": "./dist/index.mjs",
-			"module": "./dist/index.mjs"
+			"types": "./dist/index.d.ts"
 		}
 	},
 	"scripts": {
-		"bench:surrealdb": "./tests/bench.sh surrealdb/bench",
-		"bench:typedb": "vitest bench typedb/bench",
 		"build": "tsup",
 		"dev": "tsup --watch --sourcemap",
-		"knip": "knip",
-		"husky:prepare": "husky init",
 		"lint:check": "eslint src --quiet --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"lint-staged": "lint-staged",
 		"precommit": "pnpm lint-staged && pnpm test:ignoreTodo",
 		"preinstall": "npx only-allow pnpm",
+		"prepare": "husky init",
 		"pub": "pnpm build && pnpm publish",
+		"knip": "knip",
+		"bench:surrealdb": "./tests/bench.sh surrealdb/bench",
+		"bench:typedb": "vitest bench typedb/bench",
 		"test": "./tests/test.sh --coverage",
 		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
 		"test:multidb": "./tests/test.sh multidb",
@@ -37,8 +36,7 @@
 		"test:typedb-query": "vitest run typedb/unit/queries --watch",
 		"test:typedb-schema": "vitest run typedb/unit/schema",
 		"types": "tsc --noEmit",
-		"types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js",
-		"prepare": "husky"
+		"types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js"
 	},
 	"private": false,
 	"license": "AGPL-3.0-only",
@@ -58,7 +56,6 @@
 	},
 	"dependencies": {
 		"acorn": "^8.11.3",
-		"case-anything": "^2.1.13",
 		"dotenv": "^16.4.5",
 		"immer": "10.1.1",
 		"nanoid": "^5.0.7",
@@ -85,7 +82,11 @@
 		"typescript": "^5.4.5",
 		"vitest": "^1.6.0"
 	},
-	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
+	"keywords": [
+		"ORM",
+		"database",
+		"graph-database"
+	],
 	"bugs": {
 		"url": "https://github.com/Blitzapps/blitz-orm/issues"
 	},
@@ -93,11 +94,6 @@
 	"directories": {
 		"test": "tests"
 	},
-	"keywords": [
-		"ORM",
-		"database",
-		"graph-database"
-	],
 	"pnpm": {
 		"patchedDependencies": {
 			"robot3@0.4.1": "patches/robot3@0.4.1.patch"
