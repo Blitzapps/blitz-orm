@@ -32,7 +32,7 @@
 		"test:surrealdb-ignoreTodo": "./tests/test.sh surrealdb/unit/queries -t \"^(?!.*TODO{.*[S].*}:).*\" ",
 		"test:surrealdb-query": "./tests/test.sh surrealdb/unit/queries/query.test.ts",
 		"test:typedb-ignoreTodo": "vitest run typedb -t \"^(?!.*TODO{.*[T].*}:).*\" ",
-		"test:typedb-mutation": "vitest run typedb/unit/mutations",
+		"test:typedb-mutation": "vitest run typedb/unit/mutations/basic.test.ts",
 		"test:typedb-query": "vitest run typedb/unit/queries --watch",
 		"test:typedb-schema": "vitest run typedb/unit/schema",
 		"types": "tsc --noEmit",
