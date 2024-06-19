@@ -15,7 +15,7 @@ import { parseBQLMutation } from './bql/parse';
 import { buildTQLMutation } from './tql/build';
 import { mutationPreQuery } from './bql/preQuery';
 
-import { createMachine, transition, reduce, guard, interpret, state, invoke } from '../robot3';
+import { createMachine, transition, reduce, guard, interpret, state, invoke } from 'robot3';
 import { stringify } from './bql/stringify';
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import { dependenciesGuard } from './bql/guards/dependenciesGuard';
