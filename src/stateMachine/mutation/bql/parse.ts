@@ -67,12 +67,15 @@ export const parseBQLMutation = async (
 
 		const toNodes = (node: EnrichedBQLMutationBlock) => {
 			if (node.$op === 'create') {
+				console.log('node', JSON.stringify(node, null, 2));
 				const idValue = getIdValue(node);
+				console.log('id', idValue);
 
 				if (nodes.find((x) => x.$id === idValue && x.$op === 'create')) {
+					console.log('nodes', JSON.stringify([...nodes, node], null, 2));
 					throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
 				}
-				if (edges.find((x) => x.$bzId === node.$bzId)) {
+				if (edges.find((x) => x.$bzId === node.$bzId && x.$op === 'create')) {
 					throw new Error(`Duplicate $bzId ${node.$bzId} for node ${JSON.stringify(node)}`);
 				}
 				nodes.push({ ...node, $id: idValue });
@@ -203,13 +206,13 @@ export const parseBQLMutation = async (
 							if (ownRelation) {
 								return 'unlink';
 							} // delete already present in the nodes array
-							return 'delete';
+							return 'unlink'; //! todo
 						}
 						if (value.$op === 'link' || value.$op === 'create') {
 							if (ownRelation) {
 								return 'link';
 							} // create already present in the nodes array
-							return 'create';
+							return 'link'; //! todo
 						}
 						// todo: probably check replaces
 						if (value.$op === 'replace') {
@@ -252,6 +255,23 @@ export const parseBQLMutation = async (
 					// todo: stuff 😂
 					//@ts-expect-error - TODO
 					toEdges(edgeType1);
+
+					// If intermediary relation, we need to have it as a node as well, with no attributes
+					if (!ownRelation) {
+						console.log('value', JSON.stringify(value, null, 2));
+						if (value.$op === 'update') {
+							//do nothing for now, cant update and generate a link or an unlink at once
+						} else {
+							// this is always an intermediary relation not added in the rawBQL
+							toNodes({
+								$bzId: linkTempId,
+								$thing: edgeSchema.relation,
+								$thingType: 'relation' as const,
+								$op: value.$op === 'link' ? 'create' : value.$op === 'unlink' ? 'delete' : value.$op,
+								[Schema]: relationSchema, //the schema of this edge
+							});
+						}
+					}
 
 					/// when it has a parent through a linkField, we need to add an additional node (its dependency), as well as a match
 					/// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as match and deletions as unlink (or dependencies would be also added)
@@ -414,6 +434,9 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
+
+	console.log('parsedThings', parsedThings);
+	console.log('parsedEdges', parsedEdges);
 
 	/// some cases where we extract things, they must be ignored.
 	/// One of this cases is the situation where we have a thing that is linked somwhere and created, or updated.

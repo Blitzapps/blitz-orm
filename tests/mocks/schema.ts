@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 import type { BormSchema, DataField } from '../../src/index';
 import { isArray } from 'radash';
@@ -25,7 +25,7 @@ const timestamp: DataField = {
 const id: DataField = {
 	shared: true,
 	path: 'id',
-	default: { type: 'fn', fn: () => uuidv4() },
+	default: { type: 'fn', fn: () => nanoid() },
 	validations: { required: true, unique: true },
 	contentType: 'ID',
 	rights: ['CREATE'],

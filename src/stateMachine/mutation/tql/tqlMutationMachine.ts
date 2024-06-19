@@ -60,7 +60,7 @@ export const typeDbMutationMachine = createMachine(
 
 export const runTqlMutationMachine = async (
 	things: EnrichedBQLMutationBlock[],
-	edges: (EnrichedBQLMutationBlock & { thingType: 'relation' })[],
+	edges: (EnrichedBQLMutationBlock & { $thingType: 'relation' })[],
 	config: BormConfig,
 	schema: EnrichedBormSchema,
 	handler: { client: TypeDBDriver; session: TypeDBSession },

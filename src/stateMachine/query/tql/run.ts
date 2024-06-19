@@ -18,7 +18,7 @@ export const runTQLQuery = async (props: {
 	const { session } = await getSessionOrOpenNewOne(handler, config);
 	const transaction = await session.transaction(TransactionType.READ, options);
 
-	//console.log('query', JSON.stringify(tqlRequest, null, 2));
+	console.log('query', JSON.stringify(tqlRequest, null, 2));
 	const [err, resArray] = await tryit(parallel)(tqlRequest.length, tqlRequest, async (queryString) => {
 		const tqlStream = transaction.query.fetch(queryString as string);
 		const tqlRes = await tqlStream.collect();

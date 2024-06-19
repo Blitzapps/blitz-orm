@@ -2,25 +2,25 @@ USE NS test;
 USE DB test;
 
 DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE User TYPE string;
+DEFINE FIELD name ON TABLE User TYPE option<string>;
 DEFINE FIELD email ON TABLE User TYPE option<string>;
 
 
 -- there is no subtyping in SurrealDB, we need to duplicate the fields
 DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE SuperUser TYPE string;
+DEFINE FIELD name ON TABLE SuperUser TYPE option<string>;
 DEFINE FIELD email ON TABLE SuperUser TYPE string;
 DEFINE FIELD power ON TABLE SuperUser TYPE string;
 
 -- there is no subtyping in SurrealDB, we need to duplicate the fields
 DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE God TYPE string;
+DEFINE FIELD name ON TABLE God TYPE option<string>;
 DEFINE FIELD email ON TABLE God TYPE string;
 DEFINE FIELD power ON TABLE God TYPE string;
 DEFINE FIELD isEvil ON TABLE God TYPE bool;
 
 DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE Space TYPE string;
+DEFINE FIELD name ON TABLE Space TYPE option<string>;
 
 DEFINE TABLE Thing SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD stuff ON TABLE Thing TYPE string;
@@ -31,7 +31,7 @@ DEFINE TABLE SubthingTwo SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD stuff ON TABLE SubthingTwo TYPE string;
 
 DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD provider ON TABLE Account TYPE string;
+DEFINE FIELD provider ON TABLE Account TYPE option<string>;
 DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
 DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
 
@@ -40,7 +40,7 @@ DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
 
 DEFINE TABLE Color SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE Color TYPE option<string>;
+DEFINE FIELD name ON TABLE Color TYPE option<option><string>;
 DEFINE FIELD freeForAll ON TABLE Color FLEXIBLE TYPE option<string|number|datetime|bool>;
 
 DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
@@ -109,7 +109,7 @@ DEFINE FIELD in ON TABLE ⟨`Space-User_power`⟩ TYPE record<⟨`Space-User`⟩
 DEFINE FIELD out ON TABLE ⟨`Space-User_power`⟩ TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
+DEFINE FIELD name ON TABLE UserTag TYPE option<option><string>;
 DEFINE TABLE UserTag_users SCHEMAFULL PERMISSIONS FULL type RELATION;
 DEFINE FIELD in ON TABLE UserTag_users TYPE record<UserTag>;
 DEFINE FIELD out ON TABLE UserTag_users TYPE record<User>;

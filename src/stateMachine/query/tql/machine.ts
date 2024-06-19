@@ -81,7 +81,6 @@ export const typeDbQueryMachine = createMachine(
 		success: state(),
 		error: state(),
 	},
-	// @ts-expect-error Bad type
 	(ctx: TypeDbQueryMachineContext) => ctx,
 );
 

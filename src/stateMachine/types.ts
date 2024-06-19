@@ -15,7 +15,7 @@ export type MutationMachineContext = {
 		raw: BQLMutationBlock | BQLMutationBlock[];
 		current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
 		things: EnrichedBQLMutationBlock[];
-		edges: (EnrichedBQLMutationBlock & { thingType: 'relation' })[];
+		edges: (EnrichedBQLMutationBlock & { $thingType: 'relation' })[];
 		res: BQLResponseMulti;
 	};
 	schema: EnrichedBormSchema;

@@ -175,6 +175,9 @@ class BormClient {
 			this.dbHandles as DBHandles,
 		);
 		if (errorRes) {
+			if (errorRes instanceof Error) {
+				throw errorRes;
+			}
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			const error = new Error(errorRes.error);
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from

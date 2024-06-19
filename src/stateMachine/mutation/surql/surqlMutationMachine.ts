@@ -39,18 +39,20 @@ const updateBqlRes = (ctx: MutationMachineContext, event: any) => ({
 });
 
 // STEPS
-const build = async (ctx: SurrealDBMutationMachineContext) => buildSurqlMutation(ctx.bql.things, ctx.schema); //ctx.bql.edges);
+const build = async (ctx: SurrealDBMutationMachineContext) =>
+	buildSurqlMutation(ctx.bql.things, ctx.bql.edges, ctx.schema); //ctx.bql.edges);
 
 const run = async (ctx: SurrealDBMutationMachineContext) => {
 	const { client } = ctx.handler;
 	const { req } = ctx.surql;
 	const batchedMutation = `
 	BEGIN TRANSACTION;
-	${[...req.creations, ...req.deletions].join(';\n')};
+	${[...req.creations, ...req.updates, ...req.deletions].join(';\n')};
 	COMMIT TRANSACTION;
 	`;
 	try {
 		const res = await client.query(batchedMutation);
+		console.log('res', res);
 		return res;
 	} catch (e) {
 		console.log('e', e);
@@ -59,11 +61,13 @@ const run = async (ctx: SurrealDBMutationMachineContext) => {
 
 const parse = async (ctx: SurrealDBMutationMachineContext) => {
 	const mutations = ctx.surql.res as EnrichedBQLMutationBlock[];
+	console.log('mutations', ctx.surql.res);
 	const result = mutations.map((mut) => ({
 		...mut.record,
 		...mut.metadata,
 		...(mut.record?.id ? { id: cleanRecordIdSurrealDb(mut.record.id, mut.record.$thing) } : {}),
 	}));
+	console.log('result2', result);
 	return result;
 };
 
@@ -82,7 +86,7 @@ export const typeDbMutationMachine = createMachine(
 
 export const runSurqlMutationMachine = async (
 	things: EnrichedBQLMutationBlock[],
-	edges: (EnrichedBQLMutationBlock & { thingType: 'relation' })[],
+	edges: (EnrichedBQLMutationBlock & { $thingType: 'relation' })[],
 	config: BormConfig,
 	schema: EnrichedBormSchema,
 	handler: { client: TypeDBDriver; session: TypeDBSession },
