@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
-import { expect, it } from 'vitest';
+import { expect, expect, it } from 'vitest';
 
 export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	// some random issues forced a let here
@@ -142,50 +142,61 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				},
 			],
 		};
+
 		const res = await ctx.mutate(user);
-		expect(res).toMatchObject([
-			{
-				$thing: 'User',
-				$op: 'create',
-				id: user.id,
-			},
-			{
-				$thing: 'Account',
-				$thingType: 'entity',
-				$op: 'create',
-				id: user.accounts[0].id,
-				profile: {
-					hobby: ['Running'],
+		console.log('res', res);
+
+		try {
+			expect(deepSort(res, '$thing')).toMatchObject([
+				{
+					$thing: 'Account',
+					$thingType: 'entity',
+					$op: 'create',
+					id: user.accounts[0].id,
+					profile: {
+						hobby: ['Running'],
+					},
 				},
-			},
-			{
-				$thing: 'User-Accounts',
-				$op: 'create',
-				accounts: user.accounts[0].id,
-				user: user.id,
-			},
-		]);
-		const deleteRes = await ctx.mutate({
-			$thing: 'User',
-			$op: 'delete',
-			$id: user.id,
-			accounts: [{ $op: 'delete' }],
-		});
-		expect(deleteRes).toMatchObject([
-			{
-				$op: 'delete',
+				{
+					$thing: 'User',
+					$op: 'create',
+					id: user.id,
+				},
+				{
+					$thing: 'User-Accounts',
+					$op: 'create',
+				},
+				{
+					$thing: 'User-Accounts',
+					$op: 'link',
+					accounts: user.accounts[0].id,
+					user: user.id,
+				},
+			]);
+		} finally {
+			//to avoid impact on tests u1-u4
+			const deleteRes = await ctx.mutate({
 				$thing: 'User',
+				$op: 'delete',
 				$id: user.id,
-			},
-			{
-				$op: 'delete',
-				$thing: 'Account',
-			},
-			{
-				$op: 'delete',
-				$thing: 'User-Accounts',
-			},
-		]);
+				accounts: [{ $op: 'delete' }],
+			});
+			expect(deepSort(deleteRes, '$thing')).toMatchObject([
+				{
+					$op: 'delete',
+					$thing: 'Account',
+				},
+				{
+					$op: 'delete',
+					$thing: 'User',
+					$id: user.id,
+				},
+				{
+					$op: 'delete',
+					$thing: 'User-Accounts',
+				},
+			]);
+		}
 	});
 
 	it('b2a[update] Basic', async () => {
@@ -428,7 +439,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 		]);
 	});
-	it('b3rn[delete, relation, nested] Basic', async () => {
+	it.only('b3rn[delete, relation, nested] Basic', async () => {
 		//create nested object
 		await ctx.mutate(
 			{
@@ -454,6 +465,8 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
+
+		console.log('res1', res1);
 		expect(deepSort(res1, 'id')).toEqual({
 			'user-tags': [
 				{ id: 'ustag1', color: 'pink' },
@@ -476,6 +489,15 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			// { preQuery: false },
 		);
+		const res11 = await ctx.query(
+			{
+				$entity: 'User',
+				$id: 'u2',
+				$fields: [{ $path: 'user-tags', $fields: ['id', 'color'] }],
+			},
+			{ noMetadata: true },
+		);
+		console.log('res11', res11);
 
 		const res2 = await ctx.query(
 			{

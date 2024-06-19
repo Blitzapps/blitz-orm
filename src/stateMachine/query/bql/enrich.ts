@@ -196,7 +196,7 @@ const createLinkField = (props: {
 }): EnrichedLinkQuery => {
 	const { field, fieldStr, linkField, $justId, dbPath, schema, fieldSchema } = props;
 	const { target, oppositeLinkFieldsPlayedBy } = linkField;
-	return oppositeLinkFieldsPlayedBy.map((playedBy: any) => {
+	return oppositeLinkFieldsPlayedBy?.map((playedBy: any) => {
 		const $thingType = target === 'role' ? playedBy.thingType : 'relation';
 		const $thing = target === 'role' ? playedBy.thing : linkField.relation;
 		const node = { [`$${$thingType}`]: $thing };

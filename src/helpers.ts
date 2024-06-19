@@ -308,6 +308,25 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							];
 						}
 						if (linkField.target === 'role') {
+							// This gows through the relation path:
+							const toRelationPath =
+								val.linkFields?.filter((lf) => lf.target === 'relation' && lf.relation === linkField.relation) || [];
+							if (toRelationPath.length === 0) {
+								linkField.throughtRelationPath = `${linkField.relation}`;
+								val.linkFields?.push({
+									path: `${linkField.relation}`,
+									target: 'relation',
+									relation: linkField.relation,
+									cardinality: linkField.cardinality,
+									plays: linkField.plays,
+								});
+							} else if (toRelationPath.length > 1) {
+								throw new Error(
+									`[Schema] linkFields of target role cant have multiple paths to the intermediary relation. Thing: "${val.name}" LinkField: "${linkField.path}. Path:${meta.nodePath}.`,
+								);
+							} else {
+								linkField.throughtRelationPath = toRelationPath[0].path;
+							}
 							///target role
 							const allOppositeLinkFields =
 								allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];

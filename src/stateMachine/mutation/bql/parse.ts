@@ -16,7 +16,7 @@ import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 import { EdgeSchema, EdgeType } from '../../../types/symbols';
 
-export const parseBQLMutation = async (
+export const parseBQLMutation = (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ) => {
@@ -118,7 +118,6 @@ export const parseBQLMutation = async (
 					throw new Error('[internal error] BzId not found');
 				}
 				/// this is used to group the right delete/unlink operations with the involved things
-
 				const currentThingSchema = getCurrentSchema(schema, value);
 				const {
 					dataFields: dataFieldPaths,
@@ -248,8 +247,10 @@ export const parseBQLMutation = async (
 					// const testVal = {};
 
 					// todo: stuff 😂
-					//@ts-expect-error - TODO
-					toEdges(edgeType1);
+					if (ownRelation) {
+						//@ts-expect-error - TODO
+						toEdges(edgeType1);
+					}
 
 					/// when it has a parent through a linkField, we need to add an additional node (its dependency), as well as a match
 					/// no need for links, as links will have all the related things in the "link" object. While unlinks required dependencies as match and deletions as unlink (or dependencies would be also added)
@@ -405,8 +406,9 @@ export const parseBQLMutation = async (
 
 		return [nodes, edges];
 	};
-
 	const [parsedThings, parsedEdges] = listNodes(blocks);
+	console.log('parsedThings', parsedThings);
+	console.log('parsedEdges', parsedEdges);
 
 	//console.log('parsedThings', parsedThings);
 	/// some cases where we extract things, they must be ignored.
@@ -437,6 +439,14 @@ export const parseBQLMutation = async (
 		//if both are update, we simply merge them
 		if (acc[existingIndex].$op === 'update' && thing.$op === 'update') {
 			return [...acc.slice(0, existingIndex), { ...acc[existingIndex], ...thing }, ...acc.slice(existingIndex + 1)];
+		}
+		if (acc[existingIndex].$op === 'delete' && thing.$op === 'match') {
+			//merge them
+			return [
+				...acc.slice(0, existingIndex),
+				{ ...acc[existingIndex], ...thing, $op: 'delete' },
+				...acc.slice(existingIndex + 1),
+			];
 		}
 		// For all other cases, throw an error
 		throw new Error(

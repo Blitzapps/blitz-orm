@@ -17,6 +17,7 @@ export const runTQLMutation = async (tqlMutation: TqlMutation, dbHandles: DBHand
 		throw new Error('TQL request error, no things');
 	}
 
+	//console.log('tqlMutation', tqlMutation);
 	const { session } = await getSessionOrOpenNewOne(dbHandles, config);
 	const mutateTransaction = await session.transaction(TransactionType.WRITE);
 

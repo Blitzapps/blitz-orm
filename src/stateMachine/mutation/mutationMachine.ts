@@ -19,6 +19,7 @@ import { createMachine, transition, reduce, guard, interpret, state, invoke } fr
 import { stringify } from './bql/stringify';
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import { dependenciesGuard } from './bql/guards/dependenciesGuard';
+import { addIntermediaryRelationsBQLMutation } from './bql/intermediary';
 
 const final = state;
 type MachineContext = {
@@ -96,21 +97,35 @@ const updateTQLRes = (ctx: MachineContext, event: any) => {
 // ============================================================================
 
 const enrich = async (ctx: MachineContext) => {
-	return Object.keys(ctx.bql.current).length
+	const result = Object.keys(ctx.bql.current).length
 		? enrichBQLMutation(ctx.bql.current, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
+
+	console.log('enriched', JSON.stringify(result, null, 2));
+	return result;
 };
 
 const preQuery = async (ctx: MachineContext) => {
-	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+	const result = mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+	console.log('preQuery', await result);
+	return result;
 };
 
 const preQueryDependencies = async (ctx: MachineContext) => {
 	return preHookDependencies(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
 };
 
+const addIntermediaryRelations = async (ctx: MachineContext) => {
+	console.log('before addIntermediaryRelations', JSON.stringify(ctx.bql.current, null, 2));
+	const result = addIntermediaryRelationsBQLMutation(ctx.bql.current, ctx.schema);
+	console.log('after addIntermediaryRelations', JSON.stringify(result, null, 2));
+	return result;
+};
+
 const parseBQL = async (ctx: MachineContext) => {
-	return parseBQLMutation(ctx.bql.current, ctx.schema);
+	const result = parseBQLMutation(ctx.bql.current, ctx.schema);
+	console.log('result', result);
+	return result;
 };
 
 const buildMutation = async (ctx: MachineContext) => {
@@ -160,7 +175,7 @@ export const machine = createMachine(
 		enrich: invoke(
 			enrich,
 			transition('done', 'preQuery', guard(requiresPreQuery), reduce(updateBqlReq)),
-			transition('done', 'parseBQL', reduce(updateBqlReq)),
+			transition('done', 'addIntermediaryRelation', reduce(updateBqlReq)),
 			errorTransition,
 		),
 		preHookDependencies: invoke(
@@ -171,6 +186,11 @@ export const machine = createMachine(
 		preQuery: invoke(
 			preQuery,
 			transition('done', 'preHookDependencies', guard(requiresPreHookDependencies), reduce(updateBqlReq)),
+			transition('done', 'addIntermediaryRelations', reduce(updateBqlReq)),
+			errorTransition,
+		),
+		addIntermediaryRelations: invoke(
+			addIntermediaryRelations,
 			transition('done', 'parseBQL', reduce(updateBqlReq)),
 			errorTransition,
 		),
