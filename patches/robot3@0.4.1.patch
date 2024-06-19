@@ -1,16 +1,21 @@
 diff --git a/package.json b/package.json
-index 1f0a1baf493773da33852ec13d3d9a1195717e6f..0bbc22035d4e2fb7f7a6df2c12b317a8b22ed470 100644
+index 1f0a1baf493773da33852ec13d3d9a1195717e6f..f19386e6fdcf165a30c5bcb2b25deb3ff0db583e 100644
 --- a/package.json
 +++ b/package.json
-@@ -3,9 +3,11 @@
+@@ -2,12 +2,12 @@
+   "name": "robot3",
    "version": "0.4.1",
    "description": "A functional, immutable Finite State Machine library",
-   "main": "dist/machine.js",
+-  "main": "dist/machine.js",
++  "main": "machine.js",
 +  "type": "module",
    "exports": {
      ".": {
-       "require": "./dist/machine.js",
+-      "require": "./dist/machine.js",
+-      "import": "./machine.js",
+-      "default": "./machine.js"
 +      "types": "./index.d.ts",
-       "import": "./machine.js",
-       "default": "./machine.js"
++      "import": "./machine.js"
      }
+   },
+   "files": [
