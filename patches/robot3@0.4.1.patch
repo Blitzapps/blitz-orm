@@ -1,5 +1,9 @@
+diff --git a/machine.js b/machine.mjs
+similarity index 100%
+rename from machine.js
+rename to machine.mjs
 diff --git a/package.json b/package.json
-index 1f0a1baf493773da33852ec13d3d9a1195717e6f..f19386e6fdcf165a30c5bcb2b25deb3ff0db583e 100644
+index 1f0a1baf493773da33852ec13d3d9a1195717e6f..e4c0e1ae654aaafd7889c27d80240dcf9651ed3a 100644
 --- a/package.json
 +++ b/package.json
 @@ -2,12 +2,12 @@
@@ -7,7 +11,7 @@ index 1f0a1baf493773da33852ec13d3d9a1195717e6f..f19386e6fdcf165a30c5bcb2b25deb3f
    "version": "0.4.1",
    "description": "A functional, immutable Finite State Machine library",
 -  "main": "dist/machine.js",
-+  "main": "machine.js",
++  "main": "machine.mjs",
 +  "type": "module",
    "exports": {
      ".": {
@@ -15,7 +19,7 @@ index 1f0a1baf493773da33852ec13d3d9a1195717e6f..f19386e6fdcf165a30c5bcb2b25deb3f
 -      "import": "./machine.js",
 -      "default": "./machine.js"
 +      "types": "./index.d.ts",
-+      "import": "./machine.js"
++      "import": "./machine.mjs"
      }
    },
    "files": [
