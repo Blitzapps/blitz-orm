@@ -1,8 +1,12 @@
 diff --git a/package.json b/package.json
-index 1f0a1baf493773da33852ec13d3d9a1195717e6f..0c4e6583a0b79d142ae1a00f9fdbed3663cfa5fc 100644
+index 1f0a1baf493773da33852ec13d3d9a1195717e6f..0bbc22035d4e2fb7f7a6df2c12b317a8b22ed470 100644
 --- a/package.json
 +++ b/package.json
-@@ -6,6 +6,7 @@
+@@ -3,9 +3,11 @@
+   "version": "0.4.1",
+   "description": "A functional, immutable Finite State Machine library",
+   "main": "dist/machine.js",
++  "type": "module",
    "exports": {
      ".": {
        "require": "./dist/machine.js",
