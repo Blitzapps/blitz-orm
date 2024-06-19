@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
 	entry: ['src/index.ts'],
-	format: ['esm'], // Output both ES modules and CommonJS modules
+	format: ['esm'],
 	dts: true,
 	target: 'esnext',
 	clean: true,
