@@ -2852,4 +2852,343 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 		]);
 	});
+
+	it('TODO:m1[Multi] Multi nested, deletion and creation same brach', async () => {
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				id: 'm1-utg1',
+				tags: [
+					{
+						id: 'm1-tag1',
+						users: [{ id: 'm1-user1' }, { id: 'm1-user2' }],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm1-utg1',
+				tags: [
+					{
+						$id: 'm1-tag1',
+						users: [{ $op: 'delete' }, { id: 'm1-user3' }],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const mutated = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm1-utg1',
+				$fields: ['id', { $path: 'tags', $fields: ['id', 'users'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		const users = await ctx.query(
+			{
+				$thing: 'User',
+				$thingType: 'entity',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(mutated).toBeDefined();
+		expect(mutated).toEqual({
+			id: 'm1-utg1',
+			tags: [
+				{
+					id: 'm1-tag1',
+					users: ['m1-user3'],
+				},
+			],
+		});
+		expect(users).toBeDefined();
+		expect(users).toContainEqual({ id: 'm1-user3' });
+		expect(users).not.toContainEqual({ id: 'm1-user1' });
+		expect(users).not.toContainEqual({ id: 'm1-user2' });
+	});
+
+	it('m2[Multi, deep] Multi nested, deletion and creation same brach. Deep', async () => {
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				id: 'm2-utg1',
+				tags: [
+					{
+						id: 'm2-tag1',
+						users: [
+							{ id: 'm2-user1', accounts: [{ id: 'm2-acc1', provider: 'github' }] },
+							{
+								id: 'm2-user2',
+								accounts: [
+									{ id: 'm2-acc2', provider: 'facebook' },
+									{ id: 'm2-acc3', provider: 'google' },
+								],
+							},
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm2-utg1',
+				tags: [
+					{
+						$id: 'm2-tag1',
+						users: [
+							{ $op: 'delete', accounts: [{ $op: 'delete' }] },
+							{ id: 'm2-user3', accounts: [{ id: 'm2-acc4', provider: 'twitter' }] },
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const mutated = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm2-utg1',
+				$fields: ['id', { $path: 'tags', $fields: ['id', { $path: 'users', $fields: ['id', 'accounts'] }] }],
+			},
+			{ noMetadata: true },
+		);
+
+		const users = await ctx.query(
+			{
+				$thing: 'User',
+				$thingType: 'entity',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		const accounts = await ctx.query(
+			{
+				$thing: 'Account',
+				$thingType: 'entity',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(mutated).toBeDefined();
+		expect(mutated).toEqual({
+			id: 'm2-utg1',
+			tags: [
+				{
+					id: 'm2-tag1',
+					users: [{ id: 'm2-user3', accounts: ['m2-acc4'] }],
+				},
+			],
+		});
+		expect(users).toBeDefined();
+		expect(users).toContainEqual({ id: 'm2-user3' });
+		expect(users).not.toContainEqual({ id: 'm2-user1' });
+		expect(users).not.toContainEqual({ id: 'm2-user2' });
+		expect(accounts).toBeDefined();
+		expect(accounts).not.toContainEqual({ id: 'm2-acc1' });
+		expect(accounts).not.toContainEqual({ id: 'm2-acc2' });
+		expect(accounts).not.toContainEqual({ id: 'm2-acc3' });
+		expect(accounts).toContainEqual({ id: 'm2-acc4' });
+	});
+
+	it('TODO{TS}:m3[Multi, deep] Multi nested, deletion and creation same brach. Deeper!', async () => {
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				id: 'm3-utg1',
+				tags: [
+					{
+						id: 'm3-tag1',
+						users: [
+							{
+								id: 'm3-user1',
+								spaces: [
+									{
+										id: 'm3-sp1',
+										fields: [
+											{
+												id: 'm3-f1',
+												kinds: [
+													{ id: 'm3-k1', space: { id: 'm3-sp3' } },
+													{ id: 'm3-k2', space: { id: 'm3-sp4' } },
+												],
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const origin = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm3-utg1',
+				$fields: [
+					'id',
+					{
+						$path: 'tags',
+						$fields: [
+							'id',
+							{
+								$path: 'users',
+								$fields: ['id', { $path: 'spaces', $fields: ['id', { $path: 'fields', $fields: ['id', 'kinds'] }] }],
+							},
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(origin).toBeDefined();
+		expect(deepSort(origin, 'id')).toEqual({
+			id: 'm3-utg1',
+			tags: [
+				{
+					id: 'm3-tag1',
+					users: [
+						{
+							id: 'm3-user1',
+							spaces: [
+								{
+									id: 'm3-sp1',
+									fields: [
+										{
+											id: 'm3-f1',
+											kinds: ['m3-k1', 'm3-k2'],
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		await ctx.mutate(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm3-utg1',
+				tags: [
+					{
+						$id: 'm3-tag1',
+						users: [
+							{ $op: 'delete', spaces: [{ $op: 'delete', fields: [{ $op: 'delete', kinds: [{ $op: 'delete' }] }] }] },
+							{
+								id: 'm3-user2',
+								spaces: [
+									{
+										id: 'm3-sp2',
+										fields: [{ id: 'm3-f2', kinds: [{ id: 'm3-k3', space: { $id: 'm3-sp3', $op: 'link' } }] }],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const mutated = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'm3-utg1',
+				$fields: [
+					'id',
+					{
+						$path: 'tags',
+						$fields: [
+							'id',
+							{
+								$path: 'users',
+								$fields: ['id', { $path: 'spaces', $fields: ['id', { $path: 'fields', $fields: ['id', 'kinds'] }] }],
+							},
+						],
+					},
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const users = await ctx.query(
+			{
+				$thing: 'User',
+				$thingType: 'entity',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		const spaces = await ctx.query(
+			{
+				$thing: 'Space',
+				$thingType: 'entity',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		const kinds = await ctx.query(
+			{
+				$relation: 'Kind',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		const fields = await ctx.query(
+			{
+				$relation: 'Field',
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(mutated).toBeDefined();
+		expect(mutated).toEqual({
+			id: 'm3-utg1',
+			tags: [
+				{
+					id: 'm3-tag1',
+					users: [{ id: 'm3-user2', spaces: [{ id: 'm3-sp2', fields: [{ id: 'm3-f2', kinds: ['m3-k3'] }] }] }],
+				},
+			],
+		});
+		expect(users).toBeDefined();
+		expect(users).toContainEqual({ id: 'm3-user2' });
+		expect(users).not.toContainEqual({ id: 'm3-user1' });
+		expect(spaces).toBeDefined();
+		expect(spaces).not.toContainEqual({ id: 'm3-sp1' });
+		expect(spaces).toContainEqual({ id: 'm3-sp2' });
+		expect(spaces).toContainEqual({ id: 'm3-sp3' });
+		expect(spaces).toContainEqual({ id: 'm3-sp4' });
+		expect(kinds).toBeDefined();
+		expect(kinds).toContainEqual({ id: 'm3-k3' });
+		expect(kinds).not.toContainEqual({ id: 'm3-k1' });
+		expect(kinds).not.toContainEqual({ id: 'm3-k2' });
+		expect(fields).toBeDefined();
+		expect(fields).toContainEqual({ id: 'm3-f2' });
+		expect(fields).not.toContainEqual({ id: 'm3-f1' });
+	});
 });

@@ -279,7 +279,12 @@ const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormS
 			}
 			if (fieldType === 'linkField' || fieldType === 'roleField') {
 				const fieldSchemaTyped = fieldSchema as EnrichedLinkField | EnrichedRoleField;
-				const [childrenThing] = fieldSchemaTyped.$things;
+				if (fieldSchemaTyped.$things.length !== 1) {
+					throw new Error(
+						`Not supported yet: Role ${key} in ${value.name} is played by multiple things: ${fieldSchemaTyped.$things.join(', ')}`,
+					);
+				}
+				const [childrenThing] = fieldSchemaTyped.$things; //todo: multiple players, then it must be efined
 				const surrealDBKey = fieldSchemaTyped[SuqlMetadata].queryPath;
 
 				return { ...acc, [surrealDBKey]: parseFilter(value, childrenThing, schema) };
