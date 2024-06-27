@@ -252,7 +252,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
 
 						if ($things.length > 1) {
-							throw new Error(
+							console.warn(
 								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
 							);
 						}

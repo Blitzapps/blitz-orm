@@ -146,13 +146,14 @@ export const mutationPreQuery = async (
 	};
 
 	const preQueryReq = convertMutationToQuery(Array.isArray(blocks) ? blocks : [blocks]);
+	//console.log('preQueryReq', JSON.stringify(preQueryReq, null, 2));
 
 	/// 3. Perform query
 	const res = await runQueryMachine(
 		// @ts-expect-error todo
 		preQueryReq,
 		schema,
-		config,
+		{ ...config, query: { ...config.query, returnNulls: true } },
 		dbHandles,
 	);
 	const preQueryRes = res.bql.res as BQLResponse[];
@@ -185,9 +186,13 @@ export const mutationPreQuery = async (
 
 	const objectPathToKey = ($objectPath: ObjectPath, hardId?: string) => {
 		const root = $objectPath?.beforePath || 'root';
+		if (typeof root !== 'string') {
+			throw new Error('[PQ]objectPathToKey: root is not a string');
+		}
 		const ids = hardId ? hardId : Array.isArray($objectPath?.ids) ? `[${$objectPath?.ids}]` : $objectPath?.ids;
 
 		const final = `${root}.${ids}___${$objectPath?.key}`;
+
 		return final;
 	};
 
@@ -211,16 +216,14 @@ export const mutationPreQuery = async (
 		[key in K]: {
 			$objectPath: ObjectPath;
 			$ids: string[];
-		};
+		} | null;
 	};
 	const cache: Cache<string> = {};
 	const cachePaths = (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
-			traverse(draft, (context) => {
-				const { key, parent } = context;
-
+			traverse(draft, ({ key, parent }) => {
 				if (parent && key && parent.$id && !key.includes('$')) {
 					const newObjPath = getObjectPath(parent, key);
 					const cacheKey = objectPathToKey(newObjPath);
@@ -252,6 +255,8 @@ export const mutationPreQuery = async (
 							val.$objectPath = newObjPath;
 						} else if (val) {
 							cache[cacheKey] = { $objectPath: newObjPath, $ids: [val.toString()] };
+						} else if (val === null) {
+							cache[cacheKey] = null; //we clarify a null entry, which means it was queried, but found empty (to be pruned)
 						}
 					}
 				}
@@ -267,8 +272,7 @@ export const mutationPreQuery = async (
 		blocks: FilledBQLMutationBlock | FilledBQLMutationBlock[],
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
-			traverse(draft, (context) => {
-				const { key, value, parent } = context;
+			traverse(draft, ({ key, value, parent }) => {
 				if (
 					parent &&
 					key &&
@@ -328,7 +332,7 @@ export const mutationPreQuery = async (
 					const cacheFound = cache[cacheKey];
 
 					if (cacheFound) {
-						cacheFound?.$ids.forEach((id) => {
+						cacheFound?.$ids?.forEach((id) => {
 							const newBlock = { ...block, $id: id, $bzId: `T4_${uuidv4()}` };
 							newBlocks.push(newBlock);
 						});
@@ -368,6 +372,8 @@ export const mutationPreQuery = async (
 
 				opBlocks.forEach((opBlock) => {
 					const keys = getFieldKeys(opBlock, true);
+
+					//keys length > 0 means its not a leaf node
 					if (keys.length > 0) {
 						let hasMultiple = false;
 						keys.forEach((key) => {
@@ -375,7 +381,7 @@ export const mutationPreQuery = async (
 
 							// todo: check for $filters
 							const blockMultiples: FilledBQLMutationBlock[] = opBlocks.filter(
-								(_opBlock) => !_opBlock.$id && !_opBlock.id && typeof opBlock === 'object',
+								(ob) => !ob.$id && !ob.id && typeof opBlock === 'object',
 							);
 							if (blockMultiples.length) {
 								hasMultiple = true;
@@ -387,7 +393,14 @@ export const mutationPreQuery = async (
 							operationWithoutMultiples.push(opBlock);
 						}
 					} else {
-						otherOps.push({ ...opBlock, $bzId: opBlock.$tempId || `T_${uuidv4()}` });
+						/// LEAF NODE, no keys so it probably being deleted , unlinked, or linked
+						if (opBlock.$id) {
+							//no need to split if it already has an $id, or an array of ids, we can keep its bzId
+							otherOps.push({ ...opBlock, $bzId: opBlock.$tempId || opBlock.$bzId });
+						} else {
+							//PQ1 is the case where its a multi but does not need to be pruned, so we are not adding the $ids
+							otherOps.push({ ...opBlock, $bzId: opBlock.$tempId || `PQ1_${uuidv4()}` });
+						}
 					}
 				});
 				return { operationWithMultiples, operationWithoutMultiples, otherOps };
@@ -438,6 +451,8 @@ export const mutationPreQuery = async (
 				generateCombinations(0, { ...getSymbols(obj) });
 				return allCombinations;
 			};
+
+			/// For all multiples we will do know all the combinations, to see if they will fail or not
 			const crossReferencedOperations: Partial<FilledBQLMutationBlock>[] = [];
 			operationWithMultiples.forEach((multipleBlock) => {
 				const allCombinations: Partial<FilledBQLMutationBlock>[] = getAllKeyCombinations(multipleBlock);
@@ -446,6 +461,7 @@ export const mutationPreQuery = async (
 				allCombinations.forEach((combinationBlock) => {
 					const keys = getFieldKeys(combinationBlock, true);
 
+					//if its creation, we can just push it, as there will be no false match in DB
 					if (combinationBlock.$op === 'create') {
 						combinationsToKeep.push(combinationBlock);
 					} else if (combinationBlock.$id) {
@@ -461,13 +477,14 @@ export const mutationPreQuery = async (
 										subBlock.$op === 'unlink' || subBlock.$op === 'delete' || subBlock.$op === 'update',
 								).length > 0;
 							if (hasRemove) {
-								if (cacheFound) {
+								if (cacheFound?.$ids) {
 									foundKeys.push({ key, ids: cacheFound.$ids });
 								}
 							} else {
 								foundKeys.push({ key, ids: [''] });
 							}
 						});
+
 						if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === combinationBlock.$id)) {
 							combinationsToKeep.push(combinationBlock);
 						} else {
@@ -493,6 +510,7 @@ export const mutationPreQuery = async (
 					// When the block is not from the root level
 					else if (combinationBlock.$objectPath) {
 						const parentKey = objectPathToKey(combinationBlock.$objectPath);
+
 						// d. get all ids of the parent block
 						const idsOfParent = cache[parentKey]?.$ids || [];
 						idsOfParent.forEach((id) => {
@@ -512,13 +530,13 @@ export const mutationPreQuery = async (
 									combinationsToKeep.push({
 										...combinationBlock,
 										$id: id,
-										$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
+										$bzId: combinationBlock.$tempId || `PQT2_${uuidv4()}`,
 									});
 								});
 							} else if (foundKeys.length === keys.length && !combinationsToKeep.find((c) => c.$id === id)) {
 								keys.forEach((k) => {
 									const cKey = `${objectPathToKey(combinationBlock.$objectPath)}.${id}${preQueryPathSeparator}${k}`;
-									const { $ids } = cache[cKey];
+									const $ids = cache[cKey]?.$ids || [];
 									/// making sure other ops are included as well, replace the old batched op with these new ops
 									const originalOp = combinationBlock[k].find((b: FilledBQLMutationBlock) => !b.$id);
 									const newBlocks = [
@@ -526,18 +544,24 @@ export const mutationPreQuery = async (
 											return {
 												...originalOp,
 												$id: id,
-												$objectPath: { beforePath: combinationBlock.$objectPath, ids: id, key: k },
+												$objectPath: {
+													beforePath: combinationBlock.$objectPath.beforePath,
+													ids: id,
+													key: k,
+												},
 											};
 										}),
 										...combinationBlock[k].filter((b: FilledBQLMutationBlock) => b.$id),
 									];
-									combinationBlock[k] = newBlocks;
+									if (newBlocks.length > 0) {
+										combinationBlock[k] = newBlocks;
+									}
 								});
 
 								combinationsToKeep.push({
 									...combinationBlock,
 									$id: id,
-									$bzId: combinationBlock.$tempId || `T_${uuidv4()}`,
+									$bzId: combinationBlock.$tempId || `PQ3_${uuidv4()}`,
 								});
 							}
 						});
@@ -549,6 +573,7 @@ export const mutationPreQuery = async (
 					crossReferencedOperations.push(c);
 				});
 			});
+			//console.log('crossReferencedOperations', crossReferencedOperations);
 
 			// filter out odd leftover cases
 			const allOperations = [...crossReferencedOperations, ...operationWithoutMultiples, ...otherOps];
@@ -582,6 +607,7 @@ export const mutationPreQuery = async (
 	};
 
 	const splitBql = splitBzIds(Array.isArray(newFilled) ? newFilled : [newFilled]);
+	//console.log('_____3splitBql', JSON.stringify(splitBql, null, 2));
 
 	/// 8. For each replace, make sure you prune existing ids from pre-query that want to be kept, and add deletes for all other ids
 
@@ -636,7 +662,7 @@ export const mutationPreQuery = async (
 				foundKeys
 					.filter((k) => k !== null && k !== undefined)
 					.forEach((key) => {
-						cacheIds = [...cacheIds, ...key.$ids];
+						cacheIds = [...cacheIds, ...(key?.$ids || [])];
 					});
 
 				// todo: Step 3, unlinkIds contain all cacheIds that aren't found in replaceIds
@@ -718,8 +744,8 @@ export const mutationPreQuery = async (
 						// todo: if filter, use bzId
 						const isOccupied = thing.$id
 							? Array.isArray(thing.$id)
-								? processArrayIdsFound(thing.$id, cacheFound ? cacheFound.$ids : [])
-								: cacheFound?.$ids.includes(thing.$id)
+								? processArrayIdsFound(thing.$id, cacheFound && cacheFound.$ids ? cacheFound.$ids : [])
+								: cacheFound?.$ids?.includes(thing.$id)
 							: cacheFound;
 						const cardinality = getCardinality(schema, parent, thing.$objectPath.key);
 

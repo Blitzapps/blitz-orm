@@ -9,8 +9,8 @@ import type {
 } from '../../../../types';
 import { EdgeSchema } from '../../../../types/symbols';
 import { getOp } from '../shared/getOp';
-import { v4 as uuidv4 } from 'uuid';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
+import { nanoid } from 'nanoid';
 
 export const enrichChildren = (
 	node: BQLMutationBlock,
@@ -25,11 +25,30 @@ export const enrichChildren = (
 		const [player] = oppositePlayers;
 
 		const $op = getOp(node, { ...subNode, $thing: player.thing, $thingType: player.thingType }, schema);
-		const $bzId = subNode.$bzId ? subNode.$bzId : subNode.$tempId ? subNode.$tempId : `N_${uuidv4()}`;
+
+		const get$bzId = () => {
+			if (subNode.$bzId) {
+				return subNode.$bzId;
+			}
+			if (subNode.$tempId) {
+				return subNode.$tempId;
+			}
+			// particular case, where we have a single $id, which is unique per $things so no need to generate multiple bzIds we can unify
+			if (subNode.$id && !isArray(subNode.$id)) {
+				return `SN_ONE_${player.thing}_${subNode.$id}`; //also we add prefix SN_ONE as we know is cardinality ONE
+			}
+			if (subNode.$id && isArray(subNode.$id)) {
+				return `SN_MANY_${player.thing}_${nanoid()}`; //also we add prefix SN_MANY as we know is cardinality MANY
+			}
+
+			return `SM_${nanoid()}`;
+		};
+		const $bzId = get$bzId();
 
 		if (!fieldSchema) {
 			throw new Error(`[Internal] No fieldSchema found in ${JSON.stringify(fieldSchema)}`);
 		}
+
 		return {
 			...subNode,
 			[EdgeSchema]: fieldSchema,
