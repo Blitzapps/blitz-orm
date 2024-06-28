@@ -1,6 +1,3 @@
-USE NS test;
-USE DB test;
-
 BEGIN TRANSACTION;
 
 INSERT INTO ⟨User⟩ [
@@ -106,16 +103,16 @@ INSERT INTO ⟨User-Accounts⟩ [
   { id: "ua3-1" }
 ];
 
-RELATE ⟨`User-Accounts`⟩:`ua1-1` -> ⟨`User-Accounts_user`⟩ -> ⟨User⟩:user1;
-RELATE ⟨`User-Accounts`⟩:`ua1-1` -> ⟨`User-Accounts_accounts`⟩ -> ⟨Account⟩:`account1-1`;
-RELATE ⟨`User-Accounts`⟩:`ua1-2` -> ⟨`User-Accounts_user`⟩ -> ⟨User⟩:user1;
-RELATE ⟨`User-Accounts`⟩:`ua1-2` -> ⟨`User-Accounts_accounts`⟩ -> ⟨Account⟩:`account1-2`;
-RELATE ⟨`User-Accounts`⟩:`ua1-3` -> ⟨`User-Accounts_user`⟩ -> ⟨User⟩:user1;
-RELATE ⟨`User-Accounts`⟩:`ua1-3` -> ⟨`User-Accounts_accounts`⟩ -> ⟨Account⟩:`account1-3`;
-RELATE ⟨`User-Accounts`⟩:`ua2-1` -> ⟨`User-Accounts_user`⟩ -> ⟨User⟩:user2;
-RELATE ⟨`User-Accounts`⟩:`ua2-1` -> ⟨`User-Accounts_accounts`⟩ -> ⟨Account⟩:`account2-1`;
-RELATE ⟨`User-Accounts`⟩:`ua3-1` -> ⟨`User-Accounts_user`⟩ -> ⟨User⟩:user3;
-RELATE ⟨`User-Accounts`⟩:`ua3-1` -> ⟨`User-Accounts_accounts`⟩ -> ⟨Account⟩:`account3-1`;
+RELATE ⟨User-Accounts⟩:⟨ua1-1⟩ -> ⟨User-Accounts_user⟩ -> ⟨User⟩:user1;
+RELATE ⟨User-Accounts⟩:⟨ua1-1⟩ -> ⟨User-Accounts_accounts⟩ -> ⟨Account⟩:⟨account1-1⟩;
+RELATE ⟨User-Accounts⟩:⟨ua1-2⟩ -> ⟨User-Accounts_user⟩ -> ⟨User⟩:user1;
+RELATE ⟨User-Accounts⟩:⟨ua1-2⟩ -> ⟨User-Accounts_accounts⟩ -> ⟨Account⟩:⟨account1-2⟩;
+RELATE ⟨User-Accounts⟩:⟨ua1-3⟩ -> ⟨User-Accounts_user⟩ -> ⟨User⟩:user1;
+RELATE ⟨User-Accounts⟩:⟨ua1-3⟩ -> ⟨User-Accounts_accounts⟩ -> ⟨Account⟩:⟨account1-3⟩;
+RELATE ⟨User-Accounts⟩:⟨ua2-1⟩ -> ⟨User-Accounts_user⟩ -> ⟨User⟩:user2;
+RELATE ⟨User-Accounts⟩:⟨ua2-1⟩ -> ⟨User-Accounts_accounts⟩ -> ⟨Account⟩:⟨account2-1⟩;
+RELATE ⟨User-Accounts⟩:⟨ua3-1⟩ -> ⟨User-Accounts_user⟩ -> ⟨User⟩:user3;
+RELATE ⟨User-Accounts⟩:⟨ua3-1⟩ -> ⟨User-Accounts_accounts⟩ -> ⟨Account⟩:⟨account3-1⟩;
 
 INSERT INTO ⟨Power⟩ [
   { id: "power1", description: "useless power" }
@@ -129,17 +126,17 @@ INSERT INTO ⟨Space-User⟩ [
   { id: "u3s2" }
 ];
 
-RELATE ⟨`Space-User`⟩:u1s1 -> ⟨`Space-User_users`⟩ -> ⟨User⟩:user1;
-RELATE ⟨`Space-User`⟩:u1s1 -> ⟨`Space-User_spaces`⟩ -> ⟨Space⟩:`space-1`;
-RELATE ⟨`Space-User`⟩:u1s2 -> ⟨`Space-User_users`⟩ -> ⟨User⟩:user1;
-RELATE ⟨`Space-User`⟩:u1s2 -> ⟨`Space-User_spaces`⟩ -> ⟨Space⟩:`space-2`;
-RELATE ⟨`Space-User`⟩:u5s1 -> ⟨`Space-User_users`⟩ -> ⟨User⟩:user5;
-RELATE ⟨`Space-User`⟩:u5s1 -> ⟨`Space-User_spaces`⟩ -> ⟨Space⟩:`space-1`;
-RELATE ⟨`Space-User`⟩:u2s2 -> ⟨`Space-User_users`⟩ -> ⟨User⟩:user2;
-RELATE ⟨`Space-User`⟩:u2s2 -> ⟨`Space-User_spaces`⟩ -> ⟨Space⟩:`space-2`;
-RELATE ⟨`Space-User`⟩:u3s2 -> ⟨`Space-User_users`⟩ -> ⟨User⟩:user3;
-RELATE ⟨`Space-User`⟩:u3s2 -> ⟨`Space-User_spaces`⟩ -> ⟨Space⟩:`space-2`;
-RELATE ⟨`Space-User`⟩:u3s2 -> ⟨`Space-User_power`⟩ -> ⟨Power⟩:power1;
+RELATE ⟨Space-User⟩:u1s1 -> ⟨Space-User_users⟩ -> ⟨User⟩:user1;
+RELATE ⟨Space-User⟩:u1s1 -> ⟨Space-User_spaces⟩ -> ⟨Space⟩:⟨space-1⟩;
+RELATE ⟨Space-User⟩:u1s2 -> ⟨Space-User_users⟩ -> ⟨User⟩:user1;
+RELATE ⟨Space-User⟩:u1s2 -> ⟨Space-User_spaces⟩ -> ⟨Space⟩:⟨space-2⟩;
+RELATE ⟨Space-User⟩:u5s1 -> ⟨Space-User_users⟩ -> ⟨User⟩:user5;
+RELATE ⟨Space-User⟩:u5s1 -> ⟨Space-User_spaces⟩ -> ⟨Space⟩:⟨space-1⟩;
+RELATE ⟨Space-User⟩:u2s2 -> ⟨Space-User_users⟩ -> ⟨User⟩:user2;
+RELATE ⟨Space-User⟩:u2s2 -> ⟨Space-User_spaces⟩ -> ⟨Space⟩:⟨space-2⟩;
+RELATE ⟨Space-User⟩:u3s2 -> ⟨Space-User_users⟩ -> ⟨User⟩:user3;
+RELATE ⟨Space-User⟩:u3s2 -> ⟨Space-User_spaces⟩ -> ⟨Space⟩:⟨space-2⟩;
+RELATE ⟨Space-User⟩:u3s2 -> ⟨Space-User_power⟩ -> ⟨Power⟩:power1;
 
 INSERT INTO ⟨UserTag⟩ [
   { id: "tag-1" },
@@ -148,11 +145,11 @@ INSERT INTO ⟨UserTag⟩ [
   { id: "tag-4" }
 ];
 
-RELATE UserTag:`tag-1` -> UserTag_users -> User:user1;
-RELATE UserTag:`tag-2` -> UserTag_users -> User:user1;
-RELATE UserTag:`tag-2` -> UserTag_users-> User:user3;
-RELATE UserTag:`tag-3` -> UserTag_users -> User:user2;
-RELATE UserTag:`tag-4` -> UserTag_users -> User:user2;
+RELATE UserTag:⟨tag-1⟩ -> UserTag_users -> User:user1;
+RELATE UserTag:⟨tag-2⟩ -> UserTag_users -> User:user1;
+RELATE UserTag:⟨tag-2⟩ -> UserTag_users-> User:user3;
+RELATE UserTag:⟨tag-3⟩ -> UserTag_users -> User:user2;
+RELATE UserTag:⟨tag-4⟩ -> UserTag_users -> User:user2;
 
 INSERT INTO ⟨Color⟩ [
   { id: "yellow", freeForAll: 7 },
@@ -165,20 +162,20 @@ INSERT INTO ⟨UserTagGroup⟩ [
   { id: "utg-2" },
 ];
 
-RELATE ONLY UserTagGroup:`utg-1` -> UserTagGroup_color -> Color:yellow;
-RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-1`;
-RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-2`;
+RELATE ONLY UserTagGroup:⟨utg-1⟩ -> UserTagGroup_color -> Color:yellow;
+RELATE UserTagGroup:⟨utg-1⟩ -> UserTagGroup_tags -> UserTag:⟨tag-1⟩;
+RELATE UserTagGroup:⟨utg-1⟩ -> UserTagGroup_tags -> UserTag:⟨tag-2⟩;
 
-RELATE ONLY UserTagGroup:`utg-2` -> UserTagGroup_color -> Color:blue;
-RELATE UserTagGroup:`utg-2` -> UserTagGroup_tags -> UserTag:`tag-3`;
-RELATE UserTagGroup:`utg-2` -> UserTagGroup_space -> Space:`space-3`;
+RELATE ONLY UserTagGroup:⟨utg-2⟩ -> UserTagGroup_color -> Color:blue;
+RELATE UserTagGroup:⟨utg-2⟩ -> UserTagGroup_tags -> UserTag:⟨tag-3⟩;
+RELATE UserTagGroup:⟨utg-2⟩ -> UserTagGroup_space -> Space:⟨space-3⟩;
 
 
 INSERT INTO ⟨Kind⟩ [
   { id: "kind-book", name: "book" }
 ];
 
-RELATE Kind:`kind-book` -> SpaceObj_space -> Space:`space-2`;
+RELATE Kind:⟨kind-book⟩ -> SpaceObj_space -> Space:⟨space-2⟩;
 
 INSERT INTO ⟨Self⟩ [
   { id: "self1" },
@@ -187,12 +184,12 @@ INSERT INTO ⟨Self⟩ [
   { id: "self4" },
 ];
 
-RELATE Self:self1 -> SpaceObj_space -> Space:`space-2`;
-RELATE Self:self2 -> SpaceObj_space -> Space:`space-2`;
+RELATE Self:self1 -> SpaceObj_space -> Space:⟨space-2⟩;
+RELATE Self:self2 -> SpaceObj_space -> Space:⟨space-2⟩;
 RELATE Self:self2 -> Self_owner -> Self:self1;
-RELATE Self:self3 -> SpaceObj_space -> Space:`space-2`;
+RELATE Self:self3 -> SpaceObj_space -> Space:⟨space-2⟩;
 RELATE Self:self3 -> Self_owner -> Self:self2;
-RELATE Self:self4 -> SpaceObj_space -> Space:`space-2`;
+RELATE Self:self4 -> SpaceObj_space -> Space:⟨space-2⟩;
 RELATE Self:self4 -> Self_owner -> Self:self2;
 
 INSERT INTO ⟨Hook⟩ [

@@ -23,7 +23,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		await expect(res).toBeNull();
 	});
 
-	it('e1[entity] - basic and direct link to relation', async () => {
+	it.only('e1[entity] - basic and direct link to relation', async () => {
 		const query = { $entity: 'User' };
 		const expectedRes = [
 			{

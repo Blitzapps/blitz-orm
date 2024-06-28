@@ -56,11 +56,10 @@ class BormClient {
 						namespace: dbc.namespace,
 						database: dbc.dbName,
 						auth: {
-							namespace: dbc.namespace,
-							database: dbc.dbName,
 							username: dbc.username,
 							password: dbc.password,
 						},
+						versionCheck: false,
 					});
 
 					dbHandles.surrealDB.set(dbc.id, { client: db });
