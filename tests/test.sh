@@ -3,7 +3,7 @@
 CONTAINER_NAME=borm_test
 
 # Start the container
-docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:latest start --allow-all -u tester -p tester
+docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000  --name $CONTAINER_NAME surrealdb/surrealdb:v2.0.0-alpha.3 start --allow-all -u tester -p tester --bind 0.0.0.0:8000
 
 until [ "`docker inspect -f {{.State.Running}} $CONTAINER_NAME`"=="true" ]; do
     sleep 0.1;

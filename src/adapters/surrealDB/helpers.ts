@@ -41,7 +41,7 @@ export const prepareTableNameSurrealDB = (tableName: string) => {
 	//if tableName includes any of the chars of this array, then wrap it in backticks
 
 	if (specialChars.some((char) => tableName.includes(char))) {
-		return `⟨\`${tableName}\`⟩`;
+		return `⟨${tableName}⟩`;
 	}
 	return tableName;
 };
