@@ -229,6 +229,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				value.db = thingDB as DBHandleKey; //todo
 				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
 
+				value.dbProviderConfig =
+					thingDB === 'surrealDB' ? dbHandles[thingDB]?.get(value.defaultDBConnector.id)?.providerConfig : undefined;
+
 				// init the arrays
 				value.computedFields = [];
 				value.virtualFields = [];
@@ -245,7 +248,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						role.fieldType = 'roleField';
 						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
 						role.playedBy = playedBy;
-						role.name = roleKey;
+						role.path = roleKey;
 						const $things = [...new Set(playedBy.map((x) => x.thing))];
 						role.$things = $things;
 
@@ -263,11 +266,28 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							return [playerThing, ...subTypes];
 						});
 
-						const queryPath = `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
-
-						role[SuqlMetadata] = {
-							queryPath,
+						const getQueryPath = () => {
+							if (value.dbProviderConfig.linkMode === 'edges') {
+								return `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
+							}
+							if (value.dbProviderConfig.linkMode === 'computed-refs') {
+								if (role.cardinality === 'MANY') {
+									return `$parent.\`${roleKey}\``;
+								}
+								if (role.cardinality === 'ONE') {
+									return `$parent.[\`${roleKey}\`]`;
+								}
+							}
+							throw new Error('Unsupported linkMode');
 						};
+
+						if (value.db === 'surrealDB') {
+							const queryPath = getQueryPath();
+
+							role[SuqlMetadata] = {
+								queryPath,
+							};
+						}
 					});
 				}
 				if ('linkFields' in value && value.linkFields) {
@@ -345,22 +365,32 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 						//#region SUREALDB METADATA
 
-						// We take the original relation as its the one that holds the name of the relation in surrealDB
-						const originalRelation =
-							// @ts-expect-error - This is fine, extensions schema is a middle state
-							linkFieldRelation?.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
-						const queryPath = getSurrealLinkFieldQueryPath({ linkField, originalRelation, withExtensionsSchema });
+						if (value.db === 'surrealDB') {
+							const originalRelation =
+								// @ts-expect-error - This is fine, extensions schema is a middle state
+								linkFieldRelation?.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
 
-						linkField[SuqlMetadata] = {
-							queryPath,
-						};
+							const queryPath = getSurrealLinkFieldQueryPath({
+								linkField,
+								originalRelation,
+								withExtensionsSchema,
+								linkMode: value.dbProviderConfig.linkMode,
+							});
+
+							linkField[SuqlMetadata] = {
+								queryPath,
+							};
+						}
+
+						// We take the original relation as its the one that holds the name of the relation in surrealDB
+
 						//#endregion
 					});
 				}
 			}
 
 			// role fields
-			if (typeof value === 'object' && 'playedBy' in value) {
+			if (value && typeof value === 'object' && 'playedBy' in value) {
 				// if (value.playedBy.length > 1) {
 				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
 				if (playedBySet.length > 1) {
