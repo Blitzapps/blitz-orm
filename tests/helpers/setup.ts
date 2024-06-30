@@ -8,20 +8,22 @@ import BormClient from '../../src/index';
 export const setup = async (props: {
 	config: BormConfig;
 	schema: BormSchema;
-	tqlPathMap?: Record<string, { schema?: string, data?: string }>;
+	tqlPathMap?: Record<string, { schema?: string; data?: string }>;
 }) => {
 	const { config, schema, tqlPathMap } = props;
-	const dbConnectors = await Promise.all(config.dbConnectors.map(async (connector) => {
-		if (connector.provider !== 'typeDB') {
-			return connector;
-		}
-		const tqlPath = tqlPathMap?.[connector.id];
-		return await setupTypeDB({
-			connector: connector as TypeDBProvider,
-			schemaTqlPath: tqlPath?.schema,
-			dataTqlPath: tqlPath?.data,
-		});
-	})) as [Provider, ...Provider[]];
+	const dbConnectors = (await Promise.all(
+		config.dbConnectors.map(async (connector) => {
+			if (connector.provider !== 'typeDB') {
+				return connector;
+			}
+			const tqlPath = tqlPathMap?.[connector.id];
+			return await setupTypeDB({
+				connector: connector as TypeDBProvider,
+				schemaTqlPath: tqlPath?.schema,
+				dataTqlPath: tqlPath?.data,
+			});
+		}),
+	)) as [Provider, ...Provider[]];
 	const dbNameMap = Object.fromEntries(Object.values(dbConnectors).map((i) => [i.id, i.dbName]));
 	const client = new BormClient({
 		schema,
@@ -76,7 +78,7 @@ const cleanup = async (client: BormClient, dbNameMap: Record<string, string>) =>
 
 	const dbHandles = client.getDbHandles();
 	const typeDB = dbHandles?.typeDB;
-	[...typeDB||[]].forEach(async ([id, typeDB]) => {
+	[...(typeDB || [])].forEach(async ([id, typeDB]) => {
 		const database = await typeDB.client.databases.get(dbNameMap[id]);
 		await database.delete();
 	});

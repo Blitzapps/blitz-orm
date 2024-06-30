@@ -491,7 +491,8 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
       $id: 'utg-2',
     });
 
-    console.log('original', original); */
+    //console.log('original', original); 
+		*/
 
 		await ctx.mutate(
 			{
@@ -517,7 +518,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
       $id: 'utg-2',
     });
 
-    console.log('post', post); */
+    //console.log('post', post); */
 
 		const UserTagGroupModified = await ctx.query({
 			$relation: 'UserTagGroup',

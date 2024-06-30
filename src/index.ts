@@ -63,7 +63,7 @@ class BormClient {
 						},
 					});
 
-					dbHandles.surrealDB.set(dbc.id, { client: db });
+					dbHandles.surrealDB.set(dbc.id, { client: db, providerConfig: dbc.providerConfig });
 				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);

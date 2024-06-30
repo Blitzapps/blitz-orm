@@ -78,7 +78,7 @@ const tField = (
 		// Assume a role can be played by only one thing.
 		const [oppositeThing] = role.playedBy || [];
 		if (!oppositeThing) {
-			throw new Error(`Role ${role.name} in ${thing} is not played by anything`);
+			throw new Error(`Role ${role.path} in ${thing} is not played by anything`);
 		}
 		tObject(schema, value, oppositeThing.thing);
 	}

@@ -36,7 +36,7 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 } & SharedEnrichedProps;
 
 export type EnrichedRoleField = RoleField & {
-	name: string;
+	path: string;
 	playedBy?: LinkedFieldWithThing[]; // computed variable.
 	$things: string[]; //all potential candidates
 	fieldType: 'roleField';

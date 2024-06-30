@@ -52,3 +52,6 @@ tests/mocks/buildSchema.js
 #surrealdb
 **/database.db
 
+#logs
+logs.json
+

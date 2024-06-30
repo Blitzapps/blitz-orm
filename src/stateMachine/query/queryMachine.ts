@@ -8,6 +8,7 @@ import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
+import { runSurrealDbComputedReferencesQueryMachine } from './surql-computed-refs/machine';
 
 type MachineContext = {
 	bql: {
@@ -61,7 +62,7 @@ type TypeDBAdapter = {
 };
 
 type SurrealDBAdapter = {
-	db: 'surrealDB';
+	db: 'surrealDB' | 'surrealDBComputedRefs';
 	client: Surreal;
 	rawBql: RawBQLQuery[];
 	bqlQueries: EnrichedBQLQuery[];
@@ -86,7 +87,24 @@ export const queryMachine = createMachine(
 					const raw = ctx.bql.raw[i];
 					const thing = getSchemaByThing(ctx.schema, q.$thing);
 					const { id } = thing.defaultDBConnector;
-					if (thing.db === 'typeDB') {
+
+					if (thing.db === 'surrealDB') {
+						//@ts-expect-error - This is normal, we already now its surrealDB so it does have a provider config
+						const surrealDBMode = ctx.config.dbConnectors.find((c) => c.id === id)?.providerConfig;
+						if (!adapters[id]) {
+							const client = ctx.handles.surrealDB?.get(id)?.client;
+							if (!client) {
+								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+							}
+							adapters[id] = {
+								db: surrealDBMode.linkMode === 'computed-refs' ? 'surrealDBComputedRefs' : 'surrealDB',
+								client,
+								rawBql: [],
+								bqlQueries: [],
+								indices: [],
+							};
+						}
+					} else if (thing.db === 'typeDB') {
 						if (!adapters[id]) {
 							const client = ctx.handles.typeDB?.get(id)?.client;
 							if (!client) {
@@ -94,20 +112,6 @@ export const queryMachine = createMachine(
 							}
 							adapters[id] = {
 								db: 'typeDB',
-								client,
-								rawBql: [],
-								bqlQueries: [],
-								indices: [],
-							};
-						}
-					} else if (thing.db === 'surrealDB') {
-						if (!adapters[id]) {
-							const client = ctx.handles.surrealDB?.get(id)?.client;
-							if (!client) {
-								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
-							}
-							adapters[id] = {
-								db: 'surrealDB',
 								client,
 								rawBql: [],
 								bqlQueries: [],
@@ -128,7 +132,14 @@ export const queryMachine = createMachine(
 						// TODO: Replace DBHandles with TypeDBAdapter
 						return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
 					}
-					return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+
+					if (a.db === 'surrealDB') {
+						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+					}
+					if (a.db === 'surrealDBComputedRefs') {
+						return runSurrealDbComputedReferencesQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+					}
+					throw new Error(`Unsupported DB "${a.db}"`);
 				});
 				const results = await Promise.all(proms);
 				const orderedResults = adapterList.flatMap((a, i) => {

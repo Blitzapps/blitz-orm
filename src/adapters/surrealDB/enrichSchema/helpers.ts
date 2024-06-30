@@ -4,10 +4,12 @@ export const getSurrealLinkFieldQueryPath = ({
 	linkField,
 	originalRelation,
 	withExtensionsSchema,
+	linkMode,
 }: {
 	linkField: EnrichedLinkField;
 	originalRelation: string;
 	withExtensionsSchema: BormSchema;
+	linkMode: 'computed-refs' | 'edges';
 }) => {
 	// For virtuals, it is managed by the database schema
 	if (linkField.isVirtual) {
@@ -22,7 +24,13 @@ export const getSurrealLinkFieldQueryPath = ({
 	const pathToRelation = `<-\`${originalRelation}_${linkField.plays}\`<-(\`${targetRelationThings.join('`,`')}\`)`;
 
 	if (linkField.target === 'relation') {
-		return pathToRelation; //Not original relation in the second, but all the potential targets
+		if (linkMode === 'edges') {
+			return pathToRelation; //Not original relation in the second, but all the potential targets
+		}
+		if (linkMode === 'computed-refs') {
+			return `$parent.\`${linkField.path}\``;
+		}
+		throw new Error('Unsupported linkMode');
 	} else if (linkField.target === 'role') {
 		const [targetRole] = linkField.oppositeLinkFieldsPlayedBy; //todo: This should consider more option in the future
 		const targetRoleSubTypes =
@@ -35,6 +43,13 @@ export const getSurrealLinkFieldQueryPath = ({
 		const oppositeRoleThings = [targetRole.thing, ...targetRoleSubTypes];
 
 		const pathToTunneledRole = `->\`${originalRelation}_${targetRole.plays}\`->(\`${oppositeRoleThings.join('`,`')}\`)`;
+
+		if (linkMode === 'edges') {
+			return `${pathToRelation}${pathToTunneledRole}`;
+		}
+		if (linkMode === 'computed-refs') {
+			return `$parent.\`${targetRole.plays}\``;
+		}
 
 		return `${pathToRelation}${pathToTunneledRole}`;
 	} else {

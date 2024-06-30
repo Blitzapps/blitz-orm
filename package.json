@@ -23,13 +23,15 @@
 		"prepare": "husky",
 		"pub": "pnpm build && pnpm publish",
 		"knip": "knip",
-		"bench:surrealdb": "./tests/bench.sh surrealdb/bench",
+		"bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
+		"bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=computed-refs ./tests/bench.sh tests/unit/bench",
 		"bench:typedb": "vitest bench typedb/bench",
 		"test": "./tests/test.sh --coverage",
 		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
 		"test:multidb": "./tests/test.sh multidb",
 		"test:query": "./tests/test.sh query.test.ts",
-		"test:surrealdb-ignoreTodo": "./tests/test.sh surrealdb/unit/queries -t \"^(?!.*TODO{.*[S].*}:).*\" ",
+		"test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
+		"test:surrealdb-ignoreTodo:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=computed-refs ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
 		"test:surrealdb-query": "./tests/test.sh surrealdb/unit/queries/query.test.ts",
 		"test:typedb-ignoreTodo": "vitest run typedb -t \"^(?!.*TODO{.*[T].*}:).*\" ",
 		"test:typedb-mutation": "vitest run typedb/unit/mutations",
@@ -71,6 +73,7 @@
 		"@types/node": "^20.12.12",
 		"@types/uuid": "^9.0.8",
 		"@vitest/coverage-v8": "^1.6.0",
+		"cross-env": "^7.0.3",
 		"esbuild": "^0.21.3",
 		"eslint": "^8.57.0",
 		"husky": "^9.0.11",
@@ -93,5 +96,8 @@
 	"homepage": "https://github.com/Blitzapps/blitz-orm#readme",
 	"directories": {
 		"test": "tests"
+	},
+	"vitest": {
+		"testTimeout": 30000
 	}
 }
