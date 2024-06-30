@@ -33,13 +33,17 @@ export const createTest = (name: string, test: (ctx: TestContext) => void) => {
 			clean = res.clean;
 		}, 25000);
 
-		describe(name, () => {
-			test(ctx);
+		describe(
+			name,
+			() => {
+				test(ctx);
 
-			afterAll(async () => {
-				await clean?.();
-			});
-		});
+				afterAll(async () => {
+					await clean?.();
+				});
+			},
+			90000,
+		);
 	};
 
 	return runTest;

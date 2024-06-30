@@ -203,4 +203,27 @@ INSERT INTO ⟨Hook⟩ [
   { id: "hook5", requiredOption: "b" }
 ];
 
+
+LET $companies = (
+    function() {
+        return Array.from({length: 1000}, (_, i) => i + 1);
+    }
+);
+
+ FOR $company IN $companies {
+   LET $compId = CREATE ONLY Company CONTENT {
+        id: type::string($company),
+        name: string::concat('Company ', type::string($company)),
+        industry: rand::enum(['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'])
+    };
+    FOR $employee IN [0,1,2,3,4,5,6,7,8,9] {
+        let $empId = CREATE ONLY Employee CONTENT {
+					  id:  type::string(($company * 10) + $employee),
+            name: string::concat('Employee ',  type::string(($company * 10) + $employee)),
+            company: $compId.id
+        };
+      RELATE $empId -> Employee_company -> $compId;
+    };
+};
+
 COMMIT TRANSACTION;

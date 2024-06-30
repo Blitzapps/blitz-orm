@@ -186,3 +186,11 @@ DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 -- } then {
 -- 	  (hookTypeA: $hook, otherHooks: $otherHooks) isa HookATag;
 -- };
+
+DEFINE TABLE Employee SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD name ON TABLE Employee TYPE string;
+DEFINE TABLE Employee_company SCHEMAFULL PERMISSIONS FULL TYPE RELATION in Employee out Company;
+
+DEFINE TABLE Company SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD name ON TABLE Company TYPE string;
+DEFINE FIELD industry ON TABLE Company TYPE string;

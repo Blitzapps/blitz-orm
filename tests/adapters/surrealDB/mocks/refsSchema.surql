@@ -32,6 +32,13 @@ DEFINE FIELD `user-tags` ON TABLE God VALUE <future> { array::flatten(RETURN SEL
 
 DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE Space TYPE string;
+DEFINE FIELD users ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE users FROM ⟨`Space-User`⟩ WHERE spaces ?= $parent.id);};
+DEFINE FIELD objects ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM SpaceObj, SpaceDef, Kind, Field, Self, DataField WHERE space ?= $parent.id);}; 
+DEFINE FIELD definitions ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM SpaceDef, Kind, Field, DataField WHERE space ?= $parent.id);}; 
+DEFINE FIELD kinds ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM Kind WHERE space ?= $parent.id);}; 
+DEFINE FIELD fields ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM Field, DataField WHERE space ?= $parent.id);}; 
+DEFINE FIELD dataFields ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM DataField WHERE space ?= $parent.id);}; 
+DEFINE FIELD selfs ON TABLE Space VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM Self WHERE space ?= $parent.id);}; 
 
 DEFINE TABLE Thing SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD stuff ON TABLE Thing TYPE string;
@@ -45,6 +52,7 @@ DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD provider ON TABLE Account TYPE string;
 DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
 DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
+DEFINE FIELD user ON TABLE Account VALUE <future> { RETURN SELECT VALUE user FROM ⟨`User-Accounts`⟩ WHERE accounts ?= $parent.id;}; //LINKFIELD target:role
 
 
 DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
@@ -53,6 +61,8 @@ DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
 DEFINE TABLE Color SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE Color TYPE option<string>;
 DEFINE FIELD freeForAll ON TABLE Color FLEXIBLE TYPE option<string|number|datetime|bool>;
+DEFINE FIELD `user-tags` ON TABLE Color VALUE <future> { array::flatten(RETURN SELECT VALUE tags FROM UserTagGroup WHERE color ?= $parent.id);}; //LINKFIELD target:role
+DEFINE FIELD group ON TABLE Color VALUE <future> { RETURN SELECT VALUE id FROM UserTagGroup WHERE color ?= $parent.id;}; //LINKFIELD target:relation
 
 DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD description ON TABLE Power TYPE string;
@@ -82,15 +92,10 @@ DEFINE FIELD tagA ON TABLE Hook VALUE <future> {
 
 -- relationship
 DEFINE TABLE ThingRelation SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE ThingRelation_root SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ThingRelation_root TYPE record<ThingRelation>;
-DEFINE FIELD out ON TABLE ThingRelation_root TYPE record<Thing>;
-DEFINE TABLE ThingRelation_extra SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ThingRelation_extra TYPE record<ThingRelation>;
-DEFINE FIELD out ON TABLE ThingRelation_extra TYPE record<Thing>;
-DEFINE TABLE ThingRelation_things SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
-DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
+DEFINE FIELD root ON TABLE ThingRelation TYPE record<Thing>;
+DEFINE FIELD extra ON TABLE ThingRelation TYPE record<Thing>;
+DEFINE FIELD things ON TABLE ThingRelation TYPE array<record<Thing>>;
+
 
 DEFINE TABLE ⟨`User-Accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD user ON TABLE ⟨`User-Accounts`⟩ TYPE record<User|God|SuperUser>;
@@ -108,34 +113,33 @@ DEFINE FIELD power ON TABLE ⟨`Space-User`⟩ TYPE option<record<Power>>;
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
 DEFINE FIELD users ON TABLE UserTag TYPE array<record<User|God|SuperUser>>;
+DEFINE FIELD color ON TABLE UserTag VALUE <future> { RETURN SELECT VALUE color FROM UserTagGroup WHERE tags ?= $parent.id;}; //LINKFIELD target:role
+DEFINE FIELD group ON TABLE UserTag VALUE <future> { RETURN SELECT VALUE id FROM UserTagGroup WHERE tags ?= $parent.id;}; //LINKFIELD target:relation
 
 DEFINE TABLE UserTagGroup SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE UserTagGroup_tags SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserTagGroup_tags TYPE record<UserTagGroup>;
-DEFINE FIELD out ON TABLE UserTagGroup_tags TYPE record<UserTag>;
-DEFINE TABLE UserTagGroup_space SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserTagGroup_space TYPE record<UserTagGroup>;
-DEFINE FIELD out ON TABLE UserTagGroup_space TYPE record<Space>;
-DEFINE TABLE UserTagGroup_color SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE UserTagGroup_color TYPE record<UserTagGroup>;
-DEFINE FIELD out ON TABLE UserTagGroup_color TYPE record<Color>;
+DEFINE FIELD tags ON TABLE UserTagGroup TYPE array<record<UserTag>>;
+DEFINE FIELD space ON TABLE UserTagGroup TYPE option<record<Space>>;
+DEFINE FIELD color ON TABLE UserTagGroup TYPE option<record<Color>>;
 
 DEFINE TABLE HookParent SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookParent_mainHook SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
-DEFINE TABLE HookParent_hooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookParent out Hook;
-
+DEFINE FIELD mainHook ON TABLE HookParent TYPE record<Hook>;
+DEFINE FIELD hooks ON TABLE HookParent TYPE  array<record<Hook>>;
 
 DEFINE TABLE HookATag SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE HookATag_hookTypeA SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
-DEFINE TABLE HookATag_otherHooks SCHEMAFULL PERMISSIONS FULL TYPE RELATION in HookATag out Hook;
+DEFINE FIELD hookTypeA ON TABLE HookATag TYPE record<Hook>;
+DEFINE FIELD otherHooks ON TABLE HookATag TYPE array<record<Hook>>;
 
 DEFINE TABLE SpaceObj SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE SpaceObj_space SCHEMAFULL PERMISSIONS FULL TYPE RELATION in SpaceObj|SpaceDef|Kind|Self out Space;
+DEFINE FIELD space ON TABLE SpaceObj TYPE record<Space>;
+
+
 
 DEFINE TABLE SpaceDef SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD space ON TABLE SpaceDef TYPE record<Space>;
 DEFINE FIELD description ON SpaceDef TYPE string;
 
 DEFINE TABLE Kind SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD space ON TABLE Kind TYPE record<Space>;
 DEFINE FIELD name ON Table Kind TYPE string;
 
 
@@ -162,12 +166,9 @@ DEFINE FIELD name ON Table Kind TYPE string;
 -- DEFINE FIELD type ON DataValue TYPE string;
 
 DEFINE TABLE Self SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE Self_space SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE Self_space TYPE record<Self>;
-DEFINE FIELD out ON TABLE Self_space TYPE record<Space>;
-DEFINE TABLE Self_owner SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE Self_owner TYPE record<Self>;
-DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
+DEFINE FIELD space ON TABLE Self TYPE record<Space>;
+DEFINE FIELD owner ON TABLE Self TYPE option<record<Self>>;
+DEFINE FIELD owned ON TABLE Self VALUE <future> { RETURN SELECT VALUE id FROM Self WHERE owner ?= $parent.id;}; //LINKFIELD target:relation
 
 -- relations END
 
@@ -181,3 +182,14 @@ DEFINE FIELD out ON TABLE Self_owner TYPE record<Self>;
 -- } then {
 -- 	  (hookTypeA: $hook, otherHooks: $otherHooks) isa HookATag;
 -- };
+
+DEFINE TABLE Employee SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD name ON TABLE Employee TYPE string;
+DEFINE FIELD company ON TABLE Employee TYPE record<Company>;
+
+DEFINE TABLE Company SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD name ON TABLE Company TYPE string;
+DEFINE FIELD industry ON TABLE Company TYPE string;
+DEFINE FIELD employees ON TABLE Company VALUE <future> { array::flatten(RETURN SELECT VALUE id FROM Employee WHERE company ?= $parent.id);};
+
+

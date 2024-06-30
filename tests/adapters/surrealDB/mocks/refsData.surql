@@ -24,44 +24,6 @@ INSERT INTO ⟨SubthingTwo⟩ [
   {id: "subthingtwo3", stuff: "K"}
 ];
 
-RELATE ThingRelation:tr2 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr2 -> ThingRelation_root -> Thing:thing2;
-RELATE ThingRelation:tr2 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr3 -> ThingRelation_things -> Thing:thing4;
-RELATE ThingRelation:tr3 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr3 -> ThingRelation_root -> Thing:thing1;
-RELATE ThingRelation:tr3 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr4 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr4 -> ThingRelation_root -> Thing:thing1;
-RELATE ThingRelation:tr4 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr5 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr5 -> ThingRelation_root -> Thing:thing1;
-RELATE ThingRelation:tr5 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr6 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr6 -> ThingRelation_root -> Thing:thing2;
-RELATE ThingRelation:tr6 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr7 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr7 -> ThingRelation_root -> Thing:thing3;
-RELATE ThingRelation:tr7 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr8 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr8 -> ThingRelation_root -> Thing:thing4;
-RELATE ThingRelation:tr8 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr9 -> ThingRelation_things -> Thing:thing5;
-RELATE ThingRelation:tr9 -> ThingRelation_root -> Thing:thing4;
-RELATE ThingRelation:tr9 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr10 -> ThingRelation_extra -> Thing:thing1;
-
-RELATE ThingRelation:tr11 -> ThingRelation_root -> Thing:thing4;
-RELATE ThingRelation:tr11 -> ThingRelation_extra -> Thing:thing5;
-
 INSERT INTO ⟨SuperUser⟩ [
   {id: "superuser1", name: "Beatrix Kiddo", email: "black.mamba@deadly-viper.com", power: "katana"}
 ];
@@ -116,9 +78,9 @@ INSERT INTO ⟨Power⟩ [
 INSERT INTO ⟨Space-User⟩ [
   { id: "u1s1", users: [User:user1], spaces: [Space:`space-1`] },
 	{ id: "u1s2", users: [User:user1], spaces: [Space:`space-2`] },
-	{ id: "u5s1", users: [User:user5], spaces: [Space:`space-1`] },
 	{ id: "u2s2", users: [User:user2], spaces: [Space:`space-2`] },
-	{ id: "u3s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 }
+	{ id: "u3s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 },
+	{ id: "u5s1", users: [User:user5], spaces: [Space:`space-1`] }
 ];
 
 INSERT INTO ⟨UserTag⟩ [
@@ -135,39 +97,22 @@ INSERT INTO ⟨Color⟩ [
 ];
 
 INSERT INTO ⟨UserTagGroup⟩ [
-  { id: "utg-1" },
-  { id: "utg-2" },
+  { id: "utg-1", tags: [UserTag:`tag-1`, UserTag:`tag-2`], color: Color:yellow },
+	{ id: "utg-2", tags: [UserTag:`tag-3`], color: Color:blue, space: Space:`space-3` }
 ];
-
-RELATE ONLY UserTagGroup:`utg-1` -> UserTagGroup_color -> Color:yellow;
-RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-1`;
-RELATE UserTagGroup:`utg-1` -> UserTagGroup_tags -> UserTag:`tag-2`;
-
-RELATE ONLY UserTagGroup:`utg-2` -> UserTagGroup_color -> Color:blue;
-RELATE UserTagGroup:`utg-2` -> UserTagGroup_tags -> UserTag:`tag-3`;
-RELATE UserTagGroup:`utg-2` -> UserTagGroup_space -> Space:`space-3`;
-
 
 INSERT INTO ⟨Kind⟩ [
-  { id: "kind-book", name: "book" }
+  { id: "kind-book", name: "book", space: Space:`space-2` }
 ];
 
-RELATE Kind:`kind-book` -> SpaceObj_space -> Space:`space-2`;
 
 INSERT INTO ⟨Self⟩ [
-  { id: "self1" },
-  { id: "self2" },
-  { id: "self3" },
-  { id: "self4" },
+  { id: "self1", space: Space:`space-2`},
+	{ id: "self2", space: Space:`space-2`, owner : Self:self1},
+	{ id: "self3", space: Space:`space-2`, owner : Self:self2},
+	{ id: "self4", space: Space:`space-2`, owner : Self:self2}
 ];
 
-RELATE Self:self1 -> SpaceObj_space -> Space:`space-2`;
-RELATE Self:self2 -> SpaceObj_space -> Space:`space-2`;
-RELATE Self:self2 -> Self_owner -> Self:self1;
-RELATE Self:self3 -> SpaceObj_space -> Space:`space-2`;
-RELATE Self:self3 -> Self_owner -> Self:self2;
-RELATE Self:self4 -> SpaceObj_space -> Space:`space-2`;
-RELATE Self:self4 -> Self_owner -> Self:self2;
 
 INSERT INTO ⟨Hook⟩ [
   { id: "hook1", requiredOption: "a" },
@@ -176,5 +121,28 @@ INSERT INTO ⟨Hook⟩ [
   { id: "hook4", requiredOption: "a" },
   { id: "hook5", requiredOption: "b" }
 ];
+
+## big numbers
+
+LET $companies = (
+    function() {
+        return Array.from({length: 1000}, (_, i) => i + 1);
+    }
+);
+
+ FOR $company IN $companies {
+   LET $compId = CREATE ONLY Company CONTENT {
+        id: type::string($company),d: $company,
+        name: string::concat('Company ', type::string($company)),
+        industry: rand::enum(['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'])
+    };
+    FOR $employee IN [0,1,2,3,4,5,6,7,8,9] {
+        CREATE Employee CONTENT {
+					  id:  type::string(($company * 10) + $employee),
+            name: string::concat('Employee ',  type::string(($company * 10) + $employee)),
+            company: $compId.id
+        }
+    }
+};
 
 COMMIT TRANSACTION;
