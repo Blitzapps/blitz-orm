@@ -1,8 +1,10 @@
 import type { BormConfig } from '../../../../src';
 
 // eslint-disable-next-line turbo/no-undeclared-env-vars
-const linkMode = process.env.BORM_TEST_SURREALDB_LINK_MODE as 'edges' | 'computed-refs';
-if (!linkMode) {
+const adapter = process.env.BORM_TEST_ADAPTER;
+// eslint-disable-next-line turbo/no-undeclared-env-vars
+const linkMode = process.env.BORM_TEST_SURREALDB_LINK_MODE as 'edges' | 'refs';
+if (adapter === 'surrealDB' && !linkMode) {
 	throw new Error('BORM_SURREALDB_LINK_MODE is not defined');
 }
 

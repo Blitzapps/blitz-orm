@@ -1,5 +1,5 @@
-import type { BormConfig } from '../../../src/index';
 import dotenv from 'dotenv';
+import type { BormConfig } from '../../../../src';
 dotenv.config();
 
 // eslint-disable-next-line turbo/no-undeclared-env-vars
@@ -8,7 +8,7 @@ if (!typeDbUrl) {
 	throw new Error('TYPE_DB_URL is not defined');
 }
 
-export const config: BormConfig = {
+export const typeDBTestConfig: BormConfig = {
 	server: {
 		provider: 'blitz-orm-js',
 	},

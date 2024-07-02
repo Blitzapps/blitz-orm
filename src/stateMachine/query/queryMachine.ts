@@ -8,7 +8,7 @@ import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
-import { runSurrealDbComputedReferencesQueryMachine } from './surql-computed-refs/machine';
+import { runSurrealDbComputedReferencesQueryMachine } from './surql-refs/machine';
 
 type MachineContext = {
 	bql: {
@@ -62,7 +62,7 @@ type TypeDBAdapter = {
 };
 
 type SurrealDBAdapter = {
-	db: 'surrealDB' | 'surrealDBComputedRefs';
+	db: 'surrealDB' | 'surrealDBRefs';
 	client: Surreal;
 	rawBql: RawBQLQuery[];
 	bqlQueries: EnrichedBQLQuery[];
@@ -97,7 +97,7 @@ export const queryMachine = createMachine(
 								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
 							}
 							adapters[id] = {
-								db: surrealDBMode.linkMode === 'computed-refs' ? 'surrealDBComputedRefs' : 'surrealDB',
+								db: surrealDBMode.linkMode === 'refs' ? 'surrealDBRefs' : 'surrealDB',
 								client,
 								rawBql: [],
 								bqlQueries: [],
@@ -136,7 +136,7 @@ export const queryMachine = createMachine(
 					if (a.db === 'surrealDB') {
 						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
 					}
-					if (a.db === 'surrealDBComputedRefs') {
+					if (a.db === 'surrealDBRefs') {
 						return runSurrealDbComputedReferencesQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
 					}
 					throw new Error(`Unsupported DB "${a.db}"`);

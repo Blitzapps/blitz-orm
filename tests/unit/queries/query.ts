@@ -2651,7 +2651,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it.only('dn2[deep numbers] Big numbers', async () => {
+	it('TODO{T}:dn2[deep numbers] Big numbers', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',
@@ -2680,7 +2680,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it.only('dn3[deep numbers] Big numbers nested', async () => {
+	it('TODO{T}:dn3[deep numbers] Big numbers nested', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',

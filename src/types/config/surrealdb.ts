@@ -2,7 +2,7 @@ import type { Surreal } from 'surrealdb.js';
 import type { CommonProvider } from './base';
 
 type SurrealDBProviderConfig = {
-	linkMode: 'edges' | 'computed-refs';
+	linkMode: 'edges' | 'refs';
 };
 export interface SurrealDBProviderObject extends CommonProvider {
 	provider: 'surrealDB';

@@ -270,7 +270,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							if (value.dbProviderConfig.linkMode === 'edges') {
 								return `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
 							}
-							if (value.dbProviderConfig.linkMode === 'computed-refs') {
+							if (value.dbProviderConfig.linkMode === 'refs') {
 								if (role.cardinality === 'MANY') {
 									return `$parent.\`${roleKey}\``;
 								}

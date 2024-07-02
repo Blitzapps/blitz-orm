@@ -1,4 +1,4 @@
-import type { BormConfig } from '../../../src';
+import type { BormConfig } from '../../../../src';
 
 export const cloudConfig: BormConfig = {
 	server: {

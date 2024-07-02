@@ -9,7 +9,7 @@ export const getSurrealLinkFieldQueryPath = ({
 	linkField: EnrichedLinkField;
 	originalRelation: string;
 	withExtensionsSchema: BormSchema;
-	linkMode: 'computed-refs' | 'edges';
+	linkMode: 'refs' | 'edges';
 }) => {
 	// For virtuals, it is managed by the database schema
 	if (linkField.isVirtual) {
@@ -27,7 +27,7 @@ export const getSurrealLinkFieldQueryPath = ({
 		if (linkMode === 'edges') {
 			return pathToRelation; //Not original relation in the second, but all the potential targets
 		}
-		if (linkMode === 'computed-refs') {
+		if (linkMode === 'refs') {
 			return `$parent.\`${linkField.path}\``;
 		}
 		throw new Error('Unsupported linkMode');
@@ -47,7 +47,7 @@ export const getSurrealLinkFieldQueryPath = ({
 		if (linkMode === 'edges') {
 			return `${pathToRelation}${pathToTunneledRole}`;
 		}
-		if (linkMode === 'computed-refs') {
+		if (linkMode === 'refs') {
 			return `$parent.\`${targetRole.plays}\``;
 		}
 

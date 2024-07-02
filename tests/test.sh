@@ -38,8 +38,8 @@ parse_args "$@"
 if [ -z "$BORM_TEST_SURREALDB_LINK_MODE" ]; then
     echo "Error: BORM_TEST_SURREALDB_LINK_MODE environment variable is not set"
     exit 1
-elif [ "$BORM_TEST_SURREALDB_LINK_MODE" != "edges" ] && [ "$BORM_TEST_SURREALDB_LINK_MODE" != "computed-refs" ]; then
-    echo "Error: BORM_TEST_SURREALDB_LINK_MODE must be either 'edges' or 'computed-refs'"
+elif [ "$BORM_TEST_SURREALDB_LINK_MODE" != "edges" ] && [ "$BORM_TEST_SURREALDB_LINK_MODE" != "refs" ]; then
+    echo "Error: BORM_TEST_SURREALDB_LINK_MODE must be either 'edges' or 'refs'"
     exit 1
 fi
 

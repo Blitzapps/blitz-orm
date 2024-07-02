@@ -1944,141 +1944,141 @@ export const allBench = createTest('Bench', (ctx) => {
 	});
 
 	/*
-  bench('[entity,nested, filter] - $filter on children property', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      // this adds: $filterByAccounts isa account, has Account·provider 'github'; $filterRel (account: $filterByAccounts , user: $users) isa User-Accounts;
-      $filter: { account: { provider: { $eq: 'github' } } }, // $ is always commands, by default is $eq
-      $fields: ['name'],
-    });
-    expect(res).toEqual({
-      $entity: 'User',
-      $id: 'user1',
-      name: 'Antoine',
-    });
-  });
-  bench('[entity,nested,filter] - Simplified filter', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { account: { provider: 'github' } }, // by default is $eq
-      $fields: ['name'],
-    });
-    expect(res).toEqual([
-      {
-        $entity: 'User',
-        $id: 'user1',
-        name: 'Antoine',
-      },
-    ]);
-  });
-  bench('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includes: '@antoine' } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    // when we have no way to know if the answer will be unique or not, we provide an array
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post1', id: 'post1' },
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-    ]);
-  });
-  bench('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includesAll: ['@Antoine', '@Loic'] } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-      { $entity: 'post', $id: 'post3', id: 'post3' },
-    ]);
-  });
-  bench('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includesAny: ['@Antoine', '@Loic'] } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post1', id: 'post1' },
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-      { $entity: 'post', $id: 'post3', id: 'post3' },
-    ]);
-  });
-  bench('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { name: { $includesAny: ['x', 'y'] } },
-    });
-    expect(res).toThrow(TypeError);
-  });
-  bench('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { name: { $includesAll: ['x', 'y'] } },
-    });
-    expect(res).toThrow(TypeError);
-  });
-  // OPERATORS: NOT
-  bench('[entity,filter,not] - filter by field', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { $not: { id: 'user1' } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'User', $id: 'user2', id: 'user2' },
-      { $entity: 'User', $id: 'user2', id: 'user3' },
-    ]);
-  });
-  bench('[entity,filter,not,array,includes] filter item cardinality many', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $not: { $includes: '@Antoine' } } },
-      $fields: ['id'],
-    });
-    expect(res).toEqual([{ $entity: 'post', $id: 'post3', id: 'post3' }]); // this is an array because we can't be sure before querying that is a single element
-  });
-  // OPERATORS: OR
-  // typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
-  bench('[entity,OR] or filter two different fields', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: [{ name: 'Loic' }, { email: 'antoine@test.com' }], // this is equivalent to $filter: {$or: [..]}
-      $fields: ['name'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'User', $id: 'user1', name: 'Antoine' },
-      { $entity: 'User', $id: 'user2', name: 'Loic' },
-    ]);
-  });
-  */
+		bench('[entity,nested, filter] - $filter on children property', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				// this adds: $filterByAccounts isa account, has Account·provider 'github'; $filterRel (account: $filterByAccounts , user: $users) isa User-Accounts;
+				$filter: { account: { provider: { $eq: 'github' } } }, // $ is always commands, by default is $eq
+				$fields: ['name'],
+			});
+			expect(res).toEqual({
+				$entity: 'User',
+				$id: 'user1',
+				name: 'Antoine',
+			});
+		});
+		bench('[entity,nested,filter] - Simplified filter', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { account: { provider: 'github' } }, // by default is $eq
+				$fields: ['name'],
+			});
+			expect(res).toEqual([
+				{
+					$entity: 'User',
+					$id: 'user1',
+					name: 'Antoine',
+				},
+			]);
+		});
+		bench('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includes: '@antoine' } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			// when we have no way to know if the answer will be unique or not, we provide an array
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post1', id: 'post1' },
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+			]);
+		});
+		bench('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includesAll: ['@Antoine', '@Loic'] } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+				{ $entity: 'post', $id: 'post3', id: 'post3' },
+			]);
+		});
+		bench('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includesAny: ['@Antoine', '@Loic'] } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post1', id: 'post1' },
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+				{ $entity: 'post', $id: 'post3', id: 'post3' },
+			]);
+		});
+		bench('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { name: { $includesAny: ['x', 'y'] } },
+			});
+			expect(res).toThrow(TypeError);
+		});
+		bench('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { name: { $includesAll: ['x', 'y'] } },
+			});
+			expect(res).toThrow(TypeError);
+		});
+		// OPERATORS: NOT
+		bench('[entity,filter,not] - filter by field', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { $not: { id: 'user1' } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'User', $id: 'user2', id: 'user2' },
+				{ $entity: 'User', $id: 'user2', id: 'user3' },
+			]);
+		});
+		bench('[entity,filter,not,array,includes] filter item cardinality many', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $not: { $includes: '@Antoine' } } },
+				$fields: ['id'],
+			});
+			expect(res).toEqual([{ $entity: 'post', $id: 'post3', id: 'post3' }]); // this is an array because we can't be sure before querying that is a single element
+		});
+		// OPERATORS: OR
+		// typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
+		bench('[entity,OR] or filter two different fields', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: [{ name: 'Loic' }, { email: 'antoine@test.com' }], // this is equivalent to $filter: {$or: [..]}
+				$fields: ['name'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'User', $id: 'user1', name: 'Antoine' },
+				{ $entity: 'User', $id: 'user2', name: 'Loic' },
+			]);
+		});
+		*/
 
 	// NESTED
 
@@ -2215,7 +2215,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(res).toEqual(expectedRes);
 	});
 
-	bench('dn[deep nested] ridiculously deep nested query', async () => {
+	bench('dn1[deep nested] ridiculously deep nested query', async () => {
 		const res = await ctx.query({
 			$entity: 'Color',
 			$fields: [
@@ -2645,6 +2645,107 @@ export const allBench = createTest('Bench', (ctx) => {
 								],
 							},
 						],
+					},
+				],
+			},
+		]);
+	});
+
+	bench('dn2[deep numbers] Big numbers', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f', 'Employee 187f', 'Employee 1272f', 'Employee 9997f'] } },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '127f',
+			},
+			{
+				id: '18f',
+			},
+			{
+				id: '7f',
+			},
+			{
+				id: '999f',
+			},
+		]);
+	});
+
+	bench('dn3[deep numbers] Big numbers nested', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f'] } },
+				$fields: ['id', { $path: 'employees' }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '7f',
+				employees: [
+					{
+						company: '7f',
+						id: '70f',
+						name: 'Employee 70f',
+					},
+					{
+						company: '7f',
+						id: '71f',
+						name: 'Employee 71f',
+					},
+					{
+						company: '7f',
+						id: '72f',
+						name: 'Employee 72f',
+					},
+					{
+						company: '7f',
+						id: '73f',
+						name: 'Employee 73f',
+					},
+					{
+						company: '7f',
+						id: '74f',
+						name: 'Employee 74f',
+					},
+					{
+						company: '7f',
+						id: '75f',
+						name: 'Employee 75f',
+					},
+					{
+						company: '7f',
+						id: '76f',
+						name: 'Employee 76f',
+					},
+					{
+						company: '7f',
+						id: '77f',
+						name: 'Employee 77f',
+					},
+					{
+						company: '7f',
+						id: '78f',
+						name: 'Employee 78f',
+					},
+					{
+						company: '7f',
+						id: '79f',
+						name: 'Employee 79f',
 					},
 				],
 			},
