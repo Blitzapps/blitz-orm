@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.25
+
+- Feat: SurrealDB with stored references (refs) vs edges
+- Chore: Clean tests folder
+
 ## 0.10.24
 
 - Fix: Some minor fixes

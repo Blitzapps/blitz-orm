@@ -16,7 +16,7 @@ import { FieldSchema, QueryPath, SuqlMetadata } from '../../../types/symbols';
 import { isArray, isObject, shake } from 'radash';
 import { prepareTableNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 
-export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
+export const buildRefs = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
 	const { queries, schema } = props;
 	//console.log('queries!', queries);
 	return queries.map((query) => buildQuery({ query, schema }));

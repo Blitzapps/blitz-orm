@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.10.24",
+	"version": "0.10.25",
 	"author": "blitznocode.com",
 	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
 	"main": "dist/index.mjs",
@@ -32,8 +32,8 @@
 		"test:query": "./tests/test.sh query.test.ts",
 		"test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
 		"test:surrealdb-ignoreTodo:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
-		"test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh surrealdb/unit/queries/query.test.ts",
-		"test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh surrealdb/unit/queries/query.test.ts",
+		"test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/queries/query.test.ts",
+		"test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/queries/query.test.ts",
 		"test:typedb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit -t \"^(?!.*TODO{.*[T].*}:).*\" ",
 		"test:typedb-mutation": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/mutations",
 		"test:typedb-query": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/queries --watch",
@@ -97,8 +97,5 @@
 	"homepage": "https://github.com/Blitzapps/blitz-orm#readme",
 	"directories": {
 		"test": "tests"
-	},
-	"vitest": {
-		"testTimeout": 30000
 	}
 }

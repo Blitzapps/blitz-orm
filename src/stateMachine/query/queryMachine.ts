@@ -8,7 +8,6 @@ import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
-import { runSurrealDbComputedReferencesQueryMachine } from './surql-refs/machine';
 
 type MachineContext = {
 	bql: {
@@ -62,7 +61,7 @@ type TypeDBAdapter = {
 };
 
 type SurrealDBAdapter = {
-	db: 'surrealDB' | 'surrealDBRefs';
+	db: 'surrealDB';
 	client: Surreal;
 	rawBql: RawBQLQuery[];
 	bqlQueries: EnrichedBQLQuery[];
@@ -89,15 +88,13 @@ export const queryMachine = createMachine(
 					const { id } = thing.defaultDBConnector;
 
 					if (thing.db === 'surrealDB') {
-						//@ts-expect-error - This is normal, we already now its surrealDB so it does have a provider config
-						const surrealDBMode = ctx.config.dbConnectors.find((c) => c.id === id)?.providerConfig;
 						if (!adapters[id]) {
 							const client = ctx.handles.surrealDB?.get(id)?.client;
 							if (!client) {
 								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
 							}
 							adapters[id] = {
-								db: surrealDBMode.linkMode === 'refs' ? 'surrealDBRefs' : 'surrealDB',
+								db: 'surrealDB',
 								client,
 								rawBql: [],
 								bqlQueries: [],
@@ -136,9 +133,7 @@ export const queryMachine = createMachine(
 					if (a.db === 'surrealDB') {
 						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
 					}
-					if (a.db === 'surrealDBRefs') {
-						return runSurrealDbComputedReferencesQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
-					}
+
 					throw new Error(`Unsupported DB "${a.db}"`);
 				});
 				const results = await Promise.all(proms);
