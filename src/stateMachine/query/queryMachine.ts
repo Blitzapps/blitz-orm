@@ -86,6 +86,7 @@ export const queryMachine = createMachine(
 					const raw = ctx.bql.raw[i];
 					const thing = getSchemaByThing(ctx.schema, q.$thing);
 					const { id } = thing.defaultDBConnector;
+
 					if (thing.db === 'typeDB') {
 						if (!adapters[id]) {
 							const client = ctx.handles.typeDB?.get(id)?.client;
@@ -128,7 +129,12 @@ export const queryMachine = createMachine(
 						// TODO: Replace DBHandles with TypeDBAdapter
 						return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
 					}
-					return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+
+					if (a.db === 'surrealDB') {
+						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+					}
+
+					throw new Error(`Unsupported DB "${a.db}"`);
 				});
 				const results = await Promise.all(proms);
 				const orderedResults = adapterList.flatMap((a, i) => {

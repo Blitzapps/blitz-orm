@@ -280,7 +280,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(res['user-tags']).toHaveLength(expectedRes['user-tags'].length);
 	});
 
-	bench('TODO:opt2[options, debugger', async () => {
+	bench('TODO{TS}:opt2[options, debugger', async () => {
 		const query = { $entity: 'User', $id: 'user1' };
 		const expectedRes = {
 			'$id': 'user1',
@@ -636,7 +636,13 @@ export const allBench = createTest('Bench', (ctx) => {
 				'id': 'blue',
 				'group': 'utg-2',
 				'user-tags': ['tag-3'],
-			}, // group 1's color
+			},
+			{
+				$id: 'red',
+				$thing: 'Color',
+				$thingType: 'entity',
+				id: 'red',
+			},
 			{
 				'$id': 'yellow',
 				'$thing': 'Color',
@@ -895,6 +901,7 @@ export const allBench = createTest('Bench', (ctx) => {
 			},
 		};
 		const res = await ctx.query(query);
+		//console.log('res', res);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -1426,7 +1433,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		]);
 	});
 
-	bench('TODO:nf2a[nested, $filters] Nested filter for array of ids', async () => {
+	bench('TODO{TS}:nf2a[nested, $filters] Nested filter for array of ids', async () => {
 		expect(true).toEqual(false);
 	});
 
@@ -1468,8 +1475,8 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect(deepSort(res, 'id')).toMatchObject([{ id: 'user1' }, { id: 'user5' }]);
 	});
 
-	bench('lf4[$filter] Filter by a link field with cardinality MANY', async () => {
-		//TODO: Enable in typeDB adapter
+	bench('TODO{T}:lf4[$filter, $or] Filter by a link field with cardinality MANY', async () => {
+		//!: FAILS IN TQL
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1530,7 +1537,8 @@ export const allBench = createTest('Bench', (ctx) => {
 		});
 	});
 
-	bench('slo3[$sort, $limit, $offset] with an empty attribute', async () => {
+	bench('TODO{S}:slo3[$sort, $limit, $offset] with an empty attribute', async () => {
+		//! fails in SURQL
 		const res = await ctx.query(
 			{
 				$entity: 'User',
@@ -1615,7 +1623,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		});
 	});
 
-	bench('TODO:re1[repeated] Query with repeated path, different nested ids', async () => {
+	bench('TODO{TS}:re1[repeated] Query with repeated path, different nested ids', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1643,7 +1651,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		});
 	});
 
-	bench('TODO:re2[repeated] Query with repeated path, different nested patterns', async () => {
+	bench('TODO{TS}:re2[repeated] Query with repeated path, different nested patterns', async () => {
 		const res = await ctx.query(
 			{
 				$entity: 'Space',
@@ -1722,6 +1730,7 @@ export const allBench = createTest('Bench', (ctx) => {
 							'group': 'utg-2',
 							'user-tags': ['tag-3'],
 							'isBlue': true,
+							'freeForAll': 'hey',
 						},
 					},
 					{
@@ -1764,6 +1773,7 @@ export const allBench = createTest('Bench', (ctx) => {
 						'id': 'blue',
 						'group': 'utg-2',
 						'user-tags': ['tag-3'],
+						'freeForAll': 'hey',
 					},
 				},
 				{
@@ -1882,7 +1892,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		]);
 	});
 
-	bench('TODO:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
+	bench('TODO{TS}:co3[computed], Computed virtual field depending on edge id, missing dependencies', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'totalUserTags'] },
 			{ noMetadata: true },
@@ -1900,142 +1910,175 @@ export const allBench = createTest('Bench', (ctx) => {
 		]);
 	});
 
+	bench('mv1[multiVal, query, ONE], get multiVal', async () => {
+		const res = await ctx.query({ $entity: 'Color', $fields: ['id', 'freeForAll'] }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				freeForAll: 'hey',
+			},
+			{
+				id: 'red',
+				freeForAll: 'yay',
+			},
+			{
+				id: 'yellow',
+				freeForAll: 7,
+			},
+		]);
+	});
+
+	bench('TODO{TS}:mv2[multiVal, query, ONE], filter by multiVal', async () => {
+		const res = await ctx.query(
+			{ $entity: 'Color', $filter: { freeForAll: 'hey' }, $fields: ['id', 'freeForAll'] },
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'blue',
+				freeForAll: 'hey',
+			},
+		]);
+	});
+
 	/*
-  bench('[entity,nested, filter] - $filter on children property', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      // this adds: $filterByAccounts isa account, has Account·provider 'github'; $filterRel (account: $filterByAccounts , user: $users) isa User-Accounts;
-      $filter: { account: { provider: { $eq: 'github' } } }, // $ is always commands, by default is $eq
-      $fields: ['name'],
-    });
-    expect(res).toEqual({
-      $entity: 'User',
-      $id: 'user1',
-      name: 'Antoine',
-    });
-  });
-  bench('[entity,nested,filter] - Simplified filter', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { account: { provider: 'github' } }, // by default is $eq
-      $fields: ['name'],
-    });
-    expect(res).toEqual([
-      {
-        $entity: 'User',
-        $id: 'user1',
-        name: 'Antoine',
-      },
-    ]);
-  });
-  bench('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includes: '@antoine' } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    // when we have no way to know if the answer will be unique or not, we provide an array
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post1', id: 'post1' },
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-    ]);
-  });
-  bench('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includesAll: ['@Antoine', '@Loic'] } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-      { $entity: 'post', $id: 'post3', id: 'post3' },
-    ]);
-  });
-  bench('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $includesAny: ['@Antoine', '@Loic'] } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'post', $id: 'post1', id: 'post1' },
-      { $entity: 'post', $id: 'post2', id: 'post2' },
-      { $entity: 'post', $id: 'post3', id: 'post3' },
-    ]);
-  });
-  bench('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { name: { $includesAny: ['x', 'y'] } },
-    });
-    expect(res).toThrow(TypeError);
-  });
-  bench('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { name: { $includesAll: ['x', 'y'] } },
-    });
-    expect(res).toThrow(TypeError);
-  });
-  // OPERATORS: NOT
-  bench('[entity,filter,not] - filter by field', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: { $not: { id: 'user1' } },
-      $fields: ['id'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'User', $id: 'user2', id: 'user2' },
-      { $entity: 'User', $id: 'user2', id: 'user3' },
-    ]);
-  });
-  bench('[entity,filter,not,array,includes] filter item cardinality many', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'post',
-      $filter: { mentions: { $not: { $includes: '@Antoine' } } },
-      $fields: ['id'],
-    });
-    expect(res).toEqual([{ $entity: 'post', $id: 'post3', id: 'post3' }]); // this is an array because we can't be sure before querying that is a single element
-  });
-  // OPERATORS: OR
-  // typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
-  bench('[entity,OR] or filter two different fields', async () => {
-    expect(bormClient).toBeDefined();
-    const res = await bormClient.query({
-      $entity: 'User',
-      $filter: [{ name: 'Loic' }, { email: 'antoine@test.com' }], // this is equivalent to $filter: {$or: [..]}
-      $fields: ['name'],
-    });
-    expect(res).toBeDefined();
-    expect(res).not.toBeInstanceOf(String);
-    
-    expect(deepSort(res)).toEqual([
-      { $entity: 'User', $id: 'user1', name: 'Antoine' },
-      { $entity: 'User', $id: 'user2', name: 'Loic' },
-    ]);
-  });
-  */
+		bench('[entity,nested, filter] - $filter on children property', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				// this adds: $filterByAccounts isa account, has Account·provider 'github'; $filterRel (account: $filterByAccounts , user: $users) isa User-Accounts;
+				$filter: { account: { provider: { $eq: 'github' } } }, // $ is always commands, by default is $eq
+				$fields: ['name'],
+			});
+			expect(res).toEqual({
+				$entity: 'User',
+				$id: 'user1',
+				name: 'Antoine',
+			});
+		});
+		bench('[entity,nested,filter] - Simplified filter', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { account: { provider: 'github' } }, // by default is $eq
+				$fields: ['name'],
+			});
+			expect(res).toEqual([
+				{
+					$entity: 'User',
+					$id: 'user1',
+					name: 'Antoine',
+				},
+			]);
+		});
+		bench('[entity,array,includes] - filter by field of cardinality many, type text: includes one ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includes: '@antoine' } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			// when we have no way to know if the answer will be unique or not, we provide an array
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post1', id: 'post1' },
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+			]);
+		});
+		bench('[entity,array,includesAll] - filter by field of cardinality many, type text: includes all ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includesAll: ['@Antoine', '@Loic'] } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+				{ $entity: 'post', $id: 'post3', id: 'post3' },
+			]);
+		});
+		bench('[entity,array,includesAny] filter by field of cardinality many, type text: includes any ', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $includesAny: ['@Antoine', '@Loic'] } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'post', $id: 'post1', id: 'post1' },
+				{ $entity: 'post', $id: 'post2', id: 'post2' },
+				{ $entity: 'post', $id: 'post3', id: 'post3' },
+			]);
+		});
+		bench('[entity,includesAny,error] using array filter includesAny on cardinality=ONE error', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { name: { $includesAny: ['x', 'y'] } },
+			});
+			expect(res).toThrow(TypeError);
+		});
+		bench('[entity,includesAll, error] using array filter includesAll on cardinality=ONE error', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { name: { $includesAll: ['x', 'y'] } },
+			});
+			expect(res).toThrow(TypeError);
+		});
+		// OPERATORS: NOT
+		bench('[entity,filter,not] - filter by field', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: { $not: { id: 'user1' } },
+				$fields: ['id'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'User', $id: 'user2', id: 'user2' },
+				{ $entity: 'User', $id: 'user2', id: 'user3' },
+			]);
+		});
+		bench('[entity,filter,not,array,includes] filter item cardinality many', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'post',
+				$filter: { mentions: { $not: { $includes: '@Antoine' } } },
+				$fields: ['id'],
+			});
+			expect(res).toEqual([{ $entity: 'post', $id: 'post3', id: 'post3' }]); // this is an array because we can't be sure before querying that is a single element
+		});
+		// OPERATORS: OR
+		// typeDB: https://docs.vaticle.com/docs/query/match-clause#disjunction-of-patterns. When is the same
+		bench('[entity,OR] or filter two different fields', async () => {
+			expect(bormClient).toBeDefined();
+			const res = await bormClient.query({
+				$entity: 'User',
+				$filter: [{ name: 'Loic' }, { email: 'antoine@test.com' }], // this is equivalent to $filter: {$or: [..]}
+				$fields: ['name'],
+			});
+			expect(res).toBeDefined();
+			expect(res).not.toBeInstanceOf(String);
+			
+			expect(deepSort(res)).toEqual([
+				{ $entity: 'User', $id: 'user1', name: 'Antoine' },
+				{ $entity: 'User', $id: 'user2', name: 'Loic' },
+			]);
+		});
+		*/
 
 	// NESTED
 
@@ -2140,7 +2183,7 @@ export const allBench = createTest('Bench', (ctx) => {
 		expect((entity as any).profile).toBeUndefined();
 	});
 
-	bench('TODO:bq2[batched query with $as] - as for attributes and roles and links', async () => {
+	bench('TODO{TS}:bq2[batched query with $as] - as for attributes and roles and links', async () => {
 		const expectedRes = {
 			users: {
 				id: 'user1',
@@ -2170,5 +2213,542 @@ export const allBench = createTest('Bench', (ctx) => {
 
 		expect(res).toBeDefined();
 		expect(res).toEqual(expectedRes);
+	});
+
+	bench('dn1[deep nested] ridiculously deep nested query', async () => {
+		const res = await ctx.query({
+			$entity: 'Color',
+			$fields: [
+				'id',
+				{
+					$path: 'user-tags',
+					$fields: [
+						'id',
+						{
+							$path: 'users',
+							$fields: [
+								'id',
+								{
+									$path: 'spaces',
+									$fields: ['id', { $path: 'users', $fields: ['id', { $path: 'accounts', $fields: ['id'] }] }],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				'$id': 'blue',
+				'$thing': 'Color',
+				'$thingType': 'entity',
+				'id': 'blue',
+				'user-tags': [
+					{
+						$id: 'tag-3',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-3',
+						users: [
+							{
+								$id: 'user2',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user2',
+								spaces: [
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+			{
+				$id: 'red',
+				$thing: 'Color',
+				$thingType: 'entity',
+				id: 'red',
+			},
+			{
+				'$id': 'yellow',
+				'$thing': 'Color',
+				'$thingType': 'entity',
+				'id': 'yellow',
+				'user-tags': [
+					{
+						$id: 'tag-1',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-1',
+						users: [
+							{
+								$id: 'user1',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user1',
+								spaces: [
+									{
+										$id: 'space-1',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-1',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user5',
+												$thing: 'User',
+												$thingType: 'entity',
+												id: 'user5',
+											},
+										],
+									},
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+					{
+						$id: 'tag-2',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-2',
+						users: [
+							{
+								$id: 'user1',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user1',
+								spaces: [
+									{
+										$id: 'space-1',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-1',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user5',
+												$thing: 'User',
+												$thingType: 'entity',
+												id: 'user5',
+											},
+										],
+									},
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+							{
+								$id: 'user3',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user3',
+								spaces: [
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		]);
+	});
+
+	bench('dn2[deep numbers] Big numbers', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f', 'Employee 187f', 'Employee 1272f', 'Employee 9997f'] } },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '127f',
+			},
+			{
+				id: '18f',
+			},
+			{
+				id: '7f',
+			},
+			{
+				id: '999f',
+			},
+		]);
+	});
+
+	bench('dn3[deep numbers] Big numbers nested', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f'] } },
+				$fields: ['id', { $path: 'employees' }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '7f',
+				employees: [
+					{
+						company: '7f',
+						id: '70f',
+						name: 'Employee 70f',
+					},
+					{
+						company: '7f',
+						id: '71f',
+						name: 'Employee 71f',
+					},
+					{
+						company: '7f',
+						id: '72f',
+						name: 'Employee 72f',
+					},
+					{
+						company: '7f',
+						id: '73f',
+						name: 'Employee 73f',
+					},
+					{
+						company: '7f',
+						id: '74f',
+						name: 'Employee 74f',
+					},
+					{
+						company: '7f',
+						id: '75f',
+						name: 'Employee 75f',
+					},
+					{
+						company: '7f',
+						id: '76f',
+						name: 'Employee 76f',
+					},
+					{
+						company: '7f',
+						id: '77f',
+						name: 'Employee 77f',
+					},
+					{
+						company: '7f',
+						id: '78f',
+						name: 'Employee 78f',
+					},
+					{
+						company: '7f',
+						id: '79f',
+						name: 'Employee 79f',
+					},
+				],
+			},
+		]);
 	});
 });

@@ -901,6 +901,7 @@ export const testQuery = createTest('Query', (ctx) => {
 			},
 		};
 		const res = await ctx.query(query);
+		//console.log('res', res);
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -2212,5 +2213,542 @@ export const testQuery = createTest('Query', (ctx) => {
 
 		expect(res).toBeDefined();
 		expect(res).toEqual(expectedRes);
+	});
+
+	it('dn1[deep nested] ridiculously deep nested query', async () => {
+		const res = await ctx.query({
+			$entity: 'Color',
+			$fields: [
+				'id',
+				{
+					$path: 'user-tags',
+					$fields: [
+						'id',
+						{
+							$path: 'users',
+							$fields: [
+								'id',
+								{
+									$path: 'spaces',
+									$fields: ['id', { $path: 'users', $fields: ['id', { $path: 'accounts', $fields: ['id'] }] }],
+								},
+							],
+						},
+					],
+				},
+			],
+		});
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				'$id': 'blue',
+				'$thing': 'Color',
+				'$thingType': 'entity',
+				'id': 'blue',
+				'user-tags': [
+					{
+						$id: 'tag-3',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-3',
+						users: [
+							{
+								$id: 'user2',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user2',
+								spaces: [
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+			{
+				$id: 'red',
+				$thing: 'Color',
+				$thingType: 'entity',
+				id: 'red',
+			},
+			{
+				'$id': 'yellow',
+				'$thing': 'Color',
+				'$thingType': 'entity',
+				'id': 'yellow',
+				'user-tags': [
+					{
+						$id: 'tag-1',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-1',
+						users: [
+							{
+								$id: 'user1',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user1',
+								spaces: [
+									{
+										$id: 'space-1',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-1',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user5',
+												$thing: 'User',
+												$thingType: 'entity',
+												id: 'user5',
+											},
+										],
+									},
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+					{
+						$id: 'tag-2',
+						$thing: 'UserTag',
+						$thingType: 'relation',
+						id: 'tag-2',
+						users: [
+							{
+								$id: 'user1',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user1',
+								spaces: [
+									{
+										$id: 'space-1',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-1',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user5',
+												$thing: 'User',
+												$thingType: 'entity',
+												id: 'user5',
+											},
+										],
+									},
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+							{
+								$id: 'user3',
+								$thing: 'User',
+								$thingType: 'entity',
+								id: 'user3',
+								spaces: [
+									{
+										$id: 'space-2',
+										$thing: 'Space',
+										$thingType: 'entity',
+										id: 'space-2',
+										users: [
+											{
+												$id: 'user1',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account1-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-1',
+													},
+													{
+														$id: 'account1-2',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-2',
+													},
+													{
+														$id: 'account1-3',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account1-3',
+													},
+												],
+												id: 'user1',
+											},
+											{
+												$id: 'user2',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account2-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account2-1',
+													},
+												],
+												id: 'user2',
+											},
+											{
+												$id: 'user3',
+												$thing: 'User',
+												$thingType: 'entity',
+												accounts: [
+													{
+														$id: 'account3-1',
+														$thing: 'Account',
+														$thingType: 'entity',
+														id: 'account3-1',
+													},
+												],
+												id: 'user3',
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		]);
+	});
+
+	it('TODO{T}:dn2[deep numbers] Big numbers', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f', 'Employee 187f', 'Employee 1272f', 'Employee 9997f'] } },
+				$fields: ['id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '127f',
+			},
+			{
+				id: '18f',
+			},
+			{
+				id: '7f',
+			},
+			{
+				id: '999f',
+			},
+		]);
+	});
+
+	it('TODO{T}:dn3[deep numbers] Big numbers nested', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'Company',
+				//@ts-expect-error - todo
+				$filter: { employees: { name: ['Employee 78f'] } },
+				$fields: ['id', { $path: 'employees' }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toBeDefined();
+		expect(res).not.toBeInstanceOf(String);
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: '7f',
+				employees: [
+					{
+						company: '7f',
+						id: '70f',
+						name: 'Employee 70f',
+					},
+					{
+						company: '7f',
+						id: '71f',
+						name: 'Employee 71f',
+					},
+					{
+						company: '7f',
+						id: '72f',
+						name: 'Employee 72f',
+					},
+					{
+						company: '7f',
+						id: '73f',
+						name: 'Employee 73f',
+					},
+					{
+						company: '7f',
+						id: '74f',
+						name: 'Employee 74f',
+					},
+					{
+						company: '7f',
+						id: '75f',
+						name: 'Employee 75f',
+					},
+					{
+						company: '7f',
+						id: '76f',
+						name: 'Employee 76f',
+					},
+					{
+						company: '7f',
+						id: '77f',
+						name: 'Employee 77f',
+					},
+					{
+						company: '7f',
+						id: '78f',
+						name: 'Employee 78f',
+					},
+					{
+						company: '7f',
+						id: '79f',
+						name: 'Employee 79f',
+					},
+				],
+			},
+		]);
 	});
 });

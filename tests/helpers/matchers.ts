@@ -5,25 +5,7 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { expect } from 'vitest';
 
-const getCommonKey = (obj1: Record<string, any>, obj2: Record<string, any>): string | undefined => {
-	const keys1 = Object.keys(obj1);
-	const keys2 = Object.keys(obj2);
-	const commonKeys = keys1.filter((key) => keys2.includes(key));
-
-	const commonKeysWithStringOrNumber = commonKeys
-		.find((key) => typeof obj1[key] === 'string' || typeof obj1[key] === 'number')
-		?.toString();
-	if (commonKeysWithStringOrNumber) {
-		return commonKeysWithStringOrNumber;
-	}
-	// todo: skip and filter by children keys?
-	if (commonKeys) {
-		throw new Error('Todo. Meanwhile get id of everything so you can sort by id(or other prop)');
-	}
-	return undefined;
-};
-
-export const deepSort = <T>(obj: T, key: string = "$id"): T => {
+export const deepSort = <T>(obj: T, key: string = '$id'): T => {
 	if (typeof obj !== 'object' || obj === null) {
 		return obj;
 	}

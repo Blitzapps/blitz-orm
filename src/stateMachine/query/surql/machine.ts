@@ -5,6 +5,8 @@ import { build } from './build';
 import { run } from './run';
 import { assertDefined } from '../../../helpers';
 import { parse } from './parse';
+import type { SurrealDBProviderObject } from '../../../types/config/surrealdb';
+import { buildRefs } from './buildRefs';
 
 export type SurrealDbMachineContext = {
 	bql: {
@@ -36,7 +38,18 @@ const surrealDbQueryMachine = createMachine(
 	'build',
 	{
 		build: invoke(
-			async (ctx: SurrealDbMachineContext) => build({ queries: ctx.bql.queries, schema: ctx.schema }),
+			async (ctx: SurrealDbMachineContext) => {
+				// todo: This works only if there is a single surrealDB connector
+				const { linkMode } = (
+					ctx.config.dbConnectors.find((c) => c.provider === 'surrealDB') as SurrealDBProviderObject
+				).providerConfig;
+				if (linkMode === 'edges') {
+					return build({ queries: ctx.bql.queries, schema: ctx.schema });
+				}
+				if (linkMode === 'refs') {
+					return buildRefs({ queries: ctx.bql.queries, schema: ctx.schema });
+				}
+			},
 			transition(
 				'done',
 				'run',

@@ -631,6 +631,20 @@ export const schema: BormSchema = {
 				{ ...timestamp, path: 'expires' },
 			],
 		},
+		Company: {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Company' },
+			dataFields: [{ ...id }, { path: 'name', contentType: 'TEXT' }, { path: 'industry', contentType: 'TEXT' }],
+			linkFields: [
+				{
+					path: 'employees',
+					plays: 'company',
+					cardinality: 'MANY',
+					relation: 'Employee',
+					target: 'relation',
+				},
+			],
+		},
 	},
 	relations: {
 		'ThingRelation': {
@@ -1069,6 +1083,14 @@ export const schema: BormSchema = {
 						],
 					},
 				],
+			},
+		},
+		'Employee': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Employee' },
+			dataFields: [{ ...id }, { ...name }],
+			roles: {
+				company: { cardinality: 'ONE' },
 			},
 		},
 	},

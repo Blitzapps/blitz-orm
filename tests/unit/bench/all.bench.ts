@@ -1,4 +1,4 @@
+import { init } from '../../helpers/init';
 import { allBench } from '../../unit/bench/bench';
-import { init } from '../helpers/init';
 
 allBench(init);
