@@ -87,21 +87,7 @@ export const queryMachine = createMachine(
 					const thing = getSchemaByThing(ctx.schema, q.$thing);
 					const { id } = thing.defaultDBConnector;
 
-					if (thing.db === 'surrealDB') {
-						if (!adapters[id]) {
-							const client = ctx.handles.surrealDB?.get(id)?.client;
-							if (!client) {
-								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
-							}
-							adapters[id] = {
-								db: 'surrealDB',
-								client,
-								rawBql: [],
-								bqlQueries: [],
-								indices: [],
-							};
-						}
-					} else if (thing.db === 'typeDB') {
+					if (thing.db === 'typeDB') {
 						if (!adapters[id]) {
 							const client = ctx.handles.typeDB?.get(id)?.client;
 							if (!client) {
@@ -109,6 +95,20 @@ export const queryMachine = createMachine(
 							}
 							adapters[id] = {
 								db: 'typeDB',
+								client,
+								rawBql: [],
+								bqlQueries: [],
+								indices: [],
+							};
+						}
+					} else if (thing.db === 'surrealDB') {
+						if (!adapters[id]) {
+							const client = ctx.handles.surrealDB?.get(id)?.client;
+							if (!client) {
+								throw new Error(`SurrealDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+							}
+							adapters[id] = {
+								db: 'surrealDB',
 								client,
 								rawBql: [],
 								bqlQueries: [],
