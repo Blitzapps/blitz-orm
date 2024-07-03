@@ -6,7 +6,15 @@ import { EdgeType } from '../../../types/symbols';
 import { parseFlexVal } from '../../../adapters/typeDB/parseFlexVal';
 import { nanoid } from 'nanoid';
 
-export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
+export const buildTQLMutation = async (things: any[], edges: any[], schema: EnrichedBormSchema) => {
+	if ((!things && !edges) || (!things.length && !edges.length)) {
+		throw new Error('TQL request error, no things');
+	}
+
+	if (!schema) {
+		throw new Error('No schema provided');
+	}
+
 	// todo: Split attributes and edges
 	const nodeToTypeQL = (
 		node: EnrichedBQLMutationBlock,
