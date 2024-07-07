@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.26
+
+- Fix: Can now link and update in different branches
+
 ## 0.10.25
 
 - Feat: SurrealDB with stored references (refs) vs edges

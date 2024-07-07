@@ -438,6 +438,17 @@ export const parseBQLMutation = async (
 		if (acc[existingIndex].$op === 'update' && thing.$op === 'update') {
 			return [...acc.slice(0, existingIndex), { ...acc[existingIndex], ...thing }, ...acc.slice(existingIndex + 1)];
 		}
+		//if one is update and the other is merge, same, we merge them and keep it as update.
+		if (
+			(acc[existingIndex].$op === 'update' && thing.$op === 'match') ||
+			(acc[existingIndex].$op === 'match' && thing.$op === 'update')
+		) {
+			return [
+				...acc.slice(0, existingIndex),
+				{ ...acc[existingIndex], ...thing, $op: 'update' },
+				...acc.slice(existingIndex + 1),
+			];
+		}
 		// For all other cases, throw an error
 		throw new Error(
 			`[Wrong format] Wrong operation combination for $tempId/$id "${thing.$tempId || thing.$id}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
