@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.28
+
+- Fix: Defining multiple players for a role still does not work, but at least does not cause errors when you don't use that specific role
+
 ## 0.10.27
 
 - Fix: Can now have coincidences on deletions (same node being deleted twice)
@@ -51,11 +55,11 @@
 - Test: Added benchmark
 - Fix: TypeDB errors being printed again
 - Feat: SurrealDB queries
--> Multiple refactoring to keep shared vs TQL vs SURQL
--> Fix false values, fix workaround for reserved id field, Fix defined table names
--> Virtual values onRead (futures) in schema, JSON values in schema
--> Deeply nested filters, on local and remote fields
--> NOT, OR, AND filters
+  -> Multiple refactoring to keep shared vs TQL vs SURQL
+  -> Fix false values, fix workaround for reserved id field, Fix defined table names
+  -> Virtual values onRead (futures) in schema, JSON values in schema
+  -> Deeply nested filters, on local and remote fields
+  -> NOT, OR, AND filters
 
 ## 0.10.12(2024-05-23)
 

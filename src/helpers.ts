@@ -394,7 +394,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				// if (value.playedBy.length > 1) {
 				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
 				if (playedBySet.length > 1) {
-					throw new Error(
+					console.warn(
 						`[Schema] roleFields can be only played by one thing. Role: ${key}, path:${meta.nodePath}, played by: ${playedBySet.join(', ')}`,
 					);
 				}
