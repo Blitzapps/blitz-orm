@@ -134,7 +134,7 @@ export const queryMachine = createMachine(
 						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
 					}
 
-					throw new Error(`Unsupported DB "${a.db}"`);
+					throw new Error('Unsupported DB provider');
 				});
 				const results = await Promise.all(proms);
 				const orderedResults = adapterList.flatMap((a, i) => {

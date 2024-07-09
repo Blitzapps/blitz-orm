@@ -449,6 +449,16 @@ export const parseBQLMutation = async (
 				...acc.slice(existingIndex + 1),
 			];
 		}
+		//if both are deletions, is fine as long as they have the same $filter
+		if (acc[existingIndex].$op === 'delete' && thing.$op === 'delete') {
+			if (JSON.stringify(acc[existingIndex].$filter) === JSON.stringify(thing.$filter)) {
+				return acc;
+			} else {
+				throw new Error(
+					`[Wrong format] Can't delete the same thing with different filters. Existing: ${acc[existingIndex].$filter}. Current: ${thing.$filter}`,
+				);
+			}
+		}
 		// For all other cases, throw an error
 		throw new Error(
 			`[Wrong format] Wrong operation combination for $tempId/$id "${thing.$tempId || thing.$id}". Existing: ${acc[existingIndex].$op}. Current: ${thing.$op}`,
