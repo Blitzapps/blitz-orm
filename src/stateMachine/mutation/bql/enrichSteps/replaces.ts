@@ -1,7 +1,8 @@
+/* eslint-disable no-param-reassign */
 import { isArray } from 'radash';
 import type { BQLMutationBlock, EnrichedLinkField, EnrichedRoleField } from '../../../../types';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
-import { v4 as uuidv4 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 export const replaceToObj = (
 	node: BQLMutationBlock,
@@ -24,18 +25,45 @@ export const replaceToObj = (
 		const $thingType = player.thingType;
 
 		//todo _: tempId included in the array, or as a single one of them
-		if (subNodes.some((child: unknown) => (child as string).startsWith('_:'))) {
-			throw new Error('[Not supported] At least one child of a replace is a tempId');
-		}
 
-		// eslint-disable-next-line no-param-reassign
-		node[field] = {
-			$id: node[field],
+		const base = {
 			$op,
 			$thing,
 			$thingType,
-			$bzId: `S_${uuidv4()}`,
 		};
+
+		const tempIds = subNodes.filter((child: string) => child.startsWith('_:'));
+		const nonTempIds = subNodes.filter((child: string) => !child.startsWith('_:'));
+
+		if (tempIds.length && !nonTempIds.length) {
+			//only $tempIds
+			node[field] = tempIds.map((tempId: string) => ({
+				...base,
+				$tempId: tempId,
+				$bzId: tempId,
+			}));
+		} else if (tempIds.length && nonTempIds.length) {
+			//both
+			node[field] = [
+				...tempIds.map((tempId: string) => ({
+					...base,
+					$tempId: tempId,
+					$bzId: tempId,
+				})),
+				{
+					...base,
+					$id: nonTempIds,
+					$bzId: `S_${nanoid()}`,
+				},
+			];
+		} else {
+			//only $ids
+			node[field] = {
+				...base,
+				$id: node[field],
+				$bzId: `S_${nanoid()}`,
+			};
+		}
 	} else {
 		throw new Error(
 			`[Mutation Error] Replace can only be used with a single id or an array of ids. (Field: ${field} Nodes: ${JSON.stringify(subNodes)} Parent: ${JSON.stringify(node, null, 2)})`,

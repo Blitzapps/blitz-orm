@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.29
+
+- Feat: Can use tempIds directly just by prefixing them with '_:'. Ex: {$thing: User, accounts: [ "account1", "\_:justCreatedSpace"]}
+
 ## 0.10.28
 
 - Fix: Defining multiple players for a role still does not work, but at least does not cause errors when you don't use that specific role
