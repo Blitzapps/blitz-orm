@@ -355,8 +355,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 							//If after the filters, we still have 2, then the schema is wrong
 							if (linkField.oppositeLinkFieldsPlayedBy.length > 1) {
-								throw new Error(
-									`Not supported: LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
+								//temp: lets just warn and add an error only if actually used
+								console.warn(
+									`[Schema] LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
 								);
 							}
 							// #endregion

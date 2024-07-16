@@ -76,6 +76,9 @@ const tField = (
 	if (thing.thingType === 'relation') {
 		const role = thing.roles[key];
 		// Assume a role can be played by only one thing.
+		if (!role) {
+			throw new Error(`[Schema] Role ${key} in ${thing.name} is not defined`);
+		}
 		const [oppositeThing] = role.playedBy || [];
 		if (!oppositeThing) {
 			throw new Error(`Role ${role.path} in ${thing} is not played by anything`);

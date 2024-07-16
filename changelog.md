@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.10.30
+
+- Fix: Using a non existing role name on queries throws a proper error now
+
 ## 0.10.29
 
 - Feat: Can use tempIds directly just by prefixing them with '_:'. Ex: {$thing: User, accounts: [ "account1", "\_:justCreatedSpace"]}

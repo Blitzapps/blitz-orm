@@ -407,6 +407,7 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
+	//console.log('parsedStuff', parsedThings, parsedEdges);
 
 	//console.log('parsedThings', parsedThings);
 	/// some cases where we extract things, they must be ignored.
