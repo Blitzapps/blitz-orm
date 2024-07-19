@@ -17,14 +17,15 @@ export const buildSURQLMutation = async (
 ) => {
 	console.log('START', enriched);
 
-	const buildMutations = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[]) => {
+	const buildMutations = (blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[], level: number) => {
 		if (Array.isArray(blocks)) {
-			return `[${blocks.map(buildMutation)}]`;
+			return `[${blocks.map((block) => buildMutation(block, level))}]`;
 		}
-		return buildMutation(blocks);
+		return buildMutation(blocks, level);
 	};
-	const buildMutation = (block: EnrichedBQLMutationBlock): string => {
+	const buildMutation = (block: EnrichedBQLMutationBlock, level: number = 0): string => {
 		console.log('CURRENT_BLOCK', block);
+		const nextLevel = level + 1;
 
 		if (block.$op === 'link') {
 			return `${block.$id}`;
@@ -33,7 +34,7 @@ export const buildSURQLMutation = async (
 		const currentSchema = getSchemaByThing(schema, block.$thing);
 		const { idFields } = currentSchema;
 
-		console.log('idfields', idFields[0]);
+		//console.log('idfields', idFields[0]);
 		const idValue = block.$id || block[idFields[0]];
 		const meta = oFilter(block, (k: string) => k.startsWith('$'));
 		const rest = oFilter(block, (k: string) => !k.startsWith('$'));
@@ -46,7 +47,7 @@ export const buildSURQLMutation = async (
 
 		const tableName = prepareTableNameSurrealDB(block.$thing);
 		const op = opMap[block.$op];
-		const $var = `$⟨${block.$bzId}⟩`;
+		const $var = `$${block.$bzId}`;
 
 		if (['create', 'update'].includes(block.$op)) {
 			const { usedLinkFields, usedRoleFields, usedDataFields } = getCurrentFields(currentSchema, block);
@@ -88,7 +89,7 @@ export const buildSURQLMutation = async (
 						[oppositeLinkFieldsPlayedBy[0].plays]: block[lf],
 					};
 
-					const nested = buildMutations(intermediaryBlock);
+					const nested = buildMutations(intermediaryBlock, nextLevel);
 					return [`I_${lf} = ${nested}`, `I_${lf} = NONE`];
 				}
 				return `${lf} = ${block[lf]}`;
@@ -101,27 +102,19 @@ export const buildSURQLMutation = async (
 							if (!roleFieldSchema) {
 								throw new Error(`Role field schema not found for ${rf}`);
 							}
-							const nested = buildMutations(block[rf]);
+							const nested = buildMutations(block[rf], nextLevel);
 							return `${rf} = ${nested}`;
 						})
 					: [];
 
 			const fields = [...dataFields, ...linkFields, ...roleFields];
-			const fieldsString = fields.length ? `SET ${fields.join(',\n    ')}` : '';
+			const fieldsString = fields.length ? `SET ${fields.join(', ')}` : '';
 
-			return `{
-				LET ${$var} = ${op} ONLY ${tableName}:⟨${idValue}⟩\n${fieldsString}\nRETURN {${restString}} as input, $before as before, $after as after, {${metaString},'$id': meta::id(id),'id': meta::id(id)} as meta, id as sid;
-				CREATE ONLY Delta SET bzId = ⟨${block.$bzId}⟩, result = ${$var};
-				RETURN ${$var}.sid;
-				}` as string;
+			return `{ LET ${$var} = ${op} ONLY ${tableName}:⟨${idValue}⟩ ${fieldsString} RETURN {${restString}} as input, $before as before, $after as after, {${metaString},'$id': meta::id(id),'id': meta::id(id)} as meta, id as sid; CREATE ONLY Delta SET bzId = ⟨${block.$bzId}⟩, result = ${$var}; ${level !== 0 ? `RETURN ${$var}.sid` : ''};	}` as string;
 		}
 
 		if (block.$op === 'delete') {
-			return `{ 
-				LET ${$var} = SELECT {${restString}} as input, $this as before, {${metaString},'$id': meta::id(id),'id': meta::id(id)} as meta, id as sid FROM ONLY ${tableName}:⟨${idValue}⟩;
-				IF ${$var} THEN {DELETE ${$var}.sid; CREATE ONLY Delta SET bzId = ⟨${block.$bzId}⟩, result = ${$var};} END;
-				RETURN ${$var}.sid;
-		}` as string;
+			return `{ LET ${$var} = SELECT {${restString}} as input, $this as before, {${metaString},'$id': meta::id(id),'id': meta::id(id)} as meta, id as sid FROM ONLY ${tableName}:⟨${idValue}⟩; IF ${$var} THEN {DELETE ${$var}.sid; CREATE ONLY Delta SET bzId = ⟨${block.$bzId}⟩, result = ${$var};} END; ${level !== 0 ? `RETURN ${$var}.sid` : ''};	}` as string;
 		}
 	};
 

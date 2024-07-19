@@ -46,10 +46,10 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 
 	if (query.$id) {
 		if (typeof query.$id === 'string') {
-			lines.push(`FROM ${allTypesNormed.map((t) => `${t}:\`${query.$id}\``).join(',')}`);
+			lines.push(`FROM ${allTypesNormed.map((t) => `${t}:⟨${query.$id}⟩`).join(',')}`);
 		} else if (isArray(query.$id)) {
 			const $ids = query.$id;
-			const allCombinations = allTypesNormed.flatMap((t) => $ids?.map((id) => `${t}:\`${id}\``));
+			const allCombinations = allTypesNormed.flatMap((t) => $ids?.map((id) => `${t}:⟨${id}⟩`));
 			lines.push(`FROM ${allCombinations.join(',')}`);
 			//throw new Error('Multiple ids not supported');
 		} else {

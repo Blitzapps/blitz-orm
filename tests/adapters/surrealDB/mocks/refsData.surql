@@ -131,14 +131,12 @@ LET $companies = (
 );
 
  FOR $company IN $companies {
-   LET $compId = CREATE ONLY Company CONTENT {
-        id: type::string($company),d: $company,
+   LET $compId = CREATE ONLY type::thing('Company',type::string($company) ) CONTENT {
         name: string::concat('Company ', type::string($company)),
         industry: rand::enum(['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'])
     };
     FOR $employee IN [0,1,2,3,4,5,6,7,8,9] {
-        CREATE Employee CONTENT {
-					  id:  type::string(($company * 10) + $employee),
+        CREATE type::thing('Employee',type::string(($company * 10) + $employee))  CONTENT {
             name: string::concat('Employee ',  type::string(($company * 10) + $employee)),
             company: $compId.id
         }

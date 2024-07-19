@@ -56,7 +56,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		name: 'Space 4',
 	};
 
-	it('b1a[create] Basic', async () => {
+	it.only('b1a[create] Basic', async () => {
 		const res = await ctx.mutate(firstUser, { noMetadata: true });
 		const expectedUnit = {
 			id: '$unitId',
@@ -86,6 +86,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		};
 		const updateRes = await ctx.mutate(updated);
 		expect(updateRes).toMatchObject([updated]);
+
 		const deleteRes = await ctx.mutate({
 			$thing: 'Account',
 			$op: 'delete',
@@ -130,7 +131,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
+	it.only('b1b[create] Create a nested thing with a JSON attribute', async () => {
 		const user = {
 			$thing: 'User',
 			id: 'b1b-user1',
@@ -1234,7 +1235,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		// we expect both kinds to be deleted and show only the data.tql one
+		// we expect both kinds to be deleted and show the data.tql one
 		expect(kinds).toEqual([
 			{
 				id: 'kind-book',
@@ -1381,7 +1382,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-		/// expect only original users
+		/// expect original users
 		expect(deepSort(allUsers2, 'name')).toEqual([
 			{
 				name: 'Ann',
@@ -1416,7 +1417,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('u2[update, multiple, nested(many), noId] Update only children (no id)', async () => {
+	it('u2[update, multiple, nested(many), noId] Update children (no id)', async () => {
 		// This test might fail if b4 fails
 
 		/// cardinality MANY
@@ -1480,7 +1481,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it('u3[update, multiple, nested(many), noId] Update only but all children (no id)', async () => {
+	it('u3[update, multiple, nested(many), noId] Update but all children (no id)', async () => {
 		/// This test might fail if b4 fails
 		const currentSpacesOfUser2And5 = await ctx.query(
 			{

@@ -21,7 +21,7 @@ export const getSurrealLinkFieldQueryPath = ({
 		(withExtensionsSchema.relations[linkField.relation] as EnrichedBormRelation).subTypes || [];
 	const targetRelationThings = [linkField.relation, ...targetRelationSubTypes];
 
-	const pathToRelation = `<-\`${originalRelation}_${linkField.plays}\`<-(\`${targetRelationThings.join('`,`')}\`)`;
+	const pathToRelation = `<-⟨${originalRelation}_${linkField.plays}⟩<-(⟨${targetRelationThings.join('⟩,⟨')}⟩)`;
 
 	if (linkField.target === 'relation') {
 		if (linkMode === 'edges') {
@@ -42,7 +42,7 @@ export const getSurrealLinkFieldQueryPath = ({
 
 		const oppositeRoleThings = [targetRole.thing, ...targetRoleSubTypes];
 
-		const pathToTunneledRole = `->\`${originalRelation}_${targetRole.plays}\`->(\`${oppositeRoleThings.join('`,`')}\`)`;
+		const pathToTunneledRole = `->⟨${originalRelation}_${targetRole.plays}⟩->(⟨${oppositeRoleThings.join('⟩,⟨')}⟩)`;
 
 		if (linkMode === 'edges') {
 			return `${pathToRelation}${pathToTunneledRole}`;

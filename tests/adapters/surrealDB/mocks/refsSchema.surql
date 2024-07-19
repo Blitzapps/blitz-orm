@@ -1,6 +1,7 @@
 USE NS test;
 USE DB test;
 
+BEGIN TRANSACTION;
 -- ENITIES 
 	DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
 		--ATTRIBUTES
@@ -14,9 +15,9 @@ USE DB test;
 		DEFINE FIELD `user-tags` ON TABLE User TYPE option<array<record<UserTag>>>;
 
 		--SUPPORT FOR target:role	
-		DEFINE FIELD `user-accounts` ON TABLE User TYPE option<array<record<⟨`User-Accounts`⟩>>>;
-		DEFINE FIELD `user-sessions` ON TABLE User TYPE option<array<record<⟨`User-Sessions`⟩>>>;
-		DEFINE FIELD `space-user` ON TABLE User TYPE option<array<record<⟨`Space-User`⟩>>>;
+		DEFINE FIELD `user-accounts` ON TABLE User TYPE option<array<record<⟨User-Accounts⟩>>>;
+		DEFINE FIELD `user-sessions` ON TABLE User TYPE option<array<record<⟨User-Sessions⟩>>>;
+		DEFINE FIELD `space-user` ON TABLE User TYPE option<array<record<⟨Space-User⟩>>>;
 
 		-- there is no subtyping in SurrealDB, we need to duplicate the fields
 				DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL;
@@ -32,9 +33,9 @@ USE DB test;
 					DEFINE FIELD `user-tags` ON TABLE SuperUser TYPE option<array<record<UserTag>>>;
 
 					--SUPPORT FOR target:role	
-					DEFINE FIELD `user-accounts` ON TABLE SuperUser TYPE option<array<record<⟨`User-Accounts`⟩>>>;
-					DEFINE FIELD `user-sessions` ON TABLE SuperUser TYPE option<array<record<⟨`User-Sessions`⟩>>>;
-					DEFINE FIELD `space-user` ON TABLE SuperUser TYPE option<array<record<⟨`Space-User`⟩>>>;
+					DEFINE FIELD `user-accounts` ON TABLE SuperUser TYPE option<array<record<⟨User-Accounts⟩>>>;
+					DEFINE FIELD `user-sessions` ON TABLE SuperUser TYPE option<array<record<⟨User-Sessions⟩>>>;
+					DEFINE FIELD `space-user` ON TABLE SuperUser TYPE option<array<record<⟨Space-User⟩>>>;
 
 					-- there is no subtyping in SurrealDB, we need to duplicate the fields
 							DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL;
@@ -50,9 +51,9 @@ USE DB test;
 								DEFINE FIELD `user-tags` ON TABLE God TYPE option<array<record<UserTag>>>;
 
 								--SUPPORT FOR target:role	
-								DEFINE FIELD `user-accounts` ON TABLE God TYPE option<array<record<⟨`User-Accounts`⟩>>>;
-								DEFINE FIELD `user-sessions` ON TABLE God TYPE option<array<record<⟨`User-Sessions`⟩>>>;
-								DEFINE FIELD `space-user` ON TABLE God TYPE option<array<record<⟨`Space-User`⟩>>>;
+								DEFINE FIELD `user-accounts` ON TABLE God TYPE option<array<record<⟨User-Accounts⟩>>>;
+								DEFINE FIELD `user-sessions` ON TABLE God TYPE option<array<record<⟨User-Sessions⟩>>>;
+								DEFINE FIELD `space-user` ON TABLE God TYPE option<array<record<⟨Space-User⟩>>>;
 
 	DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
 		--ATTRIBUTES
@@ -68,7 +69,7 @@ USE DB test;
 		DEFINE FIELD selfs ON TABLE Space TYPE option<array<record<Self>>>;
 
 			--SUPPORT FOR target:role	
-		DEFINE FIELD `space-user` ON TABLE Space TYPE option<array<record<⟨`Space-User`⟩>>>;
+		DEFINE FIELD `space-user` ON TABLE Space TYPE option<array<record<⟨Space-User⟩>>>;
 
 	DEFINE TABLE Thing SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD stuff ON TABLE Thing TYPE string;
@@ -89,7 +90,7 @@ USE DB test;
 		DEFINE FIELD user ON TABLE Account VALUE <future> { RETURN SELECT VALUE `user-accounts`.user FROM ONLY $this }; 
 
 		--- SUPPORT
-		DEFINE FIELD `user-accounts` ON TABLE Account TYPE option<array<record<⟨`User-Accounts`⟩>>>;
+		DEFINE FIELD `user-accounts` ON TABLE Account TYPE option<array<record<⟨User-Accounts⟩>>>;
 
 
 	DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
@@ -129,9 +130,9 @@ USE DB test;
 		};
 
 -- RELATIONS
-	DEFINE TABLE ⟨`User-Accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD user ON TABLE ⟨`User-Accounts`⟩ TYPE record<User|God|SuperUser>;
-			DEFINE EVENT update_user ON TABLE ⟨`User-Accounts`⟩ WHEN $before.user != $after.user THEN {
+	DEFINE TABLE ⟨User-Accounts⟩ SCHEMAFULL PERMISSIONS FULL;
+		DEFINE FIELD user ON TABLE ⟨User-Accounts⟩ TYPE record<User|God|SuperUser>;
+			DEFINE EVENT update_user ON TABLE ⟨User-Accounts⟩ WHEN $before.user != $after.user THEN {
 
 						LET $edges = fn::get_mutated_edges($before.user, $after.user);
 
@@ -142,8 +143,8 @@ USE DB test;
 								UPDATE $link SET `user-accounts` += [$after.id]; // Todo: the right management for card one and many
 						};
 			};
-		DEFINE FIELD accounts ON TABLE ⟨`User-Accounts`⟩ TYPE array<record<Account>>;
-			DEFINE EVENT update_accounts ON TABLE ⟨`User-Accounts`⟩ WHEN $before.accounts != $after.accounts THEN {
+		DEFINE FIELD accounts ON TABLE ⟨User-Accounts⟩ TYPE array<record<Account>>;
+			DEFINE EVENT update_accounts ON TABLE ⟨User-Accounts⟩ WHEN $before.accounts != $after.accounts THEN {
 
 						LET $edges = fn::get_mutated_edges($before.accounts, $after.accounts);
 
@@ -155,13 +156,13 @@ USE DB test;
 						};
 			};
 		
-	DEFINE TABLE ⟨`User-Sessions`⟩ SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD user ON TABLE ⟨`User-Sessions`⟩ TYPE record<User|God|SuperUser>;
-		DEFINE FIELD sessions ON TABLE ⟨`User-Sessions`⟩ TYPE array<record<Session>>;
+	DEFINE TABLE ⟨User-Sessions⟩ SCHEMAFULL PERMISSIONS FULL;
+		DEFINE FIELD user ON TABLE ⟨User-Sessions⟩ TYPE record<User|God|SuperUser>;
+		DEFINE FIELD sessions ON TABLE ⟨User-Sessions⟩ TYPE array<record<Session>>;
 
-	DEFINE TABLE ⟨`Space-User`⟩ SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD spaces ON TABLE ⟨`Space-User`⟩ TYPE array<record<Space>>;
-				DEFINE EVENT update_space ON TABLE ⟨`Space-User`⟩ WHEN $before.spaces != $after.spaces THEN {
+	DEFINE TABLE ⟨Space-User⟩ SCHEMAFULL PERMISSIONS FULL;
+		DEFINE FIELD spaces ON TABLE ⟨Space-User⟩ TYPE array<record<Space>>;
+				DEFINE EVENT update_space ON TABLE ⟨Space-User⟩ WHEN $before.spaces != $after.spaces THEN {
 
 						LET $edges = fn::get_mutated_edges($before.spaces, $after.spaces);
 
@@ -172,8 +173,8 @@ USE DB test;
 								UPDATE $link SET `space-user` += [$after.id];
 						};
 				};
-		DEFINE FIELD users ON TABLE ⟨`Space-User`⟩ TYPE array<record<User|God|SuperUser>>;
-				DEFINE EVENT update_user ON TABLE ⟨`Space-User`⟩ WHEN $before.users != $after.users THEN {
+		DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE array<record<User|God|SuperUser>>;
+				DEFINE EVENT update_user ON TABLE ⟨Space-User⟩ WHEN $before.users != $after.users THEN {
 
 						LET $edges = fn::get_mutated_edges($before.users, $after.users);
 
@@ -184,7 +185,7 @@ USE DB test;
 								UPDATE $link SET `space-user` += [$after.id];
 						};
 				};
-		DEFINE FIELD power ON TABLE ⟨`Space-User`⟩ TYPE option<record<Power>>;
+		DEFINE FIELD power ON TABLE ⟨Space-User⟩ TYPE option<record<Power>>;
 
 	DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
@@ -366,3 +367,5 @@ USE DB test;
 					deletions: $unlinks
 			};
 	};
+
+COMMIT TRANSACTION;

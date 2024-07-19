@@ -5,6 +5,7 @@ import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify, mapEntries } from 'radash';
 import { SharedMetadata, SuqlMetadata } from './types/symbols';
+import { customAlphabet } from 'nanoid';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
@@ -805,4 +806,11 @@ export const indent = (line: string, depth: number) => {
 		_indent += '  ';
 	}
 	return `${_indent}${line}`;
+};
+
+export const genId = (n?: number) => {
+	const idLength = n ?? 21;
+	const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+	const nanoid = customAlphabet(alphabet, idLength);
+	return nanoid();
 };
