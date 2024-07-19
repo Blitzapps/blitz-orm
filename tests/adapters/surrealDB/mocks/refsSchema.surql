@@ -4,7 +4,7 @@ USE DB test;
 -- ENITIES 
 	DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
 		--ATTRIBUTES
-		DEFINE FIELD name ON TABLE User TYPE string;
+		DEFINE FIELD name ON TABLE User TYPE option<string>;
 		DEFINE FIELD email ON TABLE User TYPE option<string>;
 
 		--EDGES
@@ -21,8 +21,8 @@ USE DB test;
 		-- there is no subtyping in SurrealDB, we need to duplicate the fields
 				DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL;
 					--ATTRIBUTES
-					DEFINE FIELD name ON TABLE SuperUser TYPE string;
-					DEFINE FIELD email ON TABLE SuperUser TYPE string;
+					DEFINE FIELD name ON TABLE SuperUser TYPE option<string>;
+					DEFINE FIELD email ON TABLE SuperUser TYPE option<string>;
 					DEFINE FIELD power ON TABLE SuperUser TYPE string;
 
 					--EDGES
@@ -39,8 +39,8 @@ USE DB test;
 					-- there is no subtyping in SurrealDB, we need to duplicate the fields
 							DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL;
 								--ATTRIBUTES
-								DEFINE FIELD name ON TABLE God TYPE string;
-								DEFINE FIELD email ON TABLE God TYPE string;
+								DEFINE FIELD name ON TABLE God TYPE option<string>;
+								DEFINE FIELD email ON TABLE God TYPE option<string>;
 								DEFINE FIELD power ON TABLE God TYPE string;
 								DEFINE FIELD isEvil ON TABLE God TYPE bool;
 									--EDGES
@@ -81,7 +81,7 @@ USE DB test;
 
 	DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
 		--ATTRIBUTES
-		DEFINE FIELD provider ON TABLE Account TYPE string;
+		DEFINE FIELD provider ON TABLE Account TYPE option<string>;
 		DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
 		DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
 
@@ -139,7 +139,7 @@ USE DB test;
 								UPDATE $unlink SET `user-accounts` -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-accounts` += [$after.id];
+								UPDATE $link SET `user-accounts` += [$after.id]; // Todo: the right management for card one and many
 						};
 			};
 		DEFINE FIELD accounts ON TABLE ⟨`User-Accounts`⟩ TYPE array<record<Account>>;

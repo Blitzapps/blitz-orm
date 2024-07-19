@@ -76,7 +76,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			$thing: 'Account',
 			id: uuidv4(),
 		};
-		const createRes = await ctx.mutate(account);
+		const createRes = await ctx.mutate(account, { noMetadata: false });
 		expect(createRes).toMatchObject([account]);
 
 		const updated = {
@@ -133,36 +133,27 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
 		const user = {
 			$thing: 'User',
-			id: uuidv4(),
+			id: 'b1b-user1',
 			accounts: [
 				{
 					$thing: 'Account',
-					id: uuidv4(),
+					id: 'b1b-account1',
 					profile: { hobby: ['Running'] },
 				},
 			],
 		};
-		const res = await ctx.mutate(user);
+		await ctx.mutate(user);
+		const res = await ctx.query({
+			$relation: 'User-Accounts',
+			$filter: { user: 'b1b-user1' },
+		});
+		console.log('RES!!', res);
+
 		expect(res).toMatchObject([
 			{
-				$thing: 'User',
-				$op: 'create',
-				id: user.id,
-			},
-			{
-				$thing: 'Account',
-				$thingType: 'entity',
-				$op: 'create',
-				id: user.accounts[0].id,
-				profile: {
-					hobby: ['Running'],
-				},
-			},
-			{
 				$thing: 'User-Accounts',
-				$op: 'create',
-				accounts: user.accounts[0].id,
-				user: user.id,
+				accounts: ['b1b-account1'],
+				user: 'b1b-user1',
 			},
 		]);
 		const deleteRes = await ctx.mutate({

@@ -15,6 +15,7 @@ import { stringify } from './bql/stringify';
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import { dependenciesGuard } from './bql/guards/dependenciesGuard';
 import { runTypeDbMutationMachine } from './tql/machine';
+import { runSurrealDbMutationMachine } from './surql/machine';
 
 const final = state;
 
@@ -77,6 +78,7 @@ const enrich = async (ctx: MachineContext) => {
 	const enriched = Object.keys(ctx.bql.enriched).length
 		? enrichBQLMutation(ctx.bql.enriched, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
+	//console.log('enriched', enriched);
 	return enriched;
 };
 
@@ -94,8 +96,20 @@ const parseBQL = async (ctx: MachineContext) => {
 
 // Guards
 // ============================================================================
-const requiresPreQuery = () => {
-	return true;
+const requiresPreQuery = (ctx: MachineContext) => {
+	const { dbConnectors } = ctx.config;
+	if (dbConnectors.length !== 1) {
+		throw new Error('Multiple providers not supported yet in mutations');
+	}
+	const [{ provider }] = dbConnectors;
+
+	if (provider === 'typeDB') {
+		return true;
+	}
+	if (provider === 'surrealDB') {
+		return false;
+	}
+	throw new Error(`Unsupported provider ${provider}.`);
 };
 
 const requiresPreHookDependencies = (ctx: MachineContext) => {
@@ -144,15 +158,28 @@ export const machine = createMachine(
 		parseBQL: invoke(parseBQL, transition('done', 'adapter', reduce(updateThingsEdges)), errorTransition),
 		adapter: invoke(
 			async (ctx: MachineContext) => {
-				return runTypeDbMutationMachine(
-					ctx.bql.raw,
-					ctx.bql.enriched,
-					ctx.bql.things,
-					ctx.bql.edges,
-					ctx.schema,
-					ctx.config,
-					ctx.handles,
-				);
+				//todo: do this properly with multiple providers
+				const { dbConnectors } = ctx.config;
+				if (dbConnectors.length !== 1) {
+					throw new Error('Multiple providers not supported yet in mutations');
+				}
+				const [{ provider }] = dbConnectors;
+
+				if (provider === 'typeDB') {
+					return runTypeDbMutationMachine(
+						ctx.bql.raw,
+						ctx.bql.enriched,
+						ctx.bql.things,
+						ctx.bql.edges,
+						ctx.schema,
+						ctx.config,
+						ctx.handles,
+					);
+				}
+				if (provider === 'surrealDB') {
+					return runSurrealDbMutationMachine(ctx.bql.raw, ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
+				}
+				throw new Error(`Unsupported provider ${provider}.`);
 			},
 			transition('done', 'success', reduce(updateBQLRes)),
 			errorTransition,
