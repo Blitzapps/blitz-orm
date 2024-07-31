@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
+## 0.10.31(2024-07-31)
+
+- Fix: Wrongly exported dbPaths when inheriting
+
 ## 0.10.30
 
 - Fix: Using a non existing role name on queries throws a proper error now

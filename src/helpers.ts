@@ -62,12 +62,12 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					return;
 				}
 				if (key) {
-					// * Adding dbPath of local dataFields
-					value.dataFields = value.dataFields?.map((df: DataField) => ({
+					// * Adding dbPath of local dataFields. This happens in every dataField
+					value.dataFields = value.dataFields?.map((df: DataField | EnrichedDataField) => ({
 						...df,
 						cardinality: df.cardinality || 'ONE',
-						dbPath: getDbPath(key, df.path, df.shared),
-					}));
+						dbPath: 'dbPath' in df ? df.dbPath : getDbPath(key, df.path, df.shared), //if it was already defined in a parent, we keep it
+					})) as EnrichedDataField[];
 				}
 				if (value.extends) {
 					if (!value.defaultDBConnector.as) {
@@ -115,7 +115,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									}
 									return {
 										...df,
-										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+										dbPath: 'dbPath' in df ? df.dbPath : getDbPath(deepExtendedThing, df.path, df.shared), //i
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
 											inheritanceOrigin: df[SharedMetadata]?.inheritanceOrigin || value.extends,
