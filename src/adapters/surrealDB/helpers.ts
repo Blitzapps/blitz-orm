@@ -37,11 +37,14 @@ const specialChars = [
 	'`',
 ];
 
-export const prepareTableNameSurrealDB = (tableName: string) => {
+export const sanitizeNameSurrealDB = (name: string) => {
 	//if tableName includes any of the chars of this array, then wrap it in backticks
 
-	if (specialChars.some((char) => tableName.includes(char))) {
-		return `⟨${tableName}⟩`;
+	if (specialChars.some((char) => name.includes(char))) {
+		return `⟨${name}⟩`;
 	}
-	return tableName;
+	return name;
 };
+
+export const tempSanitizeVarSurrealDB = (input: string): string =>
+	input.replace(/[ \-+*/=!@#$%^&()\[\]{}|\\;:'"<>,.?~`]/g, '');

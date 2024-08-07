@@ -3,16 +3,30 @@ USE DB test;
 
 BEGIN TRANSACTION;
 -- ENITIES 
-	DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
+	DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL ;
 		--ATTRIBUTES
 		DEFINE FIELD name ON TABLE User TYPE option<string>;
 		DEFINE FIELD email ON TABLE User TYPE option<string>;
 
 		--EDGES
-		DEFINE FIELD accounts ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-accounts`.accounts || []) FROM $this)}; 
+		DEFINE FIELD accounts ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-accounts`.accounts || []) FROM $this)}; //todo: intermediary events when $input works on events
 		DEFINE FIELD sessions ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-sessions`.sessions || []) FROM $this)};
 		DEFINE FIELD spaces ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`space-user`.spaces || []) FROM $this)};
-		DEFINE FIELD `user-tags` ON TABLE User TYPE option<array<record<UserTag>>>;
+		DEFINE FIELD ⟨user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
+		DEFINE FIELD ⟨add_user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
+			DEFINE EVENT ⟨add_user-tags⟩ ON TABLE User WHEN $after.⟨add_user-tags⟩ && $before.⟨add_user-tags⟩ == NONE THEN {
+				FOR $each in $after. ⟨add_user-tags⟩ {
+					UPDATE $each SET users += [$after.id];
+				};
+				 UPDATE $this SET  ⟨add_user-tags⟩ = NONE;
+			};
+		DEFINE FIELD ⟨remove_user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
+			DEFINE EVENT ⟨remove_user-tags⟩ ON TABLE User WHEN $after.⟨remove_user-tags⟩ && $before.⟨remove_user-tags⟩ == NONE THEN {
+				FOR $each in $after. ⟨remove_user-tags⟩ {
+					UPDATE $each SET users -= [$after.id];
+				};
+				 UPDATE $this SET  ⟨remove_user-tags⟩ = NONE;
+			};
 
 		--SUPPORT FOR target:role	
 		DEFINE FIELD `user-accounts` ON TABLE User TYPE option<array<record<⟨User-Accounts⟩>>>;
@@ -189,16 +203,16 @@ BEGIN TRANSACTION;
 
 	DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
-		DEFINE FIELD users ON TABLE UserTag TYPE array<record<User|God|SuperUser>>;
+		DEFINE FIELD users ON TABLE UserTag TYPE option<array<record<User|God|SuperUser>>>;
 				DEFINE EVENT update_user ON TABLE UserTag WHEN $before.users != $after.users THEN {
 
 					LET $edges = fn::get_mutated_edges($before.users, $after.users);
 
 					FOR $unlink IN $edges.deletions {
-							UPDATE $unlink SET `user-tags` -= [$after.id];
+							UPDATE $unlink SET `user-tags` -= $after.id;
 					};
 					FOR $link IN $edges.additions {
-							UPDATE $link SET `user-tags` += [$after.id];
+							UPDATE $link SET `user-tags` += $after.id;
 					};
 				};
 		DEFINE FIELD group ON TABLE UserTag TYPE option<record<UserTagGroup>>;

@@ -8,6 +8,6 @@ export const runSURQLMutation = async (client: Surreal, mutations: string[]): Pr
 	DELETE Delta;
 	RETURN $DELTAS;
 	COMMIT TRANSACTION;`;
-	//console.log('batchedMutation', batchedMutation);
+	console.log('batchedMutation', batchedMutation);
 	return await client.query(batchedMutation);
 };

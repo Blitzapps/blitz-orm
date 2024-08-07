@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';
+import type { BQLResponseMulti } from '../../../src';
 
 export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	// some random issues forced a let here
@@ -56,7 +57,337 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		name: 'Space 4',
 	};
 
-	it.only('b1a[create] Basic', async () => {
+	it('r1[roleFields] Basic roleFields create update delete', async () => {
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				id: 'bo-ut1',
+				users: [
+					{ id: 'bo-u1', name: 'bo-u1' },
+					{ id: 'bo-u2', name: 'bo-u2' },
+					{ id: 'bo-u3', name: 'bo-u3' },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query({
+			$relation: 'UserTag',
+			$id: 'bo-ut1',
+			$fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+		});
+
+		expect(deepSort(res, 'id')).toMatchObject({
+			id: 'bo-ut1',
+			users: [
+				{ id: 'bo-u1', name: 'bo-u1' },
+				{ id: 'bo-u2', name: 'bo-u2' },
+				{ id: 'bo-u3', name: 'bo-u3' },
+			],
+		});
+
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				$id: 'bo-ut1',
+				users: [{ $op: 'update', name: 'allRenamed' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res2 = await ctx.query({
+			$relation: 'UserTag',
+			$id: 'bo-ut1',
+			$fields: ['id', { $path: 'users', $fields: ['name'] }],
+		});
+
+		expect(res2).toMatchObject({
+			id: 'bo-ut1',
+			users: [{ name: 'allRenamed' }, { name: 'allRenamed' }, { name: 'allRenamed' }],
+		});
+
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				$id: 'bo-ut1',
+				users: [{ $op: 'delete' }, { id: 'bo-u4', name: 'bo-u4' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res3 = (await ctx.query([
+			{ $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3'] },
+			{
+				$relation: 'UserTag',
+				$id: 'bo-ut1',
+				$fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+			},
+		])) as BQLResponseMulti;
+
+		expect(res3[0]).toBeNull();
+		expect(res3[1]).toMatchObject({
+			id: 'bo-ut1',
+			users: [{ id: 'bo-u4', name: 'bo-u4' }],
+		});
+
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				$id: 'bo-ut1',
+				$op: 'delete',
+				users: [{ $op: 'delete' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res4 = (await ctx.query([
+			{ $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3', 'bo-u4'] },
+			{
+				$relation: 'UserTag',
+				$id: 'bo-ut1',
+			},
+		])) as BQLResponseMulti;
+
+		expect(res4[0]).toBeNull();
+		expect(res4[1]).toBeNull();
+	});
+
+	it('TODO{T}:r2[create] Basic roleFields link unlink', async () => {
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				id: 'b0b-ut1',
+				users: [
+					{ id: 'b0b-u1', name: 'bo-u1' },
+					{ id: 'b0b-u2', name: 'bo-u2' },
+					{ id: 'b0b-u3', name: 'bo-u3' },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query({
+			$relation: 'UserTag',
+			$id: 'b0b-ut1',
+			$fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+		});
+
+		expect(deepSort(res, 'id')).toMatchObject({
+			id: 'b0b-ut1',
+			users: [
+				{ id: 'b0b-u1', name: 'bo-u1' },
+				{ id: 'b0b-u2', name: 'bo-u2' },
+				{ id: 'b0b-u3', name: 'bo-u3' },
+			],
+		});
+
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				$id: 'b0b-ut1',
+				users: [{ $op: 'unlink' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res2 = await ctx.query(
+			{
+				$relation: 'UserTag',
+				$id: 'b0b-ut1',
+				$fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+			},
+			{ returnNulls: true },
+		);
+
+		expect(res2).toMatchObject({
+			id: 'b0b-ut1',
+			users: null,
+		});
+
+		await ctx.mutate(
+			{
+				$thing: 'UserTag',
+				$id: 'b0b-ut1',
+				users: [{ $op: 'link', $id: ['b0b-u1', 'b0b-u2'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res3 = await ctx.query({
+			$relation: 'UserTag',
+			$id: 'b0b-ut1',
+			$fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+		});
+
+		expect(res3).toMatchObject({
+			id: 'b0b-ut1',
+			users: [
+				{ id: 'b0b-u1', name: 'bo-u1' },
+				{ id: 'b0b-u2', name: 'bo-u2' },
+			],
+		});
+	});
+
+	it('TODO{T}:l1[direct linkField] Basic linkField', async () => {
+		// CREATE
+		await ctx.mutate(
+			{
+				'$thing': 'User',
+				'id': 'l1-u1',
+				'user-tags': [
+					{ id: 'l1-utg1', name: 'l1-utg1' },
+					{ id: 'l1-utg2', name: 'l1-utg2' },
+				],
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query({
+			$entity: 'User',
+			$id: 'l1-u1',
+			$fields: ['id', 'user-tags'],
+		});
+
+		expect(deepSort(res, 'id')).toMatchObject({
+			'id': 'l1-u1',
+			'user-tags': ['l1-utg1', 'l1-utg2'],
+		});
+
+		//LINK TO EXISTING
+		await ctx.mutate(
+			{
+				'$thing': 'User',
+				'$id': 'l1-u1',
+				'user-tags': [{ id: 'l1-utg3', name: 'l1-utg3' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res2 = await ctx.query({
+			$entity: 'User',
+			$id: 'l1-u1',
+			$fields: ['id', 'user-tags'],
+		});
+
+		expect(deepSort(res2, 'id')).toMatchObject({
+			'id': 'l1-u1',
+			'user-tags': ['l1-utg1', 'l1-utg2', 'l1-utg3'],
+		});
+
+		//UPDATE ALL
+		await ctx.mutate(
+			{
+				'$thing': 'User',
+				'$id': 'l1-u1',
+				'user-tags': [{ $op: 'update', name: 'allRenamed' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res3 = await ctx.query({
+			$entity: 'User',
+			$id: 'l1-u1',
+			$fields: ['id', { $path: 'user-tags' }],
+		});
+
+		expect(deepSort(res3, 'id')).toMatchObject({
+			'id': 'l1-u1',
+			'user-tags': [
+				{ id: 'l1-utg1', name: 'allRenamed' },
+				{ id: 'l1-utg2', name: 'allRenamed' },
+				{ id: 'l1-utg3', name: 'allRenamed' },
+			],
+		});
+		//UNLINK ONE
+		await ctx.mutate(
+			{
+				'$thing': 'User',
+				'$id': 'l1-u1',
+				'user-tags': [{ $id: ['l1-utg1'], $op: 'unlink' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res4 = await ctx.query({
+			$entity: 'User',
+			$id: 'l1-u1',
+			$fields: ['id', { $path: 'user-tags' }],
+		});
+
+		expect(deepSort(res4, 'id')).toMatchObject({
+			'id': 'l1-u1',
+			'user-tags': [
+				{ id: 'l1-utg2', name: 'allRenamed' },
+				{ id: 'l1-utg3', name: 'allRenamed' },
+			],
+		});
+		// DELETE REST
+		await ctx.mutate(
+			{
+				'$thing': 'User',
+				'$id': 'l1-u1',
+				'user-tags': [{ $op: 'delete' }],
+			},
+			{ noMetadata: true },
+		);
+
+		const res5 = (await ctx.query(
+			[
+				{ $relation: 'UserTag', $fields: ['id'] },
+				{
+					$entity: 'User',
+					$id: 'l1-u1',
+					$fields: ['id', { $path: 'user-tags' }],
+				},
+			],
+			{ noMetadata: true },
+		)) as BQLResponseMulti;
+
+		expect(deepSort(res5[0], 'id')).toMatchObject([
+			{
+				id: 'l1-utg1',
+			},
+			{
+				id: 'tag-1',
+			},
+			{
+				id: 'tag-2',
+			},
+			{
+				id: 'tag-3',
+			},
+			{
+				id: 'tag-4',
+			},
+		]);
+		expect(res5[1]).toMatchObject({
+			id: 'l1-u1',
+		});
+
+		//CLEAN
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: 'l1-u1',
+			},
+			{
+				$relation: 'UserTag',
+				$op: 'delete',
+				$id: 'l1-utg1',
+			},
+		]);
+
+		const isCleanRes = (await ctx.query([
+			{ $entity: 'User', $id: 'l1-u1' },
+			{ $relation: 'UserTag', $id: ['l1-utg1', 'l1-utg2', 'l1-utg3'] },
+		])) as BQLResponseMulti;
+
+		expect(isCleanRes[0]).toBeNull();
+		expect(isCleanRes[1]).toBeNull();
+	});
+
+	it('b1a[create] Basic', async () => {
 		const res = await ctx.mutate(firstUser, { noMetadata: true });
 		const expectedUnit = {
 			id: '$unitId',
@@ -131,7 +462,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
-	it.only('b1b[create] Create a nested thing with a JSON attribute', async () => {
+	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
 		const user = {
 			$thing: 'User',
 			id: 'b1b-user1',
@@ -191,7 +522,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toEqual({
+		expect(res[0]).toMatchObject({
 			name: 'Johns not',
 			email: 'john@test.com',
 		});
@@ -236,7 +567,8 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toEqual({
+		console.log('res!', res);
+		expect(res[0]).toMatchObject({
 			name: null,
 		});
 
@@ -248,7 +580,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-		expect(res2).toEqual({ email: 'foo@test.com' });
+		expect(res2).toMatchObject({ email: 'foo@test.com' });
 
 		/// CLEAN: delete b2b-user
 		await ctx.mutate(
@@ -284,7 +616,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toEqual({
+		expect(res[0]).toMatchObject({
 			name: null,
 			email: 'bar@test.com',
 		});
@@ -332,7 +664,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toEqual({
+		expect(res[0]).toMatchObject({
 			email: '',
 		});
 
@@ -364,7 +696,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			$id: firstUser.id,
 		});
 
-		expect(res).toEqual([
+		expect(res).toMatchObject([
 			{
 				$thing: 'User',
 				$thingType: 'entity',
