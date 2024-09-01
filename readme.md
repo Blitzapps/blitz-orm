@@ -18,6 +18,15 @@ SurrealDB
 - Queries (stable)
 - Mutations (some issues)
 
+MultiDB
+
+- Basic queries work and are correctly routed to different databases
+- Nested queries with references to different dbs are not supported yet
+
+Next-auth
+
+- Fully compatible with next-auth (Auth.js) but we need to publish the adapter
+
 ## How to Use
 
 1. Install the package using your package manager, for example:
