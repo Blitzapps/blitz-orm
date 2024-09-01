@@ -58,4 +58,5 @@ export const computeFields = (node: BQLMutationBlock, field: string, schema: Enr
 			throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(subNode)}`);
 		}
 	});
+	return node;
 };

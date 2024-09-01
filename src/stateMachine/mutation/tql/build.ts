@@ -1,12 +1,19 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
 
-import { getCurrentSchema, isBQLBlock } from '../../../helpers';
+import { genId, getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { EdgeType } from '../../../types/symbols';
-import { parseFlexVal } from '../../../adapters/typeDB/parseFlexVal';
-import { nanoid } from 'nanoid';
+import { parseFlexValTypeDB } from '../../../adapters/typeDB/parseFlexVal';
 
-export const buildTQLMutation = async (things: any, edges: any, schema: EnrichedBormSchema) => {
+export const buildTQLMutation = async (things: any[], edges: any[], schema: EnrichedBormSchema) => {
+	if ((!things && !edges) || (!things.length && !edges.length)) {
+		throw new Error('TQL request error, no things');
+	}
+
+	if (!schema) {
+		throw new Error('No schema provided');
+	}
+
 	// todo: Split attributes and edges
 	const nodeToTypeQL = (
 		node: EnrichedBQLMutationBlock,
@@ -63,9 +70,9 @@ export const buildTQLMutation = async (things: any, edges: any, schema: Enriched
 			}
 			if (currentDataField.contentType === 'FLEX') {
 				//ex: $color isa Color, has id 'testi', has Color·freeForAll $tempId; $tempId "number" isa Color·freeForAll, has longVal 7;
-				const tempId = `bza${nanoid()}`;
+				const tempId = `bza${genId()}`;
 
-				const parsedVal = isArray(v) ? v.map((v) => parseFlexVal(v)) : parseFlexVal(v);
+				const parsedVal = isArray(v) ? v.map((v) => parseFlexValTypeDB(v)) : parseFlexValTypeDB(v);
 				if (Array.isArray(parsedVal)) {
 					throw new Error('Array in FLEX fields not supported yet');
 				}

@@ -76,11 +76,11 @@ INSERT INTO ⟨Power⟩ [
 ];
 
 INSERT INTO ⟨Space-User⟩ [
-  { id: "u1s1", users: [User:user1], spaces: [Space:`space-1`] },
-	{ id: "u1s2", users: [User:user1], spaces: [Space:`space-2`] },
-	{ id: "u2s2", users: [User:user2], spaces: [Space:`space-2`] },
-	{ id: "u3s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 },
-	{ id: "u5s1", users: [User:user5], spaces: [Space:`space-1`] }
+  { id: "u1-s1", users: [User:user1], spaces: [Space:`space-1`] },
+	{ id: "u1-s2", users: [User:user1], spaces: [Space:`space-2`] },
+	{ id: "u2-s2", users: [User:user2], spaces: [Space:`space-2`] },
+	{ id: "u3-s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 },
+	{ id: "u5-s1", users: [User:user5], spaces: [Space:`space-1`] }
 ];
 
 INSERT INTO ⟨UserTag⟩ [
@@ -131,14 +131,12 @@ LET $companies = (
 );
 
  FOR $company IN $companies {
-   LET $compId = CREATE ONLY Company CONTENT {
-        id: type::string($company),d: $company,
+   LET $compId = CREATE ONLY type::thing('Company',type::string($company) ) CONTENT {
         name: string::concat('Company ', type::string($company)),
         industry: rand::enum(['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'])
     };
     FOR $employee IN [0,1,2,3,4,5,6,7,8,9] {
-        CREATE Employee CONTENT {
-					  id:  type::string(($company * 10) + $employee),
+        CREATE type::thing('Employee',type::string(($company * 10) + $employee))  CONTENT {
             name: string::concat('Employee ',  type::string(($company * 10) + $employee)),
             company: $compId.id
         }

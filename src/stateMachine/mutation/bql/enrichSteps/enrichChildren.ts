@@ -10,7 +10,7 @@ import type {
 import { EdgeSchema } from '../../../../types/symbols';
 import { getOp } from '../shared/getOp';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
-import { nanoid } from 'nanoid';
+import { genId } from '../../../../helpers';
 
 export const enrichChildren = (
 	node: BQLMutationBlock,
@@ -38,10 +38,10 @@ export const enrichChildren = (
 				return `SN_ONE_${player.thing}_${subNode.$id}`; //also we add prefix SN_ONE as we know is cardinality ONE
 			}
 			if (subNode.$id && isArray(subNode.$id)) {
-				return `SN_MANY_${player.thing}_${nanoid()}`; //also we add prefix SN_MANY as we know is cardinality MANY
+				return `SN_MANY_${player.thing}_${genId()}`; //also we add prefix SN_MANY as we know is cardinality MANY
 			}
 
-			return `SM_${nanoid()}`;
+			return `SM_${genId()}`;
 		};
 		const $bzId = get$bzId();
 

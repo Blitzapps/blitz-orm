@@ -1,7 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
-
 import type { BormSchema, DataField } from '../../src/index';
 import { isArray } from 'radash';
+import { nanoid } from 'nanoid';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -25,7 +24,7 @@ const timestamp: DataField = {
 const id: DataField = {
 	shared: true,
 	path: 'id',
-	default: { type: 'fn', fn: () => uuidv4() },
+	default: { type: 'fn', fn: () => nanoid() },
 	validations: { required: true, unique: true },
 	contentType: 'ID',
 	rights: ['CREATE'],
@@ -240,7 +239,7 @@ export const schema: BormSchema = {
 			],
 		},
 		User: {
-			idFields: ['id'], // could be a namecomposite key
+			idFields: ['id'], // could be a name composite key
 			defaultDBConnector: { id: 'default' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 			dataFields: [
 				id,

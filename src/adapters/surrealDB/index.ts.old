@@ -30,7 +30,7 @@ const getSubtype = (
 };
 
 const convertEntityId = (attr: EnrichedBqlQueryAttribute) => {
-	return attr['$path'] === 'id' ? `meta::id(${attr['$path']}) as id` : `${attr['$path']}`;
+	return attr['$path'] === 'id' ? `record::id(${attr['$path']}) as id` : `${attr['$path']}`;
 };
 
 const handleCardinality = (schema: EnrichedBormSchema, query: EnrichedBqlQuery) => (obj: Record<string, unknown>) => {
@@ -59,15 +59,15 @@ const buildQuery = (thing: string, query: EnrichedBqlQuery) => {
 	const relations = query['$fields'].filter((q): q is EnrichedBqlQueryEntity => q['$thingType'] === 'relation');
 
 	const relationsQuery = relations.map((relation) => {
-		return `(SELECT VALUE meta::id(id) as id FROM <-${relation.$thing}_${relation.$plays}<-${relation.$thing}) as \`${relation.$as}\``;
+		return `(SELECT VALUE record::id(id) as id FROM <-${relation.$thing}_${relation.$plays}<-${relation.$thing}) as \`${relation.$as}\``;
 	});
 
 	const entitiesQuery = entities.map((entity) => {
 		const role = pascal(entity['$playedBy'].relation);
 
 		return query.$thingType === 'relation'
-			? `(SELECT VALUE meta::id(id) as id FROM ->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
-			: `(SELECT VALUE meta::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`;
+			? `(SELECT VALUE record::id(id) as id FROM ->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`
+			: `(SELECT VALUE record::id(id) as id FROM <-${role}_${entity['$playedBy']['path']}<-${role}->${role}_${entity['$playedBy']['plays']}.out) as ${entity['$as']}`;
 	});
 
 	const filterExpr = query['$filter']

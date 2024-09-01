@@ -1,6 +1,8 @@
 USE NS test;
 USE DB test;
 
+BEGIN TRANSACTION;
+
 DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE User TYPE string;
 DEFINE FIELD email ON TABLE User TYPE option<string>;
@@ -81,38 +83,36 @@ DEFINE TABLE ThingRelation_things SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD in ON TABLE ThingRelation_things TYPE record<ThingRelation>;
 DEFINE FIELD out ON TABLE ThingRelation_things TYPE record<Thing>;
 
-DEFINE TABLE ⟨`User-Accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE ⟨`User-Accounts_user`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<⟨`User-Accounts`⟩>;
-DEFINE FIELD out ON TABLE ⟨`User-Accounts_user`⟩ TYPE record<User>;
-DEFINE TABLE ⟨`User-Accounts_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<⟨`User-Accounts`⟩>;
-DEFINE FIELD out ON TABLE ⟨`User-Accounts_accounts`⟩ TYPE record<Account>;
+DEFINE TABLE ⟨User-Accounts⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨User-Accounts_user⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨User-Accounts_user⟩ TYPE record<⟨User-Accounts⟩>;
+DEFINE FIELD out ON TABLE ⟨User-Accounts_user⟩ TYPE record<User>;
+DEFINE TABLE ⟨User-Accounts_accounts⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨User-Accounts_accounts⟩ TYPE record<⟨User-Accounts⟩>;
+DEFINE FIELD out ON TABLE ⟨User-Accounts_accounts⟩ TYPE record<Account>;
 
-DEFINE TABLE ⟨`User-Sessions`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE ⟨`User-Sessions_user`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<⟨`User-Sessions`⟩>;
-DEFINE FIELD out ON TABLE ⟨`User-Sessions_user`⟩ TYPE record<User>;
-DEFINE TABLE ⟨`User-Sessions_accounts`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<⟨`User-Sessions`⟩>;
-DEFINE FIELD out ON TABLE ⟨`User-Sessions_accounts`⟩ TYPE record<Session>;
+DEFINE TABLE ⟨User-Sessions⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨User-Sessions_user⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨User-Sessions_user⟩ TYPE record<⟨User-Sessions⟩>;
+DEFINE FIELD out ON TABLE ⟨User-Sessions_user⟩ TYPE record<User>;
+DEFINE TABLE ⟨User-Sessions_accounts⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨User-Sessions_accounts⟩ TYPE record<⟨User-Sessions⟩>;
+DEFINE FIELD out ON TABLE ⟨User-Sessions_accounts⟩ TYPE record<Session>;
 
-DEFINE TABLE ⟨`Space-User`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE TABLE ⟨`Space-User_spaces`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<⟨`Space-User`⟩>;
-DEFINE FIELD out ON TABLE ⟨`Space-User_spaces`⟩ TYPE record<Space>;
-DEFINE TABLE ⟨`Space-User_users`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`Space-User_users`⟩ TYPE record<⟨`Space-User`⟩>;
-DEFINE FIELD out ON TABLE ⟨`Space-User_users`⟩ TYPE record<User>;
-DEFINE TABLE ⟨`Space-User_power`⟩ SCHEMAFULL PERMISSIONS FULL;
-DEFINE FIELD in ON TABLE ⟨`Space-User_power`⟩ TYPE record<⟨`Space-User`⟩>;
-DEFINE FIELD out ON TABLE ⟨`Space-User_power`⟩ TYPE record<Power>;
+DEFINE TABLE ⟨Space-User⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE ⟨Space-User_spaces⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨Space-User_spaces⟩ TYPE record<⟨Space-User⟩>;
+DEFINE FIELD out ON TABLE ⟨Space-User_spaces⟩ TYPE record<Space>;
+DEFINE TABLE ⟨Space-User_users⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨Space-User_users⟩ TYPE record<⟨Space-User⟩>;
+DEFINE FIELD out ON TABLE ⟨Space-User_users⟩ TYPE record<User>;
+DEFINE TABLE ⟨Space-User_power⟩ SCHEMAFULL PERMISSIONS FULL;
+DEFINE FIELD in ON TABLE ⟨Space-User_power⟩ TYPE record<⟨Space-User⟩>;
+DEFINE FIELD out ON TABLE ⟨Space-User_power⟩ TYPE record<Power>;
 
 DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE UserTag TYPE option<string>;
-DEFINE TABLE UserTag_users SCHEMAFULL PERMISSIONS FULL type RELATION;
-DEFINE FIELD in ON TABLE UserTag_users TYPE record<UserTag>;
-DEFINE FIELD out ON TABLE UserTag_users TYPE record<User>;
+DEFINE TABLE UserTag_users SCHEMAFULL PERMISSIONS FULL TYPE RELATION in UserTag out User;
 
 DEFINE TABLE UserTagGroup SCHEMAFULL PERMISSIONS FULL;
 DEFINE TABLE UserTagGroup_tags SCHEMAFULL PERMISSIONS FULL;
@@ -194,3 +194,5 @@ DEFINE TABLE Employee_company SCHEMAFULL PERMISSIONS FULL TYPE RELATION in Emplo
 DEFINE TABLE Company SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON TABLE Company TYPE string;
 DEFINE FIELD industry ON TABLE Company TYPE string;
+
+COMMIT TRANSACTION;

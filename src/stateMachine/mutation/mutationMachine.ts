@@ -7,32 +7,31 @@ import type {
 	EnrichedBormSchema,
 } from '../../types';
 import { enrichBQLMutation } from './bql/enrich';
-import type { TqlMutation } from './tql/run';
-import { runTQLMutation } from './tql/run';
-import type { TqlRes } from './tql/parse';
-import { parseTQLMutation } from './tql/parse';
 import { parseBQLMutation } from './bql/parse';
-import { buildTQLMutation } from './tql/build';
 import { mutationPreQuery } from './bql/preQuery';
 
 import { createMachine, transition, reduce, guard, interpret, state, invoke } from '../robot3';
 import { stringify } from './bql/stringify';
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import { dependenciesGuard } from './bql/guards/dependenciesGuard';
+import { runTypeDbMutationMachine } from './tql/machine';
+import { runSurrealDbMutationMachine } from './surql/machine';
+import type { FlatBqlMutation } from './bql/flatter';
+import { flattenBQLMutation } from './bql/flatter';
 
 const final = state;
+
+export type bqlMutationContext = {
+	raw: BQLMutationBlock | BQLMutationBlock[];
+	enriched: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
+	flat: FlatBqlMutation;
+	things: any[];
+	edges: any[];
+	res: any[];
+};
+
 type MachineContext = {
-	bql: {
-		raw: BQLMutationBlock | BQLMutationBlock[];
-		current: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
-		things: any[];
-		edges: any[];
-		res: any[];
-	};
-	typeDB: {
-		tqlMutation: TqlMutation;
-		tqlRes: TqlRes;
-	};
+	bql: bqlMutationContext;
 	schema: EnrichedBormSchema;
 	config: BormConfig;
 	handles: DBHandles;
@@ -50,14 +49,7 @@ const updateBqlReq = (ctx: MachineContext, event: any) => {
 	}
 	return {
 		...ctx,
-		bql: { ...ctx.bql, current: event.data },
-	};
-};
-
-const updateBqlRes = (ctx: MachineContext, event: any) => {
-	return {
-		...ctx,
-		bql: { ...ctx.bql, res: event.data },
+		bql: { ...ctx.bql, enriched: event.data },
 	};
 };
 
@@ -72,22 +64,22 @@ const updateThingsEdges = (ctx: MachineContext, event: any) => {
 	};
 };
 
-const updateTQLMutation = (ctx: MachineContext, event: any) => {
+const updateBQLFlat = (ctx: MachineContext, event: any) => {
 	return {
 		...ctx,
-		typeDB: {
-			...ctx.typeDB,
-			tqlMutation: event.data,
+		bql: {
+			...ctx.bql,
+			flat: event.data || 'test',
 		},
 	};
 };
 
-const updateTQLRes = (ctx: MachineContext, event: any) => {
+const updateBQLRes = (ctx: MachineContext, event: any) => {
 	return {
 		...ctx,
-		typeDB: {
-			...ctx.typeDB,
-			tqlRes: event.data,
+		bql: {
+			...ctx.bql,
+			res: event.data,
 		},
 	};
 };
@@ -96,44 +88,49 @@ const updateTQLRes = (ctx: MachineContext, event: any) => {
 // ============================================================================
 
 const enrich = async (ctx: MachineContext) => {
-	const enriched = Object.keys(ctx.bql.current).length
-		? enrichBQLMutation(ctx.bql.current, ctx.schema, ctx.config)
+	const enriched = Object.keys(ctx.bql.enriched).length
+		? enrichBQLMutation(ctx.bql.enriched, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
+	//console.log('enriched', enriched);
 	return enriched;
 };
 
 const preQuery = async (ctx: MachineContext) => {
-	return mutationPreQuery(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+	return mutationPreQuery(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const preQueryDependencies = async (ctx: MachineContext) => {
-	return preHookDependencies(ctx.bql.current, ctx.schema, ctx.config, ctx.handles);
+	return preHookDependencies(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const parseBQL = async (ctx: MachineContext) => {
-	return parseBQLMutation(ctx.bql.current, ctx.schema);
+	return parseBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
-const buildMutation = async (ctx: MachineContext) => {
-	return buildTQLMutation(ctx.bql.things, ctx.bql.edges, ctx.schema);
-};
-
-const runMutation = async (ctx: MachineContext) => {
-	return runTQLMutation(ctx.typeDB.tqlMutation, ctx.handles, ctx.config);
-};
-
-const parseMutation = async (ctx: MachineContext) => {
-	return parseTQLMutation(ctx.typeDB.tqlRes, ctx.bql.things, ctx.bql.edges, ctx.schema, ctx.config);
+const flattenBQL = async (ctx: MachineContext) => {
+	return flattenBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
 // Guards
 // ============================================================================
-const requiresPreQuery = () => {
-	return true;
+const requiresPreQuery = (ctx: MachineContext) => {
+	const { dbConnectors } = ctx.config;
+	if (dbConnectors.length !== 1) {
+		throw new Error('Multiple providers not supported yet in mutations');
+	}
+	const [{ provider }] = dbConnectors;
+
+	if (provider === 'typeDB') {
+		return true;
+	}
+	if (provider === 'surrealDB') {
+		return false;
+	}
+	throw new Error(`Unsupported provider ${provider}.`);
 };
 
 const requiresPreHookDependencies = (ctx: MachineContext) => {
-	return dependenciesGuard(ctx.bql.current);
+	return dependenciesGuard(ctx.bql.enriched);
 };
 
 // Transitions
@@ -175,10 +172,45 @@ export const machine = createMachine(
 			transition('done', 'enrich', reduce(updateBqlReq)),
 			errorTransition,
 		),
-		parseBQL: invoke(parseBQL, transition('done', 'buildMutation', reduce(updateThingsEdges)), errorTransition),
-		buildMutation: invoke(buildMutation, transition('done', 'runMutation', reduce(updateTQLMutation)), errorTransition),
-		runMutation: invoke(runMutation, transition('done', 'parseMutation', reduce(updateTQLRes)), errorTransition),
-		parseMutation: invoke(parseMutation, transition('done', 'success', reduce(updateBqlRes)), errorTransition),
+		parseBQL: invoke(parseBQL, transition('done', 'flattenBQL', reduce(updateThingsEdges)), errorTransition),
+		flattenBQL: invoke(flattenBQL, transition('done', 'adapter', reduce(updateBQLFlat)), errorTransition),
+		adapter: invoke(
+			async (ctx: MachineContext) => {
+				//todo: do this properly with multiple providers
+				const { dbConnectors } = ctx.config;
+				if (dbConnectors.length !== 1) {
+					throw new Error('Multiple providers not supported yet in mutations');
+				}
+				const [{ provider }] = dbConnectors;
+
+				if (provider === 'typeDB') {
+					return runTypeDbMutationMachine(
+						ctx.bql.raw,
+						ctx.bql.enriched,
+						ctx.bql.things,
+						ctx.bql.edges,
+						ctx.schema,
+						ctx.config,
+						ctx.handles,
+					);
+				}
+				if (provider === 'surrealDB') {
+					//console.log('things!', ctx.bql.flat.things);
+					//console.log('edges!', ctx.bql.flat.edges);
+					return runSurrealDbMutationMachine(
+						ctx.bql.raw,
+						ctx.bql.enriched,
+						ctx.bql.flat,
+						ctx.schema,
+						ctx.config,
+						ctx.handles,
+					);
+				}
+				throw new Error(`Unsupported provider ${provider}.`);
+			},
+			transition('done', 'success', reduce(updateBQLRes)),
+			errorTransition,
+		),
 		success: final(),
 		error: final(),
 	},
@@ -211,14 +243,15 @@ export const runMutationMachine = async (
 	return awaitMachine({
 		bql: {
 			raw: mutation,
-			current: {} as EnrichedBQLMutationBlock,
+			enriched: {} as EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 			things: [],
 			edges: [],
+			flat: {
+				things: [],
+				edges: [],
+				arcs: [],
+			},
 			res: [],
-		},
-		typeDB: {
-			tqlMutation: {} as TqlMutation,
-			tqlRes: {} as TqlRes,
 		},
 		schema: schema as EnrichedBormSchema,
 		config: config,
