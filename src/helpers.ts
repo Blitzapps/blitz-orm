@@ -70,12 +70,12 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					return;
 				}
 				if (key) {
-					// * Adding dbPath of local dataFields
-					value.dataFields = value.dataFields?.map((df: DataField) => ({
+					// * Adding dbPath of local dataFields. This happens in every dataField
+					value.dataFields = value.dataFields?.map((df: DataField | EnrichedDataField) => ({
 						...df,
 						cardinality: df.cardinality || 'ONE',
-						dbPath: getDbPath(key, df.path, df.shared),
-					}));
+						dbPath: 'dbPath' in df ? df.dbPath : getDbPath(key, df.path, df.shared), //if it was already defined in a parent, we keep it
+					})) as EnrichedDataField[];
 				}
 				if (value.extends) {
 					if (!value.defaultDBConnector.as) {
@@ -123,7 +123,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									}
 									return {
 										...df,
-										dbPath: getDbPath(deepExtendedThing, df.path, df.shared),
+										dbPath: 'dbPath' in df ? df.dbPath : getDbPath(deepExtendedThing, df.path, df.shared), //i
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
 											inheritanceOrigin: df[SharedMetadata]?.inheritanceOrigin || value.extends,
@@ -363,8 +363,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 							//If after the filters, we still have 2, then the schema is wrong
 							if (linkField.oppositeLinkFieldsPlayedBy.length > 1) {
-								throw new Error(
-									`Not supported: LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
+								//temp: lets just warn and add an error only if actually used
+								console.warn(
+									`[Schema] LinkField ${linkField.path} in ${val.name} has multiple candidates ${linkField.oppositeLinkFieldsPlayedBy.map((lf) => lf.thing).join(',')} and this is not yet supported. Please target a single one using targetRoles with a single role`,
 								);
 							}
 							// #endregion
@@ -402,7 +403,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				// if (value.playedBy.length > 1) {
 				const playedBySet = [...new Set(value.playedBy.map((x: LinkedFieldWithThing) => x.thing))];
 				if (playedBySet.length > 1) {
-					throw new Error(
+					console.warn(
 						`[Schema] roleFields can be only played by one thing. Role: ${key}, path:${meta.nodePath}, played by: ${playedBySet.join(', ')}`,
 					);
 				}

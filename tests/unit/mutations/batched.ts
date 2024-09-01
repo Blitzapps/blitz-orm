@@ -1,4 +1,4 @@
-import { expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';
 
@@ -339,5 +339,65 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
 		expect(spaceRes).toEqual({
 			kinds: [expect.any(String)],
 		});
+	});
+
+	it('c6[multi, link] tempIds along with normalIds in string format', async () => {
+		try {
+			await ctx.mutate([
+				{
+					$entity: 'Space',
+					id: 'c6-space1',
+					$op: 'create',
+					name: 'Personal',
+				},
+			]);
+
+			await ctx.mutate([
+				{
+					$entity: 'Space',
+					$op: 'create',
+					id: 'c6-space2',
+					$tempId: '_:space2',
+				},
+				{
+					$thing: 'User',
+					id: 'c6-user1',
+					$op: 'create',
+					spaces: ['_:space2', 'c6-space1'],
+				},
+			]);
+
+			const userRes = await ctx.query(
+				{
+					$entity: 'User',
+					$id: 'c6-user1',
+					$fields: ['spaces'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(userRes).toBeDefined();
+			expect(deepSort(userRes, 'id')).toEqual({
+				spaces: ['c6-space1', 'c6-space2'],
+			});
+		} finally {
+			await ctx.mutate([
+				{
+					$entity: 'User',
+					$id: 'c6-user1',
+					$op: 'delete',
+				},
+				{
+					$entity: 'Space',
+					$id: 'c6-space1',
+					$op: 'delete',
+				},
+				{
+					$entity: 'Space',
+					$id: 'c6-space2',
+					$op: 'delete',
+				},
+			]);
+		}
 	});
 });

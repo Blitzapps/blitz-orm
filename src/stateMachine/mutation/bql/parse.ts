@@ -410,6 +410,7 @@ export const parseBQLMutation = async (
 	};
 
 	const [parsedThings, parsedEdges] = listNodes(blocks);
+	//console.log('parsedStuff', parsedThings, parsedEdges);
 
 	//console.log('parsedThings', parsedThings);
 	/// some cases where we extract things, they must be ignored.
@@ -440,6 +441,27 @@ export const parseBQLMutation = async (
 		//if both are update, we simply merge them
 		if (acc[existingIndex].$op === 'update' && thing.$op === 'update') {
 			return [...acc.slice(0, existingIndex), { ...acc[existingIndex], ...thing }, ...acc.slice(existingIndex + 1)];
+		}
+		//if one is update and the other is merge, same, we merge them and keep it as update.
+		if (
+			(acc[existingIndex].$op === 'update' && thing.$op === 'match') ||
+			(acc[existingIndex].$op === 'match' && thing.$op === 'update')
+		) {
+			return [
+				...acc.slice(0, existingIndex),
+				{ ...acc[existingIndex], ...thing, $op: 'update' },
+				...acc.slice(existingIndex + 1),
+			];
+		}
+		//if both are deletions, is fine as long as they have the same $filter
+		if (acc[existingIndex].$op === 'delete' && thing.$op === 'delete') {
+			if (JSON.stringify(acc[existingIndex].$filter) === JSON.stringify(thing.$filter)) {
+				return acc;
+			} else {
+				throw new Error(
+					`[Wrong format] Can't delete the same thing with different filters. Existing: ${acc[existingIndex].$filter}. Current: ${thing.$filter}`,
+				);
+			}
 		}
 		// For all other cases, throw an error
 		throw new Error(

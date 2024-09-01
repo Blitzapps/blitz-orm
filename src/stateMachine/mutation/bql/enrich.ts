@@ -46,7 +46,8 @@ export const enrichBQLMutation = (
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
 	const rootBlock = { $rootWrap: { $root: blocks } };
 	// @ts-expect-error todo
-	const hasFields = dependenciesGuard(Array.isArray(blocks) ? blocks : [blocks]);
+	const has$Fields = dependenciesGuard(Array.isArray(blocks) ? blocks : [blocks]);
+
 	const result = produce(rootBlock, (draft) =>
 		traverse(draft, ({ value, parent, key, meta }: TraversalCallbackContext) => {
 			if (!parent || !key) {
@@ -206,7 +207,8 @@ export const enrichBQLMutation = (
 							}
 						});
 
-						if (!hasFields) {
+						if (!has$Fields) {
+							//if it has $field, it has dependencies so its still not ready for transformation
 							//#endregion BQL validations
 
 							// 3.3.8

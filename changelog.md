@@ -2,6 +2,31 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
+## 0.10.31(2024-07-31)
+
+- Fix: Wrongly exported dbPaths when inheriting
+
+## 0.10.30
+
+- Fix: Using a non existing role name on queries throws a proper error now
+
+## 0.10.29
+
+- Feat: Can use tempIds directly just by prefixing them with '_:'. Ex: {$thing: User, accounts: [ "account1", "\_:justCreatedSpace"]}
+
+## 0.10.28
+
+- Fix: Defining multiple players for a role still does not work, but at least does not cause errors when you don't use that specific role
+
+## 0.10.27
+
+- Fix: Can now have coincidences on deletions (same node being deleted twice)
+
+## 0.10.26
+
+- Fix: Can now link and update in different branches
+
 ## 0.10.25
 
 - Feat: SurrealDB with stored references (refs) vs edges
@@ -43,11 +68,11 @@
 - Test: Added benchmark
 - Fix: TypeDB errors being printed again
 - Feat: SurrealDB queries
--> Multiple refactoring to keep shared vs TQL vs SURQL
--> Fix false values, fix workaround for reserved id field, Fix defined table names
--> Virtual values onRead (futures) in schema, JSON values in schema
--> Deeply nested filters, on local and remote fields
--> NOT, OR, AND filters
+  -> Multiple refactoring to keep shared vs TQL vs SURQL
+  -> Fix false values, fix workaround for reserved id field, Fix defined table names
+  -> Virtual values onRead (futures) in schema, JSON values in schema
+  -> Deeply nested filters, on local and remote fields
+  -> NOT, OR, AND filters
 
 ## 0.10.12(2024-05-23)
 
