@@ -2,17 +2,27 @@
 
 Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.
 
-Blitz-orm is similar to other ORM packages such as Prisma. You define a BQL schema and it gets translated to different databases (currently only compatible with TypeDB but a dgraph adapter in the oven).
+Blitz-orm is similar to other ORM packages such as Prisma. You define a BQL schema and it gets translated to different databases (currently only compatible with TypeDB and SurrealDB).
 
 ## Compatibility
 
-Currently, it works with TypeDB and surrealDB
+TypeDB
+
+- Schema (working with issues)
+- Queries (stable)
+- Mutations (some issues)
+
+SurrealDB
+
+- Schema (to-do)
+- Queries (stable)
+- Mutations (some issues)
 
 ## How to Use
 
 1. Install the package using your package manager, for example:
 `yarn add @blitznocode/blitz-orm`
-2. Create a Borm schema. You can find an example in the test folder. 
+2. Create a Borm schema. You can find an example in the test folder.
 3. The borm.define() function is currently not working, so you will need to manually translate your BQL schema into a TypeQL schema (an example can be found in the test folder).
 4. Create a configuration file with the database name that you have created in TypeDB.
 5. Initialize Blitz-orm in a file like this:
