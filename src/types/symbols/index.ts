@@ -11,6 +11,9 @@ export const Path = Symbol.for('path');
 export const DBNode = Symbol.for('dbNode');
 export const IsTransformed = Symbol.for('isTransformed');
 
+//flatBQL
+export const Parent = Symbol.for('parent');
+
 /// Fields
 export const FieldSchema = Symbol.for('fieldSchema');
 

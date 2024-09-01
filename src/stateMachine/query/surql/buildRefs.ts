@@ -76,13 +76,13 @@ const createRootFromClause = (query: EnrichedBQLQuery, currentSchema: EnrichedBo
 };
 
 const createMetaFields = (queryPath: string) => {
-	return [`"${queryPath}" as \`$$queryPath\``, 'meta::id(id) as `$id`', 'meta::tb(id) as `$thing`'];
+	return [`"${queryPath}" as \`$$queryPath\``, 'record::id(id) as `$id`', 'record::tb(id) as `$thing`'];
 };
 
 const createDataFields = (dataFields: EnrichedAttributeQuery[] | EnrichedFieldQuery[]) => {
 	return dataFields.map((df) => {
 		if (df.$path === 'id') {
-			return `meta::id(${df.$path}) AS ${df.$as}`;
+			return `record::id(${df.$path}) AS ${df.$as}`;
 		}
 		if (df.$path === df.$as) {
 			return `\`${df.$path}\``;

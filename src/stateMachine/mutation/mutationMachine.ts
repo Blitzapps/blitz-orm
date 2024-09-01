@@ -16,12 +16,15 @@ import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import { dependenciesGuard } from './bql/guards/dependenciesGuard';
 import { runTypeDbMutationMachine } from './tql/machine';
 import { runSurrealDbMutationMachine } from './surql/machine';
+import type { FlatBqlMutation } from './bql/flatter';
+import { flattenBQLMutation } from './bql/flatter';
 
 const final = state;
 
 export type bqlMutationContext = {
 	raw: BQLMutationBlock | BQLMutationBlock[];
 	enriched: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
+	flat: FlatBqlMutation;
 	things: any[];
 	edges: any[];
 	res: any[];
@@ -61,6 +64,16 @@ const updateThingsEdges = (ctx: MachineContext, event: any) => {
 	};
 };
 
+const updateBQLFlat = (ctx: MachineContext, event: any) => {
+	return {
+		...ctx,
+		bql: {
+			...ctx.bql,
+			flat: event.data || 'test',
+		},
+	};
+};
+
 const updateBQLRes = (ctx: MachineContext, event: any) => {
 	return {
 		...ctx,
@@ -92,6 +105,10 @@ const preQueryDependencies = async (ctx: MachineContext) => {
 
 const parseBQL = async (ctx: MachineContext) => {
 	return parseBQLMutation(ctx.bql.enriched, ctx.schema);
+};
+
+const flattenBQL = async (ctx: MachineContext) => {
+	return flattenBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
 // Guards
@@ -155,7 +172,8 @@ export const machine = createMachine(
 			transition('done', 'parseBQL', reduce(updateBqlReq)),
 			errorTransition,
 		),
-		parseBQL: invoke(parseBQL, transition('done', 'adapter', reduce(updateThingsEdges)), errorTransition),
+		parseBQL: invoke(parseBQL, transition('done', 'flattenBQL', reduce(updateThingsEdges)), errorTransition),
+		flattenBQL: invoke(flattenBQL, transition('done', 'adapter', reduce(updateBQLFlat)), errorTransition),
 		adapter: invoke(
 			async (ctx: MachineContext) => {
 				//todo: do this properly with multiple providers
@@ -177,7 +195,16 @@ export const machine = createMachine(
 					);
 				}
 				if (provider === 'surrealDB') {
-					return runSurrealDbMutationMachine(ctx.bql.raw, ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
+					//console.log('things!', ctx.bql.flat.things);
+					//console.log('edges!', ctx.bql.flat.edges);
+					return runSurrealDbMutationMachine(
+						ctx.bql.raw,
+						ctx.bql.enriched,
+						ctx.bql.flat,
+						ctx.schema,
+						ctx.config,
+						ctx.handles,
+					);
 				}
 				throw new Error(`Unsupported provider ${provider}.`);
 			},
@@ -219,6 +246,11 @@ export const runMutationMachine = async (
 			enriched: {} as EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 			things: [],
 			edges: [],
+			flat: {
+				things: [],
+				edges: [],
+				arcs: [],
+			},
 			res: [],
 		},
 		schema: schema as EnrichedBormSchema,

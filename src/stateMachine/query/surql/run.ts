@@ -8,6 +8,6 @@ export const run = async (props: { client: Surreal; queries: string[] }): Promis
 	COMMIT TRANSACTION;
 	`;
 
-	console.log('batchedQuery', batchedQuery);
+	//console.log('batchedQuery', batchedQuery);
 	return await client.query(batchedQuery);
 };

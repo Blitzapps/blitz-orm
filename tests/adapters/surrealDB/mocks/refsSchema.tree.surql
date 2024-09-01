@@ -23,7 +23,7 @@ BEGIN TRANSACTION;
 		DEFINE FIELD ⟨remove_user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
 			DEFINE EVENT ⟨remove_user-tags⟩ ON TABLE User WHEN $after.⟨remove_user-tags⟩ && $before.⟨remove_user-tags⟩ == NONE THEN {
 				FOR $each in $after.⟨remove_user-tags⟩ {
-					UPDATE $each SET users -= [$before.id];
+					UPDATE $each SET users -= [$after.id];
 				};
 				 UPDATE $this SET  ⟨remove_user-tags⟩ = NONE;
 			};
@@ -74,7 +74,7 @@ BEGIN TRANSACTION;
 		DEFINE FIELD name ON TABLE Space TYPE option<string>;
 
 		--EDGES
-		DEFINE FIELD users ON TABLE Space VALUE <future> { array::distinct(array::flatten(SELECT VALUE array::flatten(`space-user`.users || []) FROM $this))};
+		DEFINE FIELD users ON TABLE Space VALUE <future> { array::flatten(SELECT VALUE array::flatten(`space-user`.users || []) FROM $this)};
 		DEFINE FIELD objects ON TABLE Space TYPE option<array<record<SpaceObj|Self|SpaceDef|Kind|Field|DataField>>>;
 		DEFINE FIELD definitions ON TABLE Space TYPE option<array<record<SpaceDef|Kind|Field|DataField>>>;
 		DEFINE FIELD kinds ON TABLE Space TYPE option<array<record<Kind>>>;
@@ -121,15 +121,8 @@ BEGIN TRANSACTION;
 		DEFINE FIELD description ON TABLE Power TYPE string;
 
 	DEFINE TABLE Session SCHEMAFULL PERMISSIONS FULL;
-		--ATTRIBUTES
 		DEFINE FIELD sessionToken ON TABLE Session TYPE string;
 		DEFINE FIELD expires ON TABLE Session TYPE datetime;
-		--EDGES
-		DEFINE FIELD user ON TABLE Session VALUE <future> { RETURN SELECT VALUE ⟨user-sessions⟩.user FROM ONLY $this }; 
-		--SUPPORT for target:role
-		DEFINE FIELD ⟨user-sessions⟩ ON TABLE Session TYPE option<array<record<⟨User-Sessions⟩>>>;
-
-
 
 	DEFINE TABLE Hook SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD timestamp ON TABLE Hook TYPE option<datetime>;
@@ -161,7 +154,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.user, $after.user);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-accounts` -= [$before.id];
+								UPDATE $unlink SET `user-accounts` -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET `user-accounts` += [$after.id]; // Todo: the right management for card one and many
@@ -173,7 +166,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.accounts, $after.accounts);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-accounts` -= [$before.id];
+								UPDATE $unlink SET `user-accounts` -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET `user-accounts` += [$after.id];
@@ -182,52 +175,28 @@ BEGIN TRANSACTION;
 		
 	DEFINE TABLE ⟨User-Sessions⟩ SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD user ON TABLE ⟨User-Sessions⟩ TYPE record<User|God|SuperUser>;
-				DEFINE EVENT update_user ON TABLE ⟨User-Sessions⟩ WHEN $before.sessions != $after.sessions THEN {
-
-						LET $edges = fn::get_mutated_edges($before.sessions, $after.sessions);
-
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-sessions` -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-sessions` += [$after.id];
-						};
-				};
-
 		DEFINE FIELD sessions ON TABLE ⟨User-Sessions⟩ TYPE array<record<Session>>;
-			DEFINE EVENT update_sessions ON TABLE ⟨User-Sessions⟩ WHEN $before.sessions != $after.sessions THEN {
-
-						LET $edges = fn::get_mutated_edges($before.sessions, $after.sessions);
-
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-session` -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-session` += [$after.id];
-						};
-				};
 
 	DEFINE TABLE ⟨Space-User⟩ SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD spaces ON TABLE ⟨Space-User⟩ TYPE option<array<record<Space>>>; //Todo: remove option when surrealDB transactions are smarter.
+		DEFINE FIELD spaces ON TABLE ⟨Space-User⟩ TYPE array<record<Space>>;
 				DEFINE EVENT update_space ON TABLE ⟨Space-User⟩ WHEN $before.spaces != $after.spaces THEN {
 
 						LET $edges = fn::get_mutated_edges($before.spaces, $after.spaces);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `space-user` -= [$before.id];
+								UPDATE $unlink SET `space-user` -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET `space-user` += [$after.id];
 						};
 				};
-		DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE option<array<record<User|God|SuperUser>>>; //Todo: remove option when surrealDB transactions are smarter.
+		DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE array<record<User|God|SuperUser>>;
 				DEFINE EVENT update_user ON TABLE ⟨Space-User⟩ WHEN $before.users != $after.users THEN {
-						
 
 						LET $edges = fn::get_mutated_edges($before.users, $after.users);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `space-user` -= [$before.id]; //use before for DELETE events
+								UPDATE $unlink SET `space-user` -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET `space-user` += [$after.id];
@@ -243,20 +212,18 @@ BEGIN TRANSACTION;
 					LET $edges = fn::get_mutated_edges($before.users, $after.users);
 
 					FOR $unlink IN $edges.deletions {
-							UPDATE $unlink SET `user-tags` -= [$before.id];
+							UPDATE $unlink SET `user-tags` -= $after.id;
 					};
 					FOR $link IN $edges.additions {
-							UPDATE $link SET `user-tags` += [$after.id];
+							UPDATE $link SET `user-tags` += $after.id;
 					};
 				};
-		DEFINE FIELD group ON TABLE UserTag TYPE option<record<UserTagGroup>>;				
+		DEFINE FIELD group ON TABLE UserTag TYPE option<record<UserTagGroup>>;
 		DEFINE FIELD color ON TABLE UserTag VALUE <future> { RETURN SELECT VALUE group.color FROM ONLY $this}; 
 
 	DEFINE TABLE UserTagGroup SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD tags ON TABLE UserTagGroup TYPE option<array<record<UserTag>>>;
+		DEFINE FIELD tags ON TABLE UserTagGroup TYPE array<record<UserTag>>;
 				DEFINE EVENT update_userTag ON TABLE UserTagGroup WHEN $before.tags != $after.tags THEN {
-
-					//Usertag us special because is card ONE, this means that when we link it we also need to clean the previous link
 
 					LET $edges = fn::get_mutated_edges($before.tags, $after.tags);
 
@@ -264,8 +231,6 @@ BEGIN TRANSACTION;
 							UPDATE $unlink SET group = NONE; //this does not work it is being created in the same transaction
 					};
 					FOR $link IN $edges.additions {
-							//Usertag us special because is card ONE, this means that when we link it we also need to clean the previous link
-							IF ($link.group) THEN {UPDATE $link.group SET tags -= $link.id} END;
 							UPDATE $link SET group = $after.id; //Card ONE
 					};
 				};
@@ -314,7 +279,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.space, $after.space);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET objects -= [$before.id];
+								UPDATE $unlink SET objects -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET objects += [$after.id];
@@ -329,7 +294,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.space, $after.space);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET definitions -= [$before.id];
+								UPDATE $unlink SET definitions -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET definitions += [$after.id];
@@ -337,7 +302,7 @@ BEGIN TRANSACTION;
 			};
 
 	DEFINE TABLE Kind SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD name ON Table Kind TYPE option<string>;
+		DEFINE FIELD name ON Table Kind TYPE string;
 		
 		DEFINE FIELD space ON TABLE Kind TYPE option<record<Space>>; //fix once surrealDB supports self-aware transactions
 			DEFINE EVENT update_space ON TABLE Kind WHEN $before.space != $after.space THEN {
@@ -345,74 +310,14 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.space, $after.space);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET kinds -= [$before.id], objects -= [$before.id], definitions -= [$before.id] ; //KIND extends SpaceDef which extends SpaceObj
+								UPDATE $unlink SET kinds -= [$after.id], objects -= [$after.id], definitions -= [$after.id] ; //KIND extends SpaceDef which extends SpaceObj
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET kinds += [$after.id], objects += [$after.id], definitions += [$after.id] ; //KIND extends SpaceDef which extends SpaceObj
 						};
 			};
-		DEFINE FIELD dataFields ON TABLE Kind TYPE option<array<record<DataField>>>;
-		DEFINE FIELD fields ON TABLE Kind TYPE option<array<record<Field|DataField>>>;
-		
-	DEFINE TABLE Field SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD name ON TABLE Field TYPE option<string>;
-		DEFINE FIELD cardinality ON TABLE Field TYPE option<string>;
-		DEFINE FIELD description ON TABLE Field TYPE option<string>;
-		DEFINE FIELD space ON TABLE Field TYPE option<record<Space>>; //fix once surrealDB supports self-aware transactions
-			DEFINE EVENT update_space ON TABLE Field WHEN $before.space != $after.space THEN {
 
-						LET $edges = fn::get_mutated_edges($before.space, $after.space);
 
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET fields -= [$before.id], objects -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET fields += [$after.id], objects += [$after.id];
-						};
-			};
-		DEFINE FIELD kinds ON TABLE Field TYPE option<array<record<Kind>>>;
-			DEFINE EVENT update_kinds ON TABLE Field WHEN $before.kinds != $after.kinds THEN {
-
-						LET $edges = fn::get_mutated_edges($before.kinds, $after.kinds);
-
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET objects -= [$before.id], definitions -= [$before.id], fields -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET  objects += [$after.id], definitions += [$after.id], fields += [$after.id];
-						};
-			};
-				-- there is no subtyping in SurrealDB, we need to duplicate the fields
-			DEFINE TABLE DataField SCHEMAFULL PERMISSIONS FULL;
-				DEFINE FIELD name ON TABLE DataField TYPE option<string>;
-				DEFINE FIELD cardinality ON TABLE DataField TYPE option<string>;
-				DEFINE FIELD type ON TABLE DataField TYPE option<string>;
-				DEFINE FIELD computeType ON TABLE DataField TYPE option<string>;
-				DEFINE FIELD description ON TABLE DataField TYPE option<string>;
-				DEFINE FIELD space ON TABLE DataField TYPE option<record<Space>>; //fix once surrealDB supports self-aware transactions
-					DEFINE EVENT update_space ON TABLE DataField WHEN $before.space != $after.space THEN {
-
-						LET $edges = fn::get_mutated_edges($before.space, $after.space);
-
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET objects -= [$before.id], definitions -= [$before.id], fields -= [$before.id], dataFields -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET  objects += [$after.id], definitions += [$after.id], fields += [$after.id], dataFields += [$after.id];
-						};
-					};
-				DEFINE FIELD kinds ON TABLE DataField TYPE option<array<record<Kind>>>;
-					DEFINE EVENT update_kinds ON TABLE DataField WHEN $before.kinds != $after.kinds THEN {
-
-						LET $edges = fn::get_mutated_edges($before.kinds, $after.kinds);
-
-						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET dataFields -= [$before.id],  fields -= [$before.id];
-						};
-						FOR $link IN $edges.additions {
-								UPDATE $link SET dataFields += [$after.id], fields += [$after.id];
-						};
-				};
 	DEFINE TABLE Self SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD space ON TABLE Self TYPE record<Space>;
 			DEFINE EVENT update_space ON TABLE Self WHEN $before.space != $after.space THEN {
@@ -420,7 +325,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.space, $after.space);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET selfs -= [$before.id], objects -= [$before.id];
+								UPDATE $unlink SET selfs -= [$after.id], objects -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET selfs += [$after.id], objects += [$after.id];
@@ -432,7 +337,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.owner, $after.owner);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET owned -= [$before.id];
+								UPDATE $unlink SET owned -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET owned += [$after.id];
@@ -449,7 +354,7 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.company, $after.company);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET employees -= [$before.id];
+								UPDATE $unlink SET employees -= [$after.id];
 						};
 						FOR $link IN $edges.additions {
 								UPDATE $link SET employees += [$after.id];

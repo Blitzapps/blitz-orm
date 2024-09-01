@@ -3,7 +3,7 @@ import { isArray, listify, mapEntries, shake } from 'radash';
 import { genId, getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { EdgeType } from '../../../types/symbols';
-import { parseFlexVal } from '../../../adapters/typeDB/parseFlexVal';
+import { parseFlexValTypeDB } from '../../../adapters/typeDB/parseFlexVal';
 
 export const buildTQLMutation = async (things: any[], edges: any[], schema: EnrichedBormSchema) => {
 	if ((!things && !edges) || (!things.length && !edges.length)) {
@@ -72,7 +72,7 @@ export const buildTQLMutation = async (things: any[], edges: any[], schema: Enri
 				//ex: $color isa Color, has id 'testi', has Color·freeForAll $tempId; $tempId "number" isa Color·freeForAll, has longVal 7;
 				const tempId = `bza${genId()}`;
 
-				const parsedVal = isArray(v) ? v.map((v) => parseFlexVal(v)) : parseFlexVal(v);
+				const parsedVal = isArray(v) ? v.map((v) => parseFlexValTypeDB(v)) : parseFlexValTypeDB(v);
 				if (Array.isArray(parsedVal)) {
 					throw new Error('Array in FLEX fields not supported yet');
 				}

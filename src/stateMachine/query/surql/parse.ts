@@ -1,6 +1,7 @@
 import { isArray } from 'radash';
 import type {
 	BormConfig,
+	ContentType,
 	EnrichedBormSchema,
 	EnrichedBQLQuery,
 	EnrichedFieldQuery,
@@ -69,11 +70,13 @@ const parseFieldResult = (query: EnrichedFieldQuery, value: any) => {
 	if (value === undefined || value === null || (isArray(value) && value.length === 0)) {
 		return null;
 	}
+
 	if (query.$fieldType === 'data') {
+		const { contentType } = query[FieldSchema];
 		if (query[FieldSchema].cardinality === 'ONE') {
-			isArray(value) ? value[0] : value;
+			parseValue(value, contentType);
 		}
-		return value ?? null;
+		return parseValue(value, contentType) ?? null;
 	}
 	if (query.$justId) {
 		if (query.$filterByUnique || query[FieldSchema].cardinality === 'ONE') {
@@ -88,4 +91,13 @@ const parseFieldResult = (query: EnrichedFieldQuery, value: any) => {
 		}
 		return parseRes(query, value);
 	}
+};
+
+const parseValue = (value: unknown, contentType: ContentType) => {
+	const asArray = isArray(value) ? value : [value];
+	if (contentType === 'DATE') {
+		const res = asArray.map((v) => new Date(v).toISOString());
+		return isArray(value) ? res : res[0];
+	}
+	return value;
 };

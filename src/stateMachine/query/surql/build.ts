@@ -90,8 +90,8 @@ const buildFieldsQuery = (props: {
 	const queryPath = parentQuery[QueryPath];
 	//Metadata
 	lines.push(indent(`"${queryPath}" as \`$$queryPath\``, level));
-	lines.push(indent('meta::id(id) as `$id`', level));
-	lines.push(indent('meta::tb(id) as `$thing`', level));
+	lines.push(indent('record::id(id) as `$id`', level));
+	lines.push(indent('record::tb(id) as `$thing`', level));
 
 	queries.forEach((i) => {
 		const line = buildFieldQuery({ query: i, level, schema });
@@ -131,7 +131,7 @@ const buildAttributeQuery = (props: { query: EnrichedAttributeQuery; level: numb
 	}
 	// TODO: Get the field id from the schema.
 	if (query.$path === 'id') {
-		return indent(`meta::id(${query.$path}) AS ${query.$as}`, level);
+		return indent(`record::id(${query.$path}) AS ${query.$as}`, level);
 	}
 	if (query.$path === query.$as) {
 		return indent(`\`${query.$path}\``, level);

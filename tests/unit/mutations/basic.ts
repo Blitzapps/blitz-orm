@@ -1,9 +1,10 @@
+/* eslint-disable prefer-destructuring */
 import { v4 as uuidv4 } from 'uuid';
 
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';
-import type { BQLResponseMulti } from '../../../src';
+import type { BQLResponse, BQLResponseMulti, BQLResponseSingle } from '../../../src';
 
 export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	// some random issues forced a let here
@@ -30,7 +31,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 	const godUser = {
 		$entity: 'God',
-		id: 'squarepusher',
+		id: 'squarePusher',
 		name: 'Tom Jenkinson',
 		email: 'tom@warp.com',
 		power: 'rhythm',
@@ -226,6 +227,20 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				{ id: 'b0b-u2', name: 'bo-u2' },
 			],
 		});
+
+		//CLEAN ALL
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: ['b0b-u1', 'b0b-u2', 'b0b-u3'],
+			},
+			{
+				$relation: 'UserTag',
+				$op: 'delete',
+				$id: 'b0b-ut1',
+			},
+		]);
 	});
 
 	it('TODO{T}:l1[direct linkField] Basic linkField', async () => {
@@ -298,6 +313,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				{ id: 'l1-utg3', name: 'allRenamed' },
 			],
 		});
+
 		//UNLINK ONE
 		await ctx.mutate(
 			{
@@ -321,6 +337,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				{ id: 'l1-utg3', name: 'allRenamed' },
 			],
 		});
+
 		// DELETE REST
 		await ctx.mutate(
 			{
@@ -388,7 +405,15 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b1a[create] Basic', async () => {
-		const res = await ctx.mutate(firstUser, { noMetadata: true });
+		await ctx.mutate(firstUser, { noMetadata: true });
+		const res = (await ctx.query(
+			{
+				$entity: 'User',
+				$filter: { name: firstUser.name },
+			},
+			{ noMetadata: true },
+		)) as BQLResponse[];
+
 		const expectedUnit = {
 			id: '$unitId',
 			name: 'John',
@@ -399,6 +424,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		const [user] = res;
 		// @ts-expect-error - TODO description
 		expectArraysInObjectToContainSameElements(user, expectedUnit);
+		// @ts-expect-error - TODO description
 		firstUser = { ...firstUser, id: user.id };
 	});
 
@@ -407,29 +433,41 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			$thing: 'Account',
 			id: uuidv4(),
 		};
-		const createRes = await ctx.mutate(account, { noMetadata: false });
-		expect(createRes).toMatchObject([account]);
+		await ctx.mutate(account, { noMetadata: false });
+
+		const createRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+
+		expect(createRes).toMatchObject(account);
 
 		const updated = {
 			...account,
 			$id: account.id,
 			profile: { hobby: ['Running'] },
 		};
-		const updateRes = await ctx.mutate(updated);
-		expect(updateRes).toMatchObject([updated]);
+		await ctx.mutate(updated);
 
-		const deleteRes = await ctx.mutate({
+		const updateRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+
+		expect(updateRes).toMatchObject(updated);
+
+		await ctx.mutate({
 			$thing: 'Account',
 			$op: 'delete',
 			$id: account.id,
 		});
-		expect(deleteRes).toMatchObject([
-			{
-				$op: 'delete',
-				$thing: 'Account',
-				$id: account.id,
-			},
-		]);
+
+		const deleteRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+
+		expect(deleteRes).toBeNull();
 	});
 
 	it('b1b[create, update] Create a thing with a JSON attribute, then update it', async () => {
@@ -438,28 +476,37 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			id: uuidv4(),
 			profile: { hobby: ['Running'] },
 		};
-		const createRes = await ctx.mutate(account);
-		expect(createRes).toMatchObject([account]);
+		await ctx.mutate(account);
+		const createRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+		expect(createRes).toMatchObject(account);
 
 		const updated = {
 			...account,
 			$id: account.id,
 			profile: { hobby: ['Running', 'Hiking'] },
 		};
-		const updateRes = await ctx.mutate(updated);
-		expect(updateRes).toMatchObject([updated]);
-		const deleteRes = await ctx.mutate({
+		await ctx.mutate(updated);
+		const updateRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+		expect(updateRes).toMatchObject(updated);
+
+		await ctx.mutate({
 			$thing: 'Account',
 			$op: 'delete',
 			$id: account.id,
 		});
-		expect(deleteRes).toMatchObject([
-			{
-				$op: 'delete',
-				$thing: 'Account',
-				$id: account.id,
-			},
-		]);
+
+		const deleteRes = await ctx.query({
+			$entity: 'Account',
+			$id: account.id,
+		});
+
+		expect(deleteRes).toBeNull();
 	});
 
 	it('b1b[create] Create a nested thing with a JSON attribute', async () => {
@@ -488,31 +535,33 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				user: 'b1b-user1',
 			},
 		]);
-		const deleteRes = await ctx.mutate({
+		await ctx.mutate({
 			$thing: 'User',
 			$op: 'delete',
 			$id: user.id,
 			accounts: [{ $op: 'delete' }],
 		});
-		expect(deleteRes).toMatchObject([
+
+		const deleteRes = await ctx.query([
 			{
-				$op: 'delete',
-				$thing: 'User',
+				$entity: 'User',
 				$id: user.id,
 			},
 			{
-				$op: 'delete',
-				$thing: 'Account',
+				$entity: 'Account',
+				$id: 'b1b-account1',
 			},
 			{
-				$op: 'delete',
-				$thing: 'User-Accounts',
+				$relation: 'User-Accounts',
+				$id: 'b1b-user1',
 			},
 		]);
+
+		expect(deleteRes).toMatchObject([null, null, null]);
 	});
 
 	it('b2a[update] Basic', async () => {
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: firstUser.id,
@@ -522,20 +571,12 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toMatchObject({
-			name: 'Johns not',
-			email: 'john@test.com',
-		});
-
-		if (!firstUser.id) {
-			throw new Error('firstUser.id is undefined');
-		}
-
-		const res2 = await ctx.query({
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: firstUser.id,
 		});
-		expect(res2).toEqual({
+
+		expect(res).toEqual({
 			id: firstUser.id,
 			name: 'Johns not',
 			email: 'john@test.com',
@@ -557,7 +598,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: false },
 		);
 
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -567,20 +608,21 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		console.log('res!', res);
-		expect(res[0]).toMatchObject({
-			name: null,
-		});
-
-		const res2 = await ctx.query(
+		const res = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'b2b-user',
 				$fields: ['name', 'email'],
 			},
-			{ noMetadata: true },
+			{ noMetadata: true, returnNulls: true },
 		);
-		expect(res2).toMatchObject({ email: 'foo@test.com' });
+
+		expect(res).toMatchObject({
+			name: null,
+			email: 'foo@test.com',
+		});
+
+		expect(res).toMatchObject({ email: 'foo@test.com' });
 
 		/// CLEAN: delete b2b-user
 		await ctx.mutate(
@@ -605,7 +647,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: false },
 		);
 
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -616,12 +658,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toMatchObject({
-			name: null,
-			email: 'bar@test.com',
-		});
-
-		const res2 = await ctx.query(
+		const res = await ctx.query(
 			{
 				$entity: 'User',
 				$id: 'b2c-user',
@@ -629,7 +666,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-		expect(res2).toEqual({ email: 'bar@test.com' });
+		expect(res).toEqual({ email: 'bar@test.com' });
 
 		// CLEAN: delete b2c-user
 		await ctx.mutate(
@@ -654,7 +691,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: false },
 		);
 
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$op: 'update',
 				$entity: 'User',
@@ -664,9 +701,16 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(res[0]).toMatchObject({
-			email: '',
-		});
+		const res = await ctx.query(
+			{
+				$entity: 'User',
+				$id: 'b2d-user',
+				$fields: ['email'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({ email: '' });
 
 		const res2 = await ctx.query(
 			{
@@ -690,32 +734,18 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b3e[delete, entity] Basic', async () => {
-		const res = await ctx.mutate({
+		await ctx.mutate({
 			$entity: 'User',
 			$op: 'delete',
 			$id: firstUser.id,
 		});
 
-		expect(res).toMatchObject([
-			{
-				$thing: 'User',
-				$thingType: 'entity',
-				$op: 'delete',
-				$id: firstUser.id,
-				$bzId: expect.any(String),
-			},
-		]);
-
-		if (!firstUser.id) {
-			throw new Error('firstUser.id is undefined');
-		}
-
-		const res2 = await ctx.query({
+		const res = await ctx.query({
 			$entity: 'User',
-			$id: firstUser.id as string,
+			$id: firstUser.id,
 		});
 
-		expect(res2).toBeNull();
+		expect(res).toBeNull();
 	});
 
 	it('b3r[delete, relation] Basic', async () => {
@@ -752,6 +782,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 		]);
 	});
+
 	it('b3rn[delete, relation, nested] Basic', async () => {
 		//create nested object
 		await ctx.mutate(
@@ -767,6 +798,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 						{ id: 'ustag3', color: { id: 'silver' } },
 					],
 				},
+				accounts: [{ id: 'b3rn-a2' }],
 			},
 			{ preQuery: true },
 		);
@@ -774,15 +806,15 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{
 				$entity: 'User',
 				$id: 'u2',
-				$fields: [{ $path: 'user-tags', $fields: ['id', 'color'] }],
+				$fields: [{ $path: 'user-tags', $fields: ['id', 'color', 'group'] }],
 			},
 			{ noMetadata: true },
 		);
 		expect(deepSort(res1, 'id')).toEqual({
 			'user-tags': [
-				{ id: 'ustag1', color: 'pink' },
-				{ id: 'ustag2', color: 'gold' },
-				{ id: 'ustag3', color: 'silver' },
+				{ id: 'ustag1', color: 'pink', group: expect.any(String) },
+				{ id: 'ustag2', color: 'gold', group: expect.any(String) },
+				{ id: 'ustag3', color: 'silver', group: expect.any(String) },
 			],
 		});
 
@@ -860,18 +892,23 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				'user-tags': [{ id: 'ustag1' }],
 			},
 		});
-		/// clean user
+		/// clean user and account
 		await ctx.mutate([
 			{
 				$entity: 'User',
 				$op: 'delete',
 				$id: 'u2',
 			},
+			{
+				$entity: 'Account',
+				$op: 'delete',
+				$id: 'b3rn-a2',
+			},
 		]);
 	});
 
 	it('b4[create, children] Create with children', async () => {
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				...secondUser,
 				spaces: [{ name: spaceOne.name }, { name: spaceTwo.name }],
@@ -879,33 +916,73 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		// @ts-expect-error - TODO description
-		spaceOne.id = res?.find((r) => r.name === 'Space 1').id;
-		// @ts-expect-error - TODO description
-		spaceTwo.id = res?.find((r) => r.name === 'Space 2').id;
-		// @ts-expect-error - TODO description
-		secondUser.id = res?.find((r) => r.name === 'Jane').id;
+		const res = (await ctx.query(
+			[
+				{
+					$entity: 'User',
+					$filter: { name: secondUser.name },
+				},
+				{
+					$entity: 'Space',
+					$filter: { name: [spaceOne.name, spaceTwo.name] },
+				},
+			],
+			{ noMetadata: true },
+		)) as BQLResponseMulti;
 
-		expect(res).toBeDefined();
-		expect(res).toBeInstanceOf(Object);
+		const user = res[0][0];
+		secondUser.id = user.id;
 
-		expect(JSON.parse(JSON.stringify(res))).toEqual([
+		const spaces = deepSort(res[1], 'name');
+
+		spaceOne.id = spaces[0].id;
+		spaceTwo.id = spaces[1].id;
+
+		console.log('secondUser', secondUser);
+
+		const relations = await ctx.query(
 			{
-				email: 'jane@test.com',
-				id: secondUser.id,
-				name: 'Jane',
+				$relation: 'Space-User',
+				//@ts-expect-error - TODO description
+				$filter: { users: secondUser.id },
 			},
-			spaceOne,
-			spaceTwo,
-			{
-				spaces: spaceOne.id,
-				users: secondUser.id,
-			},
-			{
-				spaces: spaceTwo.id,
-				users: secondUser.id,
-			},
-		]);
+			{ noMetadata: true },
+		);
+
+		expect(user).toBeDefined();
+		expect(user).toBeInstanceOf(Object);
+		expect(spaces).toBeDefined();
+		expect(spaces).toBeInstanceOf(Array);
+		expect(relations).toBeDefined();
+		expect(relations).toBeInstanceOf(Array);
+
+		expect(user).toMatchObject({
+			id: secondUser.id,
+			name: secondUser.name,
+			email: secondUser.email,
+		});
+
+		expect(spaces).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ ...spaceOne, users: [secondUser.id] }),
+				expect.objectContaining({ ...spaceTwo, users: [secondUser.id] }),
+			]),
+		);
+
+		expect(relations).toHaveLength(2);
+
+		expect(relations).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					spaces: [spaceOne.id],
+					users: [secondUser.id],
+				}),
+				expect.objectContaining({
+					spaces: [spaceTwo.id],
+					users: [secondUser.id],
+				}),
+			]),
+		);
 
 		if (!secondUser.id) {
 			throw new Error('firstUser.id is undefined');
@@ -918,6 +995,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
+
 		expect(deepSort(res2)).toEqual({
 			id: secondUser.id,
 			name: 'Jane',
@@ -937,15 +1015,23 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 	it('b4.2[create, link] Create all then link', async () => {
 		/// create third user
-		const res1 = await ctx.mutate(
+		await ctx.mutate(
 			{
 				...thirdUser,
 			},
 			{ noMetadata: true, preQuery: true },
 		);
 
+		const res1 = (await ctx.query(
+			{
+				$entity: 'User',
+				$filter: { name: thirdUser.name },
+			},
+			{ noMetadata: true },
+		)) as BQLResponseMulti;
+
 		// create spaces
-		const res2 = await ctx.mutate(
+		await ctx.mutate(
 			[
 				{
 					$entity: 'Space',
@@ -959,11 +1045,20 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true, preQuery: true },
 		);
 
+		const res2 = await ctx.query(
+			{
+				$entity: 'Space',
+				$filter: { name: [spaceThree.name, spaceFour.name] },
+			},
+			{ noMetadata: true },
+		);
+
+		thirdUser.id = res1[0].id;
+
 		// @ts-expect-error - TODO description
 		spaceThree.id = res2?.find((r) => r.name === 'Space 3').id;
 		// @ts-expect-error - TODO description
 		spaceFour.id = res2?.find((r) => r.name === 'Space 4').id;
-		thirdUser.id = res1[0].id;
 
 		expect(res1).toBeDefined();
 		expect(res1).toBeInstanceOf(Object);
@@ -971,7 +1066,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		expect(res2).toBeInstanceOf(Object);
 
 		// link the user to the spaces
-		const res3 = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: thirdUser.id,
@@ -984,85 +1079,107 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true, preQuery: true },
 		);
 
-		expectArraysInObjectToContainSameElements(JSON.parse(JSON.stringify(res3)), [
+		const relations = await ctx.query(
 			{
-				spaces: spaceThree.id,
-				users: thirdUser.id,
+				$relation: 'Space-User',
+				//@ts-expect-error - TODO description
+				$filter: { users: thirdUser.id },
 			},
-			{
-				spaces: spaceFour.id,
-				users: thirdUser.id,
-			},
-		]);
+			{ noMetadata: true },
+		);
+
+		expect(relations).toHaveLength(2);
+
+		expect(relations).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					spaces: [spaceThree.id],
+					users: [thirdUser.id],
+				}),
+				expect.objectContaining({
+					spaces: [spaceFour.id],
+					users: [thirdUser.id],
+				}),
+			]),
+		);
 	});
 
-	it('TODO{TS}:b4.3[update, link] Link ALL (without ids)', async () => {
-		const res = await ctx.mutate(
+	it('TODO{T}:b4.3[update, link] Link ALL (without ids)', async () => {
+		await ctx.mutate(
 			{
 				$entity: 'Space',
-				$id: 'space-3',
+				id: 'b4-3-Space',
+			},
+			{ noMetadata: true },
+		);
+
+		await ctx.mutate(
+			{
+				$entity: 'Space',
+				$id: 'b4-3-Space',
 				users: [{ $op: 'link' }],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(JSON.parse(JSON.stringify(res))).toEqual([
-			{
-				email: 'jane@test.com',
-				id: secondUser.id,
-				name: 'Jane',
-			},
-			spaceOne,
-			spaceTwo,
-			{
-				spaces: spaceOne.id,
-				users: secondUser.id,
-			},
-			{
-				spaces: spaceTwo.id,
-				users: secondUser.id,
-			},
-		]);
-	});
-
-	it('TODO{TS}:b4.4[create, link] Create and link ALL (without ids)', async () => {
-		const res = await ctx.mutate(
+		const res = (await ctx.query(
 			{
 				$entity: 'Space',
-				id: 'space-5', //no $op and no $id means create
+				$id: 'b4-3-Space',
+				$fields: ['id', 'users'],
+			},
+			{ noMetadata: true },
+		)) as BQLResponseSingle;
+
+		expect(res).toBeInstanceOf(Object);
+		expect(res.users).toBeInstanceOf(Array);
+		expect(res.users).toHaveLength(7);
+
+		await ctx.mutate(
+			{
+				$entity: 'Space',
+				$id: 'b4-3-Space',
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
+	});
+
+	it('TODO{TS}:b4.4[create, link] Create and link ALL at once (without ids)', async () => {
+		await ctx.mutate(
+			{
+				$entity: 'Space',
+				id: 'b4-4-Space',
 				users: [{ $op: 'link' }],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(JSON.parse(JSON.stringify(res))).toEqual([
+		const res = (await ctx.query(
 			{
-				email: 'jane@test.com',
-				id: secondUser.id,
-				name: 'Jane',
+				$entity: 'Space',
+				$id: 'b4-4-Space',
+				$fields: ['id', 'users'],
 			},
-			spaceOne,
-			spaceTwo,
-			{
-				spaces: spaceOne.id,
-				users: secondUser.id,
-			},
-			{
-				spaces: spaceTwo.id,
-				users: secondUser.id,
-			},
-		]);
+			{ noMetadata: true },
+		)) as BQLResponseSingle;
 
-		//clean
-		await ctx.mutate({
-			$entity: 'Space',
-			$op: 'delete',
-			$id: 'space-5',
-		});
+		expect(res).toBeInstanceOf(Object);
+		expect(res.users).toBeInstanceOf(Array);
+		expect(res.users).toHaveLength(7);
+
+		await ctx.mutate(
+			{
+				$entity: 'Space',
+				$id: 'b4-4-Space',
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
 	});
 
 	it('b5[update, children] Update children', async () => {
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$entity: 'User',
 				$id: secondUser.id,
@@ -1074,14 +1191,30 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		expect(JSON.parse(JSON.stringify(res[0]))).toEqual(
-			// { id: expect.any(String), name: 'newSpace1' },
-			{ name: 'newSpace2' },
+		const res = await ctx.query(
+			{
+				$entity: 'User',
+				$id: secondUser.id,
+				$fields: ['id', { $path: 'spaces' }],
+			},
+			{ noMetadata: true },
 		);
 
+		//@ts-expect-error - TODO
+		console.log('res', res.spaces);
+		console.log('res', res);
+
 		if (!secondUser.id) {
-			throw new Error('firstUser.id is undefined');
+			throw new Error('secondUser.id is undefined');
 		}
+
+		expect(res).toEqual(
+			// { id: expect.any(String), name: 'newSpace1' },
+			{
+				id: secondUser.id,
+				spaces: [{ name: 'newSpace2', id: spaceTwo.id, users: [secondUser.id] }],
+			},
+		);
 
 		const res2 = await ctx.query(
 			{
@@ -1106,7 +1239,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b6.1[create, withId] Create with id (override default)', async () => {
-		const res = await ctx.mutate(
+		await ctx.mutate(
 			[
 				{
 					$entity: 'Color',
@@ -1119,12 +1252,17 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			],
 			{ noMetadata: true },
 		);
-		expect(JSON.parse(JSON.stringify(res))).toEqual([
+
+		const res = await ctx.query(
 			{
-				id: 'teal',
+				$entity: 'Color',
+				$id: ['green', 'teal'],
+				$fields: ['id'],
 			},
-			{ id: 'green' },
-		]);
+			{ noMetadata: true },
+		);
+
+		expect(res).toHaveLength(2);
 
 		/// CLEAN: delete the newly created colors
 		await ctx.mutate([
@@ -1177,9 +1315,17 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('b7[create, inherited] inheritedAttributesMutation', async () => {
-		const res = await ctx.mutate(godUser, { noMetadata: true });
-		expect(res[0]).toEqual({
-			id: 'squarepusher',
+		await ctx.mutate(godUser, { noMetadata: true });
+		const res = await ctx.query(
+			{
+				$entity: 'God', //Todo: this should probably work with User too
+				$id: 'squarePusher',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			id: 'squarePusher',
 			name: 'Tom Jenkinson',
 			email: 'tom@warp.com',
 			power: 'rhythm',
@@ -1325,18 +1471,16 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n1[create, nested] nested', async () => {
-		const mutated = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'Kind',
+				id: 'n1-kind',
 				name: 'myTest',
 				space: 'space-3',
-				dataFields: [{ $op: 'create', name: 'myTestField', space: 'space-3' }],
+				dataFields: [{ id: 'n1-field', $op: 'create', name: 'myTestField', space: 'space-3' }],
 			},
 			{ noMetadata: true },
 		);
-
-		const fieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		const kindId = mutated?.find((m) => m.name === 'myTest')?.id;
 
 		const kinds = await ctx.query(
 			{
@@ -1346,11 +1490,11 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		);
 		const expectedKindTemplate = [
 			{
-				id: kindId, // '$newKindId',
+				id: 'n1-kind',
 				name: 'myTest',
 				space: 'space-3',
-				fields: [fieldId], // todo: replace by template ids
-				dataFields: [fieldId],
+				fields: ['n1-field'],
+				dataFields: ['n1-field'],
 			},
 			{ id: 'kind-book', name: 'book', space: 'space-2' },
 		];
@@ -1366,9 +1510,9 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 		const expectedFieldsTemplate = [
 			{
-				id: fieldId,
+				id: 'n1-field',
 				name: 'myTestField',
-				kinds: [kindId],
+				kinds: ['n1-kind'],
 				space: 'space-3',
 			},
 		];
@@ -1386,12 +1530,12 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				{
 					$relation: 'Kind',
 					$op: 'delete',
-					$id: kindId,
+					$id: 'n1-kind',
 				},
 				{
 					$relation: 'DataField',
 					$op: 'delete',
-					$id: fieldId,
+					$id: 'n1-field',
 				},
 			],
 			{ noMetadata: true },
@@ -1399,19 +1543,22 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n2[create, nested] nested, self referenced', async () => {
-		const mutated = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'Kind',
+				id: 'n2-kind-1',
 				name: 'myTestKind1',
 				space: 'space-3',
 				dataFields: [
 					{
 						$op: 'create',
+						id: 'n2-field',
 						name: 'myTestField',
 						space: 'space-3',
 						kinds: [
 							{
 								$op: 'create',
+								id: 'n2-kind-2',
 								name: 'myTestKind2',
 								space: 'space-3',
 							},
@@ -1421,10 +1568,6 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-
-		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-		const myTestFieldId = mutated?.find((m) => m.name === 'myTestField')?.id;
-		const myTestKind2Id = mutated?.find((m) => m.name === 'myTestKind2')?.id;
 
 		const kinds = await ctx.query(
 			{
@@ -1436,18 +1579,18 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		const expectedKindTemplate = [
 			{ id: 'kind-book', name: 'book', space: 'space-2' },
 			{
-				id: myTestKind1Id,
+				id: 'n2-kind-1',
 				name: 'myTestKind1',
 				space: 'space-3',
-				fields: [myTestFieldId],
-				dataFields: [myTestFieldId],
+				fields: ['n2-field'],
+				dataFields: ['n2-field'],
 			},
 			{
-				id: myTestKind2Id,
+				id: 'n2-kind-2',
 				name: 'myTestKind2',
 				space: 'space-3',
-				fields: [myTestFieldId],
-				dataFields: [myTestFieldId],
+				fields: ['n2-field'],
+				dataFields: ['n2-field'],
 			},
 		];
 
@@ -1464,9 +1607,9 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 		const expectedFieldsTemplate = [
 			{
-				id: myTestFieldId,
+				id: 'n2-field',
 				name: 'myTestField',
-				kinds: [myTestKind1Id, myTestKind2Id],
+				kinds: ['n2-kind-1', 'n2-kind-2'],
 				space: 'space-3',
 			},
 		];
@@ -1485,17 +1628,17 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				{
 					$relation: 'DataField',
 					$op: 'delete',
-					$id: myTestFieldId,
+					$id: 'n2-field',
 				},
 				{
 					$relation: 'Kind',
 					$op: 'delete',
-					$id: myTestKind1Id,
+					$id: 'n2-kind-1',
 				},
 				{
 					$relation: 'Kind',
 					$op: 'delete',
-					$id: myTestKind2Id,
+					$id: 'n2-kind-2',
 				},
 			],
 			{ noMetadata: true },
@@ -1503,19 +1646,22 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 	});
 
 	it('n3[delete, nested] nested delete', async () => {
-		const mutated = await ctx.mutate(
+		await ctx.mutate(
 			{
 				$relation: 'Kind',
+				id: 'n3-kind-1',
 				name: 'myTestKind1',
 				space: 'space-3',
 				dataFields: [
 					{
 						$op: 'create',
+						id: 'n3-field',
 						name: 'myTestField',
 						space: 'space-3',
 						kinds: [
 							{
 								$op: 'create',
+								id: 'n3-kind-2',
 								name: 'myTestKind2',
 								space: 'space-3',
 							},
@@ -1526,14 +1672,12 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		const myTestKind1Id = mutated?.find((m) => m.name === 'myTestKind1')?.id;
-
 		/// delete both things
 		await ctx.mutate(
 			{
 				$relation: 'Kind',
 				$op: 'delete',
-				$id: myTestKind1Id,
+				$id: 'n3-kind-1',
 				dataFields: [{ $op: 'delete', kinds: [{ $op: 'delete' }] }],
 			},
 			{ noMetadata: true },

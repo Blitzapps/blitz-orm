@@ -36,11 +36,11 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 				}
 
 				if (key === '$id') {
-					return { ...acc, '$id': undefined, 'meta::id(id)': { $IN: isArray(value) ? value : [value] } };
+					return { ...acc, '$id': undefined, 'record::id(id)': { $IN: isArray(value) ? value : [value] } };
 				}
 
 				if (key === '$thing') {
-					return acc; //do nothing for now, but in the future we will need to filter by tables as well, maybe meta::tb(id) ...
+					return acc; //do nothing for now, but in the future we will need to filter by tables as well, maybe record::tb(id) ...
 				}
 
 				return { ...acc, [key]: parseFilter(value, currentThing, schema) };
@@ -57,7 +57,7 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 				} //todo: When composed id, this changes:
 
 				if (key === currentSchema.idFields[0]) {
-					return { ...acc, 'meta::id(id)': { $IN: isArray(value) ? value : [value] } };
+					return { ...acc, 'record::id(id)': { $IN: isArray(value) ? value : [value] } };
 				}
 
 				return { ...acc, [key]: value }; //Probably good place to add ONLY and other stuff depending on the fieldSchema

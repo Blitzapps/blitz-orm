@@ -1589,6 +1589,17 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
+	it('TODO{TS}:i2[inherited, attributes] Entity with inherited attributes should fetch them even when querying from parent class', async () => {
+		const res = await ctx.query({ $entity: 'User', $id: 'god1' }, { noMetadata: true });
+		expect(res).toEqual({
+			id: 'god1',
+			name: 'Richard David James',
+			email: 'afx@rephlex.com',
+			power: 'mind control',
+			isEvil: true,
+		});
+	});
+
 	it('s1[self] Relation playing a a role defined by itself', async () => {
 		const res = await ctx.query({ $relation: 'Self' }, { noMetadata: true });
 		expect(deepSort(res, 'id')).toEqual([
@@ -1929,7 +1940,7 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
-	it('TODO{TS}:mv2[multiVal, query, ONE], filter by multiVal', async () => {
+	it('TODO{T}:mv2[multiVal, query, ONE], filter by multiVal', async () => {
 		const res = await ctx.query(
 			{ $entity: 'Color', $filter: { freeForAll: 'hey' }, $fields: ['id', 'freeForAll'] },
 			{ noMetadata: true },

@@ -213,7 +213,10 @@ export const parseBQLMutation = async (
 						// todo: probably check replaces
 						if (value.$op === 'replace') {
 							// Currently pre-queries do not cross reference data nested below a create operation
-							throw new Error('Unsupported: Nested replaces not implemented yet');
+							//throw new Error('Unsupported: Nested replaces not implemented yet');
+							/// So this does not work in typedb without replaces, so basically if you're using typeDB this should not be reached. In other DBs its ok
+							//throw new Error('Unsupported: Nested replaces not implemented yet');
+							return 'replace';
 						}
 						return 'match';
 					};

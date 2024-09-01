@@ -118,8 +118,14 @@ export const runTypeDbMutationMachine = async (
 		bql: {
 			raw: bqRaw,
 			enriched: enrichedBql,
-			things: things,
+			things: things, //to unify at some point with the flat notation
 			edges: edges,
+			flat: {
+				//this is the new version, used for surrealDB
+				things: [],
+				edges: [],
+				arcs: [],
+			},
 			res: [],
 		},
 		tql: {},

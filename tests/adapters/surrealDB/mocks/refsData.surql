@@ -76,11 +76,11 @@ INSERT INTO ⟨Power⟩ [
 ];
 
 INSERT INTO ⟨Space-User⟩ [
-  { id: "u1s1", users: [User:user1], spaces: [Space:`space-1`] },
-	{ id: "u1s2", users: [User:user1], spaces: [Space:`space-2`] },
-	{ id: "u2s2", users: [User:user2], spaces: [Space:`space-2`] },
-	{ id: "u3s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 },
-	{ id: "u5s1", users: [User:user5], spaces: [Space:`space-1`] }
+  { id: "u1-s1", users: [User:user1], spaces: [Space:`space-1`] },
+	{ id: "u1-s2", users: [User:user1], spaces: [Space:`space-2`] },
+	{ id: "u2-s2", users: [User:user2], spaces: [Space:`space-2`] },
+	{ id: "u3-s2", users: [User:user3], spaces: [Space:`space-2`], power: Power:power1 },
+	{ id: "u5-s1", users: [User:user5], spaces: [Space:`space-1`] }
 ];
 
 INSERT INTO ⟨UserTag⟩ [

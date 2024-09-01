@@ -136,6 +136,7 @@ export type ContentTypeMapping = {
 	LANGUAGE_TEXT: string;
 	RICH_TEXT: string;
 	TEXT: string;
+	FLEX: unknown;
 };
 
 export type DiscreteCardinality = 'ONE' | 'MANY';

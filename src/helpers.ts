@@ -3,7 +3,7 @@ import type { Draft } from 'immer';
 import { produce, isDraft, current } from 'immer';
 import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
 import { getNodeByPath, traverse } from 'object-traversal';
-import { isArray, isObject, listify, mapEntries } from 'radash';
+import { isArray, isObject, listify, mapEntries, tryit } from 'radash';
 import { SharedMetadata, SuqlMetadata } from './types/symbols';
 import { customAlphabet } from 'nanoid';
 
@@ -49,8 +49,15 @@ export const oFind = <RemovedKeys extends string, T extends Record<string | numb
 export const oFilter = <K extends string | number | symbol, T extends Record<K, any>>(
 	obj: T,
 	fn: (k: K, v: any) => boolean,
-): Partial<T> => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(k as K, v))) as Partial<T>;
-
+): Partial<T> => {
+	const entries = Reflect.ownKeys(obj).map((key) => [key, obj[key as keyof T]]);
+	return Object.fromEntries(
+		entries.filter(([k, v]) => {
+			const [error, result] = tryit(() => fn(k as K, v))();
+			return error ? false : result;
+		}),
+	) as Partial<T>;
+};
 export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): EnrichedBormSchema => {
 	const allLinkedFields: LinkedFieldWithThing[] = [];
 	// #region 1)

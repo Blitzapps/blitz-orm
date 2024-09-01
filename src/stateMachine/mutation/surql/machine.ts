@@ -10,13 +10,16 @@ import { createMachine, interpret, invoke, reduce, state, transition } from '../
 import type { bqlMutationContext } from '../mutationMachine';
 import { buildSURQLMutation } from './build';
 import { runSURQLMutation } from './run';
+import type { EnrichedSURQLMutationRes } from './parse';
 import { parseSURQLMutation } from './parse';
+import { isArray } from 'radash';
+import type { FlatBqlMutation } from '../bql/flatter';
 
 type SurrealDbMachineContext = {
 	bql: bqlMutationContext;
 	surql: {
-		mutation?: unknown;
-		res?: unknown;
+		mutations: string[];
+		res: EnrichedSURQLMutationRes[][]; //todo maybe a flat versi
 	};
 	schema: EnrichedBormSchema;
 	config: BormConfig;
@@ -32,21 +35,27 @@ const updateBqlRes = (ctx: SurrealDbMachineContext, event: any) => {
 };
 
 const updateSURQLMutation = (ctx: SurrealDbMachineContext, event: any) => {
+	if (!event.data || !isArray(event.data) || event.data.some((d: any) => typeof d !== 'string')) {
+		throw new Error('Invalid event data');
+	}
 	return {
 		...ctx,
 		surql: {
 			...ctx.surql,
-			mutation: event.data,
+			mutations: event.data as string[],
 		},
 	};
 };
 
 const updateSURQLRes = (ctx: SurrealDbMachineContext, event: any) => {
+	if (!event.data || !isArray(event.data)) {
+		throw new Error('Invalid event data');
+	}
 	return {
 		...ctx,
 		surql: {
 			...ctx.surql,
-			res: event.data,
+			res: event.data as EnrichedSURQLMutationRes[][],
 		},
 	};
 };
@@ -66,7 +75,7 @@ const surrealDbMutationMachine = createMachine(
 	'buildMutation',
 	{
 		buildMutation: invoke(
-			async (ctx: SurrealDbMachineContext) => buildSURQLMutation(ctx.bql.enriched, ctx.schema),
+			async (ctx: SurrealDbMachineContext) => buildSURQLMutation(ctx.bql.flat, ctx.schema),
 			transition('done', 'runMutation', reduce(updateSURQLMutation)),
 			errorTransition,
 		),
@@ -74,7 +83,7 @@ const surrealDbMutationMachine = createMachine(
 			async (ctx: SurrealDbMachineContext) =>
 				runSURQLMutation(
 					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value)?.client as Surreal,
-					ctx.surql.mutation,
+					ctx.surql.mutations,
 				),
 			transition('done', 'parseMutation', reduce(updateSURQLRes)),
 			errorTransition,
@@ -109,21 +118,26 @@ const awaitMutationMachine = async (context: SurrealDbMachineContext) => {
 };
 
 export const runSurrealDbMutationMachine = async (
-	bqRaw: BQLMutationBlock | BQLMutationBlock[],
+	bqlRaw: BQLMutationBlock | BQLMutationBlock[],
 	enrichedBql: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
+	bqlFlat: FlatBqlMutation,
 	schema: EnrichedBormSchema,
 	config: BormConfig,
 	handles: DBHandles,
 ) => {
 	return awaitMutationMachine({
 		bql: {
-			raw: bqRaw,
+			raw: bqlRaw,
 			enriched: enrichedBql,
+			flat: bqlFlat,
 			things: [],
 			edges: [],
 			res: [],
 		},
-		surql: {},
+		surql: {
+			mutations: [],
+			res: [],
+		},
 		schema: schema,
 		config: config,
 		handles: handles,

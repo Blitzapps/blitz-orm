@@ -1,6 +1,6 @@
 import { isDate } from 'radash';
 
-export const parseFlexVal = (v: unknown) => {
+export const parseFlexValTypeDB = (v: unknown) => {
 	if (isDate(v)) {
 		return { type: 'datetime', value: v.toISOString().replace('Z', '') };
 	}
