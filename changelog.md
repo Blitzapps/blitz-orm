@@ -2,6 +2,9 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.0(2024-09-01)
+
+- Feat: Working queries and basic mutations for surrealDB
 
 ## 0.10.31(2024-07-31)
 
