@@ -19,5 +19,16 @@ export const testSchemaDefine = createTest('Schema', (client) => {
 				expect(schema).toBe(tqlSchema);
 			});
 		}
+		if (dbHandles.surrealDB?.size) {
+			schemas.surrealDB.forEach((schema) => {
+				//write to file for comparison
+				fs.writeFileSync('tests/adapters/surrealDB/mocks/refsSchemaTest.surql', schema);
+				expect(schema).toBeDefined();
+				expect(schema).toBeTypeOf('string');
+				//import tql schema from .tql file
+				const surqlSchema = fs.readFileSync('tests/adapters/surrealDB/mocks/refsSchema.surql', 'utf8');
+				expect(schema).toBe(surqlSchema);
+			});
+		}
 	});
 });

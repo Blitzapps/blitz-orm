@@ -23,6 +23,7 @@ export type LinkField = BormField & {
 	cardinality: DiscreteCardinality;
 	plays: string;
 	isVirtual?: boolean; // LinkFields might be virtual, but roleField cant!
+	dbValue?: { surrealDB?: string; typeDB?: string }; //enhance this types and pack it with isVirtual or default  as they work together
 } & (
 		| {
 				target: 'role';
@@ -98,15 +99,18 @@ type BooleanField = BormField & {
 };
 
 type AllDataField = StringField | NumberField | DateField | BooleanField | MultiField;
+export type Validations = {
+	required?: boolean;
+	unique?: boolean;
+	enum?: unknown[];
+};
 
 export type DataField = BormField & {
 	cardinality?: Cardinality;
 	shared?: boolean;
-	validations?: {
-		required?: boolean;
-		unique?: boolean;
-	};
+	validations?: Validations;
 	isVirtual?: boolean;
+	dbValue?: { surrealDB?: string; typeDB?: string }; //enhance this types and pack it with isVirtual or default  as they work together
 	dbConnectors?: [DBConnector, ...DBConnector[]];
 } & AllDataField;
 

@@ -78,5 +78,6 @@
 		"**/.DS_Store": true,
 		"**/Thumbs.db": true,
 		"**/node_modules": true
-	}
+	},
+	"terminal.integrated.scrollback": 3000,
 }

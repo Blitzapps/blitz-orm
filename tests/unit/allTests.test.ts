@@ -9,7 +9,10 @@ import { testUnsupportedMutation } from './mutations/unsupported';
 import { testQuery } from './queries/query';
 import { testSchemaDefine } from './schema/define';
 
+testSchemaDefine(init);
+
 testQuery(init);
+
 testEdgesMutation(init);
 testMutationErrors(init);
 testEdgesMutation(init);
@@ -17,4 +20,3 @@ testBatchedMutation(init);
 testMutationPrehooks(init);
 testReplaceMutation(init);
 testUnsupportedMutation(init);
-testSchemaDefine(init);

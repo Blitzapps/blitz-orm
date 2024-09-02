@@ -2,153 +2,152 @@ USE NS test;
 USE DB test;
 
 BEGIN TRANSACTION;
--- ENITIES 
+-- ENTITIES
 	DEFINE TABLE User SCHEMAFULL PERMISSIONS FULL;
-		--ATTRIBUTES
-		DEFINE FIELD name ON TABLE User TYPE option<string>;
-		DEFINE FIELD email ON TABLE User TYPE option<string>;
+		-- DATA FIELDS
+			DEFINE FIELD name ON TABLE User TYPE option<string>;
+			DEFINE FIELD email ON TABLE User TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD accounts ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE User TYPE option<array<record<⟨User-Accounts⟩>>>;
+			DEFINE FIELD sessions ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE User TYPE option<array<record<⟨User-Sessions⟩>>>;
+			DEFINE FIELD spaces ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨space-user⟩ ON TABLE User TYPE option<array<record<⟨Space-User⟩>>>;
+			DEFINE FIELD ⟨user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
 
-		--EDGES
-		DEFINE FIELD accounts ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-accounts`.accounts || []) FROM $this)}; //todo: intermediary events when $input works on events
-		DEFINE FIELD sessions ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-sessions`.sessions || []) FROM $this)};
-		DEFINE FIELD spaces ON TABLE User VALUE <future> { array::flatten(SELECT VALUE array::flatten(`space-user`.spaces || []) FROM $this)};
-		DEFINE FIELD ⟨user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
-		DEFINE FIELD ⟨add_user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
-			DEFINE EVENT ⟨add_user-tags⟩ ON TABLE User WHEN $after.⟨add_user-tags⟩ && $before.⟨add_user-tags⟩ == NONE THEN {
-				FOR $each in $after.⟨add_user-tags⟩ {
-					UPDATE $each SET users += [$after.id];
-				};
-				 UPDATE $this SET  ⟨add_user-tags⟩ = NONE;
-			};
-		DEFINE FIELD ⟨remove_user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
-			DEFINE EVENT ⟨remove_user-tags⟩ ON TABLE User WHEN $after.⟨remove_user-tags⟩ && $before.⟨remove_user-tags⟩ == NONE THEN {
-				FOR $each in $after.⟨remove_user-tags⟩ {
-					UPDATE $each SET users -= [$before.id];
-				};
-				 UPDATE $this SET  ⟨remove_user-tags⟩ = NONE;
-			};
-
-		--SUPPORT FOR target:role	
-		DEFINE FIELD ⟨user-accounts⟩ ON TABLE User TYPE option<array<record<⟨User-Accounts⟩>>>;
-		DEFINE FIELD ⟨user-sessions⟩ ON TABLE User TYPE option<array<record<⟨User-Sessions⟩>>>;
-		DEFINE FIELD ⟨space-user⟩ ON TABLE User TYPE option<array<record<⟨Space-User⟩>>>;
-
-		-- there is no subtyping in SurrealDB, we need to duplicate the fields
-				DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL;
-					--ATTRIBUTES
-					DEFINE FIELD name ON TABLE SuperUser TYPE option<string>;
-					DEFINE FIELD email ON TABLE SuperUser TYPE option<string>;
-					DEFINE FIELD power ON TABLE SuperUser TYPE string;
-
-					--EDGES
-					DEFINE FIELD accounts ON TABLE SuperUser VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-accounts`.accounts || []) FROM $this)}; 
-					DEFINE FIELD sessions ON TABLE SuperUser VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-sessions`.sessions || []) FROM $this)};
-					DEFINE FIELD spaces ON TABLE SuperUser VALUE <future> { array::flatten(SELECT VALUE array::flatten(`space-user`.spaces || []) FROM $this)};
-					DEFINE FIELD `user-tags` ON TABLE SuperUser TYPE option<array<record<UserTag>>>;
-
-					--SUPPORT FOR target:role	
-					DEFINE FIELD `user-accounts` ON TABLE SuperUser TYPE option<array<record<⟨User-Accounts⟩>>>;
-					DEFINE FIELD `user-sessions` ON TABLE SuperUser TYPE option<array<record<⟨User-Sessions⟩>>>;
-					DEFINE FIELD `space-user` ON TABLE SuperUser TYPE option<array<record<⟨Space-User⟩>>>;
-
-					-- there is no subtyping in SurrealDB, we need to duplicate the fields
-							DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL;
-								--ATTRIBUTES
-								DEFINE FIELD name ON TABLE God TYPE option<string>;
-								DEFINE FIELD email ON TABLE God TYPE option<string>;
-								DEFINE FIELD power ON TABLE God TYPE string;
-								DEFINE FIELD isEvil ON TABLE God TYPE bool;
-									--EDGES
-								DEFINE FIELD accounts ON TABLE God VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-accounts`.accounts || []) FROM $this)}; 
-								DEFINE FIELD sessions ON TABLE God VALUE <future> { array::flatten(SELECT VALUE array::flatten(`user-sessions`.sessions || []) FROM $this)};
-								DEFINE FIELD spaces ON TABLE God VALUE <future> { array::flatten(SELECT VALUE array::flatten(`space-user`.spaces || []) FROM $this)};
-								DEFINE FIELD `user-tags` ON TABLE God TYPE option<array<record<UserTag>>>;
-
-								--SUPPORT FOR target:role	
-								DEFINE FIELD `user-accounts` ON TABLE God TYPE option<array<record<⟨User-Accounts⟩>>>;
-								DEFINE FIELD `user-sessions` ON TABLE God TYPE option<array<record<⟨User-Sessions⟩>>>;
-								DEFINE FIELD `space-user` ON TABLE God TYPE option<array<record<⟨Space-User⟩>>>;
+	DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL; //EXTENDS User;
+		-- DATA FIELDS
+			DEFINE FIELD power ON TABLE SuperUser TYPE string;
+			DEFINE FIELD name ON TABLE SuperUser TYPE option<string>;
+			DEFINE FIELD email ON TABLE SuperUser TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD accounts ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE SuperUser TYPE option<array<record<⟨User-Accounts⟩>>>;
+			DEFINE FIELD sessions ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE SuperUser TYPE option<array<record<⟨User-Sessions⟩>>>;
+			DEFINE FIELD spaces ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨space-user⟩ ON TABLE SuperUser TYPE option<array<record<⟨Space-User⟩>>>;
+			DEFINE FIELD ⟨user-tags⟩ ON TABLE SuperUser TYPE option<array<record<UserTag>>>;
+			
+	DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL; //EXTENDS SuperUser;
+		-- DATA FIELDS
+			DEFINE FIELD isEvil ON TABLE God TYPE bool;
+			DEFINE FIELD power ON TABLE God TYPE string;
+			DEFINE FIELD name ON TABLE God TYPE option<string>;
+			DEFINE FIELD email ON TABLE God TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD accounts ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE God TYPE option<array<record<⟨User-Accounts⟩>>>;
+			DEFINE FIELD sessions ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE God TYPE option<array<record<⟨User-Sessions⟩>>>;
+			DEFINE FIELD spaces ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨space-user⟩ ON TABLE God TYPE option<array<record<⟨Space-User⟩>>>;
+			DEFINE FIELD ⟨user-tags⟩ ON TABLE God TYPE option<array<record<UserTag>>>;
 
 	DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
-		--ATTRIBUTES
-		DEFINE FIELD name ON TABLE Space TYPE option<string>;
-
-		--EDGES
-		DEFINE FIELD users ON TABLE Space VALUE <future> { array::distinct(array::flatten(SELECT VALUE array::flatten(`space-user`.users || []) FROM $this))};
-		DEFINE FIELD objects ON TABLE Space TYPE option<array<record<SpaceObj|Self|SpaceDef|Kind|Field|DataField>>>;
-		DEFINE FIELD definitions ON TABLE Space TYPE option<array<record<SpaceDef|Kind|Field|DataField>>>;
-		DEFINE FIELD kinds ON TABLE Space TYPE option<array<record<Kind>>>;
-		DEFINE FIELD fields ON TABLE Space TYPE option<array<record<Field|DataField>>>; 
-		DEFINE FIELD dataFields ON TABLE Space TYPE option<array<record<DataField>>>;
-		DEFINE FIELD selfs ON TABLE Space TYPE option<array<record<Self>>>;
-
-			--SUPPORT FOR target:role	
-		DEFINE FIELD `space-user` ON TABLE Space TYPE option<array<record<⟨Space-User⟩>>>;
-
-	DEFINE TABLE Thing SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD stuff ON TABLE Thing TYPE string;
-
-			DEFINE TABLE SubthingOne SCHEMAFULL PERMISSIONS FULL;
-				DEFINE FIELD stuff ON TABLE SubthingOne TYPE string;
-
-				DEFINE TABLE SubthingTwo SCHEMAFULL PERMISSIONS FULL;
-					DEFINE FIELD stuff ON TABLE SubthingTwo TYPE string;
+		-- DATA FIELDS
+			DEFINE FIELD name ON TABLE Space TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD users ON TABLE Space VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.users || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨space-user⟩ ON TABLE Space TYPE option<array<record<⟨Space-User⟩>>>;
+			DEFINE FIELD objects ON TABLE Space TYPE option<array<record<SpaceObj|Self|DataField|Field|Kind|SpaceDef>>>;
+			DEFINE FIELD definitions ON TABLE Space TYPE option<array<record<SpaceDef|DataField|Field|Kind>>>;
+			DEFINE FIELD kinds ON TABLE Space TYPE option<array<record<Kind>>>;
+			DEFINE FIELD fields ON TABLE Space TYPE option<array<record<Field|DataField>>>;
+			DEFINE FIELD dataFields ON TABLE Space TYPE option<array<record<DataField>>>;
+			DEFINE FIELD selfs ON TABLE Space TYPE option<array<record<Self>>>;
+			DEFINE FIELD userTagGroups ON TABLE Space TYPE option<array<record<UserTagGroup>>>;
 
 	DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
-		--ATTRIBUTES
-		DEFINE FIELD provider ON TABLE Account TYPE option<string>;
-		DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>; --<future> not needed when there are parameters
-		DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
-
-		--EDGES
-		DEFINE FIELD user ON TABLE Account VALUE <future> { RETURN SELECT VALUE `user-accounts`.user FROM ONLY $this }; 
-
-		--- SUPPORT
-		DEFINE FIELD `user-accounts` ON TABLE Account TYPE option<array<record<⟨User-Accounts⟩>>>;
-
-
-	DEFINE TABLE Post SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD mentions ON TABLE Post TYPE array<string>;
-
-	DEFINE TABLE Color SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD name ON TABLE Color TYPE option<string>;
-		DEFINE FIELD freeForAll ON TABLE Color FLEXIBLE TYPE option<string|number|datetime|bool>;
-
-		DEFINE FIELD ⟨user-tags⟩ ON TABLE Color VALUE <future> { RETURN SELECT VALUE group.tags FROM ONLY $this };
-		DEFINE FIELD group ON TABLE Color TYPE option<record<UserTagGroup>>;
-
-	DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD description ON TABLE Power TYPE string;
+		-- DATA FIELDS
+			DEFINE FIELD provider ON TABLE Account TYPE option<string>;
+			DEFINE FIELD isSecureProvider ON TABLE Account VALUE {$this.provider = "google"} TYPE option<bool>;
+			DEFINE FIELD profile ON TABLE Account FLEXIBLE TYPE option<object>;
+		-- EDGES
+			DEFINE FIELD user ON TABLE Account VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.user || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE Account TYPE option<array<record<⟨User-Accounts⟩>>>;
 
 	DEFINE TABLE Session SCHEMAFULL PERMISSIONS FULL;
-		--ATTRIBUTES
-		DEFINE FIELD sessionToken ON TABLE Session TYPE string;
-		DEFINE FIELD expires ON TABLE Session TYPE datetime;
-		--EDGES
-		DEFINE FIELD user ON TABLE Session VALUE <future> { RETURN SELECT VALUE ⟨user-sessions⟩.user FROM ONLY $this }; 
-		--SUPPORT for target:role
-		DEFINE FIELD ⟨user-sessions⟩ ON TABLE Session TYPE option<array<record<⟨User-Sessions⟩>>>;
+		-- DATA FIELDS
+			DEFINE FIELD expires ON TABLE Session TYPE option<datetime>;
+			DEFINE FIELD sessionToken ON TABLE Session TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD user ON TABLE Session VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.user || []) FROM ONLY $this)};
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE Session TYPE option<array<record<⟨User-Sessions⟩>>>;
 
+	DEFINE TABLE VerificationToken SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+			DEFINE FIELD identifier ON TABLE VerificationToken TYPE option<string>;
+			DEFINE FIELD token ON TABLE VerificationToken TYPE option<string>;
+			DEFINE FIELD expires ON TABLE VerificationToken TYPE option<datetime>;
+		-- EDGES
 
+	DEFINE TABLE Thing SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+			DEFINE FIELD stuff ON TABLE Thing TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD things ON TABLE Thing TYPE option<array<record<ThingRelation>>>;
+			DEFINE FIELD root ON TABLE Thing TYPE option<record<ThingRelation>>;
+			DEFINE FIELD extra ON TABLE Thing TYPE option<record<ThingRelation>>;
 
+	DEFINE TABLE SubthingOne SCHEMAFULL PERMISSIONS FULL; //EXTENDS Thing;
+		-- DATA FIELDS
+			DEFINE FIELD stuff ON TABLE SubthingOne TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD things ON TABLE SubthingOne TYPE option<array<record<ThingRelation>>>;
+			DEFINE FIELD root ON TABLE SubthingOne TYPE option<record<ThingRelation>>;
+			DEFINE FIELD extra ON TABLE SubthingOne TYPE option<record<ThingRelation>>;
+
+	DEFINE TABLE SubthingTwo SCHEMAFULL PERMISSIONS FULL; //EXTENDS Thing;
+		-- DATA FIELDS
+			DEFINE FIELD stuff ON TABLE SubthingTwo TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD things ON TABLE SubthingTwo TYPE option<array<record<ThingRelation>>>;
+			DEFINE FIELD root ON TABLE SubthingTwo TYPE option<record<ThingRelation>>;
+			DEFINE FIELD extra ON TABLE SubthingTwo TYPE option<record<ThingRelation>>;
+			
+	DEFINE TABLE CascadeThing SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+
+		-- EDGES
+			DEFINE FIELD cascadeRelations ON TABLE CascadeThing TYPE option<array<record<CascadeRelation>>>;
+
+	DEFINE TABLE Color SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+			DEFINE FIELD freeForAll ON TABLE Color FLEXIBLE TYPE option<bool|bytes|datetime|duration|geometry|number|object|string>;
+			DEFINE FIELD value ON TABLE Color TYPE option<string>;
+
+		-- EDGES
+			DEFINE FIELD ⟨user-tags⟩ ON TABLE Color VALUE <future> {array::distinct(SELECT VALUE array::flatten(group.tags || []) FROM ONLY $this)};
+			DEFINE FIELD group ON TABLE Color TYPE option<record<UserTagGroup>>;
+
+	DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+			DEFINE FIELD description ON TABLE Power TYPE option<string>;
+		-- EDGES
+			DEFINE FIELD ⟨space-user⟩ ON TABLE Power TYPE option<record<⟨Space-User⟩>>;
+	
 	DEFINE TABLE Hook SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD timestamp ON TABLE Hook TYPE option<datetime>;
-		DEFINE FIELD requiredOption ON TABLE Hook TYPE string;
-		DEFINE FIELD manyOptions ON TABLE Hook TYPE option<string>;
-		DEFINE FIELD fnValidatedField ON TABLE Hook TYPE option<string>;
+		-- DATA FIELDS
+			DEFINE FIELD requiredOption ON TABLE Hook TYPE "a"|"b"|"c";
+			DEFINE FIELD manyOptions ON TABLE Hook TYPE option<"a"|"b"|"c">;
+			DEFINE FIELD fnValidatedField ON TABLE Hook TYPE option<string>;
+			DEFINE FIELD timestamp ON TABLE Hook TYPE option<datetime>;
 
-		DEFINE FIELD otherTags ON TABLE Hook VALUE <future> {
-			RETURN 
-			IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a"))
-			ELSE RETURN []
-			END;
-		};
-		DEFINE FIELD tagA ON TABLE Hook VALUE <future> {
-			RETURN 
-			IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a"))
-			ELSE RETURN []
-			END;
-		};
+		-- EDGES
+			DEFINE FIELD hookParent ON TABLE Hook TYPE option<record<HookParent>>;
+			DEFINE FIELD asMainHookOf ON TABLE Hook TYPE option<record<HookParent>>;
+			DEFINE FIELD otherTags ON TABLE Hook VALUE <future> {RETURN IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) ELSE RETURN [] END;};
+			DEFINE FIELD tagA ON TABLE Hook VALUE <future> {RETURN IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) ELSE RETURN [] END;};
+
+	DEFINE TABLE Company SCHEMAFULL PERMISSIONS FULL;
+		-- DATA FIELDS
+			DEFINE FIELD name ON TABLE Company TYPE string;
+			DEFINE FIELD industry ON TABLE Company TYPE option<"Tech"|"Finance"|"Healthcare"|"Retail"|"Manufacturing">;
+		-- EDGES
+			DEFINE FIELD employees ON TABLE Company TYPE option<array<record<Employee>>>;
+		
 
 -- RELATIONS
 	DEFINE TABLE ⟨User-Accounts⟩ SCHEMAFULL PERMISSIONS FULL;
@@ -161,10 +160,10 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.user, $after.user);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-accounts` -= [$before.id];
+								UPDATE $unlink SET ⟨user-accounts⟩ -= [$before.id];
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-accounts` += [$after.id]; // Todo: the right management for card one and many
+								UPDATE $link SET ⟨user-accounts⟩ += [$after.id]; // Todo: the right management for card one and many
 						};
 			};
 		DEFINE FIELD accounts ON TABLE ⟨User-Accounts⟩ TYPE option<array<record<Account>>>; //Todo: remove option when surrealDB transactions are smarter.
@@ -173,10 +172,10 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.accounts, $after.accounts);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-accounts` -= [$before.id];
+								UPDATE $unlink SET ⟨user-accounts⟩ -= [$before.id];
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-accounts` += [$after.id];
+								UPDATE $link SET ⟨user-accounts⟩ += [$after.id];
 						};
 			};
 		
@@ -187,10 +186,10 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.sessions, $after.sessions);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `user-sessions` -= [$before.id];
+								UPDATE $unlink SET ⟨user-sessions⟩ -= [$before.id];
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `user-sessions` += [$after.id];
+								UPDATE $link SET ⟨user-sessions⟩ += [$after.id];
 						};
 				};
 
@@ -214,10 +213,10 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.spaces, $after.spaces);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `space-user` -= [$before.id];
+								UPDATE $unlink SET ⟨space-user⟩ -= [$before.id];
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `space-user` += [$after.id];
+								UPDATE $link SET ⟨space-user⟩ += [$after.id];
 						};
 				};
 		DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE option<array<record<User|God|SuperUser>>>; //Todo: remove option when surrealDB transactions are smarter.
@@ -227,10 +226,10 @@ BEGIN TRANSACTION;
 						LET $edges = fn::get_mutated_edges($before.users, $after.users);
 
 						FOR $unlink IN $edges.deletions {
-								UPDATE $unlink SET `space-user` -= [$before.id]; //use before for DELETE events
+								UPDATE $unlink SET ⟨space-user⟩ -= [$before.id]; //use before for DELETE events
 						};
 						FOR $link IN $edges.additions {
-								UPDATE $link SET `space-user` += [$after.id];
+								UPDATE $link SET ⟨space-user⟩ += [$after.id];
 						};
 				};
 		DEFINE FIELD power ON TABLE ⟨Space-User⟩ TYPE option<record<Power>>;
@@ -439,11 +438,12 @@ BEGIN TRANSACTION;
 						};
 			};
 		DEFINE FIELD owned ON TABLE Self TYPE option<array<record<Self>>>;
-
-
+	
 	DEFINE TABLE Employee SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD name ON TABLE Employee TYPE string;
-		DEFINE FIELD company ON TABLE Employee TYPE record<Company>;
+		-- DATA FIELDS
+			DEFINE FIELD name ON TABLE Employee TYPE string;
+		-- EDGES
+			DEFINE FIELD company ON TABLE Employee TYPE record<Company>;
 						DEFINE EVENT update_company ON TABLE Employee WHEN $before.company != $after.company THEN {
 
 						LET $edges = fn::get_mutated_edges($before.company, $after.company);
@@ -456,10 +456,6 @@ BEGIN TRANSACTION;
 						};
 			};
 
-	DEFINE TABLE Company SCHEMAFULL PERMISSIONS FULL;
-		DEFINE FIELD name ON TABLE Company TYPE string;
-		DEFINE FIELD industry ON TABLE Company TYPE string;
-		DEFINE FIELD employees ON TABLE Company TYPE option<array<record<Employee>>>;
 
 
 -- BORM TOOLS
@@ -483,7 +479,7 @@ BEGIN TRANSACTION;
 	DEFINE FUNCTION fn::as_array(
 			$var: option<array<record>|record>,
 	) {           
-        RETURN (type::is::array($var) AND $var) OR [$var]
+				RETURN (type::is::array($var) AND $var) OR [$var]
 		
 	};
 

@@ -307,7 +307,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 					val.linkFields?.forEach((linkField) => {
 						linkField.fieldType = 'linkField';
-						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation];
+						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation] as EnrichedBormRelation;
 
 						if (!linkField.isVirtual) {
 							//its ok for virtual linkFields to don't have a relation
@@ -330,7 +330,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									`[Schema] Virtual linkFields can't target a relation. Thing: "${val.name}" LinkField: "${linkField.path}. Path:${meta.nodePath}."`,
 								);
 							}
-							linkField.$things = [linkField.relation];
+							linkField.$things = [linkField.relation, ...(linkFieldRelation.subTypes || [])];
 							linkField.oppositeLinkFieldsPlayedBy = [
 								{
 									plays: linkField.path,
@@ -380,7 +380,6 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 						if (value.db === 'surrealDB') {
 							const originalRelation =
-								// @ts-expect-error - This is fine, extensions schema is a middle state
 								linkFieldRelation?.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
 
 							const queryPath = getSurrealLinkFieldQueryPath({
