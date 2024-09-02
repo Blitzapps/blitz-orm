@@ -7,6 +7,7 @@ import { testMutationPrehooks } from './mutations/preHooks';
 import { testReplaceMutation } from './mutations/replaces';
 import { testUnsupportedMutation } from './mutations/unsupported';
 import { testQuery } from './queries/query';
+import { testSchemaDefine } from './schema/define';
 
 testQuery(init);
 testEdgesMutation(init);
@@ -16,3 +17,4 @@ testBatchedMutation(init);
 testMutationPrehooks(init);
 testReplaceMutation(init);
 testUnsupportedMutation(init);
+testSchemaDefine(init);

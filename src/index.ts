@@ -132,7 +132,11 @@ class BormClient {
 
 	define = async () => {
 		await this.#enforceConnection();
-		return bormDefine(this.config, this.schema, this.dbHandles);
+		if (!this.dbHandles) {
+			throw new Error('dbHandles undefined');
+		}
+		const schemas = await bormDefine(this.config, this.schema as EnrichedBormSchema, this.dbHandles);
+		return schemas;
 	};
 
 	/// no types yet, but we can do "as ..." after getting the type fro the schema

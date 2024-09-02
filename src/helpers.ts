@@ -73,6 +73,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					// * Adding dbPath of local dataFields. This happens in every dataField
 					value.dataFields = value.dataFields?.map((df: DataField | EnrichedDataField) => ({
 						...df,
+						...(value.idFields?.includes(df.path) ? { isIdField: true } : { isIdField: false }),
 						cardinality: df.cardinality || 'ONE',
 						dbPath: 'dbPath' in df ? df.dbPath : getDbPath(key, df.path, df.shared), //if it was already defined in a parent, we keep it
 					})) as EnrichedDataField[];
@@ -123,6 +124,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									}
 									return {
 										...df,
+										inherited: true,
 										dbPath: 'dbPath' in df ? df.dbPath : getDbPath(deepExtendedThing, df.path, df.shared), //i
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
@@ -143,6 +145,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 									roleKey,
 									{
 										...role,
+										inherited: true,
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
 											inheritanceOrigin: role[SharedMetadata]?.inheritanceOrigin || value.extends,
@@ -162,6 +165,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						? (value.linkFields || []).concat(
 								extendedSchema.linkFields.map((lf) => ({
 									...lf,
+									inherited: true,
 									[SharedMetadata]: {
 										inheritanceOrigin: lf[SharedMetadata]?.inheritanceOrigin || value.extends,
 									},

@@ -40,6 +40,7 @@ export type EnrichedRoleField = RoleField & {
 	playedBy?: LinkedFieldWithThing[]; // computed variable.
 	$things: string[]; //all potential candidates
 	fieldType: 'roleField';
+	inherited: boolean;
 	[SharedMetadata]: {
 		inheritanceOrigin: string;
 	};
@@ -50,6 +51,7 @@ export type EnrichedRoleField = RoleField & {
 
 export type EnrichedDataField = DataField & {
 	dbPath: string;
+	inherited: boolean;
 	[SharedMetadata]: {
 		inheritanceOrigin: string;
 	};
@@ -61,6 +63,7 @@ export type EnrichedLinkField = LinkField & {
 	plays: string;
 	$things: string[]; //all potential candidates
 	fieldType: 'linkField';
+	inherited: boolean;
 	[SharedMetadata]: {
 		inheritanceOrigin: string;
 	};

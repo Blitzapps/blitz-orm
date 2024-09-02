@@ -1,0 +1,231 @@
+define
+
+id sub attribute, value string;
+Hook·requiredOption sub attribute, value string;
+Hook·manyOptions sub attribute, value string;
+Hook·fnValidatedField sub attribute, value string;
+Hook·timestamp sub attribute, value datetime;
+Thing·stuff sub attribute, value string;
+Account·provider sub attribute, value string;
+Account·isSecureProvider sub attribute, value boolean;
+Account·profile sub attribute, value string;
+name sub attribute, value string;
+User·email sub attribute, value string,
+	regex '^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$';
+SuperUser·power sub attribute, value string;
+God·isEvil sub attribute, value boolean;
+Color·isBlue sub attribute, value boolean;
+Color·freeForAll sub flexAttribute;
+Color·totalUserTags sub attribute, value long;
+Color·value sub attribute, value string;
+description sub attribute, value string;
+Session·expires sub attribute, value datetime;
+Session·sessionToken sub attribute, value string;
+VerificationToken·identifier sub attribute, value string;
+VerificationToken·token sub attribute, value string;
+VerificationToken·expires sub attribute, value datetime;
+Company·name sub attribute, value string;
+Company·industry sub attribute, value string;
+ThingRelation·moreStuff sub attribute, value string;
+Kind·name sub attribute, value string;
+Field·name sub attribute, value string;
+Field·cardinality sub attribute, value string;
+DataField·type sub attribute, value string;
+DataField·computeType sub attribute, value string;
+Expression·value sub attribute, value string;
+Expression·type sub attribute, value string;
+DataValue·type sub attribute, value string;
+
+
+
+Hook sub entity,
+	owns id @key,
+	owns Hook·requiredOption,
+	owns Hook·manyOptions,
+	owns Hook·fnValidatedField,
+	owns Hook·timestamp,
+	plays HookParent:hooks,
+	plays HookParent:mainHook,
+	plays HookATag:hookTypeA,
+	plays HookATag:otherHooks;
+
+Thing sub entity,
+	owns id @key,
+	owns Thing·stuff,
+	plays ThingRelation:things,
+	plays ThingRelation:root,
+	plays ThingRelation:extra;
+
+CascadeThing sub entity,
+	owns id @key,
+	plays CascadeRelation:things;
+
+SubthingOne sub Thing;
+
+SubthingTwo sub Thing;
+
+Account sub entity,
+	owns id @key,
+	owns Account·provider,
+	owns Account·isSecureProvider,
+	owns Account·profile,
+	plays User-Accounts:accounts;
+
+User sub entity,
+	owns id @key,
+	owns name,
+	owns User·email,
+	plays User-Accounts:user,
+	plays User-Sessions:user,
+	plays Space-User:users,
+	plays UserTag:users;
+
+SuperUser sub User,
+	owns SuperUser·power;
+
+God sub SuperUser,
+	owns God·isEvil;
+
+Space sub entity,
+	owns id @key,
+	owns name,
+	plays Space-User:spaces,
+	plays SpaceObj:space,
+	plays UserTagGroup:space;
+
+Color sub entity,
+	owns id @key,
+	owns Color·isBlue,
+	owns Color·freeForAll,
+	owns Color·totalUserTags,
+	owns Color·value,
+	plays UserTagGroup:color;
+
+Power sub entity,
+	owns id @key,
+	owns description,
+	plays Space-User:power;
+
+Session sub entity,
+	owns id @key,
+	owns Session·expires,
+	owns Session·sessionToken,
+	plays User-Sessions:sessions;
+
+VerificationToken sub entity,
+	owns id @key,
+	owns VerificationToken·identifier,
+	owns VerificationToken·token,
+	owns VerificationToken·expires;
+
+Company sub entity,
+	owns id @key,
+	owns Company·name,
+	owns Company·industry,
+	plays Employee:company;
+
+ThingRelation sub relation,
+	owns id @key,
+	owns ThingRelation·moreStuff,
+	relates things,
+	relates root,
+	relates extra;
+
+CascadeRelation sub relation,
+	owns id @key,
+	relates things;
+
+User-Accounts sub relation,
+	owns id @key,
+	relates accounts,
+	relates user;
+
+User-Sessions sub relation,
+	owns id @key,
+	relates user,
+	relates sessions;
+
+Space-User sub relation,
+	owns id @key,
+	relates spaces,
+	relates users,
+	relates power;
+
+UserTag sub relation,
+	owns id @key,
+	owns name,
+	relates users,
+	plays UserTagGroup:tags;
+
+UserTagGroup sub relation,
+	owns id @key,
+	relates tags,
+	relates color,
+	relates space;
+
+SpaceObj sub relation,
+	owns id @key,
+	relates space;
+
+SpaceDef sub SpaceObj,
+	owns description;
+
+Kind sub SpaceDef,
+	owns Kind·name,
+	plays Field:kinds;
+
+Field sub SpaceDef,
+	owns Field·name,
+	owns Field·cardinality,
+	relates kinds;
+
+DataField sub Field,
+	owns DataField·type,
+	owns DataField·computeType,
+	plays DataValue:dataField,
+	plays Expression:dataField;
+
+Expression sub relation,
+	owns id @key,
+	owns Expression·value,
+	owns Expression·type,
+	relates dataField;
+
+DataValue sub relation,
+	owns id @key,
+	owns DataValue·type,
+	relates dataField;
+
+Self sub SpaceObj,
+	relates owner,
+	plays Self:owner;
+
+HookParent sub relation,
+	owns id @key,
+	relates hooks,
+	relates mainHook;
+
+HookATag sub relation,
+	owns id @key,
+	relates hookTypeA,
+	relates otherHooks;
+
+Employee sub relation,
+	owns id @key,
+	owns name,
+	relates company;
+
+
+#Tools, reserved for every schema using borm
+
+stringAttribute sub attribute, value string;
+longAttribute sub attribute, value long;
+doubleAttribute sub attribute, value double;
+booleanAttribute sub attribute, value boolean;
+datetimeAttribute sub attribute, value datetime;
+flexAttribute sub attribute, abstract, value string,
+	owns stringAttribute,
+	owns longAttribute,
+	owns doubleAttribute,
+	owns booleanAttribute,
+	owns datetimeAttribute;
