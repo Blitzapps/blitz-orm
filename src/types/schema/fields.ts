@@ -35,8 +35,10 @@ export type LinkField = BormField & {
 	);
 
 export type LinkedFieldWithThing = LinkField & {
+	//used in the playedBy
 	thing: string;
 	thingType: ThingType;
+	pathToRelation: string;
 };
 
 type MultiField = BormField & {

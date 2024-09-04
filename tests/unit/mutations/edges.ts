@@ -903,7 +903,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 		]);
 	});
 
-	it('l13[unlink, nested, relation] Unlink in nested array[l3ent]', async () => {
+	it('l13[unlink, nested, relation, extends] Unlink in nested array[l3ent]', async () => {
 		/// this test might fail if b4 fails
 		/// get user 2, space 2 and then add a new dataField to it linked to the existing 'kind-book'
 

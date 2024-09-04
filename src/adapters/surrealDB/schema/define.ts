@@ -36,14 +36,13 @@ BEGIN TRANSACTION;
 
 const convertSchemaItems = (items: Record<string, SchemaItem>): string =>
 	Object.entries(items)
-		.map(([name, item]) => convertSchemaItem(name, item, 1))
+		.map(([name, item]) => convertSchemaItem(sanitizeNameSurrealDB(name), item, 1))
 		.join('\n\n');
 
 const convertSchemaItem = (name: string, item: SchemaItem, level: number): string => {
 	const baseDefinition = `${indent(level)}DEFINE TABLE ${name} SCHEMAFULL PERMISSIONS FULL;${'extends' in item && item.extends ? ` //EXTENDS ${item.extends};` : ''}`;
-	console.log('df!!', item.dataFields);
 	const dataFields = indentPar(`-- DATA FIELDS\n${convertDataFields(item.dataFields ?? [], name, level)}`, level + 1);
-	const linkFields = indentPar(`\n-- EDGES\n${convertLinkFields(item.linkFields ?? [], name, level)}`, level + 1);
+	const linkFields = indentPar(`\n-- LINK FIELDS\n${convertLinkFields(item.linkFields ?? [], name, level)}`, level + 1);
 	const roles = 'roles' in item ? indentPar(`\n-- ROLES\n${convertRoles(item.roles, name, level)}`, level + 1) : '';
 
 	return `${baseDefinition}\n${dataFields}${linkFields}${roles}`;
@@ -91,7 +90,6 @@ const convertLinkFields = (linkFields: EnrichedLinkField[], parentName: string, 
 			}
 
 			if (linkField.target === 'role') {
-				console.log('linkField!', linkField);
 				const relationLinkField = linkFields.find(
 					(lf) => lf.target === 'relation' && lf.relation === linkField.relation,
 				);
@@ -102,21 +100,21 @@ const convertLinkFields = (linkFields: EnrichedLinkField[], parentName: string, 
 					throw new Error(`Invalid link field: ${linkField.path}`);
 				}
 
-				const generatedRelationPath = `⟨${linkField.relation.toLocaleLowerCase()}⟩`;
+				const type =
+					linkField.cardinality === 'ONE'
+						? `record<${sanitizeNameSurrealDB(linkField.relation)}>`
+						: `array<record<${sanitizeNameSurrealDB(linkField.relation)}>>`;
 
-				const relationPath = relationLinkField?.path
-					? `${relationLinkField?.path}.${targetPath}`
-					: `${generatedRelationPath}.${targetPath}`;
+				const pathToRelation = sanitizeNameSurrealDB(linkField.pathToRelation || '');
+				const relationPath = `${pathToRelation}.${targetPath}`;
 
 				const baseField =
 					linkField.cardinality === 'ONE'
-						? targetRole.cardinality === 'ONE'
-							? `${baseDefinition} VALUE <future> {RETURN SELECT VALUE ${relationPath} FROM ONLY $this};`
-							: `${baseDefinition} VALUE <future> {array::distinct(SELECT VALUE array::flatten(${relationPath} || []) FROM ONLY $this)};` //todo: find out this mess.
+						? `${baseDefinition} VALUE <future> {RETURN SELECT VALUE ${relationPath} FROM ONLY $this};`
 						: `${baseDefinition} VALUE <future> {array::distinct(SELECT VALUE array::flatten(${relationPath} || []) FROM ONLY $this)};`;
 				const supportField = relationLinkField?.path
 					? ''
-					: `${indent(level + 1)}DEFINE FIELD ${generatedRelationPath} ON TABLE ${parentName} TYPE option<array<record<${sanitizeNameSurrealDB(linkField.relation)}>>>;`;
+					: `${indent(level + 1)}DEFINE FIELD ${pathToRelation} ON TABLE ${parentName} TYPE option<${type}>;`;
 
 				return [baseField, supportField].join('\n');
 			}
@@ -135,7 +133,7 @@ const convertRoles = (roles: Record<string, EnrichedRoleField>, parentName: stri
 				role.cardinality === 'MANY'
 					? `array<record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>>`
 					: `record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>`;
-			const fieldDefinition = `${indent(level)}DEFINE FIELD ${roleName} ON TABLE ${parentName} TYPE ${fieldType};`;
+			const fieldDefinition = `${indent(level)}DEFINE FIELD ${roleName} ON TABLE ${parentName} TYPE option<${fieldType}>;`; //Todo: remove option when surrealDB transactions are smarter.
 			const roleEvent = generateRoleEvent(roleName, parentName, role, level);
 			return `${fieldDefinition}\n${roleEvent}`;
 		})
@@ -143,21 +141,63 @@ const convertRoles = (roles: Record<string, EnrichedRoleField>, parentName: stri
 
 const generateRoleEvent = (roleName: string, parentName: string, role: EnrichedRoleField, level: number): string => {
 	const eventName = `update_${roleName}`;
-	const oppositeField = role.playedBy?.[0]?.path ?? roleName;
+
+	const targetRelationLinkField = role.playedBy?.find((lf) => lf.target === 'relation');
+	const targetRelationPath = targetRelationLinkField?.pathToRelation;
+	const firstTargetRoleLinkField = role.playedBy?.find((lf) => lf.target === 'role');
+	const firstTargetRolePath = firstTargetRoleLinkField?.pathToRelation;
+
+	const usedLinkField = targetRelationLinkField ?? firstTargetRoleLinkField;
+
+	if (!usedLinkField) {
+		throw new Error(`Invalid link field: ${JSON.stringify(role)}`);
+	}
+
+	const pathToRelation = sanitizeNameSurrealDB((targetRelationPath ?? firstTargetRolePath) as string);
+
+	const generateSet = (fields: { path: string; cardinality: 'ONE' | 'MANY' }[], action: 'remove' | 'add'): string => {
+		return fields
+			.map(({ path, cardinality }) => {
+				const operator =
+					action === 'remove' ? (cardinality === 'ONE' ? '=' : '-=') : cardinality === 'ONE' ? '=' : '+=';
+				const value = action === 'remove' ? (cardinality === 'ONE' ? 'NONE' : '$before.id') : '$after.id';
+				return `${path} ${operator} ${value}`;
+			})
+			.join(', ');
+	};
+
+	const impactedLinkFields =
+		role.impactedLinkFields?.map((lf) => ({
+			path: lf.path,
+			cardinality: lf.cardinality,
+		})) || [];
+
+	const directField = { path: pathToRelation, cardinality: usedLinkField.cardinality };
+	const allFields = [directField, ...impactedLinkFields];
+
+	const removalsSet = generateSet(allFields, 'remove');
+	const additionsSet = generateSet(allFields, 'add');
+
+	const cardOneEvents = `
+	IF ($before.${roleName}) THEN {UPDATE $before.${roleName} SET ${removalsSet}} END;
+	IF ($after.${roleName}) THEN {UPDATE $after.${roleName} SET ${additionsSet}} END;`;
+
+	const cardManyEvents = `
+	LET $edges = fn::get_mutated_edges($before.${roleName}, $after.${roleName});
+	FOR $unlink IN $edges.deletions {UPDATE $unlink SET ${removalsSet};};
+	FOR $link IN $edges.additions {${
+		usedLinkField.cardinality === 'ONE'
+			? `
+		IF ($link.${pathToRelation}) THEN {UPDATE $link.${pathToRelation} SET ${roleName} ${role.cardinality === 'ONE' ? '= NONE' : '-= $link.id'}} END;` //! This should probably be an independnt event on card one field, that it replaces old one by new one, instead of doing it from here
+			: ''
+	}
+		UPDATE $link SET ${additionsSet};
+	};`;
 
 	return indentPar(
-		`
-DEFINE EVENT ${eventName} ON TABLE ${parentName} WHEN $before.${roleName} != $after.${roleName} THEN {
-  LET $edges = fn::get_mutated_edges($before.${roleName}, $after.${roleName});
-  FOR $unlink IN $edges.deletions {
-    UPDATE $unlink SET ${oppositeField} ${role.cardinality === 'ONE' ? '= NONE' : '-= [$before.id]'};
-  };
-  FOR $link IN $edges.additions {
-    ${role.cardinality === 'ONE' ? `IF ($link.${parentName}) THEN {UPDATE $link.${parentName} SET ${roleName} = NONE} END;` : ''}
-    UPDATE $link SET ${oppositeField} ${role.cardinality === 'ONE' ? '=' : '+='} $after.id;
-  };
+		`DEFINE EVENT ${eventName} ON TABLE ${parentName} WHEN $before.${roleName} != $after.${roleName} THEN {${role.cardinality === 'ONE' ? cardOneEvents : cardManyEvents}
 };`,
-		level,
+		level + 1,
 	);
 };
 
@@ -206,28 +246,26 @@ const mapContentTypeToSurQL = (contentType: string, validations?: Validations): 
 
 const addUtilityFunctions = (): string => `
 -- BORM TOOLS
-DEFINE FUNCTION fn::get_mutated_edges(
-  $before_relation: option<array|record>,
-  $after_relation: option<array|record>,
-) {
-  LET $notEmptyCurrent = $before_relation ?? [];
-  LET $current = array::flatten([$notEmptyCurrent]);
-  LET $notEmptyResult = $after_relation ?? [];
-  LET $result = array::flatten([$notEmptyResult]);
-  LET $links = array::complement($result, $current);
-  LET $unlinks = array::complement($current, $result);
-  
-  RETURN {
-    additions: $links,
-    deletions: $unlinks
-  };
-};
+	DEFINE FUNCTION fn::get_mutated_edges(
+		$before_relation: option<array|record>,
+		$after_relation: option<array|record>,
+	) {
+		LET $notEmptyCurrent = $before_relation ?? [];
+		LET $current = array::flatten([$notEmptyCurrent]);
+		LET $notEmptyResult = $after_relation ?? [];
+		LET $result = array::flatten([$notEmptyResult]);
+		LET $links = array::complement($result, $current);
+		LET $unlinks = array::complement($current, $result);
+		
+		RETURN {
+			additions: $links,
+			deletions: $unlinks
+		};
+	};
 
-DEFINE FUNCTION fn::as_array(
-  $var: option<array<record>|record>,
-) {           
-  RETURN (type::is::array($var) AND $var) OR [$var]
-};
+	DEFINE FUNCTION fn::as_array($var: option<array<record>|record>) {           
+		RETURN (type::is::array($var) AND $var) OR [$var]
+	};
 `;
 
 export const defineSURQLSchema = (schema: EnrichedBormSchema): string => convertBQLToSurQL(schema);

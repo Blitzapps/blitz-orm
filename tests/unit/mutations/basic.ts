@@ -526,7 +526,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			$relation: 'User-Accounts',
 			$filter: { user: 'b1b-user1' },
 		});
-		console.log('RES!!', res);
+		//console.log('RES!!', res);
 
 		expect(res).toMatchObject([
 			{
@@ -938,7 +938,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		spaceOne.id = spaces[0].id;
 		spaceTwo.id = spaces[1].id;
 
-		console.log('secondUser', secondUser);
+		//console.log('secondUser', secondUser);
 
 		const relations = await ctx.query(
 			{
@@ -1200,9 +1200,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
-		//@ts-expect-error - TODO
-		console.log('res', res.spaces);
-		console.log('res', res);
+		//console.log('res', res);
 
 		if (!secondUser.id) {
 			throw new Error('secondUser.id is undefined');
@@ -2097,5 +2095,121 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				email: 'ann@test.com',
 			},
 		]);
+	});
+
+	it('ext1[role, link, extended] Link role to subtype of player', async () => {
+		/// cardinality ONE
+		await ctx.mutate(
+			{
+				$relation: 'User-Accounts',
+				id: 'ua-ext1',
+				user: {
+					$op: 'link',
+					$id: 'god1',
+				},
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query(
+			{
+				$relation: 'User-Accounts',
+				$id: 'ua-ext1',
+				$fields: ['id', { $path: 'user', $fields: ['id', 'name'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		//clean up
+		await ctx.mutate([
+			{
+				$id: 'ua-ext1',
+				$relation: 'User-Accounts',
+				$op: 'delete',
+			},
+		]);
+
+		expect(res).toEqual({
+			id: 'ua-ext1',
+			user: {
+				id: 'god1',
+				name: 'Richard David James',
+			},
+		});
+	});
+
+	it('ext2[rolelf, link, extended] Link linkfield target role to subtype of player', async () => {
+		/// cardinality ONE
+		await ctx.mutate(
+			{
+				$entity: 'Account',
+				id: 'a-ext2',
+				user: {
+					$op: 'link',
+					$id: 'god1',
+				},
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query(
+			{
+				$entity: 'Account',
+				$id: 'a-ext2',
+				$fields: ['id', { $path: 'user', $fields: ['id', 'name'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		//clean up
+		await ctx.mutate([
+			{
+				$id: 'a-ext2',
+				$entity: 'Account',
+				$op: 'delete',
+			},
+		]);
+
+		expect(res).toEqual({
+			id: 'a-ext2',
+			user: {
+				id: 'god1',
+				name: 'Richard David James',
+			},
+		});
+	});
+
+	it('ext3[relationlf, link, extended] Link linkfield target relation to subtype of player', async () => {
+		await ctx.mutate(
+			{
+				$entity: 'Space',
+				$id: 'space-3',
+				fields: [{ id: 'ext3-field', $thing: 'dataField', $op: 'create', name: 'myDataField' }], //so by default should be a Field but we casted into a DataField
+			},
+			{ noMetadata: true },
+		);
+
+		const res = await ctx.query(
+			{
+				$entity: 'Space',
+				$id: 'space-3',
+				$fields: ['id', { $path: 'fields', $fields: ['id', 'name'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		//clean up
+		await ctx.mutate([
+			{
+				$id: 'ext3-field',
+				$relation: 'DataField',
+				$op: 'delete',
+			},
+		]);
+
+		expect(res).toEqual({
+			id: 'space-3',
+			fields: [{ id: 'ext3-field', name: 'myDataField' }],
+		});
 	});
 });

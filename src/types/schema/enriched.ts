@@ -38,6 +38,7 @@ export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields
 export type EnrichedRoleField = RoleField & {
 	path: string;
 	playedBy?: LinkedFieldWithThing[]; // computed variable.
+	impactedLinkFields?: LinkedFieldWithThing[]; // computed variable.
 	$things: string[]; //all potential candidates
 	fieldType: 'roleField';
 	inherited: boolean;
@@ -75,6 +76,7 @@ export type EnrichedLinkField = LinkField & {
 				target: 'role';
 				//filter?: Filter | Filter[]; // * if specified, filters the things automatically
 				targetRoles?: string[]; // * these are the roles that are played by the opposite entity.
+				pathToRelation: string; // We create a default one if there is none. Todo: Give them a more exclusive name and hide it from the user
 				oppositeLinkFieldsPlayedBy: LinkedFieldWithThing[]; // * these are all the potential linkFields that are in the other side of the tunnel
 		  }
 		| {

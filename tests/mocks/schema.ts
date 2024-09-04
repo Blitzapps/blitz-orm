@@ -666,60 +666,6 @@ export const schema: BormSchema = {
 		},
 	},
 	relations: {
-		'ThingRelation': {
-			idFields: ['id'],
-			defaultDBConnector: { id: 'default', path: 'ThingRelation' },
-			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
-			dataFields: [
-				{ ...id },
-				{
-					path: 'moreStuff',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-				},
-			],
-			roles: {
-				things: {
-					cardinality: 'MANY',
-				},
-				root: { cardinality: 'ONE' },
-				extra: { cardinality: 'ONE' },
-			},
-		},
-		'CascadeRelation': {
-			idFields: ['id'],
-			defaultDBConnector: { id: 'default', path: 'CascadeRelation' },
-			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
-			dataFields: [{ ...id }],
-			roles: {
-				things: {
-					cardinality: 'MANY',
-				},
-			},
-			hooks: {
-				pre: [
-					{
-						actions: [
-							{
-								type: 'transform',
-								fn: ({ $op }, b, c, { things: dbThings }) => {
-									if ($op !== 'delete' || dbThings.length === 0) {
-										return {};
-									}
-									return {
-										things: dbThings.map((id: string) => ({
-											$op: 'delete',
-											$id: id,
-											$fields: ['cascadeRelations'],
-										})),
-									};
-								},
-							},
-						],
-					},
-				],
-			},
-		},
 		'User-Accounts': {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', path: 'User-Accounts' },
@@ -737,10 +683,10 @@ export const schema: BormSchema = {
 			idFields: ['id'],
 			dataFields: [{ ...id }],
 			roles: {
-				user: { cardinality: 'ONE' },
 				sessions: {
 					cardinality: 'MANY',
 				},
+				user: { cardinality: 'ONE' },
 			},
 		},
 		'Space-User': {
@@ -846,7 +792,7 @@ export const schema: BormSchema = {
 					cardinality: 'MANY',
 					plays: 'kinds',
 					target: 'relation',
-				},
+				}, //known bug: if I add a path 'objects' here, it has no stored references, will start from scratch wth no fields/datafields
 			],
 			defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Kind' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 			hooks: {
@@ -974,8 +920,42 @@ export const schema: BormSchema = {
 					target: 'relation',
 				},
 			],
-
 			defaultDBConnector: { id: 'default', as: 'Field', path: 'DataField' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
+		},
+		'DataValue': {
+			idFields: ['id'],
+			dataFields: [id, { contentType: 'TEXT', path: 'type' }],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in expression',
+								type: 'validate',
+								message: 'Failed test tf2 in expression',
+								severity: 'error',
+								fn: ({ $op, $id }, _parent, _context, dbNode) => {
+									const { id: dbId } = dbNode;
+									if ($op !== 'update') {
+										return true;
+									}
+									if ($id === 'mf2-dataValue-1' && dbId !== 'mf2-dataValue-1') {
+										throw new Error('The df should have one dv');
+									}
+									if ($id === 'mf2-dataValue-2' && dbId !== 'mf2-dataValue-2') {
+										throw new Error('The df should have one dv');
+									}
+									return true;
+								},
+							},
+						],
+					},
+				],
+			},
+			roles: {
+				dataField: { cardinality: 'ONE' },
+			},
+			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 		},
 		'Expression': {
 			idFields: ['id'],
@@ -1016,41 +996,6 @@ export const schema: BormSchema = {
 				dataField: { cardinality: 'ONE' },
 			},
 		},
-		'DataValue': {
-			idFields: ['id'],
-			dataFields: [id, { contentType: 'TEXT', path: 'type' }],
-			hooks: {
-				pre: [
-					{
-						actions: [
-							{
-								name: 'Validate tf2 test in expression',
-								type: 'validate',
-								message: 'Failed test tf2 in expression',
-								severity: 'error',
-								fn: ({ $op, $id }, _parent, _context, dbNode) => {
-									const { id: dbId } = dbNode;
-									if ($op !== 'update') {
-										return true;
-									}
-									if ($id === 'mf2-dataValue-1' && dbId !== 'mf2-dataValue-1') {
-										throw new Error('The df should have one dv');
-									}
-									if ($id === 'mf2-dataValue-2' && dbId !== 'mf2-dataValue-2') {
-										throw new Error('The df should have one dv');
-									}
-									return true;
-								},
-							},
-						],
-					},
-				],
-			},
-			roles: {
-				dataField: { cardinality: 'ONE' },
-			},
-			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
-		},
 		'Self': {
 			idFields: ['id'],
 			extends: 'SpaceObj',
@@ -1067,6 +1012,60 @@ export const schema: BormSchema = {
 					target: 'relation',
 				},
 			],
+		},
+		'ThingRelation': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'ThingRelation' },
+			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
+			dataFields: [
+				{ ...id },
+				{
+					path: 'moreStuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+				},
+			],
+			roles: {
+				things: {
+					cardinality: 'MANY',
+				},
+				root: { cardinality: 'ONE' },
+				extra: { cardinality: 'ONE' },
+			},
+		},
+		'CascadeRelation': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'CascadeRelation' },
+			// defaultDBConnector: { id: 'tdb', path: 'User·Account' }, //todo: when Dbpath != relation name
+			dataFields: [{ ...id }],
+			roles: {
+				things: {
+					cardinality: 'MANY',
+				},
+			},
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+								fn: ({ $op }, b, c, { things: dbThings }) => {
+									if ($op !== 'delete' || dbThings.length === 0) {
+										return {};
+									}
+									return {
+										things: dbThings.map((id: string) => ({
+											$op: 'delete',
+											$id: id,
+											$fields: ['cascadeRelations'],
+										})),
+									};
+								},
+							},
+						],
+					},
+				],
+			},
 		},
 		'HookParent': {
 			idFields: ['id'],
@@ -1107,7 +1106,7 @@ export const schema: BormSchema = {
 		'Employee': {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', path: 'Employee' },
-			dataFields: [{ ...id }, { ...name }],
+			dataFields: [{ ...id }, { ...name, validations: { required: true } }],
 			roles: {
 				company: { cardinality: 'ONE' },
 			},

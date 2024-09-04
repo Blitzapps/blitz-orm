@@ -208,7 +208,10 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							...thingTypes,
 						},
 					]
-				: value.map((x) => ({ ...x, ...thingTypes }));
+				: value.map((x) => ({
+						...x,
+						...thingTypes,
+					}));
 
 			allLinkedFields.push(...withThing);
 		}
@@ -251,57 +254,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				value.enumFields = [];
 				value.fnValidatedFields = [];
 
-				// adding all the linkFields to roles
-				if ('roles' in value) {
-					const val = value as EnrichedBormRelation;
-
-					Object.entries(val.roles).forEach(([roleKey, role]) => {
-						// eslint-disable-next-line no-param-reassign
-						role.fieldType = 'roleField';
-						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
-						role.playedBy = playedBy;
-						role.path = roleKey;
-						const $things = [...new Set(playedBy.map((x) => x.thing))];
-						role.$things = $things;
-
-						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
-
-						if ($things.length > 1) {
-							console.warn(
-								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
-							);
-						}
-						//get all subTyped for each potential player
-						const playerThingsWithSubTypes = $things.flatMap((playerThing) => {
-							const playerSchema = getSchemaByThing(schema, playerThing);
-							const subTypes = playerSchema?.subTypes || [];
-							return [playerThing, ...subTypes];
-						});
-
-						const getQueryPath = () => {
-							if (value.dbProviderConfig.linkMode === 'edges') {
-								return `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
-							}
-							if (value.dbProviderConfig.linkMode === 'refs') {
-								if (role.cardinality === 'MANY') {
-									return `$parent.\`${roleKey}\``;
-								}
-								if (role.cardinality === 'ONE') {
-									return `$parent.[\`${roleKey}\`]`;
-								}
-							}
-							throw new Error('Unsupported linkMode');
-						};
-
-						if (value.db === 'surrealDB') {
-							const queryPath = getQueryPath();
-
-							role[SuqlMetadata] = {
-								queryPath,
-							};
-						}
-					});
-				}
+				//todo: Maybe move all this to the pre-step and enrich all the linkFields there and same with the roles so then we can usse allLinkFields and allRoles as enriched ones.
 				if ('linkFields' in value && value.linkFields) {
 					const val = value as EnrichedBormRelation;
 
@@ -358,6 +311,11 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 								);
 							}
 
+							// This is duplicated here and in playedBy on purpose
+							linkField.pathToRelation =
+								val.linkFields?.find((lf) => lf.target === 'relation' && lf.relation === linkField.relation)?.path ??
+								linkField.relation.toLocaleLowerCase();
+
 							linkField.$things = linkField.oppositeLinkFieldsPlayedBy.map((x) => x.thing);
 
 							// #region FILTERING OPPOSITE LINKFIELDS
@@ -397,6 +355,84 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						// We take the original relation as its the one that holds the name of the relation in surrealDB
 
 						//#endregion
+					});
+				}
+
+				// adding all the linkFields to roles
+				if ('roles' in value) {
+					const val = value as EnrichedBormRelation;
+
+					Object.entries(val.roles).forEach(([roleKey, role]) => {
+						// eslint-disable-next-line no-param-reassign
+						role.fieldType = 'roleField';
+						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
+						// Duplicating path to relation here and in normal linkfields as it is used in both places
+						role.playedBy = playedBy.map((lf) => ({
+							...lf,
+							pathToRelation:
+								lf.target === 'relation'
+									? lf.path
+									: val.linkFields?.find(
+											(lf) => lf.target === 'relation' && lf.relation === key && lf.plays === roleKey,
+										)?.path ?? lf.relation.toLocaleLowerCase(),
+						}));
+
+						const impactedLinkFields = allLinkedFields.filter(
+							(x) => x.target === 'relation' && x.plays === roleKey && val.allExtends?.includes(x.relation),
+						);
+						role.impactedLinkFields = impactedLinkFields;
+
+						role.path = roleKey;
+						const $things = [
+							...new Set(
+								playedBy
+									.flatMap((x) => {
+										const playerSchema = getSchemaByThing(withExtensionsSchema, x.thing);
+										return [...(playerSchema.subTypes || []), x.thing];
+									})
+									.flat()
+									.filter(Boolean),
+							),
+						];
+
+						role.$things = $things;
+
+						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
+
+						if ($things.length > 1) {
+							console.warn(
+								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
+							);
+						}
+						//get all subTyped for each potential player
+						const playerThingsWithSubTypes = $things.flatMap((playerThing) => {
+							const playerSchema = getSchemaByThing(schema, playerThing);
+							const subTypes = playerSchema?.subTypes || [];
+							return [playerThing, ...subTypes];
+						});
+
+						const getQueryPath = () => {
+							if (value.dbProviderConfig.linkMode === 'edges') {
+								return `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
+							}
+							if (value.dbProviderConfig.linkMode === 'refs') {
+								if (role.cardinality === 'MANY') {
+									return `$parent.\`${roleKey}\``;
+								}
+								if (role.cardinality === 'ONE') {
+									return `$parent.[\`${roleKey}\`]`;
+								}
+							}
+							throw new Error('Unsupported linkMode');
+						};
+
+						if (value.db === 'surrealDB') {
+							const queryPath = getQueryPath();
+
+							role[SuqlMetadata] = {
+								queryPath,
+							};
+						}
 					});
 				}
 			}
