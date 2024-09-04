@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.1(2024-09-04)
+
+- Feat: Generate surrealDB schema (client.define() works with surrealDB now)
+- Fix: TypeDB schema generation has been fixed. (It still needs some enhancements tho)
+- Test: Added some tests for extended classes
+
 ## 0.11.0(2024-09-01)
 
 - Feat: Working queries and basic mutations for surrealDB
