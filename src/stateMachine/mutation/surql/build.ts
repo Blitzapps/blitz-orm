@@ -118,12 +118,11 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 
 	const buildEdges = (block: EnrichedBQLMutationBlock) => {
 		//console.log('currentEdge:', block);
-		const { $filter, $thing, $bzId, $op, $tempId } = block;
+		const { $thing, $bzId, $op, $tempId } = block;
 		const currentSchema = getSchemaByThing(schema, $thing);
 		const { usedRoleFields } = getCurrentFields(currentSchema, block);
 
 		const VAR = `$⟨${$tempId || $bzId}⟩`;
-		const WHERE = $filter ? `WHERE ${buildSuqlFilter(parseFilter($filter, $thing, schema))}` : '';
 
 		const roleFields =
 			'roles' in currentSchema
@@ -175,7 +174,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 	};
 
 	const buildArcs = (block: EnrichedBQLMutationBlock) => {
-		const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
+		const { $thing, $op } = block;
 		const currentSchema = getSchemaByThing(schema, $thing) as EnrichedBormRelation;
 		const tableName = sanitizeNameSurrealDB($thing);
 

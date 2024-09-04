@@ -1,549 +1,6 @@
 //* File auto generated with buildSchema.ts
 export const typesSchema = {
 	entities: {
-		Hook: {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'Hook',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					contentType: 'TEXT',
-					path: 'requiredOption',
-					validations: {
-						required: true,
-						enum: ['a', 'b', 'c'],
-					},
-					cardinality: 'ONE',
-					dbPath: 'Hook·requiredOption',
-				},
-				{
-					path: 'manyOptions',
-					cardinality: 'MANY',
-					contentType: 'TEXT',
-					validations: {
-						enum: ['a', 'b', 'c'],
-					},
-					dbPath: 'Hook·manyOptions',
-				},
-				{
-					path: 'fnValidatedField',
-					contentType: 'TEXT',
-					validations: {},
-					cardinality: 'ONE',
-					dbPath: 'Hook·fnValidatedField',
-				},
-				{
-					contentType: 'DATE',
-					path: 'timestamp',
-					default: {
-						type: 'fn',
-					},
-					cardinality: 'ONE',
-					dbPath: 'Hook·timestamp',
-				},
-			],
-			linkFields: [
-				{
-					path: 'hookParent',
-					cardinality: 'ONE',
-					relation: 'HookParent',
-					plays: 'hooks',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'hookParent',
-							thing: 'HookParent',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'asMainHookOf',
-					cardinality: 'ONE',
-					relation: 'HookParent',
-					plays: 'mainHook',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'asMainHookOf',
-							thing: 'HookParent',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'otherTags',
-					cardinality: 'MANY',
-					relation: 'HookATag',
-					plays: 'hookTypeA',
-					target: 'role',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							path: 'tagA',
-							cardinality: 'MANY',
-							relation: 'HookATag',
-							plays: 'otherHooks',
-							target: 'role',
-							thing: 'Hook',
-							thingType: 'entity',
-						},
-					],
-				},
-				{
-					path: 'tagA',
-					cardinality: 'MANY',
-					relation: 'HookATag',
-					plays: 'otherHooks',
-					target: 'role',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							path: 'otherTags',
-							cardinality: 'MANY',
-							relation: 'HookATag',
-							plays: 'hookTypeA',
-							target: 'role',
-							thing: 'Hook',
-							thingType: 'entity',
-						},
-					],
-				},
-			],
-			hooks: {
-				pre: [
-					{
-						triggers: {},
-						actions: [
-							{
-								type: 'validate',
-								severity: 'error',
-								message: 'Default message',
-							},
-						],
-					},
-				],
-			},
-			name: 'Hook',
-			thingType: 'entity',
-			computedFields: ['id', 'timestamp'],
-			virtualFields: [],
-			requiredFields: ['id', 'requiredOption'],
-			enumFields: ['requiredOption', 'manyOptions'],
-			fnValidatedFields: ['fnValidatedField'],
-		},
-		Thing: {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'Thing',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					path: 'stuff',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-					cardinality: 'ONE',
-					dbPath: 'Thing·stuff',
-				},
-			],
-			linkFields: [
-				{
-					path: 'things',
-					cardinality: 'MANY',
-					relation: 'ThingRelation',
-					plays: 'things',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'things',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'root',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'root',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'root',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'extra',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'extra',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'extra',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-			],
-			subTypes: ['SubthingTwo', 'SubthingOne'],
-			name: 'Thing',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		CascadeThing: {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'CascadeThing',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-			],
-			linkFields: [
-				{
-					path: 'cascadeRelations',
-					cardinality: 'MANY',
-					relation: 'CascadeRelation',
-					plays: 'things',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'cascadeRelations',
-							thing: 'CascadeRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-			],
-			hooks: {
-				pre: [
-					{
-						actions: [
-							{
-								type: 'transform',
-							},
-						],
-					},
-				],
-			},
-			name: 'CascadeThing',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		SubthingOne: {
-			extends: 'Thing',
-			defaultDBConnector: {
-				id: 'default',
-				as: 'Thing',
-				path: 'SubthingOne',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					path: 'stuff',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-					cardinality: 'ONE',
-					dbPath: 'Thing·stuff',
-				},
-			],
-			allExtends: ['Thing'],
-			idFields: ['id'],
-			linkFields: [
-				{
-					path: 'things',
-					cardinality: 'MANY',
-					relation: 'ThingRelation',
-					plays: 'things',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'things',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'root',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'root',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'root',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'extra',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'extra',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'extra',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-			],
-			name: 'SubthingOne',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		SubthingTwo: {
-			extends: 'Thing',
-			defaultDBConnector: {
-				id: 'default',
-				as: 'Thing',
-				path: 'SubthingTwo',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					path: 'stuff',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-					cardinality: 'ONE',
-					dbPath: 'Thing·stuff',
-				},
-			],
-			allExtends: ['Thing'],
-			idFields: ['id'],
-			linkFields: [
-				{
-					path: 'things',
-					cardinality: 'MANY',
-					relation: 'ThingRelation',
-					plays: 'things',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'things',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'root',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'root',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'root',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-				{
-					path: 'extra',
-					cardinality: 'ONE',
-					relation: 'ThingRelation',
-					plays: 'extra',
-					target: 'relation',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							plays: 'extra',
-							thing: 'ThingRelation',
-							thingType: 'relation',
-						},
-					],
-				},
-			],
-			name: 'SubthingTwo',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		Account: {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'Account',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					path: 'provider',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-					cardinality: 'ONE',
-					dbPath: 'Account·provider',
-				},
-				{
-					path: 'isSecureProvider',
-					contentType: 'BOOLEAN',
-					isVirtual: true,
-					cardinality: 'ONE',
-					dbPath: 'Account·isSecureProvider',
-				},
-				{
-					path: 'profile',
-					contentType: 'JSON',
-					cardinality: 'ONE',
-					dbPath: 'Account·profile',
-				},
-			],
-			linkFields: [
-				{
-					path: 'user',
-					cardinality: 'ONE',
-					relation: 'User-Accounts',
-					plays: 'accounts',
-					target: 'role',
-					fieldType: 'linkField',
-					oppositeLinkFieldsPlayedBy: [
-						{
-							path: 'accounts',
-							relation: 'User-Accounts',
-							cardinality: 'MANY',
-							plays: 'user',
-							target: 'role',
-							thing: 'User',
-							thingType: 'entity',
-						},
-					],
-				},
-			],
-			name: 'Account',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: ['isSecureProvider'],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
 		User: {
 			idFields: ['id'],
 			defaultDBConnector: {
@@ -562,6 +19,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -570,6 +28,7 @@ export const typesSchema = {
 					path: 'name',
 					contentType: 'TEXT',
 					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'name',
 				},
@@ -580,6 +39,7 @@ export const typesSchema = {
 						unique: true,
 					},
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'User·email',
 				},
@@ -603,6 +63,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-accounts',
+					$things: ['Account'],
 				},
 				{
 					path: 'sessions',
@@ -622,6 +84,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-sessions',
+					$things: ['Session'],
 				},
 				{
 					path: 'spaces',
@@ -641,6 +105,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'space-user',
+					$things: ['Space'],
 				},
 				{
 					path: 'user-tags',
@@ -649,6 +115,7 @@ export const typesSchema = {
 					plays: 'users',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['UserTag'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -722,7 +189,11 @@ export const typesSchema = {
 			dataFields: [
 				{
 					path: 'power',
+					validations: {
+						required: true,
+					},
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'SuperUser·power',
 				},
@@ -738,16 +209,20 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 				{
 					shared: true,
 					path: 'name',
 					contentType: 'TEXT',
 					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'name',
+					inherited: true,
 				},
 				{
 					path: 'email',
@@ -756,8 +231,10 @@ export const typesSchema = {
 						unique: true,
 					},
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'User·email',
+					inherited: true,
 				},
 			],
 			allExtends: ['User'],
@@ -769,6 +246,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -781,6 +259,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-accounts',
+					$things: ['Account'],
 				},
 				{
 					path: 'sessions',
@@ -788,6 +268,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -800,6 +281,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-sessions',
+					$things: ['Session'],
 				},
 				{
 					path: 'spaces',
@@ -807,6 +290,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -819,6 +303,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'space-user',
+					$things: ['Space'],
 				},
 				{
 					path: 'user-tags',
@@ -826,7 +312,9 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
+					inherited: true,
 					fieldType: 'linkField',
+					$things: ['UserTag'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -886,7 +374,7 @@ export const typesSchema = {
 			thingType: 'entity',
 			computedFields: ['id'],
 			virtualFields: [],
-			requiredFields: ['id'],
+			requiredFields: ['power', 'id'],
 			enumFields: [],
 			fnValidatedFields: [],
 		},
@@ -900,15 +388,24 @@ export const typesSchema = {
 			dataFields: [
 				{
 					path: 'isEvil',
+					validations: {
+						required: true,
+					},
 					contentType: 'BOOLEAN',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'God·isEvil',
 				},
 				{
 					path: 'power',
+					validations: {
+						required: true,
+					},
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'SuperUser·power',
+					inherited: true,
 				},
 				{
 					shared: true,
@@ -922,16 +419,20 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 				{
 					shared: true,
 					path: 'name',
 					contentType: 'TEXT',
 					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'name',
+					inherited: true,
 				},
 				{
 					path: 'email',
@@ -940,8 +441,10 @@ export const typesSchema = {
 						unique: true,
 					},
 					rights: ['CREATE', 'DELETE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'User·email',
+					inherited: true,
 				},
 			],
 			allExtends: ['SuperUser', 'User'],
@@ -953,6 +456,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -965,6 +469,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-accounts',
+					$things: ['Account'],
 				},
 				{
 					path: 'sessions',
@@ -972,6 +478,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'user',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -984,6 +491,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'user-sessions',
+					$things: ['Session'],
 				},
 				{
 					path: 'spaces',
@@ -991,6 +500,7 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'role',
+					inherited: true,
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
@@ -1003,6 +513,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'space-user',
+					$things: ['Space'],
 				},
 				{
 					path: 'user-tags',
@@ -1010,7 +522,9 @@ export const typesSchema = {
 					cardinality: 'MANY',
 					plays: 'users',
 					target: 'relation',
+					inherited: true,
 					fieldType: 'linkField',
+					$things: ['UserTag'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'user-tags',
@@ -1069,7 +583,7 @@ export const typesSchema = {
 			thingType: 'entity',
 			computedFields: ['id'],
 			virtualFields: [],
-			requiredFields: ['id'],
+			requiredFields: ['isEvil', 'power', 'id'],
 			enumFields: [],
 			fnValidatedFields: [],
 		},
@@ -1112,6 +626,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1120,6 +635,7 @@ export const typesSchema = {
 					path: 'name',
 					contentType: 'TEXT',
 					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'name',
 				},
@@ -1143,6 +659,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'space-user',
+					$things: ['User'],
 				},
 				{
 					path: 'objects',
@@ -1151,6 +669,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['SpaceObj', 'Self', 'DataField', 'Field', 'Kind', 'SpaceDef'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'objects',
@@ -1166,6 +685,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['SpaceDef', 'DataField', 'Field', 'Kind'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'definitions',
@@ -1181,6 +701,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Kind'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'kinds',
@@ -1196,6 +717,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Field', 'DataField'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'fields',
@@ -1211,6 +733,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['DataField'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'dataFields',
@@ -1226,6 +749,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Self'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'selfs',
@@ -1241,6 +765,7 @@ export const typesSchema = {
 					plays: 'space',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['UserTagGroup'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'userTagGroups',
@@ -1251,6 +776,561 @@ export const typesSchema = {
 				},
 			],
 			name: 'Space',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		Account: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'Account',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					path: 'provider',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Account·provider',
+				},
+				{
+					path: 'isSecureProvider',
+					contentType: 'BOOLEAN',
+					isVirtual: true,
+					dbValue: {
+						surrealDB: '{$this.provider = "google"} TYPE option<bool>',
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Account·isSecureProvider',
+				},
+				{
+					path: 'profile',
+					contentType: 'JSON',
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Account·profile',
+				},
+			],
+			linkFields: [
+				{
+					path: 'user',
+					cardinality: 'ONE',
+					relation: 'User-Accounts',
+					plays: 'accounts',
+					target: 'role',
+					fieldType: 'linkField',
+					oppositeLinkFieldsPlayedBy: [
+						{
+							path: 'accounts',
+							relation: 'User-Accounts',
+							cardinality: 'MANY',
+							plays: 'user',
+							target: 'role',
+							thing: 'User',
+							thingType: 'entity',
+						},
+					],
+					pathToRelation: 'user-accounts',
+					$things: ['User'],
+				},
+			],
+			name: 'Account',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: ['isSecureProvider'],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		Session: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					path: 'expires',
+					contentType: 'DATE',
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Session·expires',
+				},
+				{
+					contentType: 'TEXT',
+					path: 'sessionToken',
+					validations: {
+						unique: true,
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Session·sessionToken',
+				},
+			],
+			linkFields: [
+				{
+					path: 'user',
+					cardinality: 'ONE',
+					relation: 'User-Sessions',
+					plays: 'sessions',
+					target: 'role',
+					fieldType: 'linkField',
+					oppositeLinkFieldsPlayedBy: [
+						{
+							path: 'sessions',
+							relation: 'User-Sessions',
+							cardinality: 'MANY',
+							plays: 'user',
+							target: 'role',
+							thing: 'User',
+							thingType: 'entity',
+						},
+					],
+					pathToRelation: 'user-sessions',
+					$things: ['User'],
+				},
+			],
+			name: 'Session',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		VerificationToken: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					contentType: 'TEXT',
+					path: 'identifier',
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'VerificationToken·identifier',
+				},
+				{
+					contentType: 'TEXT',
+					path: 'token',
+					validations: {
+						unique: true,
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'VerificationToken·token',
+				},
+				{
+					path: 'expires',
+					contentType: 'DATE',
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'VerificationToken·expires',
+				},
+			],
+			name: 'VerificationToken',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		Thing: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'Thing',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					path: 'stuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Thing·stuff',
+				},
+			],
+			linkFields: [
+				{
+					path: 'things',
+					cardinality: 'MANY',
+					relation: 'ThingRelation',
+					plays: 'things',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'things',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'root',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'root',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'root',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'extra',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'extra',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'extra',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+			],
+			subTypes: ['SubthingTwo', 'SubthingOne'],
+			name: 'Thing',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		SubthingOne: {
+			extends: 'Thing',
+			defaultDBConnector: {
+				id: 'default',
+				as: 'Thing',
+				path: 'SubthingOne',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+					inherited: true,
+				},
+				{
+					path: 'stuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Thing·stuff',
+					inherited: true,
+				},
+			],
+			allExtends: ['Thing'],
+			idFields: ['id'],
+			linkFields: [
+				{
+					path: 'things',
+					cardinality: 'MANY',
+					relation: 'ThingRelation',
+					plays: 'things',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'things',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'root',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'root',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'root',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'extra',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'extra',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'extra',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+			],
+			name: 'SubthingOne',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		SubthingTwo: {
+			extends: 'Thing',
+			defaultDBConnector: {
+				id: 'default',
+				as: 'Thing',
+				path: 'SubthingTwo',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+					inherited: true,
+				},
+				{
+					path: 'stuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Thing·stuff',
+					inherited: true,
+				},
+			],
+			allExtends: ['Thing'],
+			idFields: ['id'],
+			linkFields: [
+				{
+					path: 'things',
+					cardinality: 'MANY',
+					relation: 'ThingRelation',
+					plays: 'things',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'things',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'root',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'root',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'root',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'extra',
+					cardinality: 'ONE',
+					relation: 'ThingRelation',
+					plays: 'extra',
+					target: 'relation',
+					inherited: true,
+					fieldType: 'linkField',
+					$things: ['ThingRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'extra',
+							thing: 'ThingRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+			],
+			name: 'SubthingTwo',
+			thingType: 'entity',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		CascadeThing: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'CascadeThing',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+			],
+			linkFields: [
+				{
+					path: 'cascadeRelations',
+					cardinality: 'MANY',
+					relation: 'CascadeRelation',
+					plays: 'things',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['CascadeRelation'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'cascadeRelations',
+							thing: 'CascadeRelation',
+							thingType: 'relation',
+						},
+					],
+				},
+			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+							},
+						],
+					},
+				],
+			},
+			name: 'CascadeThing',
 			thingType: 'entity',
 			computedFields: ['id'],
 			virtualFields: [],
@@ -1276,6 +1356,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1286,8 +1367,16 @@ export const typesSchema = {
 					default: {
 						type: 'fn',
 					},
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Color·isBlue',
+				},
+				{
+					path: 'freeForAll',
+					cardinality: 'ONE',
+					contentType: 'FLEX',
+					isIdField: false,
+					dbPath: 'Color·freeForAll',
 				},
 				{
 					path: 'totalUserTags',
@@ -1296,12 +1385,14 @@ export const typesSchema = {
 					default: {
 						type: 'fn',
 					},
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Color·totalUserTags',
 				},
 				{
 					path: 'value',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Color·value',
 				},
@@ -1325,6 +1416,8 @@ export const typesSchema = {
 							thingType: 'relation',
 						},
 					],
+					pathToRelation: 'group',
+					$things: ['UserTag'],
 				},
 				{
 					path: 'group',
@@ -1333,6 +1426,7 @@ export const typesSchema = {
 					plays: 'color',
 					relation: 'UserTagGroup',
 					fieldType: 'linkField',
+					$things: ['UserTagGroup'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'group',
@@ -1379,6 +1473,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1386,6 +1481,7 @@ export const typesSchema = {
 					shared: true,
 					path: 'description',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'description',
 				},
@@ -1398,6 +1494,7 @@ export const typesSchema = {
 					plays: 'power',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Space-User'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'space-user',
@@ -1415,10 +1512,11 @@ export const typesSchema = {
 			enumFields: [],
 			fnValidatedFields: [],
 		},
-		Session: {
+		Hook: {
 			idFields: ['id'],
 			defaultDBConnector: {
 				id: 'default',
+				path: 'Hook',
 			},
 			dataFields: [
 				{
@@ -1433,255 +1531,240 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
 				{
-					path: 'expires',
-					contentType: 'DATE',
+					contentType: 'TEXT',
+					path: 'requiredOption',
+					validations: {
+						required: true,
+						enum: ['a', 'b', 'c'],
+					},
+					isIdField: false,
 					cardinality: 'ONE',
-					dbPath: 'Session·expires',
+					dbPath: 'Hook·requiredOption',
 				},
 				{
+					path: 'manyOptions',
+					cardinality: 'MANY',
 					contentType: 'TEXT',
-					path: 'sessionToken',
 					validations: {
-						unique: true,
+						enum: ['a', 'b', 'c'],
 					},
+					isIdField: false,
+					dbPath: 'Hook·manyOptions',
+				},
+				{
+					path: 'fnValidatedField',
+					contentType: 'TEXT',
+					validations: {},
+					isIdField: false,
 					cardinality: 'ONE',
-					dbPath: 'Session·sessionToken',
+					dbPath: 'Hook·fnValidatedField',
+				},
+				{
+					contentType: 'DATE',
+					path: 'timestamp',
+					default: {
+						type: 'fn',
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Hook·timestamp',
 				},
 			],
 			linkFields: [
 				{
-					path: 'user',
+					path: 'hookParent',
 					cardinality: 'ONE',
-					relation: 'User-Sessions',
-					plays: 'sessions',
+					relation: 'HookParent',
+					plays: 'hooks',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['HookParent'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'hookParent',
+							thing: 'HookParent',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'asMainHookOf',
+					cardinality: 'ONE',
+					relation: 'HookParent',
+					plays: 'mainHook',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['HookParent'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'asMainHookOf',
+							thing: 'HookParent',
+							thingType: 'relation',
+						},
+					],
+				},
+				{
+					path: 'otherTags',
+					cardinality: 'MANY',
+					relation: 'HookATag',
+					plays: 'hookTypeA',
 					target: 'role',
+					isVirtual: true,
+					dbValue: {
+						surrealDB:
+							'<future> {RETURN IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) ELSE RETURN [] END;}',
+					},
 					fieldType: 'linkField',
 					oppositeLinkFieldsPlayedBy: [
 						{
-							path: 'sessions',
-							relation: 'User-Sessions',
+							path: 'tagA',
 							cardinality: 'MANY',
-							plays: 'user',
+							relation: 'HookATag',
+							plays: 'otherHooks',
 							target: 'role',
-							thing: 'User',
+							isVirtual: true,
+							dbValue: {
+								surrealDB:
+									'<future> {RETURN IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) ELSE RETURN [] END;}',
+							},
+							thing: 'Hook',
 							thingType: 'entity',
 						},
 					],
-				},
-			],
-			name: 'Session',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		VerificationToken: {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
+					pathToRelation: 'hookatag',
+					$things: ['Hook'],
 				},
 				{
-					contentType: 'TEXT',
-					path: 'identifier',
-					cardinality: 'ONE',
-					dbPath: 'VerificationToken·identifier',
-				},
-				{
-					contentType: 'TEXT',
-					path: 'token',
-					validations: {
-						unique: true,
-					},
-					cardinality: 'ONE',
-					dbPath: 'VerificationToken·token',
-				},
-				{
-					path: 'expires',
-					contentType: 'DATE',
-					cardinality: 'ONE',
-					dbPath: 'VerificationToken·expires',
-				},
-			],
-			name: 'VerificationToken',
-			thingType: 'entity',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-	},
-	relations: {
-		'ThingRelation': {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'ThingRelation',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					path: 'moreStuff',
-					contentType: 'TEXT',
-					rights: ['CREATE', 'UPDATE', 'DELETE'],
-					cardinality: 'ONE',
-					dbPath: 'ThingRelation·moreStuff',
-				},
-			],
-			roles: {
-				things: {
+					path: 'tagA',
 					cardinality: 'MANY',
-					fieldType: 'roleField',
-					playedBy: [
+					relation: 'HookATag',
+					plays: 'otherHooks',
+					target: 'role',
+					isVirtual: true,
+					dbValue: {
+						surrealDB:
+							'<future> {RETURN IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) ELSE RETURN [] END;}',
+					},
+					fieldType: 'linkField',
+					oppositeLinkFieldsPlayedBy: [
 						{
-							path: 'things',
+							path: 'otherTags',
 							cardinality: 'MANY',
-							relation: 'ThingRelation',
-							plays: 'things',
-							target: 'relation',
-							thing: 'Thing',
+							relation: 'HookATag',
+							plays: 'hookTypeA',
+							target: 'role',
+							isVirtual: true,
+							dbValue: {
+								surrealDB:
+									'<future> {RETURN IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) ELSE RETURN [] END;}',
+							},
+							thing: 'Hook',
 							thingType: 'entity',
 						},
 					],
-					name: 'things',
-				},
-				root: {
-					cardinality: 'ONE',
-					fieldType: 'roleField',
-					playedBy: [
-						{
-							path: 'root',
-							cardinality: 'ONE',
-							relation: 'ThingRelation',
-							plays: 'root',
-							target: 'relation',
-							thing: 'Thing',
-							thingType: 'entity',
-						},
-					],
-					name: 'root',
-				},
-				extra: {
-					cardinality: 'ONE',
-					fieldType: 'roleField',
-					playedBy: [
-						{
-							path: 'extra',
-							cardinality: 'ONE',
-							relation: 'ThingRelation',
-							plays: 'extra',
-							target: 'relation',
-							thing: 'Thing',
-							thingType: 'entity',
-						},
-					],
-					name: 'extra',
-				},
-			},
-			name: 'ThingRelation',
-			thingType: 'relation',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		'CascadeRelation': {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				path: 'CascadeRelation',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
+					pathToRelation: 'hookatag',
+					$things: ['Hook'],
 				},
 			],
-			roles: {
-				things: {
-					cardinality: 'MANY',
-					fieldType: 'roleField',
-					playedBy: [
-						{
-							path: 'cascadeRelations',
-							cardinality: 'MANY',
-							relation: 'CascadeRelation',
-							plays: 'things',
-							target: 'relation',
-							thing: 'CascadeThing',
-							thingType: 'entity',
-						},
-					],
-					name: 'things',
-				},
-			},
 			hooks: {
 				pre: [
 					{
+						triggers: {},
 						actions: [
 							{
-								type: 'transform',
+								type: 'validate',
+								severity: 'error',
+								message: 'Default message',
 							},
 						],
 					},
 				],
 			},
-			name: 'CascadeRelation',
-			thingType: 'relation',
+			name: 'Hook',
+			thingType: 'entity',
+			computedFields: ['id', 'timestamp'],
+			virtualFields: ['otherTags', 'tagA'],
+			requiredFields: ['id', 'requiredOption'],
+			enumFields: ['requiredOption', 'manyOptions'],
+			fnValidatedFields: ['fnValidatedField'],
+		},
+		Company: {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'Company',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					path: 'name',
+					contentType: 'TEXT',
+					validations: {
+						required: true,
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Company·name',
+				},
+				{
+					path: 'industry',
+					contentType: 'TEXT',
+					validations: {
+						enum: ['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'],
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Company·industry',
+				},
+			],
+			linkFields: [
+				{
+					path: 'employees',
+					plays: 'company',
+					cardinality: 'MANY',
+					relation: 'Employee',
+					target: 'relation',
+					fieldType: 'linkField',
+					$things: ['Employee'],
+					oppositeLinkFieldsPlayedBy: [
+						{
+							plays: 'employees',
+							thing: 'Employee',
+							thingType: 'relation',
+						},
+					],
+				},
+			],
+			name: 'Company',
+			thingType: 'entity',
 			computedFields: ['id'],
 			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
+			requiredFields: ['id', 'name'],
+			enumFields: ['industry'],
 			fnValidatedFields: [],
 		},
+	},
+	relations: {
 		'User-Accounts': {
 			idFields: ['id'],
 			defaultDBConnector: {
@@ -1701,6 +1784,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1718,9 +1802,12 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'Account',
 							thingType: 'entity',
+							pathToRelation: 'user-accounts',
 						},
 					],
-					name: 'accounts',
+					impactedLinkFields: [],
+					path: 'accounts',
+					$things: ['Account'],
 				},
 				user: {
 					cardinality: 'ONE',
@@ -1734,9 +1821,12 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'User',
 							thingType: 'entity',
+							pathToRelation: 'user-accounts',
 						},
 					],
-					name: 'user',
+					impactedLinkFields: [],
+					path: 'user',
+					$things: ['User'],
 				},
 			},
 			name: 'User-Accounts',
@@ -1766,27 +1856,12 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
 			],
 			roles: {
-				user: {
-					cardinality: 'ONE',
-					fieldType: 'roleField',
-					playedBy: [
-						{
-							path: 'sessions',
-							relation: 'User-Sessions',
-							cardinality: 'MANY',
-							plays: 'user',
-							target: 'role',
-							thing: 'User',
-							thingType: 'entity',
-						},
-					],
-					name: 'user',
-				},
 				sessions: {
 					cardinality: 'MANY',
 					fieldType: 'roleField',
@@ -1799,9 +1874,31 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'Session',
 							thingType: 'entity',
+							pathToRelation: 'user-sessions',
 						},
 					],
-					name: 'sessions',
+					impactedLinkFields: [],
+					path: 'sessions',
+					$things: ['Session'],
+				},
+				user: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'sessions',
+							relation: 'User-Sessions',
+							cardinality: 'MANY',
+							plays: 'user',
+							target: 'role',
+							thing: 'User',
+							thingType: 'entity',
+							pathToRelation: 'user-sessions',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'user',
+					$things: ['User'],
 				},
 			},
 			name: 'User-Sessions',
@@ -1831,6 +1928,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1848,9 +1946,12 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'space-user',
 						},
 					],
-					name: 'spaces',
+					impactedLinkFields: [],
+					path: 'spaces',
+					$things: ['Space'],
 				},
 				users: {
 					cardinality: 'MANY',
@@ -1864,9 +1965,12 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'User',
 							thingType: 'entity',
+							pathToRelation: 'space-user',
 						},
 					],
-					name: 'users',
+					impactedLinkFields: [],
+					path: 'users',
+					$things: ['User'],
 				},
 				power: {
 					cardinality: 'ONE',
@@ -1880,9 +1984,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Power',
 							thingType: 'entity',
+							pathToRelation: 'space-user',
 						},
 					],
-					name: 'power',
+					impactedLinkFields: [],
+					path: 'power',
+					$things: ['Power'],
 				},
 			},
 			name: 'Space-User',
@@ -1912,6 +2019,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -1919,6 +2027,7 @@ export const typesSchema = {
 					shared: true,
 					path: 'name',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'name',
 				},
@@ -1936,9 +2045,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'User',
 							thingType: 'entity',
+							pathToRelation: 'user-tags',
 						},
 					],
-					name: 'users',
+					impactedLinkFields: [],
+					path: 'users',
+					$things: ['User'],
 				},
 			},
 			linkFields: [
@@ -1960,6 +2072,8 @@ export const typesSchema = {
 							thingType: 'entity',
 						},
 					],
+					pathToRelation: 'group',
+					$things: ['Color'],
 				},
 				{
 					path: 'group',
@@ -1968,6 +2082,7 @@ export const typesSchema = {
 					plays: 'tags',
 					relation: 'UserTagGroup',
 					fieldType: 'linkField',
+					$things: ['UserTagGroup'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'group',
@@ -2004,6 +2119,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -2021,6 +2137,7 @@ export const typesSchema = {
 							relation: 'UserTagGroup',
 							thing: 'UserTag',
 							thingType: 'relation',
+							pathToRelation: 'usertaggroup',
 						},
 						{
 							path: 'group',
@@ -2030,9 +2147,12 @@ export const typesSchema = {
 							relation: 'UserTagGroup',
 							thing: 'UserTag',
 							thingType: 'relation',
+							pathToRelation: 'group',
 						},
 					],
-					name: 'tags',
+					impactedLinkFields: [],
+					path: 'tags',
+					$things: ['UserTag'],
 				},
 				color: {
 					cardinality: 'ONE',
@@ -2046,6 +2166,7 @@ export const typesSchema = {
 							target: 'role',
 							thing: 'Color',
 							thingType: 'entity',
+							pathToRelation: 'usertaggroup',
 						},
 						{
 							path: 'group',
@@ -2055,9 +2176,12 @@ export const typesSchema = {
 							relation: 'UserTagGroup',
 							thing: 'Color',
 							thingType: 'entity',
+							pathToRelation: 'group',
 						},
 					],
-					name: 'color',
+					impactedLinkFields: [],
+					path: 'color',
+					$things: ['Color'],
 				},
 				space: {
 					cardinality: 'ONE',
@@ -2071,9 +2195,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'userTagGroups',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			name: 'UserTagGroup',
@@ -2103,6 +2230,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -2120,9 +2248,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'objects',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			hooks: {
@@ -2157,6 +2288,7 @@ export const typesSchema = {
 					shared: true,
 					path: 'description',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'description',
 				},
@@ -2172,8 +2304,10 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 			],
 			allExtends: ['SpaceObj'],
@@ -2181,6 +2315,7 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2191,9 +2326,22 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'definitions',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [
+						{
+							path: 'objects',
+							cardinality: 'MANY',
+							relation: 'SpaceObj',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+					],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			hooks: {
@@ -2223,6 +2371,7 @@ export const typesSchema = {
 					contentType: 'TEXT',
 					path: 'name',
 					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Kind·name',
 				},
@@ -2230,8 +2379,10 @@ export const typesSchema = {
 					shared: true,
 					path: 'description',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'description',
+					inherited: true,
 				},
 				{
 					shared: true,
@@ -2245,8 +2396,10 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 			],
 			linkFields: [
@@ -2257,6 +2410,7 @@ export const typesSchema = {
 					plays: 'kinds',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Field', 'DataField'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'fields',
@@ -2272,6 +2426,7 @@ export const typesSchema = {
 					plays: 'kinds',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['DataField'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'dataFields',
@@ -2320,6 +2475,7 @@ export const typesSchema = {
 			roles: {
 				space: {
 					cardinality: 'ONE',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2330,9 +2486,31 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'kinds',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [
+						{
+							path: 'objects',
+							cardinality: 'MANY',
+							relation: 'SpaceObj',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+						{
+							path: 'definitions',
+							cardinality: 'MANY',
+							relation: 'SpaceDef',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+					],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			name: 'Kind',
@@ -2349,12 +2527,14 @@ export const typesSchema = {
 				{
 					contentType: 'TEXT',
 					path: 'name',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Field·name',
 				},
 				{
 					contentType: 'TEXT',
 					path: 'cardinality',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Field·cardinality',
 				},
@@ -2362,8 +2542,10 @@ export const typesSchema = {
 					shared: true,
 					path: 'description',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'description',
+					inherited: true,
 				},
 				{
 					shared: true,
@@ -2377,8 +2559,10 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 			],
 			roles: {
@@ -2394,12 +2578,16 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Kind',
 							thingType: 'relation',
+							pathToRelation: 'fields',
 						},
 					],
-					name: 'kinds',
+					impactedLinkFields: [],
+					path: 'kinds',
+					$things: ['Kind'],
 				},
 				space: {
 					cardinality: 'ONE',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2410,9 +2598,31 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'fields',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [
+						{
+							path: 'objects',
+							cardinality: 'MANY',
+							relation: 'SpaceObj',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+						{
+							path: 'definitions',
+							cardinality: 'MANY',
+							relation: 'SpaceDef',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+					],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			defaultDBConnector: {
@@ -2448,33 +2658,41 @@ export const typesSchema = {
 				{
 					contentType: 'TEXT',
 					path: 'type',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'DataField·type',
 				},
 				{
 					contentType: 'TEXT',
 					path: 'computeType',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'DataField·computeType',
 				},
 				{
 					contentType: 'TEXT',
 					path: 'name',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Field·name',
+					inherited: true,
 				},
 				{
 					contentType: 'TEXT',
 					path: 'cardinality',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'Field·cardinality',
+					inherited: true,
 				},
 				{
 					shared: true,
 					path: 'description',
 					contentType: 'TEXT',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'description',
+					inherited: true,
 				},
 				{
 					shared: true,
@@ -2488,8 +2706,10 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 			],
 			hooks: {
@@ -2521,6 +2741,7 @@ export const typesSchema = {
 					plays: 'dataField',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['DataValue'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'values',
@@ -2536,6 +2757,7 @@ export const typesSchema = {
 					plays: 'dataField',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Expression'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'expression',
@@ -2555,6 +2777,7 @@ export const typesSchema = {
 			roles: {
 				kinds: {
 					cardinality: 'MANY',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2565,12 +2788,26 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Kind',
 							thingType: 'relation',
+							pathToRelation: 'dataFields',
 						},
 					],
-					name: 'kinds',
+					impactedLinkFields: [
+						{
+							path: 'fields',
+							relation: 'Field',
+							cardinality: 'MANY',
+							plays: 'kinds',
+							target: 'relation',
+							thing: 'Kind',
+							thingType: 'relation',
+						},
+					],
+					path: 'kinds',
+					$things: ['Kind'],
 				},
 				space: {
 					cardinality: 'ONE',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2581,89 +2818,43 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'dataFields',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [
+						{
+							path: 'objects',
+							cardinality: 'MANY',
+							relation: 'SpaceObj',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+						{
+							path: 'definitions',
+							cardinality: 'MANY',
+							relation: 'SpaceDef',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+						{
+							path: 'fields',
+							cardinality: 'MANY',
+							relation: 'Field',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+					],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			name: 'DataField',
-			thingType: 'relation',
-			computedFields: ['id'],
-			virtualFields: [],
-			requiredFields: ['id'],
-			enumFields: [],
-			fnValidatedFields: [],
-		},
-		'Expression': {
-			idFields: ['id'],
-			defaultDBConnector: {
-				id: 'default',
-				as: 'Expression',
-				path: 'Expression',
-			},
-			dataFields: [
-				{
-					shared: true,
-					path: 'id',
-					default: {
-						type: 'fn',
-					},
-					validations: {
-						required: true,
-						unique: true,
-					},
-					contentType: 'ID',
-					rights: ['CREATE'],
-					cardinality: 'ONE',
-					dbPath: 'id',
-				},
-				{
-					contentType: 'TEXT',
-					path: 'value',
-					rights: ['CREATE', 'UPDATE'],
-					cardinality: 'ONE',
-					dbPath: 'Expression·value',
-				},
-				{
-					contentType: 'TEXT',
-					path: 'type',
-					cardinality: 'ONE',
-					dbPath: 'Expression·type',
-				},
-			],
-			hooks: {
-				pre: [
-					{
-						actions: [
-							{
-								name: 'Validate tf2 test in expression',
-								type: 'validate',
-								message: 'Failed test tf2 in expression',
-								severity: 'error',
-							},
-						],
-					},
-				],
-			},
-			roles: {
-				dataField: {
-					cardinality: 'ONE',
-					fieldType: 'roleField',
-					playedBy: [
-						{
-							path: 'expression',
-							relation: 'Expression',
-							cardinality: 'ONE',
-							plays: 'dataField',
-							target: 'relation',
-							thing: 'DataField',
-							thingType: 'relation',
-						},
-					],
-					name: 'dataField',
-				},
-			},
-			name: 'Expression',
 			thingType: 'relation',
 			computedFields: ['id'],
 			virtualFields: [],
@@ -2686,12 +2877,14 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
 				{
 					contentType: 'TEXT',
 					path: 'type',
+					isIdField: false,
 					cardinality: 'ONE',
 					dbPath: 'DataValue·type',
 				},
@@ -2723,9 +2916,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'DataField',
 							thingType: 'relation',
+							pathToRelation: 'values',
 						},
 					],
-					name: 'dataField',
+					impactedLinkFields: [],
+					path: 'dataField',
+					$things: ['DataField'],
 				},
 			},
 			defaultDBConnector: {
@@ -2733,6 +2929,89 @@ export const typesSchema = {
 				path: 'DataValue',
 			},
 			name: 'DataValue',
+			thingType: 'relation',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		'Expression': {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				as: 'Expression',
+				path: 'Expression',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					contentType: 'TEXT',
+					path: 'value',
+					rights: ['CREATE', 'UPDATE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Expression·value',
+				},
+				{
+					contentType: 'TEXT',
+					path: 'type',
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'Expression·type',
+				},
+			],
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								name: 'Validate tf2 test in expression',
+								type: 'validate',
+								message: 'Failed test tf2 in expression',
+								severity: 'error',
+							},
+						],
+					},
+				],
+			},
+			roles: {
+				dataField: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'expression',
+							relation: 'Expression',
+							cardinality: 'ONE',
+							plays: 'dataField',
+							target: 'relation',
+							thing: 'DataField',
+							thingType: 'relation',
+							pathToRelation: 'expression',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'dataField',
+					$things: ['DataField'],
+				},
+			},
+			name: 'Expression',
 			thingType: 'relation',
 			computedFields: ['id'],
 			virtualFields: [],
@@ -2761,12 +3040,16 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Self',
 							thingType: 'relation',
+							pathToRelation: 'owned',
 						},
 					],
-					name: 'owner',
+					impactedLinkFields: [],
+					path: 'owner',
+					$things: ['Self'],
 				},
 				space: {
 					cardinality: 'ONE',
+					inherited: true,
 					fieldType: 'roleField',
 					playedBy: [
 						{
@@ -2777,9 +3060,22 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Space',
 							thingType: 'entity',
+							pathToRelation: 'selfs',
 						},
 					],
-					name: 'space',
+					impactedLinkFields: [
+						{
+							path: 'objects',
+							cardinality: 'MANY',
+							relation: 'SpaceObj',
+							plays: 'space',
+							target: 'relation',
+							thing: 'Space',
+							thingType: 'entity',
+						},
+					],
+					path: 'space',
+					$things: ['Space'],
 				},
 			},
 			linkFields: [
@@ -2790,6 +3086,7 @@ export const typesSchema = {
 					plays: 'owner',
 					target: 'relation',
 					fieldType: 'linkField',
+					$things: ['Self'],
 					oppositeLinkFieldsPlayedBy: [
 						{
 							plays: 'owned',
@@ -2812,8 +3109,10 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
+					inherited: true,
 				},
 			],
 			allExtends: ['SpaceObj'],
@@ -2829,6 +3128,169 @@ export const typesSchema = {
 				],
 			},
 			name: 'Self',
+			thingType: 'relation',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		'ThingRelation': {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'ThingRelation',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					path: 'moreStuff',
+					contentType: 'TEXT',
+					rights: ['CREATE', 'UPDATE', 'DELETE'],
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'ThingRelation·moreStuff',
+				},
+			],
+			roles: {
+				things: {
+					cardinality: 'MANY',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'things',
+							cardinality: 'MANY',
+							relation: 'ThingRelation',
+							plays: 'things',
+							target: 'relation',
+							thing: 'Thing',
+							thingType: 'entity',
+							pathToRelation: 'things',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'things',
+					$things: ['Thing'],
+				},
+				root: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'root',
+							cardinality: 'ONE',
+							relation: 'ThingRelation',
+							plays: 'root',
+							target: 'relation',
+							thing: 'Thing',
+							thingType: 'entity',
+							pathToRelation: 'root',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'root',
+					$things: ['Thing'],
+				},
+				extra: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'extra',
+							cardinality: 'ONE',
+							relation: 'ThingRelation',
+							plays: 'extra',
+							target: 'relation',
+							thing: 'Thing',
+							thingType: 'entity',
+							pathToRelation: 'extra',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'extra',
+					$things: ['Thing'],
+				},
+			},
+			name: 'ThingRelation',
+			thingType: 'relation',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		'CascadeRelation': {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'CascadeRelation',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+			],
+			roles: {
+				things: {
+					cardinality: 'MANY',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'cascadeRelations',
+							cardinality: 'MANY',
+							relation: 'CascadeRelation',
+							plays: 'things',
+							target: 'relation',
+							thing: 'CascadeThing',
+							thingType: 'entity',
+							pathToRelation: 'cascadeRelations',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'things',
+					$things: ['CascadeThing'],
+				},
+			},
+			hooks: {
+				pre: [
+					{
+						actions: [
+							{
+								type: 'transform',
+							},
+						],
+					},
+				],
+			},
+			name: 'CascadeRelation',
 			thingType: 'relation',
 			computedFields: ['id'],
 			virtualFields: [],
@@ -2855,6 +3317,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -2872,9 +3335,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Hook',
 							thingType: 'entity',
+							pathToRelation: 'hookParent',
 						},
 					],
-					name: 'hooks',
+					impactedLinkFields: [],
+					path: 'hooks',
+					$things: ['Hook'],
 				},
 				mainHook: {
 					cardinality: 'ONE',
@@ -2888,9 +3354,12 @@ export const typesSchema = {
 							target: 'relation',
 							thing: 'Hook',
 							thingType: 'entity',
+							pathToRelation: 'asMainHookOf',
 						},
 					],
-					name: 'mainHook',
+					impactedLinkFields: [],
+					path: 'mainHook',
+					$things: ['Hook'],
 				},
 			},
 			name: 'HookParent',
@@ -2920,6 +3389,7 @@ export const typesSchema = {
 					},
 					contentType: 'ID',
 					rights: ['CREATE'],
+					isIdField: true,
 					cardinality: 'ONE',
 					dbPath: 'id',
 				},
@@ -2935,11 +3405,19 @@ export const typesSchema = {
 							relation: 'HookATag',
 							plays: 'hookTypeA',
 							target: 'role',
+							isVirtual: true,
+							dbValue: {
+								surrealDB:
+									'<future> {RETURN IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) ELSE RETURN [] END;}',
+							},
 							thing: 'Hook',
 							thingType: 'entity',
+							pathToRelation: 'hookatag',
 						},
 					],
-					name: 'hookTypeA',
+					impactedLinkFields: [],
+					path: 'hookTypeA',
+					$things: ['Hook'],
 				},
 				otherHooks: {
 					cardinality: 'MANY',
@@ -2951,11 +3429,19 @@ export const typesSchema = {
 							relation: 'HookATag',
 							plays: 'otherHooks',
 							target: 'role',
+							isVirtual: true,
+							dbValue: {
+								surrealDB:
+									'<future> {RETURN IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) ELSE RETURN [] END;}',
+							},
 							thing: 'Hook',
 							thingType: 'entity',
+							pathToRelation: 'hookatag',
 						},
 					],
-					name: 'otherHooks',
+					impactedLinkFields: [],
+					path: 'otherHooks',
+					$things: ['Hook'],
 				},
 			},
 			hooks: {
@@ -2977,6 +3463,70 @@ export const typesSchema = {
 			computedFields: ['id'],
 			virtualFields: [],
 			requiredFields: ['id'],
+			enumFields: [],
+			fnValidatedFields: [],
+		},
+		'Employee': {
+			idFields: ['id'],
+			defaultDBConnector: {
+				id: 'default',
+				path: 'Employee',
+			},
+			dataFields: [
+				{
+					shared: true,
+					path: 'id',
+					default: {
+						type: 'fn',
+					},
+					validations: {
+						required: true,
+						unique: true,
+					},
+					contentType: 'ID',
+					rights: ['CREATE'],
+					isIdField: true,
+					cardinality: 'ONE',
+					dbPath: 'id',
+				},
+				{
+					shared: true,
+					path: 'name',
+					contentType: 'TEXT',
+					validations: {
+						required: true,
+					},
+					isIdField: false,
+					cardinality: 'ONE',
+					dbPath: 'name',
+				},
+			],
+			roles: {
+				company: {
+					cardinality: 'ONE',
+					fieldType: 'roleField',
+					playedBy: [
+						{
+							path: 'employees',
+							plays: 'company',
+							cardinality: 'MANY',
+							relation: 'Employee',
+							target: 'relation',
+							thing: 'Company',
+							thingType: 'entity',
+							pathToRelation: 'employees',
+						},
+					],
+					impactedLinkFields: [],
+					path: 'company',
+					$things: ['Company'],
+				},
+			},
+			name: 'Employee',
+			thingType: 'relation',
+			computedFields: ['id'],
+			virtualFields: [],
+			requiredFields: ['id', 'name'],
 			enumFields: [],
 			fnValidatedFields: [],
 		},

@@ -39,12 +39,10 @@ export const preHookValidations = (
 						}
 						if (isArray(subNode[field])) {
 							subNode[field].some((val: any) => {
-								// @ts-expect-error - TODO
 								if (!enumOptions.includes(val)) {
 									throw new Error(`[Validations] Option "${val}" is not a valid option for field "${field}".`);
 								}
 							});
-							//@ts-expect-error - TODO
 						} else if (enumOptions && !enumOptions.includes(subNode[field])) {
 							throw new Error(`[Validations] Option "${subNode[field]}" is not a valid option for field "${field}".`);
 						}

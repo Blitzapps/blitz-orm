@@ -6,6 +6,7 @@ type TestContext = {
 	query: BormClient['query'];
 	mutate: BormClient['mutate'];
 	define: BormClient['define'];
+	getDbHandles: BormClient['getDbHandles'];
 };
 
 export const createTest = (name: string, test: (ctx: TestContext) => void) => {
@@ -25,11 +26,17 @@ export const createTest = (name: string, test: (ctx: TestContext) => void) => {
 				assertDefined(client);
 				return client.mutate(...params);
 			},
+			getDbHandles: () => {
+				assertDefined(client);
+				return client.getDbHandles();
+			},
 		};
 
 		beforeAll(async () => {
 			const res = await init();
+			// eslint-disable-next-line prefer-destructuring
 			client = res.client;
+			// eslint-disable-next-line prefer-destructuring
 			clean = res.clean;
 		}, 25000);
 

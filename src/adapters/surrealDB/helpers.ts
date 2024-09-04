@@ -47,4 +47,4 @@ export const sanitizeNameSurrealDB = (name: string) => {
 };
 
 export const tempSanitizeVarSurrealDB = (input: string): string =>
-	input.replace(/[ \-+*/=!@#$%^&()\[\]{}|\\;:'"<>,.?~`]/g, '');
+	input.replace(/[ \-+*/=!@#$%^&()[\]{}|\\;:'"<>,.?~`]/g, '');
