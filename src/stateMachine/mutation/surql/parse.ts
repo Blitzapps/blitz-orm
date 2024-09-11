@@ -23,13 +23,13 @@ export const parseSURQLMutation = (props: {
 			if (isArray(b)) {
 				return b.map((r) => {
 					if (!isObject(r) || !('meta' in r)) {
-						throw new Error('Internal error: Invalid response from DB');
+						throw new Error(`Internal error: Invalid response from DB: ${JSON.stringify(r)}`);
 					}
 					return parseRes(r as EnrichedSURQLMutationRes, config);
 				});
 			}
 			if (!isObject(b) || !('meta' in b)) {
-				throw new Error('Internal error: Invalid response from DB');
+				throw new Error(`Internal error: Invalid response from DB: ${JSON.stringify(b)}`);
 			}
 			return parseRes(b as EnrichedSURQLMutationRes, config);
 		});
@@ -39,7 +39,7 @@ export const parseSURQLMutation = (props: {
 const parseRes = (block: EnrichedSURQLMutationRes, config: BormConfig) => {
 	const thing = mapEntries(block.after || {}, (key, value) => [
 		key,
-		isArray(value) && value.length === 0 ? undefined : value,
+		key === 'id' ? value.id : isArray(value) && value.length === 0 ? undefined : value,
 	]);
 
 	const nulledAtts = oFilter(block.input || {}, (k: string, v: any) => v === null);

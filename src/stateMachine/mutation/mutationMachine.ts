@@ -91,7 +91,7 @@ const enrich = async (ctx: MachineContext) => {
 	const enriched = Object.keys(ctx.bql.enriched).length
 		? enrichBQLMutation(ctx.bql.enriched, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
-	//console.log('enriched', enriched);
+	//console.log('enriched!', JSON.stringify(enriched));
 	return enriched;
 };
 

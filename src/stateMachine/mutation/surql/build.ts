@@ -5,9 +5,10 @@ import type { EnrichedBQLMutationBlock, EnrichedBormRelation, EnrichedBormSchema
 import { Parent } from '../../../types/symbols';
 import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filters/filters';
 import type { FlatBqlMutation } from '../bql/flatter';
-import { parseFlexValSurrealDB } from '../../../adapters/surrealDB/parseFlexVal';
+import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
+	//console.log('flat!', flat);
 	const buildThings = (block: EnrichedBQLMutationBlock) => {
 		//console.log('currentThing:', block);
 		const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
@@ -40,20 +41,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 					return `${df} = NONE`;
 				}
 				const value = block[df];
-				if (['JSON', 'NUMBER', 'BOOLEAN'].includes(dataFieldSchema.contentType)) {
-					return `${df} = ${value}`;
-				}
-				if (['TEXT', 'EMAIL'].includes(dataFieldSchema.contentType)) {
-					return `${df} = '${value}'`;
-				}
-				if (dataFieldSchema.contentType === 'DATE') {
-					return `${df} = d"${value.toISOString()}"`;
-				}
-				if (dataFieldSchema.contentType === 'FLEX') {
-					const parsedVal = isArray(value) ? value.map((v) => parseFlexValSurrealDB(v)) : parseFlexValSurrealDB(value);
-					return `${df} = ${isArray(parsedVal) ? parsedVal.map((v) => v) : parsedVal}`;
-				}
-				throw new Error(`Unsupported data field type ${dataFieldSchema.contentType} for key ${df} in mutation`);
+				return `${df} = ${parseValueSurrealDB(value, dataFieldSchema.contentType)}`;
 			})
 			.filter(Boolean);
 

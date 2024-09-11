@@ -140,13 +140,15 @@ export const buildSuqlFilter = (filter: object) => {
 					const nextValue = value[operator];
 
 					if (isArray(nextValue)) {
-						parts.push(`${key} ${operator.replace('$', '')} [${nextValue.map((v) => `'${v}'`).join(', ')}]`);
+						parts.push(
+							`${key} ${operator.replace('$', '')} [${nextValue.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`,
+						);
 					} else if (isObject(nextValue)) {
 						const nestedFilter = buildSuqlFilter(nextValue);
 
 						parts.push(`${key} ${operator.replace('$', '')} ${nestedFilter}`);
 					} else {
-						parts.push(`${key} ${operator.replace('$', '')} '${nextValue}'`);
+						parts.push(`${key} ${operator.replace('$', '')} ${nextValue === null ? 'NONE' : `'${nextValue}'`}`);
 					}
 				} else {
 					throw new Error(`Invalid key ${key}`);
@@ -156,11 +158,11 @@ export const buildSuqlFilter = (filter: object) => {
 			if (Array.isArray(value)) {
 				const operator = key.startsWith('$') ? key.replace('$', '') : 'IN';
 
-				parts.push(`${key} ${operator} [${value.map((v) => `'${v}'`).join(', ')}]`);
+				parts.push(`${key} ${operator} [${value.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`);
 			} else {
 				const operator = key.startsWith('$') ? key.replace('$', '') : '=';
 
-				parts.push(`${key} ${operator} '${value}'`);
+				parts.push(`${key} ${operator} ${value === null ? 'NONE' : `'${value}'`}`);
 			}
 		}
 	});

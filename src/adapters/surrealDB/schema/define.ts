@@ -8,6 +8,7 @@ import type {
 	Validations,
 } from '../../../types';
 import { sanitizeNameSurrealDB } from '../helpers';
+import { parseValueSurrealDB, surrealDBtypeMap } from '../parsing/values';
 
 const INDENTATION = '\t' as const;
 const indent = (n: number): string => INDENTATION.repeat(n);
@@ -202,38 +203,9 @@ const generateRoleEvent = (roleName: string, parentName: string, role: EnrichedR
 };
 
 const mapContentTypeToSurQL = (contentType: string, validations?: Validations): string => {
-	const typeMap: Record<string, string> = {
-		TEXT: 'string',
-		ID: 'string',
-		EMAIL: 'string',
-		NUMBER: 'number',
-		BOOLEAN: 'bool',
-		DATE: 'datetime',
-		JSON: 'object',
-		FLEX: 'bool|bytes|datetime|duration|geometry|number|object|string',
-	};
-
-	const format = (ct: string, value: unknown): any => {
-		switch (ct) {
-			case 'TEXT':
-			case 'ID':
-			case 'EMAIL':
-				return `"${value}"`;
-			case 'NUMBER':
-			case 'BOOLEAN':
-				return value;
-			case 'DATE':
-				return `d"${value}"`;
-			case 'FLEX':
-				return value;
-			default:
-				return value;
-		}
-	};
-
 	const type = validations?.enum
-		? `${validations.enum.map((value) => format(contentType, value)).join('|')}`
-		: typeMap[contentType];
+		? `${validations.enum.map((value: unknown) => parseValueSurrealDB(value, contentType)).join('|')}`
+		: surrealDBtypeMap[contentType];
 	if (!type) {
 		throw new Error(`Unknown content type: ${contentType}`);
 	}

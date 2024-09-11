@@ -295,15 +295,13 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						if (linkField.target === 'role') {
 							///target role
 							const allOppositeLinkFields =
-								allLinkedFields.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays) || [];
+								allLinkedFields
+									.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays)
+									.map((y) => oFilter(y, (k: string | symbol) => typeof k === 'string' && !k.startsWith('$'))) || []; //we avoid creating an infinite loop with
 
-							// by default, all oppositeLinkFields
-							linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields;
+							// by default, all oppositeLinkFields but We remove the target relation ones
 
-							// We remove the target relation ones
-							linkField.oppositeLinkFieldsPlayedBy = linkField.oppositeLinkFieldsPlayedBy.filter(
-								(x) => x.target === 'role',
-							);
+							linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields.filter((x) => x.target === 'role');
 
 							if (linkField.oppositeLinkFieldsPlayedBy.length === 0) {
 								throw new Error(
