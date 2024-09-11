@@ -11,7 +11,7 @@ export const testSchemaDefine = createTest('Schema', (client) => {
 		const schemas = await client.define();
 
 		if (dbHandles.typeDB?.size) {
-			schemas.typeDB.forEach((schema) => {
+			Object.values(schemas.typeDB).forEach((schema) => {
 				expect(schema).toBeDefined();
 				expect(schema).toBeTypeOf('string');
 				//import tql schema from .tql file
@@ -20,9 +20,9 @@ export const testSchemaDefine = createTest('Schema', (client) => {
 			});
 		}
 		if (dbHandles.surrealDB?.size) {
-			schemas.surrealDB.forEach((schema) => {
-				//write to file for comparison
-				fs.writeFileSync('tests/adapters/surrealDB/mocks/refsSchemaTest.surql', schema);
+			Object.values(schemas.surrealDB).forEach((schema) => {
+				///write to file for comparison
+				//fs.writeFileSync('tests/adapters/surrealDB/mocks/refsSchemaTest.surql', schema);
 				expect(schema).toBeDefined();
 				expect(schema).toBeTypeOf('string');
 				//import tql schema from .tql file

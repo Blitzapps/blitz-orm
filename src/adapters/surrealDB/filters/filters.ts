@@ -66,17 +66,21 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 			if (fieldType === 'linkField' || fieldType === 'roleField') {
 				const fieldSchemaTyped = fieldSchema as EnrichedLinkField | EnrichedRoleField;
 
-				if (fieldSchemaTyped.$things.length !== 1) {
-					throw new Error(
-						`Not supported yet: Role ${key} in ${JSON.stringify(value)} is played by multiple things: ${fieldSchemaTyped.$things.join(', ')}`,
-					);
-				}
-
-				const [childrenThing] = fieldSchemaTyped.$things; //todo: multiple players, then it must be efined
-
 				const surrealDBKey = fieldSchemaTyped[SuqlMetadata].queryPath;
 
-				return { ...acc, [surrealDBKey]: parseFilter(value, childrenThing, schema) };
+				return { ...acc, [surrealDBKey]: parseFilter(value, currentThing, schema) };
+
+				/*if (fieldSchemaTyped.$things.length !== 1) {
+					console.warn(
+						`Not supported yet: Role ${key} in ${JSON.stringify(value)} is played by multiple things: ${fieldSchemaTyped.$things.join(', ')}`,
+					);
+
+					return { ...acc, [surrealDBKey]: parseFilter(value, currentThing, schema) };
+				}
+				//todo: we need to be able to filter by fields that only belong to subtypes
+				const [childrenThing] = fieldSchemaTyped.$things; //todo: multiple players, then it must be efined
+
+				return { ...acc, [surrealDBKey]: parseFilter(value, childrenThing, schema) };*/
 			}
 
 			throw new Error(`Field ${key} not found in schema, Defined in $filter`);
