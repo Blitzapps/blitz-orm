@@ -10,7 +10,7 @@ import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values'
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
 	//console.log('flat!', flat);
 	const buildThings = (block: EnrichedBQLMutationBlock) => {
-		console.log('currentThing:', block);
+		//console.log('currentThing:', block);
 		const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
 
 		const currentSchema = getSchemaByThing(schema, $thing);
