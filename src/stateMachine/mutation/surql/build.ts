@@ -2,21 +2,23 @@ import { isArray } from 'radash';
 import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { getCurrentFields, getSchemaByThing, oFilter } from '../../../helpers';
 import type { EnrichedBQLMutationBlock, EnrichedBormRelation, EnrichedBormSchema } from '../../../types';
-import { Parent } from '../../../types/symbols';
+import { EdgeSchema, Parent } from '../../../types/symbols';
 import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filters/filters';
 import type { FlatBqlMutation } from '../bql/flatter';
-import { parseFlexValSurrealDB } from '../../../adapters/surrealDB/parseFlexVal';
+import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
+	//console.log('flat!', flat);
 	const buildThings = (block: EnrichedBQLMutationBlock) => {
-		//console.log('currentThing:', block);
+		console.log('currentThing:', block);
 		const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
 
 		const currentSchema = getSchemaByThing(schema, $thing);
 		const { usedDataFields } = getCurrentFields(currentSchema, block);
 		const { idFields } = currentSchema;
 		const idValue = $id || block[idFields[0]];
-		const tableName = sanitizeNameSurrealDB($thing);
+
+		const sanitizedThings = (block[EdgeSchema]?.$things || [$thing]).map(sanitizeNameSurrealDB);
 
 		const meta = oFilter(block, (k: string) => k.startsWith('$'));
 		const rest = oFilter(block, (k: string) => !k.startsWith('$'));
@@ -28,32 +30,17 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 		const parent = block[Parent as any]; //todo
 
 		const dataFieldStrings = usedDataFields
+			.filter((df) => !idFields.includes(df))
 			.map((df) => {
 				const dataFieldSchema = currentSchema.dataFields?.find((f) => f.path === df || f.dbPath === df);
 				if (!dataFieldSchema) {
 					throw new Error(`Data field schema not found for ${df}`);
 				}
-				if (idFields.includes(df)) {
-					return;
-				}
-				if (block[df] === null) {
+				const value = block[df];
+				if (value === null) {
 					return `${df} = NONE`;
 				}
-				const value = block[df];
-				if (['JSON', 'NUMBER', 'BOOLEAN'].includes(dataFieldSchema.contentType)) {
-					return `${df} = ${value}`;
-				}
-				if (['TEXT', 'EMAIL'].includes(dataFieldSchema.contentType)) {
-					return `${df} = '${value}'`;
-				}
-				if (dataFieldSchema.contentType === 'DATE') {
-					return `${df} = d"${value.toISOString()}"`;
-				}
-				if (dataFieldSchema.contentType === 'FLEX') {
-					const parsedVal = isArray(value) ? value.map((v) => parseFlexValSurrealDB(v)) : parseFlexValSurrealDB(value);
-					return `${df} = ${isArray(parsedVal) ? parsedVal.map((v) => v) : parsedVal}`;
-				}
-				throw new Error(`Unsupported data field type ${dataFieldSchema.contentType} for key ${df} in mutation`);
+				return `${df} = ${parseValueSurrealDB(value, dataFieldSchema.contentType)}`;
 			})
 			.filter(Boolean);
 
@@ -64,9 +51,12 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 				return `$⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩`;
 			}
 			if (idValue) {
-				return `${tableName}:⟨${idValue}⟩`;
+				if (isArray(idValue)) {
+					return sanitizedThings.flatMap((table: string) => idValue.map((id: string) => `${table}:⟨${id}⟩`)).join(', ');
+				}
+				return sanitizedThings.map((table: string) => `${table}:⟨${idValue}⟩`).join(', ');
 			}
-			return `${tableName}`;
+			return sanitizedThings.join(', ');
 		})();
 
 		const TARGET = (() => {
@@ -84,11 +74,13 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 			} else {
 				if (idValue) {
 					if (isArray(idValue)) {
-						throw new Error('Multiple ids not supported');
+						return sanitizedThings
+							.flatMap((table: string) => idValue.map((id: string) => `${table}:⟨${id}⟩`))
+							.join(', ');
 					}
-					return `${tableName}:⟨${idValue}⟩`;
+					return sanitizedThings.map((table: string) => `${table}:⟨${idValue}⟩`).join(', ');
 				}
-				return `${tableName}`;
+				return sanitizedThings.join(', ');
 			}
 		})();
 		const WHERE = $filter ? `WHERE ${buildSuqlFilter(parseFilter($filter, $thing, schema))}` : '';
@@ -101,9 +93,16 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 			throw new Error("Edge ops don't belong to things");
 		}
 		if (block.$op === 'match') {
+			if ($tempId) {
+				return ''; //tempIds are already stored on their creation
+			}
 			return `LET ${VAR} = (SELECT VALUE id FROM ${TARGET} ${WHERE});`;
 		}
 		if (block.$op === 'create') {
+			if (isArray(idValue)) {
+				throw new Error('Cannot create multiple things at once');
+			}
+			const tableName = sanitizeNameSurrealDB($thing);
 			return `LET ${VAR} = (CREATE ONLY ${tableName}:⟨${idValue}⟩ ${SET} RETURN ${OUTPUT});`;
 		}
 		if (block.$op === 'update') {

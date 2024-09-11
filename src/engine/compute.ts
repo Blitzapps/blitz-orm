@@ -35,8 +35,18 @@ export const computeField = ({
 	if (!fieldSchema.default.fn) {
 		throw new Error('[Schema] No fn in default field schema');
 	}
-	const computedValue = 'default' in fieldSchema ? fieldSchema.default?.fn(currentThing) : undefined;
-	return computedValue;
+	if ('default' in fieldSchema) {
+		//@ts-expect-error can't find the issue, all subtypes have a value type, and a fn type
+		if (fieldSchema.default.type === 'value') {
+			//@ts-expect-error can't find the issue, all subtypes have a value type, and a fn type
+			return fieldSchema.default.value;
+		}
+		if (fieldSchema.default.type === 'fn') {
+			return fieldSchema.default.fn(currentThing);
+		}
+
+		throw new Error('[Schema] No default field definition');
+	}
 };
 
 export const computeNode = () => {};

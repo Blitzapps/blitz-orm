@@ -16,8 +16,8 @@ export const bormDefine = async (config: BormConfig, schema: EnrichedBormSchema,
 
 		const surrealDBEntriesFixed = surrealDBEntries.map((entry) => [entry[0], entry[1]] as const);
 		return {
-			typeDB: new Map(typeDBEntriesFixed),
-			surrealDB: new Map(surrealDBEntriesFixed),
+			typeDB: Object.fromEntries(typeDBEntriesFixed),
+			surrealDB: Object.fromEntries(surrealDBEntriesFixed),
 		};
 	};
 	return await schemas();

@@ -44,7 +44,7 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 	);
 	const FIELDS = [...META, ...DATA_FIELDS, ...EDGE_FIELDS].join(',\n');
 	const FROM = createRootFromClause(query, currentSchema);
-	const WHERE = $filter ? `WHERE ${buildSuqlFilter(parseFilter($filter, $thing, schema))}` : 'WHERE id';
+	const WHERE = $filter ? `WHERE id AND (${buildSuqlFilter(parseFilter($filter, $thing, schema))})` : 'WHERE id';
 
 	const SORT = $sort ? buildSorter($sort) : '';
 	const LIMIT = typeof $limit === 'number' ? `LIMIT ${$limit}` : '';
@@ -109,11 +109,13 @@ const createEdgeFields = (
 			);
 			const FIELDS = [...META, ...DATA_FIELDS, ...LINK_FIELDS].join(',\n');
 			const FROM = `FROM $parent.\`${ef[FieldSchema].path}\`[*]`;
-			const WHERE = ef.$filter ? `WHERE ${buildSuqlFilter(parseFilter(ef.$filter, ef.$thing, schema))}` : 'WHERE id';
+			const WHERE = ef.$filter
+				? `WHERE id AND(${buildSuqlFilter(parseFilter(ef.$filter, ef.$thing, schema))})`
+				: 'WHERE id';
 			const SORT = ef.$sort ? buildSorter(ef.$sort) : '';
 			const LIMIT = typeof ef.$limit === 'number' ? `LIMIT ${ef.$limit}` : '';
 			const OFFSET = typeof ef.$offset === 'number' ? `START ${ef.$offset}` : '';
-			return `( SELECT ${FIELDS} ${FROM} ${WHERE}  ${SORT} ${LIMIT} ${OFFSET}  ) AS \`${ef.$as}\``;
+			return `( SELECT ${FIELDS} ${FROM} ${WHERE} ${SORT} ${LIMIT} ${OFFSET}  ) AS \`${ef.$as}\``;
 		})
 		.filter((f) => f);
 };

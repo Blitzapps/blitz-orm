@@ -130,6 +130,7 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 			}
 		}),
 	);
+	//console.log('enriched', JSON.stringify(enriched));
 
 	return enriched as EnrichedBQLQuery[];
 };
@@ -236,7 +237,10 @@ const createLinkField = (props: {
 		return {
 			$thingType,
 			$plays: linkField.plays,
-			$playedBy: playedBy,
+			$playedBy: {
+				...playedBy,
+				oppositeLinkFieldsPlayedBy: undefined, // Remove this to break the loop
+			},
 			$path: playedBy.path,
 			$dbPath: dbPath,
 			$as: field.$as || fieldStr,
@@ -327,7 +331,7 @@ const createRoleField = (props: {
 			//$filter: field.$filter,
 			$idNotIncluded: idNotIncluded,
 			$filterByUnique: checkFilterByUnique(field.$filter, currentSchema),
-			$playedBy: playedBy,
+			$playedBy: { ...playedBy, oppositeLinkFieldsPlayedBy: undefined },
 			$sort: field.$sort,
 			$offset: field.$offset,
 			$limit: field.$limit,

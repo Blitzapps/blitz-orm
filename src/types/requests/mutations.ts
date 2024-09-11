@@ -2,7 +2,6 @@ import type { BormOperation } from '../schema/base';
 import type {
 	EnrichedBormEntity,
 	EnrichedBormRelation,
-	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
 } from '../schema/enriched';
@@ -52,7 +51,7 @@ export type EnrichedBQLMutationBlock = {
 	$op: BormOperation;
 	$thing: string;
 	$thingType: 'entity' | 'relation';
-	[EdgeSchema]?: EnrichedDataField | EnrichedLinkField | EnrichedRoleField;
+	[EdgeSchema]?: EnrichedLinkField | EnrichedRoleField;
 	[EdgeType]?: 'linkField' | 'roleField';
 	[DBNode]?: EnrichedBQLMutationBlock | Record<string, never>;
 };
