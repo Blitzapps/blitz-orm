@@ -68,7 +68,7 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 
 				if (fieldSchemaTyped.$things.length !== 1) {
 					throw new Error(
-						`Not supported yet: Role ${key} in ${value.name} is played by multiple things: ${fieldSchemaTyped.$things.join(', ')}`,
+						`Not supported yet: Role ${key} in ${JSON.stringify(value)} is played by multiple things: ${fieldSchemaTyped.$things.join(', ')}`,
 					);
 				}
 

@@ -294,14 +294,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						}
 						if (linkField.target === 'role') {
 							///target role
-							const allOppositeLinkFields =
-								allLinkedFields
-									.filter((x) => x.relation === linkField.relation && x.plays !== linkField.plays)
-									.map((y) => oFilter(y, (k: string | symbol) => typeof k === 'string' && !k.startsWith('$'))) || []; //we avoid creating an infinite loop with
-
-							// by default, all oppositeLinkFields but We remove the target relation ones
-
-							linkField.oppositeLinkFieldsPlayedBy = allOppositeLinkFields.filter((x) => x.target === 'role');
+							linkField.oppositeLinkFieldsPlayedBy = allLinkedFields.filter(
+								(x) => x.relation === linkField.relation && x.plays !== linkField.plays && x.target === 'role',
+							);
 
 							if (linkField.oppositeLinkFieldsPlayedBy.length === 0) {
 								throw new Error(
@@ -399,7 +394,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 						if ($things.length > 1) {
 							console.warn(
-								`Not supported yet: Role ${roleKey} in ${value.name} is played by multiple things: ${$things.join(', ')}`,
+								`Not supported yet: Role ${roleKey} in ${JSON.stringify(value)} is played by multiple things: ${$things.join(', ')}`,
 							);
 						}
 						//get all subTyped for each potential player
