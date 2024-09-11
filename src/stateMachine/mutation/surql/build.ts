@@ -89,6 +89,9 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 			throw new Error("Edge ops don't belong to things");
 		}
 		if (block.$op === 'match') {
+			if ($tempId) {
+				return ''; //tempIds are already stored on their creation
+			}
 			return `LET ${VAR} = (SELECT VALUE id FROM ${TARGET} ${WHERE});`;
 		}
 		if (block.$op === 'create') {
