@@ -1,4 +1,4 @@
-import { isArray } from 'radash';
+import { isArray, isDate } from 'radash';
 import type {
 	BormConfig,
 	ContentType,
@@ -97,6 +97,15 @@ const parseValue = (value: unknown, contentType: ContentType) => {
 	const asArray = isArray(value) ? value : [value];
 	if (contentType === 'DATE') {
 		const res = asArray.map((v) => new Date(v).toISOString());
+		return isArray(value) ? res : res[0];
+	}
+	if (contentType === 'FLEX') {
+		const res = asArray.map((v) => {
+			if (isDate(v)) {
+				return new Date(v).toISOString(); //Todo: in the future probably just return the date object instead, but we need to fix it in typedb.
+			}
+			return v;
+		});
 		return isArray(value) ? res : res[0];
 	}
 	return value;

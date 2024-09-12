@@ -48,7 +48,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 
 		const COND = (() => {
 			if (parent?.bzId) {
-				return `$⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩`;
+				return `array::flatten($⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩).filter(|$v| $v != NONE).len`;
 			}
 			if (idValue) {
 				if (isArray(idValue)) {
@@ -62,7 +62,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 		const TARGET = (() => {
 			//Non root
 			if (parent?.bzId) {
-				const parentRef = `array::flatten($⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩)`;
+				const parentRef = `array::flatten($⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩).filter(|$v| $v != NONE)`; //needed to fix an issue where deletions fail when finding none. If we want to thow an error on undefined this might be a good place
 
 				if (idValue) {
 					if (isArray(idValue)) {

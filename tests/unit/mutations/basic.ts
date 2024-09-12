@@ -892,7 +892,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				'user-tags': [{ id: 'ustag1' }],
 			},
 		});
-		/// clean user and account
+		/// clean user and account and ustags
 		await ctx.mutate([
 			{
 				$entity: 'User',
@@ -904,7 +904,26 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				$op: 'delete',
 				$id: 'b3rn-a2',
 			},
+			{
+				$relation: 'UserTag',
+				$op: 'delete',
+				$id: 'ustag1',
+			},
 		]);
+
+		//now get all orphan userTagGroups and delete them (necessary for surrealDB while cant delete them automatically)
+		const allUTGs = (await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+			},
+			{ noMetadata: true },
+		)) as BQLResponseMulti;
+		//filter those with no other key than 'id'
+		const orphanUTGs = allUTGs.filter((utg) => Object.keys(utg).length === 1 && 'id' in utg);
+		//delete them
+		if (orphanUTGs.length > 0) {
+			await ctx.mutate({ $op: 'delete', $relation: 'UserTagGroup', $id: orphanUTGs.map((utg) => utg.id) });
+		}
 	});
 
 	it('b4[create, children] Create with children', async () => {
@@ -1133,7 +1152,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 		expect(res).toBeInstanceOf(Object);
 		expect(res.users).toBeInstanceOf(Array);
-		expect(res.users).toHaveLength(7);
+		expect(res.users).toHaveLength(9); //including secondUser and thirdUser
 
 		await ctx.mutate(
 			{

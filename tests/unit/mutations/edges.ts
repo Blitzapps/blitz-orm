@@ -1293,6 +1293,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			tags: ['tag-1', 'tag-2'],
 			//no color
 		});
+
 		await ctx.mutate({
 			$relation: 'UserTagGroup',
 			$op: 'create',
@@ -1301,37 +1302,57 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			color: 'blue',
 		});
 
-		/// the mutation to be tested
+		/// the mutations to be tested:
 		await ctx.mutate({
-			$id: ['tmpUTG1', 'tmpUTG2'],
+			$id: 'tmpUTG1',
+			$relation: 'UserTagGroup',
+			$op: 'update',
+			tags: ['tag-4'], // this actually should fail, because we are assigning two userTagGroup to the same tag and tags can have a single utg.
+			color: 'yellow',
+		});
+
+		const tmpUTG1 = await ctx.query({
+			$relation: 'UserTagGroup',
+			$id: 'tmpUTG1',
+			$fields: ['tags', 'color'],
+		});
+		expect(tmpUTG1).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG1',
+			tags: ['tag-4'],
+			color: 'yellow',
+		});
+
+		await ctx.mutate({
+			$id: 'tmpUTG2',
 			$relation: 'UserTagGroup',
 			$op: 'update',
 			tags: ['tag-4'],
 			color: 'yellow',
 		});
 
-		const tmpUTGs = await ctx.query({
+		const tmpUTG2 = await ctx.query({
 			$relation: 'UserTagGroup',
-			$id: ['tmpUTG1', 'tmpUTG2'],
+			$id: 'tmpUTG2',
 			$fields: ['tags', 'color'],
 		});
 
-		expect(deepSort(tmpUTGs)).toEqual([
-			{
-				$thing: 'UserTagGroup',
-				$thingType: 'relation',
-				$id: 'tmpUTG1',
-				tags: ['tag-4'],
-				color: 'yellow',
-			},
-			{
-				$thing: 'UserTagGroup',
-				$thingType: 'relation',
-				$id: 'tmpUTG2',
-				tags: ['tag-4'],
-				color: 'yellow',
-			},
-		]);
+		expect(tmpUTG2).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG2',
+			tags: ['tag-4'],
+			color: 'yellow',
+		});
+
+		expect(tmpUTG2).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			$id: 'tmpUTG2',
+			tags: ['tag-4'],
+			color: 'yellow',
+		});
 
 		//clean changes by deleting the new tmpUTGs
 		await ctx.mutate({
@@ -1339,6 +1360,95 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$op: 'delete',
 		});
+	});
+
+	it('rep4[replace, multiId] Replace multiple ids', async () => {
+		/// create
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'utg-rep4-1',
+			color: 'blue',
+		});
+
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'utg-rep4-2',
+			color: 'blue',
+		});
+
+		/// the mutations to be tested:
+		await ctx.mutate({
+			$id: ['utg-rep4-1', 'utg-rep4-2'],
+			$relation: 'UserTagGroup',
+			$op: 'update',
+			color: 'yellow',
+		});
+
+		const tmpUTG1 = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: ['utg-rep4-1', 'utg-rep4-2'],
+				$fields: ['id', 'color'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(tmpUTG1)).toEqual([
+			{
+				id: 'utg-rep4-1',
+				color: 'yellow',
+			},
+			{
+				id: 'utg-rep4-2',
+				color: 'yellow',
+			},
+		]);
+
+		//clean changes by deleting the new tmpUTGs
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$id: ['utg-rep4-1', 'utg-rep4-2'],
+			$op: 'delete',
+		});
+	});
+
+	it('TODO{T}:one1[link, cardinality one] link a cardinality one relation', async () => {
+		//create UserTagGroup with a tag
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'utg-one1',
+			tags: [{ id: 'tag-one1', $op: 'create', users: ['user1'] }],
+		});
+
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$op: 'create',
+			id: 'utg-one2',
+			tags: [{ $id: 'tag-one1', $op: 'link' }],
+		});
+
+		//now if we query tag-one it has to be linked exclusively to utg-one2
+		const tag1 = await ctx.query(
+			{ $id: 'tag-one1', $relation: 'UserTag', $fields: ['id', 'group'] },
+			{ noMetadata: true },
+		);
+		expect(tag1).toEqual({ id: 'tag-one1', group: 'utg-one2' });
+
+		//clean changes by deleting the new tmpUTGs
+		await ctx.mutate([
+			{
+				$relation: 'UserTagGroup',
+				$id: ['utg', 'tmpUTG2'],
+				$op: 'delete',
+			},
+			{
+				$relation: 'UserTag',
+				$id: 'tag-one1',
+				$op: 'delete',
+			},
+		]);
 	});
 
 	it('TODO{TS}:h1[unlink, hybrid] hybrid intermediary relation and direct relation', async () => {

@@ -309,7 +309,14 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 								val.linkFields?.find((lf) => lf.target === 'relation' && lf.relation === linkField.relation)?.path ??
 								linkField.relation.toLocaleLowerCase();
 
-							linkField.$things = linkField.oppositeLinkFieldsPlayedBy.map((x) => x.thing);
+							linkField.$things = [
+								...new Set(
+									linkField.oppositeLinkFieldsPlayedBy.flatMap((x) => [
+										x.thing,
+										...(getSchemaByThing(withExtensionsSchema, x.thing)?.subTypes || []),
+									]),
+								),
+							];
 
 							// #region FILTERING OPPOSITE LINKFIELDS
 							// const { targetRoles, filter } = linkField;
@@ -394,7 +401,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 						if ($things.length > 1) {
 							console.warn(
-								`Not supported yet: Role ${roleKey} in ${JSON.stringify(value)} is played by multiple things: ${$things.join(', ')}`,
+								`Not supported yet: Role ${roleKey} in ${'name' in value ? value.name : JSON.stringify(value)} is played by multiple things: ${$things.join(', ')}`,
 							);
 						}
 						//get all subTyped for each potential player

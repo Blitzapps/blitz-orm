@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.3(2024-09-13)
+
+- Fix: SurrealDB adapter 173 pass, 20 fail
+
 ## 0.11.2(2024-09-11)
 
 - Fix: Fixed most surrealDB issues (162 pass vs 29 failed)

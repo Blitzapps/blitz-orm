@@ -401,6 +401,70 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
+	it('TODO{TS}:e-one1[update, cardinalityOne] Update multiple UserTagGroups with one tag', async () => {
+		// Create two UserTagGroups
+		await ctx.mutate([
+			{
+				$relation: 'UserTagGroup',
+				$op: 'create',
+				id: 'e-one1-utg1',
+				tags: ['tag-1'],
+			},
+			{
+				$relation: 'UserTagGroup',
+				$op: 'create',
+				id: 'e-one1-utg2',
+				tags: ['tag-2'],
+			},
+		]);
+
+		// Try to update both UserTagGroups with the same tag
+		try {
+			await ctx.mutate({
+				$relation: 'UserTagGroup',
+				$id: ['e-one1-utg1', 'e-one1-utg2'],
+				$op: 'update',
+				tags: ['tag-4'],
+			});
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot update $id:"e-one1-utg1" because it is not linked to $id:"tag-4"');
+			} else {
+				expect(true).toBe(false);
+			}
+
+			return;
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
+	it('TODO{TS}:e-one2[update, cardinalityOne] create multiple UserTagGroups with one tag in same transaction', async () => {
+		// Try to update both UserTagGroups with the same tag
+		try {
+			await ctx.mutate([
+				{
+					$relation: 'UserTagGroup',
+					$op: 'create',
+					id: 'e-one2-utg1',
+					tags: ['tag-1'],
+				},
+				{
+					$relation: 'UserTagGroup',
+					$op: 'create',
+					id: 'e-one2-utg2',
+					tags: ['tag-1'],
+				},
+			]);
+		} catch (error: any) {
+			if (error instanceof Error) {
+				expect(error.message).toBe('Cannot update $id:"e-one1-utg1" because it is not linked to $id:"tag-4"');
+			} else {
+				expect(true).toBe(false);
+			}
+		}
+		throw new Error('Expected mutation to throw an error');
+	});
+
 	it('e-v1[virtual] Cant insert virtual', async () => {
 		try {
 			await ctx.mutate([
