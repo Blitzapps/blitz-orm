@@ -56,7 +56,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 				}
 				return sanitizedThings.map((table: string) => `${table}:⟨${idValue}⟩`).join(', ');
 			}
-			return sanitizedThings.join(', ');
+			return true; // no parent, no id value, then we can run the update or deletion safely
 		})();
 
 		const TARGET = (() => {

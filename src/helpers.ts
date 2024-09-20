@@ -417,10 +417,10 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							}
 							if (value.dbProviderConfig.linkMode === 'refs') {
 								if (role.cardinality === 'MANY') {
-									return `$parent.\`${roleKey}\``;
+									return `$parent.[\`${roleKey}\`]`;
 								}
 								if (role.cardinality === 'ONE') {
-									return `$parent.[\`${roleKey}\`]`;
+									return `$parent.\`${roleKey}\``;
 								}
 							}
 							throw new Error('Unsupported linkMode');

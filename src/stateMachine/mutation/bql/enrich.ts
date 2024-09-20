@@ -15,6 +15,7 @@ import { preHookTransformations } from './enrichSteps/preHookTransformations';
 import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
+import { enrichFilter } from '../../query/bql/enrich';
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -72,6 +73,10 @@ export const enrichBQLMutation = (
 
 				const node = value as EnrichedBQLMutationBlock;
 				const isFilter = paths.includes('$filter');
+
+				if ('$filter' in node && node.$filter) {
+					node.$filter = enrichFilter(node.$filter, node.$thing, schema);
+				}
 
 				Object.keys(node).forEach((field) => {
 					///1. Clean step

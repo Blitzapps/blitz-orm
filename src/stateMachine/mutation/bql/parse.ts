@@ -108,6 +108,10 @@ export const parseBQLMutation = async (
 			}
 			const value = val as EnrichedBQLMutationBlock;
 
+			if (meta.nodePath?.includes('.$filter')) {
+				return;
+			}
+
 			/// no idea why this is needed lol, but sometimes is indeed undefined 🤷‍♀️
 			if (value.$thing) {
 				if (!value.$op) {

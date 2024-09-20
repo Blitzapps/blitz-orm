@@ -12,7 +12,7 @@ export const runSURQLMutation = async (client: Surreal, mutations: string[]): Pr
 	RETURN $LOGS;
 	COMMIT TRANSACTION; 
 	`;
-
+	//console.log('mutations', mutations);
 	//console.log('batchedMutation', batchedMutation);
 	try {
 		const result = await client.query(batchedMutation);

@@ -28,6 +28,9 @@ export const getSurrealLinkFieldQueryPath = ({
 			return pathToRelation; //Not original relation in the second, but all the potential targets
 		}
 		if (linkMode === 'refs') {
+			if (linkField.cardinality === 'MANY') {
+				return `$parent.[\`${linkField.path}\`]`;
+			}
 			return `$parent.\`${linkField.path}\``;
 		}
 		throw new Error('Unsupported linkMode');
@@ -48,6 +51,9 @@ export const getSurrealLinkFieldQueryPath = ({
 			return `${pathToRelation}${pathToTunneledRole}`;
 		}
 		if (linkMode === 'refs') {
+			if (linkField.cardinality === 'MANY') {
+				return `$parent.[\`${targetRole.plays}\`]`;
+			}
 			return `$parent.\`${targetRole.plays}\``;
 		}
 

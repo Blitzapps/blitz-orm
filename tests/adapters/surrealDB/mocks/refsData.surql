@@ -122,6 +122,20 @@ INSERT INTO ⟨Hook⟩ [
   { id: "hook5", requiredOption: "b" }
 ];
 
+
+INSERT INTO ⟨ThingRelation⟩ [
+	{ id: "tr2", things: [Thing:thing5], root: Thing:thing2, extra: Thing:thing1 },
+	{ id: "tr3", things: [Thing:thing5, Thing:thing4], root: Thing:thing1, extra: Thing:thing1 },
+	{ id: "tr4", things: [Thing:thing5], root: Thing:thing1, extra: Thing:thing1 },
+	{ id: "tr5", things: [Thing:thing5], root: Thing:thing1, extra: Thing:thing1 },
+	{ id: "tr6", things: [Thing:thing5], root: Thing:thing2, extra: Thing:thing1 },
+	{ id: "tr7", things: [Thing:thing5], root: Thing:thing3, extra: Thing:thing1 },
+	{ id: "tr8", things: [Thing:thing5], root: Thing:thing4, extra: Thing:thing1 },
+	{ id: "tr9", things: [Thing:thing5], root: Thing:thing4, extra: Thing:thing1 },
+	{ id: "tr10", extra: Thing:thing1 },
+	{ id: "tr11", root: Thing:thing4, extra: Thing:thing5 }
+];
+
 ## big numbers
 
 LET $companies = (

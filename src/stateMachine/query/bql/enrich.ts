@@ -386,7 +386,8 @@ const processField = (
 };
 
 // Recursive enrich filter that checks all the tree of filters. Sometimes is dataFields, which is easier, but sometimes is linkFields or roleFields so we need to keep drilling
-const enrichFilter = ($filter: Filter | Filter[], $thing: string, schema: EnrichedBormSchema) => {
+export const enrichFilter = ($filter: Filter | Filter[], $thing: string, schema: EnrichedBormSchema) => {
+	//console.log('toEnrich', $filter, $thing);
 	if ($filter === null || $filter === undefined) {
 		return $filter;
 	}

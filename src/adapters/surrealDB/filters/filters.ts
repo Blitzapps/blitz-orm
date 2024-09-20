@@ -123,14 +123,16 @@ export const buildSuqlFilter = (filter: object) => {
 				const nestedFilter = buildSuqlFilter(value);
 
 				parts.push(`${key}[WHERE ${nestedFilter}]`);
-			} else if (key.startsWith('$parent')) {
-				//mode: computed refs
-
+			} else if (key.startsWith('$parent.[')) {
+				//mode: refs, card MANY
 				const nestedFilter = buildSuqlFilter(value);
-
-				const keyWithoutPrefix = key.replace('$parent.', '');
-
-				parts.push(`${keyWithoutPrefix}[WHERE ${nestedFilter}]`);
+				const keyWithoutPrefix = `${key.replace('$parent.', '').replace(/^\[(.*)\]$/, '$1')}`;
+				parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
+			} else if (key.startsWith('$parent')) {
+				//mode: refs, card ONE
+				const nestedFilter = buildSuqlFilter(value);
+				const keyWithoutPrefix = `${key.replace('$parent.', '')}`;
+				parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
 			} else if (key.startsWith('$')) {
 				throw new Error(`Invalid key ${key}`);
 			} else {
