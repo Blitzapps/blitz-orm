@@ -1,4 +1,4 @@
-import type { Surreal } from 'surrealdb.js';
+import type { Surreal } from 'surrealdb';
 
 export const runSURQLMutation = async (client: Surreal, mutations: string[]): Promise<any[]> => {
 	const batchedMutation = `

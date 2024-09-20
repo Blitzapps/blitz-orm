@@ -276,7 +276,7 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 	});
 
 	//EDGEFIELDS
-	it.only('rf1[filter, rolefield] filter by rolefield', async () => {
+	it('rf1[filter, rolefield] filter by rolefield', async () => {
 		// creating
 		await ctx.mutate([
 			{
@@ -313,7 +313,7 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 		]);
 	});
 
-	it.only('lf1[filter, linkfield, relation] filter by rolefield:rel', async () => {
+	it('lf1[filter, linkfield, relation] filter by rolefield:rel', async () => {
 		const equivalentQuery = await ctx.query({
 			$relation: 'UserTag',
 			$fields: ['id', 'name', 'group'],
@@ -370,7 +370,7 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 		]);
 	});
 
-	it.only('lf2[filter, linkfield, role] filter by rolefield:role', async () => {
+	it('lf2[filter, linkfield, role] filter by rolefield:role', async () => {
 		// creating
 		await ctx.mutate([
 			{

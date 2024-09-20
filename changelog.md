@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.5(2024-09-20)
+
+- Chore: Updated dependencies
+
 ## 0.11.4(2024-09-20)
 
 - Fix: SurrealDB adapter $filter working on mutations

@@ -1,4 +1,4 @@
-import type { Surreal } from 'surrealdb.js';
+import type { Surreal } from 'surrealdb';
 import type { TypeDBDriver } from 'typedb-driver';
 import { assertDefined, getSchemaByThing } from '../../helpers';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../types';

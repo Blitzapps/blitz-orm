@@ -1,4 +1,4 @@
-import type { Surreal } from 'surrealdb.js';
+import type { Surreal } from 'surrealdb';
 import type { CommonProvider } from './base';
 
 type SurrealDBProviderConfig = {

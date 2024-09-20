@@ -1,6 +1,6 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType, TypeDBCredential } from 'typedb-driver';
-import { Surreal } from 'surrealdb.js';
+import { Surreal } from 'surrealdb';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';

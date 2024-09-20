@@ -1,4 +1,4 @@
-import type { Surreal } from 'surrealdb.js';
+import type { Surreal } from 'surrealdb';
 
 export const run = async (props: { client: Surreal; queries: string[] }): Promise<any[][]> => {
 	const { client, queries } = props;
