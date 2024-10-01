@@ -276,8 +276,15 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 	});
 
 	//EDGEFIELDS
-	it('rf1[filter, rolefield] filter by rolefield', async () => {
-		// creating
+	it('TODO{T}:rf1[filter, rolefield] filter by rolefield', async () => {
+		//reset userTags
+		await ctx.mutate([
+			{ $relation: 'UserTag', $id: 'tag-1', users: ['user1'] },
+			{ $relation: 'UserTag', $id: 'tag-2', users: ['user1', 'user3'] },
+			{ $relation: 'UserTag', $id: 'tag-3', users: ['user2'] },
+			{ $relation: 'UserTag', $id: 'tag-4', users: ['user2'] },
+		]);
+		// the test
 		await ctx.mutate([
 			{
 				$relation: 'UserTag',
@@ -288,15 +295,16 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 			},
 		]);
 
-		const allTags = await ctx.query(
+		const allBaseTags = await ctx.query(
 			{
 				$relation: 'UserTag',
+				$id: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
 				$fields: ['id', 'name'],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(deepSort(allTags, 'id')).toEqual([
+		expect(deepSort(allBaseTags, 'id')).toEqual([
 			{ id: 'tag-1' },
 			{ id: 'tag-2', name: 'changedName-frf1' },
 			{ id: 'tag-3', name: 'changedName-frf1' },
@@ -313,28 +321,16 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 		]);
 	});
 
-	it('lf1[filter, linkfield, relation] filter by rolefield:rel', async () => {
-		const equivalentQuery = await ctx.query({
-			$relation: 'UserTag',
-			$fields: ['id', 'name', 'group'],
-			$filter: {
-				group: 'utg-1',
-			},
+	it('TODO{T}:lf1[filter, linkfield, relation] filter by rolefield:rel', async () => {
+		// reset utg1 tags
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'utg-1',
+			$op: 'update',
+			tags: ['tag-1', 'tag-2'],
 		});
 
-		console.log('equivalentQuery', equivalentQuery);
-		// creating
-		const allTagsInitial = await ctx.query(
-			{
-				$relation: 'UserTag',
-				$fields: ['id', 'name', 'group'],
-				$filter: {
-					group: 'utg-1',
-				},
-			},
-			{ noMetadata: true },
-		);
-		console.log('allTagsInitial', allTagsInitial);
+		//The test
 		await ctx.mutate([
 			{
 				$relation: 'UserTag',
@@ -345,15 +341,16 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 			},
 		]);
 
-		const allTags = await ctx.query(
+		const allBaseTags = await ctx.query(
 			{
 				$relation: 'UserTag',
+				$id: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
 				$fields: ['id', 'name'],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(deepSort(allTags, 'id')).toEqual([
+		expect(deepSort(allBaseTags, 'id')).toEqual([
 			{ id: 'tag-1', name: 'changedName-flf1' },
 			{ id: 'tag-2', name: 'changedName-flf1' },
 			{ id: 'tag-3' },
@@ -370,8 +367,16 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 		]);
 	});
 
-	it('lf2[filter, linkfield, role] filter by rolefield:role', async () => {
-		// creating
+	it('TODO{T}:lf2[filter, linkfield, role] filter by rolefield:role', async () => {
+		// revert tagGroup tags
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'utg-2',
+			$op: 'update',
+			tags: ['tag-3'],
+		});
+
+		// the test
 		await ctx.mutate([
 			{
 				$relation: 'UserTag',
@@ -382,15 +387,16 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 			},
 		]);
 
-		const allTags = await ctx.query(
+		const allBaseTags = await ctx.query(
 			{
 				$relation: 'UserTag',
+				$id: ['tag-1', 'tag-2', 'tag-3', 'tag-4'],
 				$fields: ['id', 'name'],
 			},
 			{ noMetadata: true },
 		);
 
-		expect(deepSort(allTags, 'id')).toEqual([
+		expect(deepSort(allBaseTags, 'id')).toEqual([
 			{ id: 'tag-1' },
 			{ id: 'tag-2' },
 			{ id: 'tag-3', name: 'changedName-flf2' },

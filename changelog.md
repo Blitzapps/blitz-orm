@@ -2,6 +2,14 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.6(2024-10-01)
+
+- Feat: $exist to workaround surrealdb issue;
+- Feat: Added comparators in tql queries;
+- Bug: Fixed a bug where could not link and create to the same tempId
+- Chore: Refacto tql filters
+- Tests: Fixed filtered tests for surrealDB (17❌ 183✅ 29⏭️)
+
 ## 0.11.5(2024-09-20)
 
 - Chore: Updated dependencies

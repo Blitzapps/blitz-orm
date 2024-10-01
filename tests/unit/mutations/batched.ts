@@ -3,6 +3,82 @@ import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';
 
 export const testBatchedMutation = createTest('Mutations: batched and tempId', (ctx) => {
+	it('c0-lfr[link, create, linkfield-role] Simple tempIds', async () => {
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				name: 'Hanna',
+				email: 'hanna@test.ru',
+				accounts: [{ $op: 'link', $tempId: '_:acc-c0' }],
+			},
+			{
+				$tempId: '_:acc-c0',
+				$op: 'create',
+				$entity: 'Account',
+				provider: 'MetaMask',
+			},
+		]);
+
+		const user = await ctx.query(
+			{ $entity: 'User', $filter: { name: 'Hanna' }, $fields: ['name', 'email', { $path: 'accounts' }] },
+			{ noMetadata: true },
+		);
+		expect(user).toBeDefined();
+		expect(user).toEqual([
+			{
+				name: 'Hanna',
+				email: 'hanna@test.ru',
+				accounts: [
+					{
+						id: expect.any(String),
+						provider: 'MetaMask',
+						isSecureProvider: false,
+						user: expect.any(String),
+					},
+				],
+			},
+		]);
+
+		// clean
+		await ctx.mutate([
+			{
+				$entity: 'User',
+				$filter: { name: 'Hanna' },
+				$op: 'delete',
+				accounts: [{ $op: 'delete' }],
+			},
+		]);
+	});
+
+	it('c0-rf[link, create, roleField] Simple tempIds', async () => {
+		await ctx.mutate([
+			{
+				$relation: 'UserTag',
+				id: 'c0-tag',
+				group: [{ $op: 'link', $tempId: '_:group-c0' }],
+				users: [{ name: 'c0-rf-user' }],
+			},
+			{
+				$tempId: '_:group-c0',
+				$op: 'create',
+				$relation: 'UserTagGroup',
+			},
+		]);
+
+		const UserTag = await ctx.query(
+			{ $relation: 'UserTag', $id: 'c0-tag', $fields: ['id', { $path: 'group' }] },
+			{ noMetadata: true },
+		);
+		expect(UserTag).toBeDefined();
+		expect(UserTag).toEqual({
+			id: 'c0-tag',
+			group: {
+				id: expect.any(String),
+				tags: ['c0-tag'],
+			},
+		});
+	});
+
 	it('c1[multi, create, link] Simple tempIds', async () => {
 		const res = await ctx.mutate([
 			{

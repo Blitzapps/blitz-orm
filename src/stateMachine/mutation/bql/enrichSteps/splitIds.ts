@@ -29,7 +29,7 @@ export const splitMultipleIds = (node: BQLMutationBlock, field: string, schema: 
 			},
 		);
 		// if we splitted something, then reassign
-		if (transformedChildren.length > isArray(node[field]) ? node[field] : [node[field]].length) {
+		if (transformedChildren.length > 0 && isArray(node[field]) ? node[field] : [node[field]].length) {
 			// eslint-disable-next-line no-param-reassign
 			node[field] = transformedChildren;
 		}

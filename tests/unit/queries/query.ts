@@ -1226,12 +1226,11 @@ export const testQuery = createTest('Query', (ctx) => {
 	});
 
 	it('nf1[nested, $filters] Local filter on nested, single id', async () => {
-		const query = {
+		const res = await ctx.query({
 			$entity: 'User',
 			$id: 'user1',
-			$fields: ['name', { $path: 'accounts', $filter: { provider: 'github' } }],
-		};
-		const res = await ctx.query(query);
+			$fields: ['name', { $path: 'accounts', $filter: { provider: { $eq: 'github' } } }],
+		});
 		expect(res).toBeDefined();
 		expect(res).not.toBeInstanceOf(String);
 
@@ -2666,7 +2665,6 @@ export const testQuery = createTest('Query', (ctx) => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',
-				//@ts-expect-error - todo
 				$filter: { employees: { name: ['Employee 78f', 'Employee 187f', 'Employee 1272f', 'Employee 9997f'] } },
 				$fields: ['id'],
 			},
@@ -2695,7 +2693,6 @@ export const testQuery = createTest('Query', (ctx) => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',
-				//@ts-expect-error - todo
 				$filter: { employees: { name: ['Employee 78f'] } },
 				$fields: ['id', { $path: 'employees' }],
 			},
@@ -2759,6 +2756,61 @@ export const testQuery = createTest('Query', (ctx) => {
 						name: 'Employee 79f',
 					},
 				],
+			},
+		]);
+	});
+
+	// COMPLEX FILTERS
+
+	it('fk1[filter, keywords, exists], filter by undefined/null property', async () => {
+		const res = await ctx.query({ $entity: 'User', $filter: { email: { $exists: false } } }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([{ id: 'user4', name: 'Ben' }]);
+	});
+
+	it('fk2[filter, keywords, exists], filter by undefined/null property', async () => {
+		const res = await ctx.query({ $entity: 'User', $filter: { email: { $exists: true } } }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'god1',
+				name: 'Richard David James',
+				email: 'afx@rephlex.com',
+			},
+			{
+				id: 'superuser1',
+				name: 'Beatrix Kiddo',
+				email: 'black.mamba@deadly-viper.com',
+			},
+			{
+				'id': 'user1',
+				'name': 'Antoine',
+				'email': 'antoine@test.com',
+				'accounts': ['account1-1', 'account1-2', 'account1-3'],
+				'spaces': ['space-1', 'space-2'],
+				'user-tags': ['tag-1', 'tag-2'],
+			},
+			{
+				'id': 'user2',
+				'name': 'Loic',
+				'email': 'loic@test.com',
+				'accounts': ['account2-1'],
+				'spaces': ['space-2'],
+				'user-tags': ['tag-3', 'tag-4'],
+			},
+			{
+				'id': 'user3',
+				'name': 'Ann',
+				'email': 'ann@test.com',
+				'accounts': ['account3-1'],
+				'spaces': ['space-2'],
+				'user-tags': ['tag-2'],
+			},
+			{
+				id: 'user5',
+				name: 'Charlize',
+				email: 'charlize@test.com',
+				spaces: ['space-1'],
 			},
 		]);
 	});

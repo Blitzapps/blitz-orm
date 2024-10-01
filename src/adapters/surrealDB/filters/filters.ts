@@ -3,6 +3,16 @@ import { getFieldType } from '../../../helpers';
 import type { Filter, EnrichedBormSchema, EnrichedLinkField, EnrichedRoleField } from '../../../types';
 import { SuqlMetadata } from '../../../types/symbols';
 
+const surqlOperators = {
+	$eq: '$=',
+	$not: '$!',
+	$or: '$OR',
+	$and: '$AND',
+	$in: '$IN',
+	$id: 'record::id(id)',
+	$exists: '$exists',
+};
+
 export const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter => {
 	if (filter === null || filter === undefined) {
 		return filter;
@@ -19,31 +29,38 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 			const value = f[key];
 
 			if (key.startsWith('$')) {
-				if (key === '$not') {
-					return { ...acc, $not: undefined, ['$!']: parseFilter(value, currentThing, schema) };
+				//LOGICAL OPERATORS
+				if (['$or', '$and', '$not'].includes(key)) {
+					return {
+						...acc,
+						[key]: undefined,
+						[surqlOperators[key as keyof typeof surqlOperators]]: parseFilter(value, currentThing, schema),
+					};
 				}
 
-				if (key === '$or') {
-					return { ...acc, $or: undefined, $OR: parseFilter(value, currentThing, schema) };
-				}
-
-				if (key === '$and') {
-					return { ...acc, $and: undefined, $AND: parseFilter(value, currentThing, schema) };
-				}
-
-				if (key === '$eq') {
-					return { ...acc, '$nor': undefined, '$=': parseFilter(value, currentThing, schema) };
-				}
-
+				// FILTER OPERATORS
 				if (key === '$id') {
-					return { ...acc, '$id': undefined, 'record::id(id)': { $IN: isArray(value) ? value : [value] } };
+					return { ...acc, $id: undefined, [surqlOperators[key]]: { $IN: isArray(value) ? value : [value] } };
 				}
-
 				if (key === '$thing') {
 					return acc; //do nothing for now, but in the future we will need to filter by tables as well, maybe record::tb(id) ...
 				}
 
-				return { ...acc, [key]: parseFilter(value, currentThing, schema) };
+				//AUXILIARY OPERATORS
+				if (key === '$exists') {
+					return { ...acc, $exists: undefined, [surqlOperators[key]]: value };
+				}
+
+				//VALUE OPERATORS
+				if (key === '$eq') {
+					return { ...acc, $eq: undefined, [surqlOperators[key]]: value };
+				}
+				if (key === '$in') {
+					return { ...acc, $in: undefined, [surqlOperators[key]]: value };
+				}
+
+				throw new Error(`Unknown filter operator ${key}`);
+				//return { ...acc, [key]: parseFilter(value, currentThing, schema) };
 			}
 
 			const currentSchema =
@@ -51,16 +68,16 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 
 			const [fieldType, fieldSchema] = getFieldType(currentSchema, key);
 
-			if (fieldType === 'dataField') {
+			if (fieldType === 'idField') {
 				if (currentSchema.idFields.length > 1) {
 					throw new Error('Multiple id fields not supported');
 				} //todo: When composed id, this changes:
 
-				if (key === currentSchema.idFields[0]) {
-					return { ...acc, 'record::id(id)': { $IN: isArray(value) ? value : [value] } };
-				}
+				return { ...acc, 'record::id(id)': { $IN: isArray(value) ? value : [value] } };
+			}
 
-				return { ...acc, [key]: value }; //Probably good place to add ONLY and other stuff depending on the fieldSchema
+			if (fieldType === 'dataField') {
+				return { ...acc, [key]: parseFilter(value, currentThing, schema) }; //Probably good place to add ONLY and other stuff depending on the fieldSchema
 			}
 
 			if (fieldType === 'linkField' || fieldType === 'roleField') {
@@ -92,82 +109,89 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
 	return wasArray ? resultArray : resultArray[0];
 };
 
-export const buildSuqlFilter = (filter: object) => {
+export const buildSuqlFilter = (filter: object): string => {
 	if (filter === null || filter === undefined) {
 		return '';
 	}
 
 	const entries = Object.entries(filter);
-
 	const parts: string[] = [];
 
 	entries.forEach(([key, value]) => {
-		//TODO: probably better to do it by key first, instead of filtering by the type of value, but it works so to refacto once needed.
-
+		// Handle logical operators
 		if (['$OR', '$AND', '$!'].includes(key)) {
 			const logicalOperator = key.replace('$', '');
 
 			const nestedFilters = Array.isArray(value) ? value.map((v) => buildSuqlFilter(v)) : [buildSuqlFilter(value)];
 
 			if (logicalOperator === '!') {
-				parts.push(`!(${nestedFilters.join(` ${logicalOperator} `)})`);
+				// Correctly handle the negation
+				parts.push(`!(${nestedFilters.join(' AND ')})`);
 			} else {
 				parts.push(`(${nestedFilters.join(` ${logicalOperator} `)})`);
 			}
-
 			return;
 		}
 
+		// Handle field-specific filters
 		if (isObject(value)) {
 			if (key.includes('<-') || key.includes('->')) {
 				const nestedFilter = buildSuqlFilter(value);
-
 				parts.push(`${key}[WHERE ${nestedFilter}]`);
 			} else if (key.startsWith('$parent.[')) {
-				//mode: refs, card MANY
+				// Handle references with cardinality MANY
 				const nestedFilter = buildSuqlFilter(value);
-				const keyWithoutPrefix = `${key.replace('$parent.', '').replace(/^\[(.*)\]$/, '$1')}`;
+				const keyWithoutPrefix = key.replace('$parent.', '').replace(/^\[(.*)\]$/, '$1');
 				parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
 			} else if (key.startsWith('$parent')) {
-				//mode: refs, card ONE
+				// Handle references with cardinality ONE
 				const nestedFilter = buildSuqlFilter(value);
-				const keyWithoutPrefix = `${key.replace('$parent.', '')}`;
+				const keyWithoutPrefix = key.replace('$parent.', '');
 				parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
 			} else if (key.startsWith('$')) {
 				throw new Error(`Invalid key ${key}`);
 			} else {
-				if (Object.keys.length === 1 && Object.keys(value)[0].startsWith('$')) {
-					// This is the case where the filter has an operator manually defined
+				// Handle field operators
+				const valueKeys = Object.keys(value);
+				if (valueKeys.length === 1 && valueKeys[0].startsWith('$')) {
+					const [operator] = valueKeys;
+					//@ts-expect-error - Todo
+					const nextValue: unknown = value[operator];
 
-					const [operator] = Object.keys(value);
-
-					//@ts-expect-error its ok, single key
-
-					const nextValue = value[operator];
-
-					if (isArray(nextValue)) {
-						parts.push(
-							`${key} ${operator.replace('$', '')} [${nextValue.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`,
-						);
-					} else if (isObject(nextValue)) {
-						const nestedFilter = buildSuqlFilter(nextValue);
-
-						parts.push(`${key} ${operator.replace('$', '')} ${nestedFilter}`);
+					if (operator === '$exists') {
+						// Handle $exists operator
+						if (nextValue === true) {
+							parts.push(`${key} IS NOT NONE`);
+						} else if (nextValue === false) {
+							parts.push(`${key} IS NONE`);
+						} else {
+							throw new Error(`Invalid value for $exists: ${nextValue}`);
+						}
 					} else {
-						parts.push(`${key} ${operator.replace('$', '')} ${nextValue === null ? 'NONE' : `'${nextValue}'`}`);
+						// Handle other operators
+						const surrealOperator = operator.replace('$', '');
+						if (Array.isArray(nextValue)) {
+							parts.push(
+								`${key} ${surrealOperator} [${nextValue.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`,
+							);
+						} else if (isObject(nextValue)) {
+							const nestedFilter = buildSuqlFilter(nextValue);
+							parts.push(`${key} ${surrealOperator} ${nestedFilter}`);
+						} else {
+							parts.push(`${key} ${surrealOperator} ${nextValue === null ? 'NONE' : `'${nextValue}'`}`);
+						}
 					}
 				} else {
 					throw new Error(`Invalid key ${key}`);
 				}
 			}
 		} else {
+			// Handle simple field equality
 			if (Array.isArray(value)) {
-				const operator = key.startsWith('$') ? key.replace('$', '') : 'IN';
-
+				const operator = key.startsWith('$') ? key.replace('$', '') : 'IN'; //maybe  could do const operator = 'IN';
 				parts.push(`${key} ${operator} [${value.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`);
 			} else {
-				const operator = key.startsWith('$') ? key.replace('$', '') : '=';
-
+				const operator = key.startsWith('$') ? key.replace('$', '') : '='; //maybe  could do const operator = '=';
 				parts.push(`${key} ${operator} ${value === null ? 'NONE' : `'${value}'`}`);
 			}
 		}

@@ -372,9 +372,9 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 							pathToRelation:
 								lf.target === 'relation'
 									? lf.path
-									: val.linkFields?.find(
+									: (val.linkFields?.find(
 											(lf) => lf.target === 'relation' && lf.relation === key && lf.plays === roleKey,
-										)?.path ?? lf.relation.toLocaleLowerCase(),
+										)?.path ?? lf.relation.toLocaleLowerCase()),
 						}));
 
 						const impactedLinkFields = allLinkedFields.filter(
@@ -399,11 +399,11 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 
 						const originalRelation = role[SharedMetadata]?.inheritanceOrigin || value.name;
 
-						if ($things.length > 1) {
+						/*if ($things.length > 1) {
 							console.warn(
 								`Not supported yet: Role ${roleKey} in ${'name' in value ? value.name : JSON.stringify(value)} is played by multiple things: ${$things.join(', ')}`,
 							);
-						}
+						}*/
 						//get all subTyped for each potential player
 						const playerThingsWithSubTypes = $things.flatMap((playerThing) => {
 							const playerSchema = getSchemaByThing(schema, playerThing);
@@ -563,8 +563,15 @@ export const getCurrentSchema = (
 export const getFieldType = (
 	currentSchema: EnrichedBormRelation | EnrichedBormEntity,
 	key: string,
-): ['dataField' | 'linkField' | 'roleField', EnrichedDataField | EnrichedLinkField | EnrichedRoleField] => {
+): ['idField' | 'dataField' | 'linkField' | 'roleField', EnrichedDataField | EnrichedLinkField | EnrichedRoleField] => {
 	const dataFieldSchema = currentSchema.dataFields?.find((dataField: any) => dataField.path === key);
+
+	if (currentSchema.idFields?.includes(key)) {
+		if (!dataFieldSchema) {
+			throw new Error(`Field ${key} is an idField but not a dataField in schema`);
+		}
+		return ['idField', dataFieldSchema];
+	}
 	if (dataFieldSchema) {
 		return ['dataField', dataFieldSchema];
 	}

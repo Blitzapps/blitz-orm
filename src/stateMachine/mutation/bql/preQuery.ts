@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { produce } from 'immer';
 import { traverse } from 'object-traversal';
-import { isObject } from 'radash';
+import { isArray, isObject } from 'radash';
 import type {
 	BQLResponse,
 	BormConfig,
@@ -25,9 +25,11 @@ export const mutationPreQuery = async (
 	config: BormConfig,
 	dbHandles: DBHandles,
 ) => {
+	const operatorKeys = ['$eq', '$ne', '$in', '$nin', '$gt', '$gte', '$lt', '$lte', '$exists'];
+
 	const getFieldKeys = (block: FilledBQLMutationBlock | Partial<FilledBQLMutationBlock>, noDataFields?: boolean) => {
 		return Object.keys(block).filter((key) => {
-			if (!key.startsWith('$') && block[key] !== undefined) {
+			if (!key.startsWith('$') && !operatorKeys.includes(key) && block[key] !== undefined) {
 				if (noDataFields) {
 					const currentSchema = getCurrentSchema(schema, block);
 					if (currentSchema.dataFields?.find((field) => field.path === key)) {
@@ -57,9 +59,8 @@ export const mutationPreQuery = async (
 	const ops: string[] = [];
 
 	traverse(blocks, ({ parent, key, value }) => {
-		if (parent && key && !key.includes('$') && isObject(parent)) {
+		if (parent && key && !key.includes('$') && !operatorKeys.includes(key) && isObject(parent)) {
 			const values = Array.isArray(parent[key]) ? parent[key] : [parent[key]];
-			// @ts-expect-error todo
 			values.forEach((val) => {
 				if (isObject(val)) {
 					if (parent.$op !== 'create') {
@@ -111,7 +112,8 @@ export const mutationPreQuery = async (
 					continue;
 				}
 				if (!k.includes('$') && (isObject(block[k]) || Array.isArray(block[k]))) {
-					const v = block[k];
+					const v = extractValueFromFilter(block[k]) as FilledBQLMutationBlock;
+
 					if (Array.isArray(v) && v.length > 0) {
 						v.forEach((opBlock) => {
 							const newField = {
@@ -230,7 +232,6 @@ export const mutationPreQuery = async (
 					if (Array.isArray(parent[key])) {
 						// @ts-expect-error todo
 						const cacheArray = [];
-						// @ts-expect-error todo
 						parent[key].forEach((val) => {
 							if (isObject(val)) {
 								// @ts-expect-error todo
@@ -297,9 +298,12 @@ export const mutationPreQuery = async (
 							},
 						);
 					} else if (isObject(parent[key])) {
+						//@ts-expect-error - todo
 						parent[key].$parentIsCreate = parent.$op === 'create';
+						//@ts-expect-error - todo
 						parent[key][Symbol.for('grandChildOfCreate')] =
 							parent.$parentIsCreate || parent[Symbol.for('grandChildOfCreate') as any];
+						//@ts-expect-error - todo
 						parent[key].$objectPath = getObjectPath(parent, key);
 					}
 				}
@@ -719,13 +723,15 @@ export const mutationPreQuery = async (
 	): FilledBQLMutationBlock | FilledBQLMutationBlock[] => {
 		return produce(blocks, (draft) =>
 			traverse(draft, (context) => {
-				const { key, value, parent } = context;
+				const { key, value, parent, meta } = context;
 
 				// a. only work for role fields that are arrays or objects
 				if (
 					key &&
 					parent &&
 					!key?.includes('$') &&
+					key !== '$filter' &&
+					!meta.nodePath?.includes('.$filter.') && //ignore children of $filter
 					(Array.isArray(value) || isObject(value)) &&
 					!Array.isArray(parent)
 				) {
@@ -841,4 +847,14 @@ export const mutationPreQuery = async (
 	});
 
 	return sortedArray;
+};
+
+const extractValueFromFilter = (filterValue: any): any => {
+	if (isObject(filterValue) && !isArray(filterValue)) {
+		if ('$eq' in filterValue) {
+			return filterValue['$eq'];
+		}
+		// Handle other operators if needed
+	}
+	return filterValue;
 };

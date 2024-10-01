@@ -72,9 +72,7 @@ export const parseBQLMutation = async (
 				if (nodes.find((x) => x.$id === idValue && x.$op === 'create')) {
 					throw new Error(`Duplicate id ${idValue} for node ${JSON.stringify(node)}`);
 				}
-				if (edges.find((x) => x.$bzId === node.$bzId)) {
-					throw new Error(`Duplicate $bzId ${node.$bzId} for node ${JSON.stringify(node)}`);
-				}
+
 				nodes.push({ ...node, $id: idValue });
 				return;
 			}
@@ -90,11 +88,8 @@ export const parseBQLMutation = async (
 			if (edge.$op === 'create') {
 				const idValue = getIdValue(edge);
 
-				if (nodes.find((x) => x.$id === idValue)) {
-					// throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
-				}
-				if (edges.find((x) => x.$bzId === edge.$bzId)) {
-					throw new Error(`Duplicate %bzId ${edge.$bzIdd} for edge ${JSON.stringify(edge)}`);
+				if (nodes.find((x) => x.$id === idValue && x.$op === 'create')) {
+					throw new Error(`Duplicate id ${idValue} for edge ${JSON.stringify(edge)}`);
 				}
 				edges.push({ ...edge, $id: idValue });
 				return;

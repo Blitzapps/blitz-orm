@@ -327,7 +327,7 @@ export const parseTQLQuery: PipelineOperation<TypeDbResponse> = async (req, res)
 		const processResponse = (resItems: any) => {
 			const parsedItems = realParse(resItems);
 			return (rawBqlRequest.$id && !Array.isArray(rawBqlRequest.$id)) || enrichedBqlQuery[0].$filterByUnique
-				? parsedItems[0] ?? null
+				? (parsedItems[0] ?? null)
 				: parsedItems.length === 0
 					? null
 					: parsedItems;

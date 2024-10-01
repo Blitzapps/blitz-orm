@@ -2655,7 +2655,6 @@ export const allBench = createTest('Bench', (ctx) => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',
-				//@ts-expect-error - todo
 				$filter: { employees: { name: ['Employee 78f', 'Employee 187f', 'Employee 1272f', 'Employee 9997f'] } },
 				$fields: ['id'],
 			},
@@ -2684,7 +2683,6 @@ export const allBench = createTest('Bench', (ctx) => {
 		const res = await ctx.query(
 			{
 				$entity: 'Company',
-				//@ts-expect-error - todo
 				$filter: { employees: { name: ['Employee 78f'] } },
 				$fields: ['id', { $path: 'employees' }],
 			},

@@ -4,7 +4,7 @@ import type { FieldSchema, QueryPath } from '../symbols';
 export type Sorter = { field: string; desc?: boolean } | string;
 
 export type FilterValue = string | number | boolean | string[] | number[] | boolean[] | null;
-export type PositiveFilter = { [field: string]: FilterValue };
+export type PositiveFilter = { [field: string]: FilterValue | Filter }; //todo: actually we need to type the BQL ops ($eq, $in, $not etc)
 export type NegativeFilter = { $not?: PositiveFilter };
 export type Filter = PositiveFilter | NegativeFilter;
 //TODO: BqlFilter, EnrichedBQLFilter, then in the adapters, the TqlParsedFilter and BqlParsedFilter

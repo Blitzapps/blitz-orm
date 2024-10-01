@@ -1,6 +1,6 @@
 {
 	"name": "@blitznocode/blitz-orm",
-	"version": "0.11.5",
+	"version": "0.11.6",
 	"author": "blitznocode.com",
 	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
 	"main": "dist/index.mjs",
@@ -73,13 +73,13 @@
 		"uuid": "^10.0.0"
 	},
 	"devDependencies": {
-		"@blitznocode/eslint-config": "^2.0.0",
+		"@blitznocode/eslint-config": "^1.1.0",
 		"@types/node": "^22.5.5",
 		"@types/uuid": "^10.0.0",
 		"@vitest/coverage-v8": "^2.1.1",
 		"cross-env": "^7.0.3",
 		"esbuild": "^0.23.1",
-		"eslint": "^9.10.0",
+		"eslint": "^8.57.0",
 		"husky": "^9.1.6",
 		"knip": "^5.30.2",
 		"lint-staged": "^15.2.10",
