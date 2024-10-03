@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.7(2024-10-03)
+
+- Fix: Issue on borm adapter for deleting non existing things
+
 ## 0.11.6(2024-10-01)
 
 - Feat: $exist to workaround surrealdb issue;
