@@ -1,6 +1,7 @@
 import type { Surreal } from 'surrealdb';
+import type { BormConfig } from '../../../types';
 
-export const runSURQLMutation = async (client: Surreal, mutations: string[]): Promise<any[]> => {
+export const runSURQLMutation = async (client: Surreal, mutations: string[], config: BormConfig): Promise<any[]> => {
 	const batchedMutation = `
 	BEGIN TRANSACTION;
 	${mutations.join(';')};
@@ -12,6 +13,10 @@ export const runSURQLMutation = async (client: Surreal, mutations: string[]): Pr
 	RETURN $LOGS;
 	COMMIT TRANSACTION; 
 	`;
+
+	if (config.mutation?.debugger) {
+		console.log('batchedMutation', batchedMutation);
+	}
 	//console.log('mutations', mutations);
 	//console.log('batchedMutation', batchedMutation);
 	try {

@@ -17,6 +17,7 @@ export type MutationConfig = {
 	preQuery?: boolean;
 	ignoreNonexistingThings?: boolean;
 	context?: Record<string, any>;
+	debugger?: boolean;
 };
 
 export type BormConfig = {

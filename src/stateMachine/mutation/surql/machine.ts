@@ -84,6 +84,7 @@ const surrealDbMutationMachine = createMachine(
 				runSURQLMutation(
 					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as Surreal,
 					ctx.surql.mutations,
+					ctx.config,
 				),
 			transition('done', 'parseMutation', reduce(updateSURQLRes)),
 			errorTransition,

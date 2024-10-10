@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.8(2024-10-11)
+
+- Feat: Debugger prop to print surrealdb queries and mutations
+
 ## 0.11.7(2024-10-03)
 
 - Fix: Issue on borm adapter for deleting non existing things
