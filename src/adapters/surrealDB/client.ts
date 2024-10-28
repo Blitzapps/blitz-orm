@@ -41,6 +41,7 @@ class SurrealClient {
 		let retryTimeout = Math.max(INITIAL_RECONNECT_INTERVAL, 1);
 		// eslint-disable-next-line no-constant-condition
 		while (true) {
+			let failed = false;
 			try {
 				await this.db.connect(this.url, {
 					namespace: this.namespace,
@@ -53,10 +54,14 @@ class SurrealClient {
 				});
 				break;
 			} catch (e) {
-				await sleep((1 + Math.random() * 0.1) * retryTimeout);
+				failed = true;
+				this.close();
 				if (this.isClosed) {
 					break;
 				}
+			}
+			if (failed) {
+				await sleep((1 + Math.random() * 0.1) * retryTimeout);
 				retryTimeout = Math.min(2 * retryTimeout, MAX_RECONNECT_RETRY_INTERVAL);
 				await this._connect();
 			}
@@ -66,7 +71,7 @@ class SurrealClient {
 
 	async connect() {
 		if (this.isClosed) {
-			this.reconnectInterval = setInterval(() => this._connect, RECONNECT_INTERVAL);
+			this.reconnectInterval = setInterval(() => this._connect(), RECONNECT_INTERVAL);
 		}
 		return this._connect();
 	}
@@ -90,17 +95,16 @@ class SurrealClient {
 				this.connect();
 				reject(new Error('Timeout'));
 			}, QUERY_TIMEOUT);
-			this.connect();
-			cb(this.db)
-				.then((res) => {
-					resolve(res);
+			this.connect()
+				.then(() => {
+					cb(this.db)
+						.then(resolve)
+						.catch(reject)
+						.finally(() => {
+							clearTimeout(timeout);
+						});
 				})
-				.catch((e) => {
-					reject(e);
-				})
-				.finally(() => {
-					clearTimeout(timeout);
-				});
+				.catch(reject);
 		});
 	}
 
