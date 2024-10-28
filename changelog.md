@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.9(2024-10-28)
+
+- Fix: Long running query blocks subsequent queries. Use Surreal DB connection pool.
+
 ## 0.11.8(2024-10-11)
 
 - Feat: Debugger prop to print surrealdb queries and mutations
