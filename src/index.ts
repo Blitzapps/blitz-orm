@@ -1,11 +1,11 @@
 import { tryit } from 'radash';
 import { TypeDB, SessionType, TypeDBCredential } from 'typedb-driver';
-import { Surreal } from 'surrealdb';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './helpers';
 import type {
+	AllDbHandles,
 	BQLMutation,
 	BQLResponse,
 	BQLResponseMulti,
@@ -20,6 +20,7 @@ import type {
 import { enableMapSet } from 'immer';
 import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
+import { SurrealPool } from './adapters/surrealDB/client';
 
 export * from './types';
 
@@ -46,23 +47,19 @@ class BormClient {
 	getDbHandles = () => this.dbHandles;
 
 	init = async () => {
-		const dbHandles = { typeDB: new Map(), surrealDB: new Map() };
+		const dbHandles: AllDbHandles = { typeDB: new Map(), surrealDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
 				if (dbc.provider === 'surrealDB') {
-					const db = new Surreal();
-
-					await db.connect(dbc.url, {
+					const pool = new SurrealPool({
+						url: dbc.url,
+						username: dbc.username,
+						password: dbc.password,
 						namespace: dbc.namespace,
 						database: dbc.dbName,
-						auth: {
-							username: dbc.username,
-							password: dbc.password,
-						},
-						versionCheck: false,
+						totalConnections: 100,
 					});
-
-					dbHandles.surrealDB.set(dbc.id, { client: db, providerConfig: dbc.providerConfig });
+					dbHandles.surrealDB.set(dbc.id, { client: pool, providerConfig: dbc.providerConfig });
 				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);

@@ -44,7 +44,7 @@ export type DBConnector = {
 	as?: string;
 };
 
-type AllDbHandles = {
+export type AllDbHandles = {
 	typeDB: TypeDBHandles;
 	surrealDB: SurrealDBHandles;
 };

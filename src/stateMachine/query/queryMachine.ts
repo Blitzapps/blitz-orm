@@ -1,4 +1,3 @@
-import type { Surreal } from 'surrealdb';
 import type { TypeDBDriver } from 'typedb-driver';
 import { assertDefined, getSchemaByThing } from '../../helpers';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../types';
@@ -8,6 +7,7 @@ import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
+import type { SurrealPool } from '../../adapters/surrealDB/client';
 
 type MachineContext = {
 	bql: {
@@ -62,7 +62,7 @@ type TypeDBAdapter = {
 
 type SurrealDBAdapter = {
 	db: 'surrealDB';
-	client: Surreal;
+	client: SurrealPool;
 	rawBql: RawBQLQuery[];
 	bqlQueries: EnrichedBQLQuery[];
 	indices: number[];

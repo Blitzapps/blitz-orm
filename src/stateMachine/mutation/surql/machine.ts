@@ -1,4 +1,3 @@
-import type Surreal from 'surrealdb';
 import type {
 	BormConfig,
 	BQLMutationBlock,
@@ -14,6 +13,7 @@ import type { EnrichedSURQLMutationRes } from './parse';
 import { parseSURQLMutation } from './parse';
 import { isArray } from 'radash';
 import type { FlatBqlMutation } from '../bql/flatter';
+import type { SurrealPool } from '../../../adapters/surrealDB/client';
 
 type SurrealDbMachineContext = {
 	bql: bqlMutationContext;
@@ -82,7 +82,7 @@ const surrealDbMutationMachine = createMachine(
 		runMutation: invoke(
 			async (ctx: SurrealDbMachineContext) =>
 				runSURQLMutation(
-					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as Surreal,
+					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as SurrealPool,
 					ctx.surql.mutations,
 					ctx.config,
 				),

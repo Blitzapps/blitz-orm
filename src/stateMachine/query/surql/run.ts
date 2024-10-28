@@ -1,7 +1,7 @@
-import type { Surreal } from 'surrealdb';
 import type { BormConfig } from '../../../types';
+import type { SurrealPool } from '../../../adapters/surrealDB/client';
 
-export const run = async (props: { client: Surreal; queries: string[]; config: BormConfig }): Promise<any[][]> => {
+export const run = async (props: { client: SurrealPool; queries: string[]; config: BormConfig }): Promise<any[][]> => {
 	const { client, queries, config } = props;
 	const batchedQuery = `
 	BEGIN TRANSACTION;
