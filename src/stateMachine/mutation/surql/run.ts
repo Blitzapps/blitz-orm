@@ -1,7 +1,11 @@
-import type { Surreal } from 'surrealdb';
 import type { BormConfig } from '../../../types';
+import type { SurrealPool } from '../../../adapters/surrealDB/client';
 
-export const runSURQLMutation = async (client: Surreal, mutations: string[], config: BormConfig): Promise<any[]> => {
+export const runSURQLMutation = async (
+	client: SurrealPool,
+	mutations: string[],
+	config: BormConfig,
+): Promise<any[]> => {
 	const batchedMutation = `
 	BEGIN TRANSACTION;
 	${mutations.join(';')};
