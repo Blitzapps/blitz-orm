@@ -80,7 +80,11 @@ class SurrealClient {
 		if (this.reconnectInterval !== null) {
 			clearInterval(this.reconnectInterval);
 			this.reconnectInterval = null;
-			this.db.close();
+			try {
+				this.db.close();
+			} catch {
+				// No-op
+			}
 		}
 	}
 
