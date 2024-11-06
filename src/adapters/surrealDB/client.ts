@@ -55,7 +55,7 @@ class SurrealClient {
 				break;
 			} catch (e) {
 				failed = true;
-				this.close();
+				await this.close();
 				if (this.isClosed) {
 					break;
 				}
@@ -76,12 +76,12 @@ class SurrealClient {
 		return this._connect();
 	}
 
-	close() {
+	async close() {
 		if (this.reconnectInterval !== null) {
 			clearInterval(this.reconnectInterval);
 			this.reconnectInterval = null;
 			try {
-				this.db.close();
+				await this.db.close();
 			} catch {
 				// No-op
 			}
