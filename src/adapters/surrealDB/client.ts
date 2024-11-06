@@ -2,7 +2,7 @@ import type { QueryParameters, QueryResult } from 'surrealdb';
 import Surreal, { ConnectionStatus } from 'surrealdb';
 
 const QUEUE_TIMEOUT = 5000; // The max duration a query is queued before "Timeout" error is thrown.
-const QUERY_TIMEOUT = 300000; // The max duration a query is run before "Timeout" error is thrown.
+const QUERY_TIMEOUT = 180000; // The max duration a query is run before "Timeout" error is thrown.
 const RECONNECT_INTERVAL = 2000; // Check the connection every `RECONNECT_INTERVAL` and reconnect it if it's not connected.
 const INITIAL_RECONNECT_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
 const MAX_RECONNECT_RETRY_INTERVAL = 60000; // If the reconnection failed wait with exponential backoff with this max interval and then try to reconnect again.
@@ -55,7 +55,7 @@ class SurrealClient {
 				break;
 			} catch (e) {
 				failed = true;
-				this.close();
+				await this.close();
 				if (this.isClosed) {
 					break;
 				}
@@ -76,11 +76,15 @@ class SurrealClient {
 		return this._connect();
 	}
 
-	close() {
+	async close() {
 		if (this.reconnectInterval !== null) {
 			clearInterval(this.reconnectInterval);
 			this.reconnectInterval = null;
-			this.db.close();
+			try {
+				await this.db.close();
+			} catch (e) {
+				console.error('Trying to close an already closed connection:', e);
+			}
 		}
 	}
 

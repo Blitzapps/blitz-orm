@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.11.10(2024-11-06)
+
+- Fix: Issue with surrealdb wrapper. Now catches errors too before trying to reconnect.
+
 ## 0.11.9(2024-10-28)
 
 - Fix: Long running query blocks subsequent queries. Use Surreal DB connection pool.
