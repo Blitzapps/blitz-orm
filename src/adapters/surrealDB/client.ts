@@ -82,8 +82,8 @@ class SurrealClient {
 			this.reconnectInterval = null;
 			try {
 				await this.db.close();
-			} catch {
-				// No-op
+			} catch (e) {
+				console.error('Trying to close an already closed connection:', e);
 			}
 		}
 	}
