@@ -57,7 +57,7 @@ class BormClient {
 						password: dbc.password,
 						namespace: dbc.namespace,
 						database: dbc.dbName,
-						totalConnections: 100,
+						totalConnections: 8,
 					});
 					dbHandles.surrealDB.set(dbc.id, { client: pool, providerConfig: dbc.providerConfig });
 				}
