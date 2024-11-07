@@ -1,5 +1,6 @@
 import type { BormConfig } from '../../../types';
 import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import { VERSION } from '../../..';
 
 export const runSURQLMutation = async (
 	client: SurrealPool,
@@ -19,7 +20,7 @@ export const runSURQLMutation = async (
 	`;
 
 	if (config.mutation?.debugger) {
-		console.log('batchedMutation', batchedMutation);
+		console.log(`batchedMutation[${VERSION}]`, batchedMutation);
 	}
 	//console.log('mutations', mutations);
 	//console.log('batchedMutation', batchedMutation);

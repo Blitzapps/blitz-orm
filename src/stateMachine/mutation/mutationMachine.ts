@@ -18,6 +18,7 @@ import { runTypeDbMutationMachine } from './tql/machine';
 import { runSurrealDbMutationMachine } from './surql/machine';
 import type { FlatBqlMutation } from './bql/flatter';
 import { flattenBQLMutation } from './bql/flatter';
+import { VERSION } from '../..';
 
 const final = state;
 
@@ -151,7 +152,12 @@ export const machine = createMachine(
 	'stringify',
 	{
 		stringify: invoke(
-			async (ctx: MachineContext) => stringify(ctx.bql.raw, ctx.schema),
+			async (ctx: MachineContext) => {
+				if (ctx.config.mutation?.debugger) {
+					console.log(`originalBQLMutation[${VERSION}]`, ctx.bql.raw);
+				}
+				return stringify(ctx.bql.raw, ctx.schema);
+			},
 			transition('done', 'enrich', reduce(updateBqlReq)),
 			errorTransition,
 		),

@@ -8,6 +8,7 @@ import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
 import type { SurrealPool } from '../../adapters/surrealDB/client';
+import { VERSION } from '../..';
 
 type MachineContext = {
 	bql: {
@@ -74,7 +75,12 @@ export const queryMachine = createMachine(
 	'enrich',
 	{
 		enrich: invoke(
-			async (ctx: MachineContext) => enrichBQLQuery(ctx.bql.raw, ctx.schema),
+			async (ctx: MachineContext) => {
+				if (ctx.config.query?.debugger) {
+					console.log(`originalBQLQuery[${VERSION}]`, ctx.bql.raw);
+				}
+				return enrichBQLQuery(ctx.bql.raw, ctx.schema);
+			},
 			transition('done', 'adapter', reduce(updateBqlReq)),
 			errorTransition,
 		),
