@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsup';
+import pkg from './package.json';
 
 export default defineConfig({
 	entry: ['src/index.ts'],
@@ -9,4 +10,7 @@ export default defineConfig({
 	treeshake: true,
 	minify: true,
 	sourcemap: true,
+	define: {
+		'"__VERSION__"': JSON.stringify(pkg.version),
+	},
 });
