@@ -35,6 +35,12 @@ const cleanStep = (node: BQLMutationBlock, field: string) => {
 			throw new Error('[Internal] TempId already modified');
 		}
 	}
+
+	if (field === '$filter') {
+		if (node.$filter && Object.keys(node.$filter).length === 0) {
+			node.$filter = undefined;
+		}
+	}
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

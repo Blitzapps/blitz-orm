@@ -109,9 +109,10 @@ const createEdgeFields = (
 			);
 			const FIELDS = [...META, ...DATA_FIELDS, ...LINK_FIELDS].join(',\n');
 			const FROM = `FROM $parent.\`${ef[FieldSchema].path}\`[*]`;
-			const WHERE = ef.$filter
-				? `WHERE id AND(${buildSuqlFilter(parseFilter(ef.$filter, ef.$thing, schema))})`
-				: 'WHERE id';
+			const WHERE =
+				ef.$filter && Object.keys(ef.$filter).length > 0
+					? `WHERE id AND(${buildSuqlFilter(parseFilter(ef.$filter, ef.$thing, schema))})`
+					: 'WHERE id';
 			const SORT = ef.$sort ? buildSorter(ef.$sort) : '';
 			const LIMIT = typeof ef.$limit === 'number' ? `LIMIT ${ef.$limit}` : '';
 			const OFFSET = typeof ef.$offset === 'number' ? `START ${ef.$offset}` : '';
