@@ -81,8 +81,12 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 					value[QueryPath as any] = meta.nodePath;
 					const currentSchema = getCurrentSchema(schema, node);
 					if (value.$filter) {
-						value.$filter = enrichFilter(value.$filter, value.$thing, schema);
-						value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
+						if (Object.keys(value.$filter).length === 0) {
+							value.$filter = undefined;
+						} else {
+							value.$filter = enrichFilter(value.$filter, value.$thing, schema);
+							value.$filterByUnique = checkFilterByUnique(value.$filter, currentSchema);
+						}
 					}
 					// if no fields, then it's all fields
 					if (value.$fields) {

@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
+## 0.11.11(2024-11-07)
+
+- Fix: Issue with empty filters.
+
 ## 0.11.10(2024-11-06)
 
 - Fix: Issue with surrealdb wrapper. Now catches errors too before trying to reconnect.
