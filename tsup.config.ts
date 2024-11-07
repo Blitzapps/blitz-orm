@@ -10,7 +10,10 @@ export default defineConfig({
 	treeshake: true,
 	minify: true,
 	sourcemap: true,
-	define: {
-		'"__VERSION__"': JSON.stringify(pkg.version),
+	esbuildOptions(options) {
+		// eslint-disable-next-line no-param-reassign
+		options.define = {
+			'process.env.npm_package_version': `"${pkg.version}"`,
+		};
 	},
 });

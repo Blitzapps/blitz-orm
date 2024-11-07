@@ -18,7 +18,7 @@ import { runTypeDbMutationMachine } from './tql/machine';
 import { runSurrealDbMutationMachine } from './surql/machine';
 import type { FlatBqlMutation } from './bql/flatter';
 import { flattenBQLMutation } from './bql/flatter';
-import { VERSION } from '../..';
+import { VERSION } from '../../version';
 
 const final = state;
 

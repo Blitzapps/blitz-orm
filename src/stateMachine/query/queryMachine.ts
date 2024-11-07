@@ -8,7 +8,7 @@ import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
 import type { SurrealPool } from '../../adapters/surrealDB/client';
-import { VERSION } from '../..';
+import { VERSION } from '../../version';
 
 type MachineContext = {
 	bql: {
