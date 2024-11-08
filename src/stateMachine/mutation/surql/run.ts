@@ -20,7 +20,7 @@ export const runSURQLMutation = async (
 	`;
 
 	if (config.mutation?.debugger) {
-		console.log(`batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
+		console.log(`>>> batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
 	}
 	//console.log('mutations', mutations);
 	//console.log('batchedMutation', batchedMutation);
