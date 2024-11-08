@@ -77,7 +77,7 @@ export const queryMachine = createMachine(
 		enrich: invoke(
 			async (ctx: MachineContext) => {
 				if (ctx.config.query?.debugger) {
-					console.log(`originalBQLQuery[${VERSION}]`, ctx.bql.raw);
+					console.log(`originalBQLQuery[${VERSION}]`, JSON.stringify(ctx.bql.raw, null, 2));
 				}
 				return enrichBQLQuery(ctx.bql.raw, ctx.schema);
 			},

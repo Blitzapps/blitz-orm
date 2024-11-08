@@ -154,7 +154,7 @@ export const machine = createMachine(
 		stringify: invoke(
 			async (ctx: MachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`originalBQLMutation[${VERSION}]`, ctx.bql.raw);
+					console.log(`originalBQLMutation[${VERSION}]`, JSON.stringify(ctx.bql.raw, null, 2));
 				}
 				return stringify(ctx.bql.raw, ctx.schema);
 			},
