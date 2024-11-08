@@ -105,10 +105,16 @@ const preQueryDependencies = async (ctx: MachineContext) => {
 };
 
 const parseBQL = async (ctx: MachineContext) => {
+	if (ctx.config.mutation?.debugger) {
+		console.log(`>>> parseBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+	}
 	return parseBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
 const flattenBQL = async (ctx: MachineContext) => {
+	if (ctx.config.mutation?.debugger) {
+		console.log(`>>> flattenBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+	}
 	return flattenBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
@@ -154,7 +160,7 @@ export const machine = createMachine(
 		stringify: invoke(
 			async (ctx: MachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`originalBQLMutation[${VERSION}]`, JSON.stringify(ctx.bql.raw));
+					console.log(`>>> originalBQLMutation[${VERSION}]`, JSON.stringify(ctx.bql.raw));
 				}
 				return stringify(ctx.bql.raw, ctx.schema);
 			},
