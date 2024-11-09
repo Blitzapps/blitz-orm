@@ -200,7 +200,10 @@ export const machine = createMachine(
 		adapter: invoke(
 			async (ctx: MachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> mutationMachine/adapter[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+					console.log(
+						`>>> mutationMachine/adapter[${VERSION}]`,
+						JSON.stringify({ enriched: ctx.bql.enriched, flat: ctx.bql.flat }),
+					);
 				}
 				//todo: do this properly with multiple providers
 				const { dbConnectors } = ctx.config;

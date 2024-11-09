@@ -78,7 +78,7 @@ const surrealDbMutationMachine = createMachine(
 		buildMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/buildMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+					console.log(`>>> surqlMachine/buildMutation[${VERSION}]`, JSON.stringify(ctx.bql.flat));
 				}
 				return buildSURQLMutation(ctx.bql.flat, ctx.schema);
 			},
@@ -88,7 +88,7 @@ const surrealDbMutationMachine = createMachine(
 		runMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.surql.mutations));
 				}
 				return runSURQLMutation(
 					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as SurrealPool,
@@ -102,7 +102,7 @@ const surrealDbMutationMachine = createMachine(
 		parseMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+					console.log(`>>> surqlMachine/parseMutation[${VERSION}]`, JSON.stringify(ctx.surql.res));
 				}
 				return parseSURQLMutation({ res: ctx.surql.res, config: ctx.config, schema: ctx.schema });
 			},
