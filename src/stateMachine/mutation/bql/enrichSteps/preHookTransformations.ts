@@ -27,23 +27,29 @@ export const preHookTransformations = (
 			) as TransFormAction[];
 
 			const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
-			const currentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
+			const initialCurrentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
 			const userContext = (config.mutation?.context || {}) as Record<string, any>;
 			const dbNode = clone(
 				deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || subNode.$dbNode),
 			) as EnrichedBQLMutationBlock | Record<string, never>;
 
-			triggeredActions.forEach((action) => {
+			const transformedNode = triggeredActions.reduce((currentNode, action) => {
 				//! Todo: Sandbox the function in computeFunction()
 				const newProps = action.fn(currentNode, parentNode, userContext, dbNode || {});
-				if (Object.keys(newProps).length === 0) {
-					return;
-				}
-				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), [IsTransformed]: true };
-			});
 
-			return subNode;
+				if (Object.keys(newProps).length === 0) {
+					return currentNode;
+				}
+				const updated = {
+					...currentNode,
+					...newProps,
+					...getSymbols(subNode),
+					[IsTransformed]: true,
+				};
+				return updated;
+			}, initialCurrentNode);
+
+			return transformedNode;
 		}
 		//#endregion nested nodes
 	});
