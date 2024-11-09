@@ -221,45 +221,46 @@ export class SurrealPool {
 }
 
 export class SimpleSurrealClient {
-	private config: { url: string; username: string; password: string; namespace: string; database: string };
+	private url: string;
+	private username: string;
+	private password: string;
+	private namespace: string;
+	private database: string;
 
 	constructor(params: { url: string; username: string; password: string; namespace: string; database: string }) {
-		this.config = params;
+		this.url = params.url;
+		this.username = params.username;
+		this.password = params.password;
+		this.namespace = params.namespace;
+		this.database = params.database;
+	}
+
+	private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
+		const db = new Surreal();
+		try {
+			await db.connect(this.url, {
+				namespace: this.namespace,
+				database: this.database,
+				auth: {
+					username: this.username,
+					password: this.password,
+				},
+				versionCheck: false,
+			});
+			return cb(db);
+		} catch (err) {
+			console.error('Failed to connect to SurrealDB:', err instanceof Error ? err.message : String(err));
+			throw err;
+		} finally {
+			await db.close();
+		}
 	}
 
 	async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
-		const db = await getDb(this.config);
-		return db.query(...args);
+		return this.run<T[]>((db) => db.query(...args));
 	}
 
 	async query_raw<T = unknown>(...args: QueryParameters): Promise<QueryResult<T>[]> {
-		const db = await getDb(this.config);
-		return db.query_raw(...args);
+		return this.run<QueryResult<T>[]>((db) => db.query_raw(...args));
 	}
 }
-
-const getDb = async (params: {
-	url: string;
-	username: string;
-	password: string;
-	namespace: string;
-	database: string;
-}): Promise<Surreal> => {
-	const db = new Surreal();
-	try {
-		await db.connect(params.url, {
-			namespace: params.namespace,
-			database: params.database,
-			auth: {
-				username: params.username,
-				password: params.password,
-			},
-			versionCheck: false,
-		});
-		return db;
-	} catch (err) {
-		console.error('Failed to connect to SurrealDB:', err instanceof Error ? err.message : String(err));
-		await db.close();
-		throw err;
-	}
-};
