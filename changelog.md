@@ -2,7 +2,7 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.11.12-17(2024-11-07)
+## 0.11.12-18(2024-11-07)
 
 - Fix: Debugger includes original BQL.
 
