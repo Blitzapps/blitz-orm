@@ -89,31 +89,42 @@ const updateBQLRes = (ctx: MachineContext, event: any) => {
 // ============================================================================
 
 const enrich = async (ctx: MachineContext) => {
+	if (ctx.config.mutation?.debugger) {
+		console.log(
+			`>>> mutationMachine/enrich[${VERSION}]`,
+			JSON.stringify(Object.keys(ctx.bql.enriched).length ? ctx.bql.enriched : ctx.bql.raw),
+		);
+	}
 	const enriched = Object.keys(ctx.bql.enriched).length
 		? enrichBQLMutation(ctx.bql.enriched, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
-	//console.log('enriched!', JSON.stringify(enriched));
 	return enriched;
 };
 
 const preQuery = async (ctx: MachineContext) => {
+	if (ctx.config.mutation?.debugger) {
+		console.log(`>>> mutationMachine/preQuery[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+	}
 	return mutationPreQuery(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const preQueryDependencies = async (ctx: MachineContext) => {
+	if (ctx.config.mutation?.debugger) {
+		console.log(`>>> mutationMachine/preQueryDependencies[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+	}
 	return preHookDependencies(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const parseBQL = async (ctx: MachineContext) => {
 	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> parseBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+		console.log(`>>> mutationMachine/parseBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	}
 	return parseBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
 const flattenBQL = async (ctx: MachineContext) => {
 	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> flattenBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+		console.log(`>>> mutationMachine/flattenBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	}
 	return flattenBQLMutation(ctx.bql.enriched, ctx.schema);
 };
@@ -160,7 +171,7 @@ export const machine = createMachine(
 		stringify: invoke(
 			async (ctx: MachineContext) => {
 				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> originalBQLMutation[${VERSION}]`, JSON.stringify(ctx.bql.raw));
+					console.log(`>>> mutationMachine/stringify[${VERSION}]`, JSON.stringify(ctx.bql.raw));
 				}
 				return stringify(ctx.bql.raw, ctx.schema);
 			},
@@ -188,6 +199,9 @@ export const machine = createMachine(
 		flattenBQL: invoke(flattenBQL, transition('done', 'adapter', reduce(updateBQLFlat)), errorTransition),
 		adapter: invoke(
 			async (ctx: MachineContext) => {
+				if (ctx.config.mutation?.debugger) {
+					console.log(`>>> mutationMachine/adapter[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+				}
 				//todo: do this properly with multiple providers
 				const { dbConnectors } = ctx.config;
 				if (dbConnectors.length !== 1) {
