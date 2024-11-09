@@ -58,6 +58,14 @@ class BormClient {
 						namespace: dbc.namespace,
 						database: dbc.dbName,
 					});
+					// const pool = new SurrealPool({
+					// 	url: dbc.url,
+					// 	username: dbc.username,
+					// 	password: dbc.password,
+					// 	namespace: dbc.namespace,
+					// 	database: dbc.dbName,
+					// 	totalConnections: 8,
+					// });
 					dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
 				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
