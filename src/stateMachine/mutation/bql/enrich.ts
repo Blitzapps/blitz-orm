@@ -16,7 +16,6 @@ import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
 import { enrichFilter } from '../../query/bql/enrich';
-import { VERSION } from '../../../version';
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -238,10 +237,6 @@ export const enrichBQLMutation = (
 			}
 		}),
 	);
-
-	if (config.mutation?.debugger) {
-		console.log(`enrichedBQLMutation[${VERSION}]`, JSON.stringify(result));
-	}
 
 	if (isArray(result.$rootWrap.$root)) {
 		return result.$rootWrap.$root as EnrichedBQLMutationBlock[];

@@ -14,6 +14,7 @@ import { parseSURQLMutation } from './parse';
 import { isArray } from 'radash';
 import type { FlatBqlMutation } from '../bql/flatter';
 import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import { VERSION } from '../../../version';
 
 type SurrealDbMachineContext = {
 	bql: bqlMutationContext;
@@ -75,23 +76,36 @@ const surrealDbMutationMachine = createMachine(
 	'buildMutation',
 	{
 		buildMutation: invoke(
-			async (ctx: SurrealDbMachineContext) => buildSURQLMutation(ctx.bql.flat, ctx.schema),
+			async (ctx: SurrealDbMachineContext) => {
+				if (ctx.config.mutation?.debugger) {
+					console.log(`>>> surqlMachine/buildMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+				}
+				return buildSURQLMutation(ctx.bql.flat, ctx.schema);
+			},
 			transition('done', 'runMutation', reduce(updateSURQLMutation)),
 			errorTransition,
 		),
 		runMutation: invoke(
-			async (ctx: SurrealDbMachineContext) =>
-				runSURQLMutation(
+			async (ctx: SurrealDbMachineContext) => {
+				if (ctx.config.mutation?.debugger) {
+					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+				}
+				return runSURQLMutation(
 					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as SurrealPool,
 					ctx.surql.mutations,
 					ctx.config,
-				),
+				);
+			},
 			transition('done', 'parseMutation', reduce(updateSURQLRes)),
 			errorTransition,
 		),
 		parseMutation: invoke(
-			async (ctx: SurrealDbMachineContext) =>
-				parseSURQLMutation({ res: ctx.surql.res, config: ctx.config, schema: ctx.schema }),
+			async (ctx: SurrealDbMachineContext) => {
+				if (ctx.config.mutation?.debugger) {
+					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
+				}
+				return parseSURQLMutation({ res: ctx.surql.res, config: ctx.config, schema: ctx.schema });
+			},
 			transition('done', 'success', reduce(updateBqlRes)),
 			errorTransition,
 		),
