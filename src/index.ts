@@ -20,7 +20,7 @@ import type {
 import { enableMapSet } from 'immer';
 import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
-import { SurrealPool } from './adapters/surrealDB/client';
+import { SimpleSurrealClient } from './adapters/surrealDB/client';
 
 export * from './types';
 
@@ -51,15 +51,14 @@ class BormClient {
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
 				if (dbc.provider === 'surrealDB') {
-					const pool = new SurrealPool({
+					const client = new SimpleSurrealClient({
 						url: dbc.url,
 						username: dbc.username,
 						password: dbc.password,
 						namespace: dbc.namespace,
 						database: dbc.dbName,
-						totalConnections: 8,
 					});
-					dbHandles.surrealDB.set(dbc.id, { client: pool, providerConfig: dbc.providerConfig });
+					dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
 				}
 				if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
