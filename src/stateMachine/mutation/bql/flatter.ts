@@ -13,6 +13,7 @@ export const flattenBQLMutation = (
 	tree: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ): FlatBqlMutation => {
+	console.log('>>> flattenBQLMutation', JSON.stringify({ tree, schema }));
 	const result: FlatBqlMutation = {
 		things: [],
 		edges: [],
