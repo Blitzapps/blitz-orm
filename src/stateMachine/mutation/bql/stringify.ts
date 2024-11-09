@@ -39,7 +39,7 @@ const tObject = (
 	}
 	const thing = getSchemaByThing(schema, $thing || tree.$entity || tree.$relation || tree.$thing);
 	Object.entries(tree).forEach(([k]) => {
-		if (k.startsWith('$')) {
+		if (k.startsWith('$') || k.startsWith('%')) {
 			return;
 		}
 		tField(schema, tree, k, thing);

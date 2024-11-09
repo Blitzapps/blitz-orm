@@ -70,7 +70,12 @@ export const enrichBQLMutation = (
 					const secondToLastPath = paths[paths.length - 2];
 					if (key === '$root') {
 						throw new Error('Root things must specify $entity or $relation');
-					} else if (!toIgnore.includes(lastPath) && !toIgnore.includes(secondToLastPath)) {
+					} else if (
+						!toIgnore.includes(lastPath) &&
+						!toIgnore.includes(secondToLastPath) &&
+						!lastPath.startsWith('%') &&
+						!secondToLastPath.startsWith('%')
+					) {
 						throw new Error(
 							`[Internal] This object has not been initiated with a $thing: ${JSON.stringify(isDraft(value) ? current(value) : value)}`,
 						);
@@ -94,6 +99,7 @@ export const enrichBQLMutation = (
 					if (field !== '$root' && (field.startsWith('$') || field.startsWith('%'))) {
 						return;
 					}
+
 					const fieldSchema =
 						field !== '$root' ? getFieldSchema(schema, node, field) : ({ fieldType: 'rootField' } as any);
 					if (!fieldSchema) {
