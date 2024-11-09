@@ -219,3 +219,48 @@ export class SurrealPool {
 		});
 	}
 }
+
+export class SimpleSurrealClient {
+	private url: string;
+	private username: string;
+	private password: string;
+	private namespace: string;
+	private database: string;
+
+	constructor(params: { url: string; username: string; password: string; namespace: string; database: string }) {
+		this.url = params.url;
+		this.username = params.username;
+		this.password = params.password;
+		this.namespace = params.namespace;
+		this.database = params.database;
+	}
+
+	private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
+		const db = new Surreal();
+		try {
+			await db.connect(this.url, {
+				namespace: this.namespace,
+				database: this.database,
+				auth: {
+					username: this.username,
+					password: this.password,
+				},
+				versionCheck: false,
+			});
+			return cb(db);
+		} catch (err) {
+			console.error('Failed to connect to SurrealDB:', err instanceof Error ? err.message : String(err));
+			throw err;
+		} finally {
+			await db.close();
+		}
+	}
+
+	async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
+		return this.run<T[]>((db) => db.query(...args));
+	}
+
+	async query_raw<T = unknown>(...args: QueryParameters): Promise<QueryResult<T>[]> {
+		return this.run<QueryResult<T>[]>((db) => db.query_raw(...args));
+	}
+}

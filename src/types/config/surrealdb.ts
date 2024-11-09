@@ -1,5 +1,5 @@
 import type { CommonProvider } from './base';
-import type { SurrealPool } from '../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
 
 type SurrealDBProviderConfig = {
 	linkMode: 'edges' | 'refs';
@@ -13,4 +13,4 @@ export interface SurrealDBProviderObject extends CommonProvider {
 	password: string;
 }
 
-export type SurrealDBHandles = Map<string, { client: SurrealPool; providerConfig: SurrealDBProviderConfig }>;
+export type SurrealDBHandles = Map<string, { client: SimpleSurrealClient; providerConfig: SurrealDBProviderConfig }>;
