@@ -247,10 +247,7 @@ export class SimpleSurrealClient {
 				},
 				versionCheck: false,
 			});
-			return cb(db);
-		} catch (err) {
-			console.error('Failed to connect to SurrealDB:', err instanceof Error ? err.message : String(err));
-			throw err;
+			return await cb(db);
 		} finally {
 			await db.close();
 		}
