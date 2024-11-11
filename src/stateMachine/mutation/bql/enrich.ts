@@ -60,8 +60,14 @@ export const enrichBQLMutation = (
 			if (!parent || !key) {
 				return;
 			}
+
 			if (isObject(value)) {
 				const paths = meta.nodePath?.split('.') || [];
+				if (paths.some((p) => p.startsWith('%'))) {
+					//we don't go inside %vars even if they are objects
+					return;
+				}
+
 				if ('$root' in value) {
 					// This is hte $root object, we will split the real root if needed in this iteration
 				} else if (!('$thing' in value || '$entity' in value || '$relation' in value)) {
