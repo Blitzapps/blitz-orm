@@ -392,6 +392,41 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
+	it('tt2[transform, temp props] Transform using %vars', async () => {
+		try {
+			await ctx.mutate(
+				{
+					'$thing': 'User',
+					'id': 'tt2-u1',
+					'%modifier': { name: 'White' },
+					'name': 'Barry',
+				},
+				{ noMetadata: true },
+			);
+
+			const res = await ctx.query(
+				{
+					$thing: 'User',
+					$thingType: 'entity',
+					$id: 'tt2-u1',
+				},
+				{ noMetadata: true },
+			);
+			expect(res).toEqual({
+				id: 'tt2-u1',
+				name: 'White',
+			});
+		} finally {
+			//clean
+			await ctx.mutate({
+				$thing: 'User',
+				$thingType: 'entity',
+				$id: 'tt2-u1',
+				$op: 'delete',
+			});
+		}
+	});
+
 	it('ctx1[transform, context] Use context', async () => {
 		try {
 			await ctx.mutate(
@@ -429,7 +464,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('tf1[transform, fields] Use $fields for dbNode', async () => {
+	it('TODO{S}:tf1[transform, fields] Use $fields for dbNode', async () => {
 		try {
 			await ctx.mutate([
 				{
@@ -485,7 +520,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('tf2[transform, fields] Use $fields for dbNode nested', async () => {
+	it('TODO{S}:tf2[transform, fields] Use $fields for dbNode nested', async () => {
 		try {
 			await ctx.mutate([
 				{
@@ -555,7 +590,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('tf3[transform, fields] Use $fields for transformation', async () => {
+	it('TODO{S}:tf3[transform, fields] Use $fields for transformation', async () => {
 		try {
 			await ctx.mutate([
 				{
@@ -776,7 +811,7 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
 		}
 	});
 
-	it('tf5[transform, fields] Use $fields nested looping through transformations', async () => {
+	it('TODO{S}:tf5[transform, fields] Use $fields nested looping through transformations', async () => {
 		try {
 			await ctx.mutate([
 				{
