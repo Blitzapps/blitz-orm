@@ -495,7 +495,7 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 		}),
 	) as EnrichedBormSchema;
 
-	console.log('schema and enrichedSchema', JSON.stringify(schema), JSON.stringify(enrichedSchema));
+	//console.log('schema and enrichedSchema', JSON.stringify(schema), JSON.stringify(enrichedSchema));
 	return enrichedSchema;
 };
 

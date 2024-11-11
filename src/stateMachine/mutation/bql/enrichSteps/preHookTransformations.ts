@@ -11,43 +11,41 @@ export const preHookTransformations = (
 	schema: EnrichedBormSchema,
 	config: BormConfig,
 ) => {
-	const newNodes = (isArray(node[field]) ? node[field] : [node[field]]).map((subNode: EnrichedBQLMutationBlock) => {
-		// Step 1: Default node attributes
+	const nodes = isArray(node[field]) ? node[field] : [node[field]];
 
-		// Step 2: Transform nodes
-		if (isBQLBlock(subNode)) {
-			// @ts-expect-error todo
-			if (subNode.$fields || subNode[IsTransformed]) {
-				///change machine context so we are sun we run preQueryDeps before coming back to here
-				return subNode;
+	nodes.forEach((subNode: EnrichedBQLMutationBlock) => {
+		if (!isBQLBlock(subNode)) {
+			return;
+		}
+
+		// @ts-expect-error todo
+		if (subNode.$fields || subNode[IsTransformed]) {
+			///todo: change machine context so we are sun we run preQueryDeps before coming back to here
+			return;
+		}
+
+		const triggeredActions = getTriggeredActions(subNode, schema).filter(
+			(action) => action.type === 'transform',
+		) as TransFormAction[];
+
+		const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
+		let workingNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
+		const userContext = (config.mutation?.context || {}) as Record<string, any>;
+		const dbNode = clone(
+			deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || subNode.$dbNode),
+		) as EnrichedBQLMutationBlock | Record<string, never>;
+
+		triggeredActions.forEach((action) => {
+			const newProps = action.fn(workingNode, parentNode, userContext, dbNode || {});
+			if (Object.keys(newProps).length === 0) {
+				return;
 			}
 
-			const triggeredActions = getTriggeredActions(subNode, schema).filter(
-				(action) => action.type === 'transform',
-			) as TransFormAction[];
+			// Update working node to be used by next action
+			workingNode = { ...workingNode, ...newProps, ...getSymbols(subNode), [IsTransformed]: true };
 
-			const parentNode = clone(deepCurrent(node)) as EnrichedBQLMutationBlock;
-			const currentNode = clone(deepCurrent(subNode)) as EnrichedBQLMutationBlock;
-			const userContext = (config.mutation?.context || {}) as Record<string, any>;
-			const dbNode = clone(
-				deepCurrent<EnrichedBQLMutationBlock | Record<string, never>>(subNode[DBNode] || subNode.$dbNode),
-			) as EnrichedBQLMutationBlock | Record<string, never>;
-
-			triggeredActions.forEach((action) => {
-				//! Todo: Sandbox the function in computeFunction()
-				const newProps = action.fn(currentNode, parentNode, userContext, dbNode || {});
-				if (Object.keys(newProps).length === 0) {
-					return;
-				}
-				//this needs to modify the current node as well. not enough with the last line.
-				// eslint-disable-next-line no-param-reassign
-				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), [IsTransformed]: true };
-			});
-
-			return subNode;
-		}
-		//#endregion nested nodes
+			// Update the draft state in Immer
+			Object.assign(subNode, workingNode);
+		});
 	});
-	//this is needed to append the new children
-	node[field] = isArray(node[field]) ? newNodes : newNodes[0];
 };
