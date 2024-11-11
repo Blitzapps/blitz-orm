@@ -39,6 +39,7 @@ export const preHookTransformations = (
 				if (Object.keys(newProps).length === 0) {
 					return;
 				}
+				//this needs to modify the current node as well. not enough with the last line.
 				// eslint-disable-next-line no-param-reassign
 				subNode = { ...currentNode, ...newProps, ...getSymbols(subNode), [IsTransformed]: true };
 			});
@@ -47,6 +48,6 @@ export const preHookTransformations = (
 		}
 		//#endregion nested nodes
 	});
-
+	//this is needed to append the new children
 	node[field] = isArray(node[field]) ? newNodes : newNodes[0];
 };

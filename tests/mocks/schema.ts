@@ -1,5 +1,5 @@
 import type { BormSchema, DataField } from '../../src/index';
-import { isArray } from 'radash';
+import { isArray, isObject } from 'radash';
 import { nanoid } from 'nanoid';
 //* when updating, please run `pnpm test:buildSchema`
 
@@ -179,6 +179,19 @@ export const schema: BormSchema = {
 								description: 'Use %var to replace name',
 								type: 'transform',
 								fn: ({ $op, '%name': varName }) => ($op === 'create' && varName ? { name: `secret-${varName}` } : {}),
+							},
+							{
+								type: 'transform',
+								fn: ({ '%modifier': modifier }) => {
+									if (isObject(modifier) && Object.keys(modifier).length > 0) {
+										//if parent is space, we don't need to return the space
+
+										//temporally %vars that are objects need to be cleaned up
+										return { ...modifier, '%modifier': undefined };
+									} else {
+										return {};
+									}
+								},
 							},
 						],
 					},
