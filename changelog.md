@@ -4,6 +4,10 @@
 
 ## 0.11.12-23(2024-11-12)
 
+- Fix: Added dayjs and fixed some issues with FLEX values storing dateTime in iso.
+
+## 0.11.12-23(2024-11-12)
+
 - Fix: Actions are now run one after each other properly.
 
 ## 0.11.12-23(2024-11-11)
