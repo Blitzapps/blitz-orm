@@ -6,11 +6,11 @@
 
 - Fix: Replace SurrealPool with SimpleSurrealClient in various type definitions and type casts.
 
-## 0.11.12-25(2024-11-12)
+## 0.11.25(2024-11-12)
 
 - Fix: Added dayjs and fixed some issues with FLEX values storing dateTime in iso.
 
-## 0.11.12-24(2024-11-12)
+## 0.11.24(2024-11-12)
 
 - Fix: Actions are now run one after each other properly.
 
