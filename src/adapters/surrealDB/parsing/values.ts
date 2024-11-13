@@ -1,5 +1,6 @@
 import { isDate, isArray } from 'radash';
 import { parseFlexValSurrealDB } from './parseFlexVal';
+import dayjs from 'dayjs';
 
 export const surrealDBtypeMap: Record<string, string> = {
 	TEXT: 'string',
@@ -42,14 +43,19 @@ export const parseValueSurrealDB = (value: unknown, ct?: string): any => {
 			case 'JSON':
 				return value;
 			case 'DATE':
-				if (typeof value === 'string') {
+				if (typeof value === 'string' && dayjs(value, 'YYYY-MM-DDTHH:mm:ssZ', true).isValid()) {
 					return `<datetime>"${value}"`;
 				}
 				if (isDate(value)) {
 					return `d"${value.toISOString()}"`;
 				}
-				return `$<datetime>"${value}"`;
+				return `$<datetime>"${value}"`; //let surrealDB try to do the conversion
 			case 'FLEX': {
+				//dates are potentially defined as strings in flex-values
+				if (typeof value === 'string' && dayjs(value, 'YYYY-MM-DDTHH:mm:ssZ', true).isValid()) {
+					return `<datetime>"${value}"`;
+				}
+				// array elements go throw the parsing
 				const parsedVal = isArray(value) ? value.map((v) => parseFlexValSurrealDB(v)) : parseFlexValSurrealDB(value);
 				return `${isArray(parsedVal) ? parsedVal.map((v) => v) : parsedVal}`;
 			}
