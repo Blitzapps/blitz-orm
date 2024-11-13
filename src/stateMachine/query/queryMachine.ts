@@ -7,7 +7,7 @@ import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
-import type { SurrealPool } from '../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
 import { VERSION } from '../../version';
 
 type MachineContext = {
@@ -63,7 +63,7 @@ type TypeDBAdapter = {
 
 type SurrealDBAdapter = {
 	db: 'surrealDB';
-	client: SurrealPool;
+	client: SimpleSurrealClient;
 	rawBql: RawBQLQuery[];
 	bqlQueries: EnrichedBQLQuery[];
 	indices: number[];

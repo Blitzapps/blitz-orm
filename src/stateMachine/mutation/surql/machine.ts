@@ -13,7 +13,7 @@ import type { EnrichedSURQLMutationRes } from './parse';
 import { parseSURQLMutation } from './parse';
 import { isArray } from 'radash';
 import type { FlatBqlMutation } from '../bql/flatter';
-import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 import { VERSION } from '../../../version';
 
 type SurrealDbMachineContext = {
@@ -91,7 +91,8 @@ const surrealDbMutationMachine = createMachine(
 					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.surql.mutations));
 				}
 				return runSURQLMutation(
-					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as SurrealPool,
+					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)
+						?.client as SimpleSurrealClient,
 					ctx.surql.mutations,
 					ctx.config,
 				);

@@ -1,9 +1,9 @@
 import type { BormConfig } from '../../../types';
-import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 import { VERSION } from '../../../version';
 
 export const runSURQLMutation = async (
-	client: SurrealPool,
+	client: SimpleSurrealClient,
 	mutations: string[],
 	config: BormConfig,
 ): Promise<any[]> => {

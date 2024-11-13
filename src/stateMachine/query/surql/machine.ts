@@ -6,7 +6,7 @@ import { assertDefined } from '../../../helpers';
 import { parse } from './parse';
 import type { SurrealDBProviderObject } from '../../../types/config/surrealdb';
 import { buildRefs } from './buildRefs';
-import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 
 export type SurrealDbMachineContext = {
 	bql: {
@@ -19,7 +19,7 @@ export type SurrealDbMachineContext = {
 	};
 	schema: EnrichedBormSchema;
 	config: BormConfig;
-	client: SurrealPool;
+	client: SimpleSurrealClient;
 	error?: string | null;
 };
 
@@ -136,7 +136,7 @@ export const runSurrealDbQueryMachine = async (
 	enrichedBql: EnrichedBQLQuery[],
 	schema: EnrichedBormSchema,
 	config: BormConfig,
-	client: SurrealPool,
+	client: SimpleSurrealClient,
 ) => {
 	return awaitQueryMachine({
 		bql: {
