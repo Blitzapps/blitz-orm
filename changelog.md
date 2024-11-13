@@ -2,11 +2,15 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.11.12-23(2024-11-12)
+## 0.11.26(2024-11-13)
+
+- Fix: Replace SurrealPool with SimpleSurrealClient in various type definitions and type casts.
+
+## 0.11.12-25(2024-11-12)
 
 - Fix: Added dayjs and fixed some issues with FLEX values storing dateTime in iso.
 
-## 0.11.12-23(2024-11-12)
+## 0.11.12-24(2024-11-12)
 
 - Fix: Actions are now run one after each other properly.
 
