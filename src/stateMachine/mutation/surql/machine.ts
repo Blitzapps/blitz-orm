@@ -13,8 +13,9 @@ import type { EnrichedSURQLMutationRes } from './parse';
 import { parseSURQLMutation } from './parse';
 import { isArray } from 'radash';
 import type { FlatBqlMutation } from '../bql/flatter';
-import type { SurrealPool } from '../../../adapters/surrealDB/client';
+import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 import { VERSION } from '../../../version';
+import { logDebug } from '../../../logger';
 
 type SurrealDbMachineContext = {
 	bql: bqlMutationContext;
@@ -77,9 +78,7 @@ const surrealDbMutationMachine = createMachine(
 	{
 		buildMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
-				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/buildMutation[${VERSION}]`, JSON.stringify(ctx.bql.flat));
-				}
+				logDebug(`>>> surqlMachine/buildMutation[${VERSION}]`, JSON.stringify(ctx.bql.flat));
 				return buildSURQLMutation(ctx.bql.flat, ctx.schema);
 			},
 			transition('done', 'runMutation', reduce(updateSURQLMutation)),
@@ -87,13 +86,11 @@ const surrealDbMutationMachine = createMachine(
 		),
 		runMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
-				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.surql.mutations));
-				}
+				logDebug(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.surql.mutations));
 				return runSURQLMutation(
-					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)?.client as SurrealPool,
+					ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)
+						?.client as SimpleSurrealClient,
 					ctx.surql.mutations,
-					ctx.config,
 				);
 			},
 			transition('done', 'parseMutation', reduce(updateSURQLRes)),
@@ -101,9 +98,7 @@ const surrealDbMutationMachine = createMachine(
 		),
 		parseMutation: invoke(
 			async (ctx: SurrealDbMachineContext) => {
-				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> surqlMachine/parseMutation[${VERSION}]`, JSON.stringify(ctx.surql.res));
-				}
+				logDebug(`>>> surqlMachine/parseMutation[${VERSION}]`, JSON.stringify(ctx.surql.res));
 				return parseSURQLMutation({ res: ctx.surql.res, config: ctx.config, schema: ctx.schema });
 			},
 			transition('done', 'success', reduce(updateBqlRes)),

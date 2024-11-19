@@ -1,0 +1,64 @@
+// customLogger.ts
+
+import * as fs from 'fs';
+
+type LogEntry = {
+	readonly timestamp: string;
+	readonly data: ReadonlyArray<unknown>;
+};
+
+type LogFile = ReadonlyArray<LogEntry>;
+
+const LOG_FILE_PATH = 'logs.json';
+
+const readLogFile = (): LogFile => {
+	try {
+		return JSON.parse(fs.readFileSync(LOG_FILE_PATH, 'utf8'));
+	} catch {
+		return [];
+	}
+};
+
+const writeLogFile = (logs: LogFile): void => {
+	fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(logs, null, 2));
+};
+
+const serializeValue = (value: unknown): unknown => {
+	if (typeof value === 'function') {
+		return `[Function: ${value.name || 'anonymous'}]`;
+	}
+	if (typeof value === 'symbol') {
+		return value.toString();
+	}
+	if (Array.isArray(value)) {
+		return value.map(serializeValue);
+	}
+	if (value && typeof value === 'object') {
+		return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, serializeValue(v)]));
+	}
+	return value;
+};
+
+const createLogEntry = (...args: unknown[]): LogEntry => ({
+	timestamp: new Date().toISOString(),
+	data: args.map(serializeValue),
+});
+
+export const logger = (...args: unknown[]): void => {
+	// TODO: This is slow. This read the entire logs, parse, and write 
+	//print them in the regular console as well
+	console.log(...args);
+
+	const logs = readLogFile();
+	const newEntry = createLogEntry(...args);
+	const updatedLogs = [...logs, newEntry];
+	writeLogFile(updatedLogs);
+
+	// Also log to console for immediate feedback
+	console.log(...args);
+};
+
+// Initialize the log file if it doesn't exist
+if (!fs.existsSync(LOG_FILE_PATH)) {
+	writeLogFile([]);
+}

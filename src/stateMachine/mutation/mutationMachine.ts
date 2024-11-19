@@ -19,6 +19,7 @@ import { runSurrealDbMutationMachine } from './surql/machine';
 import type { FlatBqlMutation } from './bql/flatter';
 import { flattenBQLMutation } from './bql/flatter';
 import { VERSION } from '../../version';
+import { logDebug } from '../../logger';
 
 const final = state;
 
@@ -89,12 +90,10 @@ const updateBQLRes = (ctx: MachineContext, event: any) => {
 // ============================================================================
 
 const enrich = async (ctx: MachineContext) => {
-	if (ctx.config.mutation?.debugger) {
-		console.log(
-			`>>> mutationMachine/enrich[${VERSION}]`,
-			JSON.stringify(Object.keys(ctx.bql.enriched).length ? ctx.bql.enriched : ctx.bql.raw),
-		);
-	}
+	logDebug(
+		`>>> mutationMachine/enrich[${VERSION}]`,
+		JSON.stringify(Object.keys(ctx.bql.enriched).length ? ctx.bql.enriched : ctx.bql.raw),
+	);
 	const enriched = Object.keys(ctx.bql.enriched).length
 		? enrichBQLMutation(ctx.bql.enriched, ctx.schema, ctx.config)
 		: enrichBQLMutation(ctx.bql.raw, ctx.schema, ctx.config);
@@ -102,30 +101,22 @@ const enrich = async (ctx: MachineContext) => {
 };
 
 const preQuery = async (ctx: MachineContext) => {
-	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> mutationMachine/preQuery[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-	}
+	logDebug(`>>> mutationMachine/preQuery[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	return mutationPreQuery(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const preQueryDependencies = async (ctx: MachineContext) => {
-	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> mutationMachine/preQueryDependencies[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-	}
+	logDebug(`>>> mutationMachine/preQueryDependencies[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	return preHookDependencies(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
 };
 
 const parseBQL = async (ctx: MachineContext) => {
-	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> mutationMachine/parseBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-	}
+	logDebug(`>>> mutationMachine/parseBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	return parseBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
 const flattenBQL = async (ctx: MachineContext) => {
-	if (ctx.config.mutation?.debugger) {
-		console.log(`>>> mutationMachine/flattenBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-	}
+	logDebug(`>>> mutationMachine/flattenBQL[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
 	return flattenBQLMutation(ctx.bql.enriched, ctx.schema);
 };
 
@@ -170,9 +161,7 @@ export const machine = createMachine(
 	{
 		stringify: invoke(
 			async (ctx: MachineContext) => {
-				if (ctx.config.mutation?.debugger) {
-					console.log(`>>> mutationMachine/stringify[${VERSION}]`, JSON.stringify(ctx.bql.raw));
-				}
+				logDebug(`>>> mutationMachine/stringify[${VERSION}]`, JSON.stringify(ctx.bql.raw));
 				return stringify(ctx.bql.raw, ctx.schema);
 			},
 			transition('done', 'enrich', reduce(updateBqlReq)),
@@ -199,12 +188,10 @@ export const machine = createMachine(
 		flattenBQL: invoke(flattenBQL, transition('done', 'adapter', reduce(updateBQLFlat)), errorTransition),
 		adapter: invoke(
 			async (ctx: MachineContext) => {
-				if (ctx.config.mutation?.debugger) {
-					console.log(
-						`>>> mutationMachine/adapter[${VERSION}]`,
-						JSON.stringify({ enriched: ctx.bql.enriched, flat: ctx.bql.flat }),
-					);
-				}
+				logDebug(
+					`>>> mutationMachine/adapter[${VERSION}]`,
+					JSON.stringify({ enriched: ctx.bql.enriched, flat: ctx.bql.flat }),
+				);
 				//todo: do this properly with multiple providers
 				const { dbConnectors } = ctx.config;
 				if (dbConnectors.length !== 1) {
