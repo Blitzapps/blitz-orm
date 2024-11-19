@@ -67,7 +67,7 @@ const surrealDbQueryMachine = createMachine(
 		),
 		run: invoke(
 			async (ctx: SurrealDbMachineContext) => {
-				return run({ client: ctx.client, queries: assertDefined(ctx.surql.queries), config: ctx.config });
+				return run({ client: ctx.client, queries: assertDefined(ctx.surql.queries) });
 			},
 			transition(
 				'done',
