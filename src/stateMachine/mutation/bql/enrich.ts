@@ -168,11 +168,12 @@ export const enrichBQLMutation = (
 										subNode.$op === undefined ||
 										subNode.$op === 'link' ||
 										subNode.$op === 'create' ||
-										subNode.$op === 'update'
+										subNode.$op === 'update' ||
+										subNode.$op === 'replace'
 									)
 								) {
 									throw new Error(
-										`Invalid op ${subNode.$op} for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.`,
+										`Invalid op ${subNode.$op} for tempId. TempIds can be created, or linked when created in another part of the same mutation.`,
 									);
 								}
 							}

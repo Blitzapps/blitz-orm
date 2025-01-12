@@ -532,6 +532,9 @@ export const parseBQLMutation = async (
 		return [...acc, curr];
 	}, [] as BQLMutationBlock[]);
 
+	//console.log('parsedThings', parsedThings);
+	//console.log('parsedEdges', parsedEdges);
+	//console.log('mergedEdges', mergedEdges);
 	/// VALIDATIONS
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
