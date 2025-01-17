@@ -160,7 +160,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'Invalid op unlink for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.',
+					'Invalid op unlink for tempId. TempIds can be created, or linked when created in another part of the same mutation.',
 				);
 			} else {
 				expect(true).toBe(false);
