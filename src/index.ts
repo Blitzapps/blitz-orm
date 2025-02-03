@@ -21,6 +21,7 @@ import { enableMapSet } from 'immer';
 import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
 import { SimpleSurrealClient } from './adapters/surrealDB/client';
+import { Client } from 'pg';
 
 export * from './types';
 
@@ -47,10 +48,20 @@ class BormClient {
 	getDbHandles = () => this.dbHandles;
 
 	init = async () => {
-		const dbHandles: AllDbHandles = { typeDB: new Map(), surrealDB: new Map() };
+		const dbHandles: AllDbHandles = { typeDB: new Map(), surrealDB: new Map(), postgresDB: new Map() };
 		await Promise.all(
 			this.config.dbConnectors.map(async (dbc) => {
-				if (dbc.provider === 'surrealDB') {
+				if (dbc.provider === 'postgresDB') {
+					const client = new Client({
+						host: dbc.host,
+						port: dbc.port,
+						user: dbc.user,
+						password: dbc.password,
+						database: dbc.dbName,
+					});
+					await client.connect();
+					dbHandles.postgresDB.set(dbc.id, { client });
+				} else if (dbc.provider === 'surrealDB') {
 					const client = new SimpleSurrealClient({
 						url: dbc.url,
 						username: dbc.username,
@@ -67,8 +78,7 @@ class BormClient {
 					// 	totalConnections: 8,
 					// });
 					dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
-				}
-				if (dbc.provider === 'typeDB' && dbc.dbName) {
+				} else if (dbc.provider === 'typeDB' && dbc.dbName) {
 					// const client = await TypeDB.coreClient(dbc.url);
 					// const clientErr = undefined;
 					const [clientErr, client] = await tryit(TypeDB.coreDriver)(dbc.url);
@@ -89,8 +99,7 @@ class BormClient {
 						}`;
 						throw new Error(message);
 					}
-				}
-				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
+				} else if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
 					const credential = new TypeDBCredential(dbc.username, dbc.password, dbc.tlsRootCAPath);
 					const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, credential);
 

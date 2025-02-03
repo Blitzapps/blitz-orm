@@ -15,7 +15,7 @@ User sub entity,
 	plays SpaceMember:member,
 	plays ProjectExecutor:executor;
 
-User·name sub attribute,
+name sub attribute,
 	value string;
 
 User·email sub attribute,
@@ -23,7 +23,7 @@ User·email sub attribute,
 
 Space sub entity,
 	owns id @key,
-	owns Space·name,
+	owns name,
 	plays SpaceOwner:space,
 	plays SpaceMember:space,
 	plays SpaceProject:space;

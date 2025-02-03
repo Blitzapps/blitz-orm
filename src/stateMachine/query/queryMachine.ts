@@ -9,6 +9,8 @@ import { runSurrealDbQueryMachine } from './surql/machine';
 import { runTypeDbQueryMachine } from './tql/machine';
 import type { SurrealPool } from '../../adapters/surrealDB/client';
 import { VERSION } from '../../version';
+import type { Client } from 'pg';
+import { runPostgresSurrealDbQueryMachine } from './pg/machine';
 
 type MachineContext = {
 	bql: {
@@ -69,7 +71,15 @@ type SurrealDBAdapter = {
 	indices: number[];
 };
 
-type Adapter = TypeDBAdapter | SurrealDBAdapter;
+type PostgresDBAdapter = {
+	db: 'postgresDB';
+	client: Client;
+	rawBql: RawBQLQuery[];
+	bqlQueries: EnrichedBQLQuery[];
+	indices: number[];
+};
+
+type Adapter = TypeDBAdapter | SurrealDBAdapter | PostgresDBAdapter;
 
 export const queryMachine = createMachine(
 	'enrich',
@@ -121,6 +131,20 @@ export const queryMachine = createMachine(
 								indices: [],
 							};
 						}
+					} else if (thing.db === 'postgresDB') {
+						if (!adapters[id]) {
+							const client = ctx.handles.postgresDB?.get(id)?.client;
+							if (!client) {
+								throw new Error(`PostgresDB client with id "${thing.defaultDBConnector.id}" does not exist`);
+							}
+							adapters[id] = {
+								db: 'postgresDB',
+								client,
+								rawBql: [],
+								bqlQueries: [],
+								indices: [],
+							};
+						}
 					} else {
 						throw new Error(`Unsupported DB "${thing.db}"`);
 					}
@@ -138,6 +162,10 @@ export const queryMachine = createMachine(
 
 					if (a.db === 'surrealDB') {
 						return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+					}
+
+					if (a.db === 'postgresDB') {
+						return runPostgresSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
 					}
 
 					throw new Error(`Unsupported DB "${JSON.stringify(a, null, 2)}"`);

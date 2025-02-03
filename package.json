@@ -29,14 +29,14 @@
 		"test": "./tests/test.sh --coverage",
 		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
 		"test:multidb": "./tests/test.sh multidb",
-		"test:query": "./tests/test.sh query.test.ts",
-		"test:surrealdb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[S].*}:).*\"",
-		"test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
-		"test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/queries/query.test.ts",
-		"test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/queries/query.test.ts",
-		"test:surrealdb-mutation:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/mutations",
-		"test:surrealdb-mutation:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/mutations",
-		"test:surrealdb-schema": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/schema",
+		"test:postgres-query": "cross-env BORM_TEST_ADAPTER=postgresDB ./tests/postgres.sh tests/unit/queries/query.test.ts -t \"^(?!.*TODO{.*[P].*}:).*\"",
+		"test:surrealdb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/surreal.sh tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[S].*}:).*\"",
+		"test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/surreal.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
+		"test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/surreal.sh tests/unit/queries/query.test.ts",
+		"test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/surreal.sh tests/unit/queries/query.test.ts",
+		"test:surrealdb-mutation:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/surreal.sh tests/unit/mutations",
+		"test:surrealdb-mutation:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/surreal.sh tests/unit/mutations",
+		"test:surrealdb-schema": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/surreal.sh tests/unit/schema",
 		"test:typedb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[T].*}:).*\" ",
 		"test:typedb-mutation": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/mutations",
 		"test:typedb-query": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/queries --watch",
@@ -67,6 +67,7 @@
 		"immer": "10.1.1",
 		"nanoid": "^5.0.7",
 		"object-traversal": "^1.0.1",
+		"pg": "^8.13.1",
 		"radash": "^12.1.0",
 		"robot3": "^0.4.1",
 		"surrealdb": "^1.0.6",
@@ -76,6 +77,7 @@
 	"devDependencies": {
 		"@blitznocode/eslint-config": "^1.1.0",
 		"@types/node": "^22.5.5",
+		"@types/pg": "^8.11.10",
 		"@types/uuid": "^10.0.0",
 		"@vitest/coverage-v8": "^2.1.1",
 		"cross-env": "^7.0.3",
@@ -101,5 +103,6 @@
 	"homepage": "https://github.com/Blitzapps/blitz-orm#readme",
 	"directories": {
 		"test": "tests"
-	}
+	},
+	"packageManager": "pnpm@8.10.2+sha512.0782093d5ba6c7ad9462081bc1ef0775016a4b4109eca1e1fedcea6f110143af5f50993db36c427d4fa8c62be3920a3224db12da719d246ca19dd9f18048c33c"
 }

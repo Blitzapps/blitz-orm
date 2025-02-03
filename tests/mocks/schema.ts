@@ -687,8 +687,9 @@ export const schema: BormSchema = {
 			roles: {
 				accounts: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'accountId', type: 'TEXT' }] },
 				},
-				user: { cardinality: 'ONE' },
+				user: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'userId', type: 'TEXT' }] } },
 			},
 		},
 		'User-Sessions': {
@@ -698,8 +699,9 @@ export const schema: BormSchema = {
 			roles: {
 				sessions: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'sessionId', type: 'TEXT' }] },
 				},
-				user: { cardinality: 'ONE' },
+				user: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'userId', type: 'TEXT' }] } },
 			},
 		},
 		'Space-User': {
@@ -707,9 +709,9 @@ export const schema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'Space-User' },
 			dataFields: [{ ...id }],
 			roles: {
-				spaces: { cardinality: 'MANY' },
-				users: { cardinality: 'MANY' },
-				power: { cardinality: 'ONE' },
+				spaces: { cardinality: 'MANY', dbConfig: { db: 'postgres', fields: [{ path: 'spaceId', type: 'TEXT' }] } },
+				users: { cardinality: 'MANY', dbConfig: { db: 'postgres', fields: [{ path: 'userId', type: 'TEXT' }] } },
+				power: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'powerId', type: 'TEXT' }] } },
 			},
 		},
 		'UserTag': {
@@ -719,6 +721,7 @@ export const schema: BormSchema = {
 			roles: {
 				users: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'userId', type: 'TEXT' }] },
 				},
 			},
 			linkFields: [
@@ -745,9 +748,10 @@ export const schema: BormSchema = {
 			roles: {
 				tags: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'tagId', type: 'TEXT' }] },
 				},
-				color: { cardinality: 'ONE' },
-				space: { cardinality: 'ONE' },
+				color: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'colorId', type: 'TEXT' }] } },
+				space: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'spaceId', type: 'TEXT' }] } },
 			},
 		},
 		'SpaceObj': {
@@ -755,7 +759,7 @@ export const schema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'SpaceObj' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 			dataFields: [id],
 			roles: {
-				space: { cardinality: 'ONE' },
+				space: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'spaceId', type: 'TEXT' }] } },
 			},
 			hooks: {
 				pre: [
@@ -858,6 +862,7 @@ export const schema: BormSchema = {
 			roles: {
 				kinds: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'kindId', type: 'TEXT' }] },
 				},
 			},
 			defaultDBConnector: { id: 'default', as: 'SpaceDef', path: 'Field' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
@@ -966,7 +971,10 @@ export const schema: BormSchema = {
 				],
 			},
 			roles: {
-				dataField: { cardinality: 'ONE' },
+				dataField: {
+					cardinality: 'ONE',
+					dbConfig: { db: 'postgres', fields: [{ path: 'dataFieldId', type: 'TEXT' }] },
+				},
 			},
 			defaultDBConnector: { id: 'default', path: 'DataValue' }, // in the future multiple can be specified in the config file. Either they fetch full schemas or they will require a relation to merge attributes from different databases
 		},
@@ -1006,7 +1014,10 @@ export const schema: BormSchema = {
 				],
 			},
 			roles: {
-				dataField: { cardinality: 'ONE' },
+				dataField: {
+					cardinality: 'ONE',
+					dbConfig: { db: 'postgres', fields: [{ path: 'dataFieldId', type: 'TEXT' }] },
+				},
 			},
 		},
 		'Self': {
@@ -1014,7 +1025,7 @@ export const schema: BormSchema = {
 			extends: 'SpaceObj',
 			defaultDBConnector: { id: 'default', as: 'SpaceObj', path: 'Self' },
 			roles: {
-				owner: { cardinality: 'ONE' },
+				owner: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'ownerId', type: 'TEXT' }] } },
 			},
 			linkFields: [
 				{
@@ -1041,6 +1052,7 @@ export const schema: BormSchema = {
 			roles: {
 				things: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'thingId', type: 'TEXT' }] },
 				},
 				root: { cardinality: 'ONE' },
 				extra: { cardinality: 'ONE' },
@@ -1054,6 +1066,7 @@ export const schema: BormSchema = {
 			roles: {
 				things: {
 					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'thingId', type: 'TEXT' }] },
 				},
 			},
 			hooks: {
@@ -1085,8 +1098,8 @@ export const schema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'HookParent' },
 			dataFields: [{ ...id }],
 			roles: {
-				hooks: { cardinality: 'MANY' },
-				mainHook: { cardinality: 'ONE' },
+				hooks: { cardinality: 'MANY', dbConfig: { db: 'postgres', fields: [{ path: 'hookId', type: 'TEXT' }] } },
+				mainHook: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'mainHookId', type: 'TEXT' }] } },
 			},
 		},
 		'HookATag': {
@@ -1094,8 +1107,14 @@ export const schema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'HookATag' },
 			dataFields: [{ ...id }],
 			roles: {
-				hookTypeA: { cardinality: 'ONE' },
-				otherHooks: { cardinality: 'MANY' },
+				hookTypeA: {
+					cardinality: 'ONE',
+					dbConfig: { db: 'postgres', fields: [{ path: 'hookTypeAId', type: 'TEXT' }] },
+				},
+				otherHooks: {
+					cardinality: 'MANY',
+					dbConfig: { db: 'postgres', fields: [{ path: 'otherHookId', type: 'TEXT' }] },
+				},
 			},
 			hooks: {
 				pre: [
@@ -1121,7 +1140,7 @@ export const schema: BormSchema = {
 			defaultDBConnector: { id: 'default', path: 'Employee' },
 			dataFields: [{ ...id }, { ...name, validations: { required: true } }],
 			roles: {
-				company: { cardinality: 'ONE' },
+				company: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'companyId', type: 'TEXT' }] } },
 			},
 		},
 	},

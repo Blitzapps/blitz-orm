@@ -4,6 +4,7 @@ import type {
 	TypeDBHandles,
 } from './typedb';
 import type { SurrealDBProviderObject as SurrealDBProvider, SurrealDBHandles } from './surrealdb';
+import type { PostgresDBHandles, PostgresDBProvider } from './postgres';
 
 export type QueryConfig = {
 	noMetadata?: boolean;
@@ -30,7 +31,7 @@ export type BormConfig = {
 	dbConnectors: [Provider, ...Provider[]]; // minimum one
 };
 
-export type Provider = TypeDBProvider | TypeDBClusterProvider | SurrealDBProvider;
+export type Provider = TypeDBProvider | TypeDBClusterProvider | SurrealDBProvider | PostgresDBProvider;
 
 export interface CommonProvider {
 	id: string;
@@ -47,6 +48,7 @@ export type DBConnector = {
 export type AllDbHandles = {
 	typeDB: TypeDBHandles;
 	surrealDB: SurrealDBHandles;
+	postgresDB: PostgresDBHandles;
 };
 type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U];
 
