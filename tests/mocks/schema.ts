@@ -1143,5 +1143,155 @@ export const schema: BormSchema = {
 				company: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'companyId', type: 'TEXT' }] } },
 			},
 		},
+		'Hotel': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Hotel' },
+			dataFields: [
+				{ ...id },
+				{ ...name, validations: { required: true } },
+				{
+					path: 'location',
+					contentType: 'TEXT',
+				},
+			],
+			linkFields: [
+				{
+					path: 'rooms',
+					cardinality: 'MANY',
+					relation: 'Room',
+					plays: 'hotel',
+					target: 'relation',
+				},
+			],
+		},
+		'Room': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Room' },
+			dataFields: [
+				{ ...id },
+				{
+					path: 'pricePerNight',
+					contentType: 'NUMBER_DECIMAL',
+					validations: { required: true },
+				},
+				{
+					path: 'isAvailable',
+					contentType: 'BOOLEAN',
+					validations: { required: true },
+				},
+			],
+			linkFields: [
+				{
+					path: 'bookings',
+					cardinality: 'MANY',
+					relation: 'Booking',
+					plays: 'room',
+					target: 'relation',
+				},
+				{
+					path: 'guests',
+					cardinality: 'MANY',
+					relation: 'Booking',
+					plays: 'room',
+					target: 'role',
+				},
+			],
+			roles: {
+				hotel: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'hotelId', type: 'TEXT' }] } },
+			},
+		},
+		'Guest': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Guest' },
+			dataFields: [
+				{ ...id },
+				{ ...name, validations: { required: true } },
+				{
+					path: 'email',
+					contentType: 'TEXT',
+					validations: { required: true },
+				},
+				{
+					path: 'phone',
+					contentType: 'TEXT',
+				},
+			],
+			linkFields: [
+				{
+					path: 'bookings',
+					cardinality: 'MANY',
+					relation: 'Booking',
+					plays: 'guest',
+					target: 'relation',
+				},
+				{
+					path: 'rooms',
+					cardinality: 'MANY',
+					relation: 'Booking',
+					plays: 'guest',
+					target: 'role',
+				},
+			],
+		},
+		'Booking': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Booking' },
+			dataFields: [
+				{ ...id },
+				{
+					path: 'checkIn',
+					contentType: 'DATE',
+					validations: { required: true },
+				},
+				{
+					path: 'checkOut',
+					contentType: 'DATE',
+					validations: { required: true },
+				},
+				{
+					path: 'status',
+					contentType: 'TEXT',
+					validations: { required: true, enum: ['reserved', 'checked-in', 'checked-out', 'canceled'] },
+				},
+				{
+					path: 'totalCost',
+					contentType: 'NUMBER_DECIMAL',
+					validations: { required: true },
+				},
+			],
+			linkFields: [
+				{
+					path: 'payments',
+					cardinality: 'MANY',
+					relation: 'Payment',
+					plays: 'booking',
+					target: 'relation',
+				},
+			],
+			roles: {
+				room: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'roomId', type: 'TEXT' }] } },
+				guest: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'guestId', type: 'TEXT' }] } },
+			},
+		},
+		'Payment': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'Payment' },
+			dataFields: [
+				{ ...id },
+				{
+					path: 'amountPaid',
+					contentType: 'NUMBER_DECIMAL',
+					validations: { required: true },
+				},
+				{
+					path: 'paymentDate',
+					contentType: 'DATE',
+					validations: { required: true },
+				},
+			],
+			roles: {
+				booking: { cardinality: 'ONE', dbConfig: { db: 'postgres', fields: [{ path: 'bookingId', type: 'TEXT' }] } },
+			},
+		},
 	},
 } as const;

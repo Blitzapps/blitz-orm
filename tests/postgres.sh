@@ -46,7 +46,7 @@ docker run \
   -d \
   postgres
 
-sleep 2
+sleep 1
 
 # Create the tables
 docker run \
@@ -58,7 +58,7 @@ docker run \
   postgres \
   psql -h localhost -p 5432 -U ${USER} -d ${DB} -f /tests/schema.sql
 
-sleep 2
+sleep 1
 
 # Insert data
 docker run \
@@ -70,7 +70,7 @@ docker run \
   postgres \
   psql -h localhost -p 5432 -U ${USER} -d ${DB} -f /tests/data.sql
 
-sleep 2
+sleep 1
 
 # Run tests and capture output
 if CONTAINER_NAME=${CONTAINER_NAME} npx vitest run "${VITEST_ARGS[@]}"; then

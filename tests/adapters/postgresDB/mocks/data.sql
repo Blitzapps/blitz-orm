@@ -120,3 +120,32 @@ VALUES
 ('hook3', 'c'),
 ('hook4', 'a'),
 ('hook5', 'b');
+
+-- Hotel
+-------------------------------------------------------------------------------
+
+INSERT INTO "Hotel" ("id", "name", "location") VALUES
+('h1', 'Grand Palace Hotel', 'New York, USA'),
+('h2', 'Ocean View Resort', 'Miami, USA'),
+('h3', 'Mountain Lodge', 'Denver, USA');
+
+INSERT INTO "Room" ("id", "hotelId", "pricePerNight", "isAvailable") VALUES
+('r1', 'h1', 150.00, TRUE),
+('r2', 'h1', 200.00, FALSE),
+('r3', 'h2', 180.00, TRUE),
+('r4', 'h2', 220.00, TRUE),
+('r5', 'h3', 100.00, FALSE);
+
+INSERT INTO "Guest" ("id", "name", "email", "phone") VALUES
+('g1', 'John Doe', 'john.doe@example.com', '123-456-7890'),
+('g2', 'Jane Smith', 'jane.smith@example.com', '987-654-3210'),
+('g3', 'Robert Brown', 'robert.brown@example.com', NULL);
+
+INSERT INTO "Booking" ("id", "roomId", "guestId", "checkIn", "checkOut", "status", "totalCost") VALUES
+('b1', 'r2', 'g1', '2024-02-01', '2024-02-05', 'checked-in', 800.00),
+('b2', 'r5', 'g2', '2024-03-10', '2024-03-15', 'reserved', 500.00),
+('b3', 'r3', 'g3', '2024-01-20', '2024-01-25', 'checked-out', 900.00);
+
+INSERT INTO "Payment" ("id", "bookingId", "amountPaid", "paymentDate") VALUES
+('p1', 'b1', 800.00, '2024-02-01 14:30:00'),
+('p2', 'b3', 900.00, '2024-01-20 10:00:00');

@@ -206,3 +206,43 @@ CREATE TABLE IF NOT EXISTS "Employee" (
   "name" TEXT NOT NULL,
   "companyId" TEXT REFERENCES "Company"("id")
 );
+
+-- Hotel
+-------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS "Hotel" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "location" VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS "Room" (
+    "id" TEXT PRIMARY KEY,
+    "hotelId" TEXT REFERENCES "Hotel"("id"),
+    "pricePerNight" DECIMAL(10,2) NOT NULL,
+    "isAvailable" BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS "Guest" (
+    "id" TEXT PRIMARY KEY,
+    "name" VARCHAR(255) NOT NULL,
+    "email" VARCHAR(255) UNIQUE,
+    "phone" VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS "Booking" (
+    "id" TEXT PRIMARY KEY,
+    "roomId" TEXT REFERENCES "Room"("id"),
+    "guestId" TEXT REFERENCES "Guest"("id"),
+    "checkIn" DATE NOT NULL,
+    "checkOut" DATE NOT NULL,
+    "status" VARCHAR(20) NOT NULL DEFAULT 'reserved', -- 'reserved', 'checked-in', 'checked-out', 'canceled'
+    "totalCost" DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "Payment" (
+    "id" TEXT PRIMARY KEY,
+    "bookingId" TEXT REFERENCES "Booking"("id"),
+    "amountPaid" DECIMAL(10,2) NOT NULL,
+    "paymentDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

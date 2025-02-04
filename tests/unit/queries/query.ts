@@ -625,6 +625,23 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
+	it('TODO{ST}:r4.alt[relation, nested, direct] - nested relation direct on relation', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Room',
+			$fields: ['id', { $path: 'bookings', $fields: ['id'] }, { $path: 'guests', $fields: ['id'] }],
+		};
+		const expected = [
+			{ id: 'r1' },
+			{ id: 'r2', bookings: [{ id: 'b1' }], guests: [{ id: 'g1' }] },
+			{ id: 'r3', bookings: [{ id: 'b3' }], guests: [{ id: 'g3' }] },
+			{ id: 'r4' },
+			{ id: 'r5', bookings: [{ id: 'b2' }], guests: [{ id: 'g2' }] },
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
+	});
+
 	it('TODO{P}:r5[relation nested] - that has both role, and linkfield pointing to same role', async () => {
 		// Postgres:
 		// - Role field UserTagGroup.tagId cannot reference multiple records.
@@ -666,6 +683,23 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+	});
+
+	it('TODO{ST}:r5.alt[relation nested] - that has both role, and linkfield pointing to same role', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Room',
+			$fields: ['id', 'bookings', 'guests'],
+		};
+		const expected = [
+			{ id: 'r1' },
+			{ id: 'r2', bookings: ['b1'], guests: ['g1'] },
+			{ id: 'r3', bookings: ['b3'], guests: ['g3'] },
+			{ id: 'r4' },
+			{ id: 'r5', bookings: ['b2'], guests: ['g2'] },
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
 	});
 
 	it('TODO{P}:r6[relation nested] - relation connected to relation and a tunneled relation', async () => {
@@ -720,6 +754,20 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
+	});
+
+	it('TODO{ST}:r6.alt[relation nested] - relation connected to relation and a tunneled relation', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = { $relation: 'Room' };
+		const expected = [
+			{ id: 'r1', pricePerNight: '150.00', isAvailable: true, hotel: 'h1' },
+			{ id: 'r2', pricePerNight: '200.00', isAvailable: false, hotel: 'h1', bookings: ['b1'], guests: ['g1'] },
+			{ id: 'r3', pricePerNight: '180.00', isAvailable: true, hotel: 'h2', bookings: ['b3'], guests: ['g3'] },
+			{ id: 'r4', pricePerNight: '220.00', isAvailable: true, hotel: 'h2' },
+			{ id: 'r5', pricePerNight: '100.00', isAvailable: false, hotel: 'h3', bookings: ['b2'], guests: ['g2'] },
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
 	});
 
 	it('TODO{P}:r7[relation, nested, direct] - nested on nested', async () => {
@@ -859,6 +907,27 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
+	it('TODO{ST}:r7.alt[relation, nested, direct] - nested on nested', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Room',
+			$fields: [
+				'id',
+				{ $path: 'bookings', $fields: ['id', 'guest'] },
+				{ $path: 'guests', $fields: ['id', 'bookings'] },
+			],
+		};
+		const expected = [
+			{ id: 'r1' },
+			{ id: 'r2', bookings: [{ id: 'b1', guest: 'g1' }], guests: [{ id: 'g1', bookings: ['b1'] }] },
+			{ id: 'r3', bookings: [{ id: 'b3', guest: 'g3' }], guests: [{ id: 'g3', bookings: ['b3'] }] },
+			{ id: 'r4' },
+			{ id: 'r5', bookings: [{ id: 'b2', guest: 'g2' }], guests: [{ id: 'g2', bookings: ['b2'] }] },
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
+	});
+
 	it('TODO{P}:r8[relation, nested, deep] - deep nested', async () => {
 		// Postgres:
 		// - Inherited entity/relation is not supported (God and SuperUser are inherited from Used).
@@ -924,6 +993,25 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
+	it('TODO{ST}:r8.alt[relation, nested, deep] - deep nested', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$id: 'h1',
+			$fields: [
+				'id',
+				{
+					$path: 'rooms',
+					$id: 'r2',
+					$fields: ['id', { $path: 'bookings', $fields: ['id', { $path: 'guest', $fields: ['id', 'bookings'] }] }],
+				},
+			],
+		};
+		const expected = { id: 'h1', rooms: { id: 'r2', bookings: [{ id: 'b1', guest: { id: 'g1', bookings: ['b1'] } }] } };
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
+	});
+
 	it('TODO{P}:r9[relation, nested, ids]', async () => {
 		// Postgres: Role field UserTagGroup.tagId cannot reference multiple records.
 		const query = {
@@ -942,6 +1030,18 @@ export const testQuery = createTest('Query', (ctx) => {
 			tags: ['tag-1', 'tag-2'],
 			color: 'yellow',
 		});
+	});
+
+	it('TODO{ST}:r9.alt[relation, nested, ids]', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$id: 'h1',
+			$fields: ['id', 'rooms'],
+		};
+		const expected = { id: 'h1', rooms: ['r1', 'r2'] };
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
 	});
 
 	it('ef1[entity] - $id single', async () => {
@@ -995,6 +1095,17 @@ export const testQuery = createTest('Query', (ctx) => {
 			{ $thing: 'User', $thingType: 'entity', $id: 'user4', id: 'user4' },
 			{ $thing: 'User', $thingType: 'entity', $id: 'user5', id: 'user5' },
 		]);
+	});
+
+	it('TODO{ST}:ef3.alt[entity] - $fields single', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$fields: ['id'],
+		};
+		const expected = [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
 	});
 
 	it('ef4[entity] - $fields multiple', async () => {
@@ -1151,6 +1262,24 @@ export const testQuery = createTest('Query', (ctx) => {
 		});
 	});
 
+	it('TODO{ST}:n2.alt[nested] First level all fields', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$id: 'h1',
+			$fields: ['id', { $path: 'rooms' }],
+		};
+		const expected = {
+			id: 'h1',
+			rooms: [
+				{ id: 'r1', pricePerNight: '150.00', isAvailable: true, hotel: 'h1' },
+				{ id: 'r2', pricePerNight: '200.00', isAvailable: false, hotel: 'h1', bookings: ['b1'], guests: ['g1'] },
+			],
+		};
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
+	});
+
 	it('n3[nested, $fields] First level filtered fields', async () => {
 		const res = await ctx.query(
 			{
@@ -1270,6 +1399,21 @@ export const testQuery = createTest('Query', (ctx) => {
 				},
 			],
 		});
+	});
+
+	it('TODO{ST}:nf1.alt[nested, $filters] Local filter on nested, single id', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$id: 'h1',
+			$fields: ['id', { $path: 'rooms', $filter: { isAvailable: true } }],
+		};
+		const expected = {
+			id: 'h1',
+			rooms: [{ id: 'r1', pricePerNight: '150.00', isAvailable: true, hotel: 'h1' }],
+		};
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(res, 'id')).toEqual(expected);
 	});
 
 	it('nf2[nested, $filters] Local filter on nested, by field, multiple sources, some are empty', async () => {
@@ -1791,6 +1935,38 @@ export const testQuery = createTest('Query', (ctx) => {
 		expect(deepSort(resWithoutMetadata, 'id')).toEqual(deepRemoveMetaData(expectedRes));
 	});
 
+	it('TODO{ST}:xf2.alt[excludedFields, deep] - deep nested', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$id: 'h1',
+			$fields: [
+				'id',
+				{ $path: 'rooms', $id: 'r2', $fields: ['id', { $path: 'bookings', $excludedFields: ['roomId'] }] },
+			],
+		};
+		const expected = {
+			id: 'h1',
+			rooms: {
+				id: 'r2',
+				bookings: [
+					{
+						id: 'b1',
+						checkIn: '2024-01-31T16:00:00.000Z',
+						checkOut: '2024-02-04T16:00:00.000Z',
+						status: 'checked-in',
+						totalCost: '800.00',
+						room: 'r2',
+						guest: 'g1',
+						payments: ['p1'],
+					},
+				],
+			},
+		};
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(JSON.parse(JSON.stringify(res)), 'id')).toEqual(expected);
+	});
+
 	it('TODO{P}:xf3[excludedFields, deep] - Exclude virtual field', async () => {
 		// Postgres: Computed data field (freeForAll) is not supported
 		const query = {
@@ -2175,6 +2351,35 @@ export const testQuery = createTest('Query', (ctx) => {
 
 		expect(res).toBeDefined();
 		expect(deepSort(res, 'id')).toEqual(expectedRes);
+	});
+
+	it('TODO{ST}:a1.alt[$as] - as for attributes and roles and links', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Booking',
+			$id: 'b1',
+			$fields: [
+				'id',
+				{ $path: 'status', $as: 'currentStatus' },
+				{ $path: 'payments', $as: 'allPayments' },
+				{ $path: 'guest', $as: 'currentGuest' },
+			],
+		};
+		const expected = {
+			id: 'b1',
+			currentStatus: 'checked-in',
+			currentGuest: {
+				id: 'g1',
+				name: 'John Doe',
+				email: 'john.doe@example.com',
+				phone: '123-456-7890',
+				bookings: ['b1'],
+				rooms: ['r2'],
+			},
+			allPayments: [{ id: 'p1', amountPaid: '800.00', paymentDate: '2024-02-01T06:30:00.000Z', booking: 'b1' }],
+		};
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(JSON.parse(JSON.stringify(res)), 'id')).toEqual(expected);
 	});
 
 	it('bq1[batched query] - as for attributes and roles and links', async () => {
@@ -2696,6 +2901,39 @@ export const testQuery = createTest('Query', (ctx) => {
 		]);
 	});
 
+	it('TODO{ST}:dn1.alt[deep nested] ridiculously deep nested query', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Hotel',
+			$fields: [
+				'id',
+				{
+					$path: 'rooms',
+					$fields: [
+						'id',
+						{
+							$path: 'bookings',
+							$fields: [
+								'id',
+								{
+									$path: 'payments',
+									$fields: ['id'],
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+		const expected = [
+			{ id: 'h1', rooms: [{ id: 'r1' }, { id: 'r2', bookings: [{ id: 'b1', payments: [{ id: 'p1' }] }] }] },
+			{ id: 'h2', rooms: [{ id: 'r3', bookings: [{ id: 'b3', payments: [{ id: 'p2' }] }] }, { id: 'r4' }] },
+			{ id: 'h3', rooms: [{ id: 'r5', bookings: [{ id: 'b2' }] }] },
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(JSON.parse(JSON.stringify(res)), 'id')).toEqual(expected);
+	});
+
 	it('TODO{PT}:dn2[deep numbers] Big numbers', async () => {
 		const res = await ctx.query(
 			{
@@ -2849,5 +3087,35 @@ export const testQuery = createTest('Query', (ctx) => {
 				spaces: ['space-1'],
 			},
 		]);
+	});
+
+	it('TODO{ST}:fk2[filter, keywords, exists], filter by undefined/null property', async () => {
+		// Surreal & TypeDB: The schema and the data are not added yet
+		const query = {
+			$relation: 'Guest',
+			$filter: {
+				phone: { $exists: true },
+			},
+		};
+		const expected = [
+			{
+				id: 'g1',
+				name: 'John Doe',
+				email: 'john.doe@example.com',
+				phone: '123-456-7890',
+				bookings: ['b1'],
+				rooms: ['r2'],
+			},
+			{
+				id: 'g2',
+				name: 'Jane Smith',
+				email: 'jane.smith@example.com',
+				phone: '987-654-3210',
+				bookings: ['b2'],
+				rooms: ['r5'],
+			},
+		];
+		const res = await ctx.query(query, { noMetadata: true });
+		expect(deepSort(JSON.parse(JSON.stringify(res)), 'id')).toEqual(expected);
 	});
 });
