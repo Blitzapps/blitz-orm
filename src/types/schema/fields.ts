@@ -16,7 +16,16 @@ export type RoleField = {
 	// MAYBE: rigths => Why not, maybe relation.particular child has better rigths than otherchild.relation.particular child
 	// NO: ordered => This can be really messy. Probably roles should never be ordered as relations are precisely the ones having the index
 	dbConnector?: DBConnector;
+	dbConfig?: PgRoleConfig;
 };
+
+export interface PgRoleConfig {
+	db: 'postgres';
+	fields: { path: string; type: PgDataType }[];
+}
+
+// TODO: Add all
+export type PgDataType = 'INT' | 'TEXT' | 'UUID' | 'DATE' | 'TIME' | 'TIMESTAMP';
 
 export type LinkField = BormField & {
 	relation: string;
@@ -112,6 +121,7 @@ export type DataField = BormField & {
 	shared?: boolean;
 	validations?: Validations;
 	isVirtual?: boolean;
+	dbPath?: string;
 	dbValue?: { surrealDB?: string; typeDB?: string }; //enhance this types and pack it with isVirtual or default  as they work together
 	dbConnectors?: [DBConnector, ...DBConnector[]];
 } & AllDataField;
