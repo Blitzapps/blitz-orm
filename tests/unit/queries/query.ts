@@ -2814,4 +2814,138 @@ export const testQuery = createTest('Query', (ctx) => {
 			},
 		]);
 	});
+
+	//Ref and FlexRef tests
+
+	it('TODO{T}:ref1[ref, ONE] Get reference, id only', async () => {
+		const res = await ctx.query({ $entity: 'FlexRef', $id: 'fr1', $fields: ['id', 'reference'] }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual({
+			id: 'fr1',
+			reference: 'user1',
+		});
+	});
+
+	it('TODO{T}:ref1n[ref, ONE, nested] Get also nested data', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'FlexRef',
+				$id: 'fr1',
+				$fields: ['id', { $path: 'reference' }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual({
+			id: 'fr1',
+			reference: {
+				'id': 'user1',
+				'name': 'Antoine',
+				'email': 'antoine@test.com',
+				'accounts': ['account1-1', 'account1-2', 'account1-3'],
+				'space-user': ['u1-s1', 'u1-s2'],
+				'spaces': ['space-1', 'space-2'],
+				'user-accounts': ['ua1-1', 'ua1-2', 'ua1-3'],
+				'user-tags': ['tag-1', 'tag-2'],
+			},
+		});
+	});
+
+	it('TODO{T}:ref1nf[ref, ONE, nested, someFields] Get also nested data but only some fields', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'FlexRef',
+				$id: 'fr1',
+				$fields: ['id', { $path: 'reference', $fields: ['id', 'accounts', 'email'] }],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(deepSort(res, 'id')).toEqual({
+			id: 'fr1',
+			reference: { id: 'user1', accounts: ['account1-1', 'account1-2', 'account1-3'], email: 'antoine@test.com' },
+		});
+	});
+
+	it('TODO{T}:ref2[ref, MANY] Get references, id only', async () => {
+		const res = await ctx.query({ $entity: 'FlexRef', $id: 'fr2' }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual({
+			id: 'fr2',
+			references: ['user1', 'user2'],
+		});
+	});
+
+	it('TODO{T}:ref3[ref, flex, ONE] Get flexReference', async () => {
+		const res = await ctx.query({ $entity: 'FlexRef', $id: ['fr3', 'fr4'] }, { noMetadata: true });
+
+		expect(deepSort(res, 'id')).toEqual([
+			{
+				id: 'fr3',
+				flexReference: 7,
+			},
+			{
+				id: 'fr4',
+				flexReference: 'user1',
+			},
+		]);
+	});
+
+	it('TODO{T}:ref4[ref, flex, MANY] Get flexReferences', async () => {
+		const res = await ctx.query({ $entity: 'FlexRef', $id: 'fr5' }, { noMetadata: true });
+
+		expect(res).toEqual({
+			id: 'fr5',
+			flexReferences: [7, 'user1', 'hey'],
+		});
+	});
+
+	it('TODO{T}:ref4nf[ref, flex, MANY, nested] Get flexReferences with nested data', async () => {
+		const res = await ctx.query(
+			{ $entity: 'FlexRef', $id: 'fr5', $fields: ['id', { $path: 'flexReferences' }] },
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			id: 'fr5',
+			flexReferences: [
+				7,
+				{
+					'id': 'user1',
+					'name': 'Antoine',
+					'email': 'antoine@test.com',
+					'accounts': ['account1-1', 'account1-2', 'account1-3'],
+					'space-user': ['u1-s1', 'u1-s2'],
+					'spaces': ['space-1', 'space-2'],
+					'user-accounts': ['ua1-1', 'ua1-2', 'ua1-3'],
+					'user-tags': ['tag-1', 'tag-2'],
+				},
+				'hey',
+			],
+		});
+	});
+
+	it('TODO{T}:ref4n[ref, flex, MANY, nested, $fields] Get flexReferences with nested data but only some fields', async () => {
+		const res = await ctx.query(
+			{
+				$entity: 'FlexRef',
+				$id: 'fr5',
+				$fields: ['id', { $path: 'flexReferences', $fields: ['id', 'name', 'user-tags'] }], //todo: i'm cheating adding the 'id' because it adds it always. Should remove it and fix the logic
+			},
+			{ noMetadata: true },
+		);
+
+		expect(res).toEqual({
+			id: 'fr5',
+			flexReferences: [
+				7,
+				{
+					'id': 'user1',
+					'name': 'Antoine',
+					'user-tags': ['tag-1', 'tag-2'],
+				},
+				'hey',
+			],
+		});
+	});
 });

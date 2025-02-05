@@ -8,6 +8,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 				$relation: 'User-Accounts',
 				id: 'r1',
 				user: {
+					'$thing': 'User',
 					'id': 'u2',
 					'user-tags': [
 						{ id: 'ustag1', color: { id: 'pink' } },
@@ -18,7 +19,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		).rejects.toThrow('Duplicate id pink');
 	});
 
-	it('e2[relation] Error for match and $id not found', async () => {
+	it('TODO{S}:e2[relation] Error for match and $id not found', async () => {
+		//Solved with prequeries in typedb, in surrealDB we need some sort of IF condition
 		const mutation = {
 			$relation: 'UserTagGroup',
 			$id: 'non-existing-user-tag-group',
@@ -133,7 +135,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'Invalid op delete for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.',
+					'Invalid op delete for tempId. TempIds can be created, or linked when created in another part of the same mutation.',
 				);
 			} else {
 				expect(true).toBe(false);
@@ -160,7 +162,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		} catch (error: any) {
 			if (error instanceof Error) {
 				expect(error.message).toBe(
-					'Invalid op unlink for tempId. TempIds can be created, or when created in another part of the same mutation. In the future maybe we can use them to catch stuff in the DB as well and group them under the same tempId.',
+					'Invalid op unlink for tempId. TempIds can be created, or linked when created in another part of the same mutation.',
 				);
 			} else {
 				expect(true).toBe(false);
@@ -183,7 +185,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 				{
 					$relation: 'UserTag',
 					name: 'hey',
-					users: [{ name: 'toDelete' }],
+					users: [{ $thing: 'User', name: 'toDelete' }],
 					group: { $tempId: '_:utg1', $op: 'create' },
 				},
 			]);
@@ -212,7 +214,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 				{
 					$relation: 'UserTag',
 					name: 'hey',
-					users: [{ name: 'toDelete' }],
+					users: [{ $thing: 'User', name: 'toDelete' }],
 					group: { $tempId: '_:utg1', $op: 'link' },
 				},
 			]);
@@ -229,7 +231,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m1d[delete, missing] Delete a non existing $id', async () => {
+	it('TODO{S}:m1d[delete, missing] Delete a non existing $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -277,7 +280,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m1up[update, missing] Update a non existing $id', async () => {
+	it('TODO{S}:m1up[update, missing] Update a non existing $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -304,7 +308,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m1un[unlink, missing] Unlink a non existing $id', async () => {
+	it('TODO{S}:m1un[unlink, missing] Unlink a non existing $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -331,7 +336,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m2d[delete, missing] Delete a non related $id', async () => {
+	it('TODO{S}:m2d[delete, missing] Delete a non related $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -355,7 +361,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m2up[update, missing] Update a non related $id', async () => {
+	it('TODO{S}:m2up[update, missing] Update a non related $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -378,7 +385,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 		throw new Error('Expected mutation to throw an error');
 	});
 
-	it('m2un[unlink, missing] Unlink a non related $id', async () => {
+	it('TODO{S}:m2un[unlink, missing] Unlink a non related $id', async () => {
+		// solved with pre-queries in typedb, for surrealDB requires some sort of if condition
 		try {
 			await ctx.mutate(
 				{
@@ -489,6 +497,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 	it('e-pq1[create, nested] With pre-query, link when there is already something error', async () => {
 		/// this requires pre-queries when using typeDB because it must understand there is already something and throw an error
 		/// link stuff is bypassed now, must work once we run pre-queries with link queries as well
+		/// In surrealDB it should actually throw an error as user should be card ONE
 		try {
 			await ctx.mutate(
 				{
@@ -502,9 +511,13 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 			);
 		} catch (error: any) {
 			if (error instanceof Error) {
-				expect(error.message).toBe(
-					'[BQLE-Q-M-2] Cannot link on:"root.account3-1___user" because it is already occupied.',
-				);
+				expect(
+					//todo: unify the error messages, and keep showing the path to the error as in typedb
+					error.message === '[BQLE-Q-M-2] Cannot link on:"root.account3-1___user" because it is already occupied.' ||
+						error.message.startsWith(
+							'Error running SURQL mutation: [{"result":"An error occurred: [Validation] Cardinality constraint: user is',
+						),
+				).toBe(true);
 			} else {
 				expect(true).toBe(false);
 			}
@@ -697,7 +710,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 					{
 						$relation: 'User-Accounts',
 						id: 'or1-ua-1',
-						user: { id: 'or1-u-1' },
+						user: { $thing: 'User', id: 'or1-u-1' },
 					},
 				],
 

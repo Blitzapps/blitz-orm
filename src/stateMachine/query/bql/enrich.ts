@@ -14,6 +14,8 @@ import type {
 	EnrichedLinkField,
 	EnrichedRoleField,
 	Filter,
+	EnrichedRefQuery,
+	EnrichedRefField,
 } from '../../../types';
 import { traverse } from 'object-traversal';
 import { getCurrentSchema, getFieldType } from '../../../helpers';
@@ -40,12 +42,16 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 			const value: BQLMutationBlock = val;
 
 			if (isObject(value)) {
+				// Places to be skipped
+				if (meta.nodePath?.includes('.$filter') || meta.nodePath?.includes('.$playedBy')) {
+					return;
+				}
+				// 0. Everytime we have some object we append its path
+				//console.log('value!', value, 'path', meta.nodePath);
+				value[QueryPath as any] = meta.nodePath;
+
 				// 1. Moving $id into filter based on schema's idFields
 				if (value.$id) {
-					//Skip the filter branch
-					if (meta.nodePath?.includes('.$filter')) {
-						return;
-					}
 					const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
 					const currentSchema = getCurrentSchema(schema, node);
 					if (!currentSchema?.name) {
@@ -78,7 +84,7 @@ export const enrichBQLQuery = (rawBqlQuery: RawBQLQuery[], schema: EnrichedBormS
 
 				if (isObject(value) && '$thing' in value && value.$thing) {
 					const node = value.$entity || value.$relation ? value : { [`$${value.$thingType}`]: value.$thing };
-					value[QueryPath as any] = meta.nodePath;
+
 					const currentSchema = getCurrentSchema(schema, node);
 					if (value.$filter) {
 						if (Object.keys(value.$filter).length === 0) {
@@ -143,7 +149,8 @@ const getAllFields = (currentSchema: EnrichedBormEntity | EnrichedBormRelation) 
 	const dataFields = currentSchema.dataFields?.map((field: any) => field.path) || [];
 	const linkFields = currentSchema.linkFields?.map((field: any) => field.path) || [];
 	const roleFields = Object.keys((currentSchema as EnrichedBormRelation).roles || {}) || [];
-	const allFields = [...dataFields, ...linkFields, ...roleFields];
+	const refFields = Object.keys(currentSchema.refFields || {}) || [];
+	const allFields = [...dataFields, ...linkFields, ...roleFields, ...refFields];
 	return allFields;
 };
 
@@ -296,6 +303,32 @@ const createLinkField = (props: {
 	});
 };
 
+const createRefField = (props: {
+	field: any;
+	fieldStr: string;
+	$justId: boolean;
+	dbPath: string;
+	isVirtual?: boolean;
+	fieldSchema: EnrichedRefField;
+}): EnrichedRefQuery => {
+	const { field, fieldStr, $justId, dbPath, fieldSchema } = props;
+	if ('$filter' in props) {
+		throw new Error('Filter not supported in ref fields');
+	}
+	return {
+		$path: fieldStr,
+		$dbPath: dbPath,
+		$contentType: fieldSchema.contentType,
+		$as: field.$as || fieldStr,
+		$var: fieldStr,
+		$fieldType: 'ref',
+		$justId,
+		$fields: field.$fields,
+		$id: field.$id,
+		[FieldSchema]: fieldSchema,
+	};
+};
+
 const createRoleField = (props: {
 	field: any;
 	fieldStr: string;
@@ -382,6 +415,7 @@ const processField = (
 	const dataField = currentSchema.dataFields?.find((dataField: any) => dataField.path === fieldStr);
 	const linkField = currentSchema.linkFields?.find((linkField: any) => linkField.path === fieldStr);
 	const roleField = (currentSchema as EnrichedBormRelation).roles?.[fieldStr];
+	const refField = currentSchema.refFields?.[fieldStr];
 
 	if (dataField) {
 		const isVirtual = !!dataField.isVirtual && !!dataField.default; //if there is no default value, then is fully virtual, the computing is managed in the DB
@@ -412,6 +446,15 @@ const processField = (
 			dbPath: fieldStr,
 			schema,
 			fieldSchema: roleField,
+		});
+	} else if (refField) {
+		return createRefField({
+			field,
+			fieldStr,
+			$justId,
+			dbPath: fieldStr,
+			isVirtual: false,
+			fieldSchema: refField,
 		});
 	}
 	return null;

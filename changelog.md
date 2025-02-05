@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.0(2025-05-02)
+
+- Feat: Reference fields and flexible reference fields that also admit dataFields. Limited version without complicated mutations or deeply nested mutations
+- Fix: several fixes
+- Breaking changes: $thing must be specified in some cases where it was optional, an error will be thrown when required
 
 ## 0.11.26(2024-11-13)
 

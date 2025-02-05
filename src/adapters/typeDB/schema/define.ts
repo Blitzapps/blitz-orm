@@ -44,6 +44,9 @@ export const convertTQLSchema = (connectorId = 'default', schema: EnrichedBormSc
 			// Adding data fields
 			if (dataFields && dataFields.length > 0) {
 				dataFields.forEach((field: any) => {
+					if (field.contentType === 'REF') {
+						return;
+					} //ignore ref types
 					if (field.inherited) {
 						return;
 					}
@@ -145,6 +148,8 @@ export const convertTQLSchema = (connectorId = 'default', schema: EnrichedBormSc
 			attributes += `${attribute.dbPath} sub attribute, value long;\n`;
 		} else if (attribute.contentType === 'FLEX') {
 			attributes += `${attribute.dbPath} sub flexAttribute;\n`;
+		} else if (attribute.contentType === 'REF') {
+			return; //not compatible with typeDB
 		} else {
 			throw new Error(
 				`Conversion of borm schema to TypeDB schema for data type "${attribute.contentType}" is not implemented`,

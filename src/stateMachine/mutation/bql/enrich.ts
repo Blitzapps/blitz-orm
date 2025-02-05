@@ -5,7 +5,7 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
 import type { BQLMutationBlock, BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
-import { replaceToObj } from './enrichSteps/replaces';
+import { replaceToObj, replaceToObjRef } from './enrichSteps/replaces';
 import { setRootMeta } from './enrichSteps/rootMeta';
 import { splitMultipleIds } from './enrichSteps/splitIds';
 import { enrichChildren } from './enrichSteps/enrichChildren';
@@ -16,6 +16,9 @@ import { doAction } from './shared/doActions';
 import { unlinkAll } from './enrichSteps/unlinkAll';
 import { dependenciesGuard } from './guards/dependenciesGuard';
 import { enrichFilter } from '../../query/bql/enrich';
+import { preValidate } from './enrichSteps/preValidate';
+import { validateChildren } from './shared/validateOp';
+import { SharedMetadata } from '../../../types/symbols';
 
 const cleanStep = (node: BQLMutationBlock, field: string) => {
 	if (node[field] === undefined) {
@@ -107,13 +110,23 @@ export const enrichBQLMutation = (
 					}
 
 					const fieldSchema =
-						field !== '$root' ? getFieldSchema(schema, node, field) : ({ fieldType: 'rootField' } as any);
+						field !== '$root'
+							? getFieldSchema(schema, node, field)
+							: ({ [SharedMetadata]: { fieldType: 'rootField' } } as any);
 					if (!fieldSchema) {
 						throw new Error(`[Internal] Field ${field} not found in schema`);
 					}
 
+					//console.log('field1', field, fieldSchema);
+
+					const { fieldType } = fieldSchema[SharedMetadata];
+					const relField = ['linkField', 'roleField'].includes(fieldType);
+					const refField = fieldType === 'refField';
+					const rootField = fieldType === 'rootField';
+
+					//console.log('field2', field, fieldType);
 					///2.DATAFIELD STEP
-					if ('contentType' in fieldSchema) {
+					if (fieldType === 'dataField') {
 						return dataFieldStep(node, field);
 					}
 
@@ -121,79 +134,54 @@ export const enrichBQLMutation = (
 
 					// 3.1 splitIds
 
-					///3.2$thing => linkField or roleField
-					if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-						///In the next steps we have (isArray(node[field]) ? node[field] : [node[field]]) multiple times, because it might mutate, can't replace by a var
+					///3.2$thing => linkField or roleField or references
 
-						/// 3.2.1 replaces
-						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							if (node[field] === null) {
-								unlinkAll(node, field, fieldSchema);
-							} else {
-								replaceToObj(node, field, fieldSchema);
-							}
+					///In the next steps we have (isArray(node[field]) ? node[field] : [node[field]]) multiple times, because it might mutate, can't replace by a var
+
+					/// 3.2.1 replaces
+					if (relField || refField) {
+						if (node[field] === null) {
+							relField ? unlinkAll(node, field, fieldSchema) : undefined;
+						} else {
+							//todo: replaceObj in refFields, as we are just doing some validation
+							relField ? replaceToObj(node, field, fieldSchema) : replaceToObjRef(node, field, fieldSchema);
 						}
+					}
 
-						//3.2.2 root $thing
-						if (fieldSchema.fieldType === 'rootField') {
-							if (!('$root' in node)) {
-								throw new Error(`[Internal] Field ${field} is a rootField but the object is not a root`);
-							}
-							const rootNode = node as unknown as { $root: BQLMutationBlock | BQLMutationBlock[] };
-							setRootMeta(rootNode, schema);
+					//3.2.2 root $thing
+					if (rootField) {
+						if (!('$root' in node)) {
+							throw new Error(`[Internal] Field ${field} is a rootField but the object is not a root`);
 						}
+						const rootNode = node as unknown as { $root: BQLMutationBlock | BQLMutationBlock[] };
+						setRootMeta(rootNode, schema);
+					}
 
+					if (relField || refField) {
 						// 3.2.3 BQL pre-validations => All validations should happen on subNode, if else, leaves are skipped
-						const preValidate = isArray(node[field]) ? node[field] : [node[field]];
+						preValidate(node, field, fieldSchema, paths);
+					}
+					/// 3.2.4 children enrichment
+					//redefining childrenArray as it might have changed
 
-						const cleanPath = paths.slice(1).join('.');
-						preValidate.forEach((subNode: BQLMutationBlock) => {
-							if (!subNode) {
-								return;
-							}
-							/// For cardinality ONE, we need to specify the $op of the children
-							if (
-								fieldSchema?.cardinality === 'ONE' &&
-								!subNode.$op &&
-								!subNode.$id &&
-								!subNode.$filter &&
-								!subNode.$tempId &&
-								node.$op !== 'create'
-							) {
-								throw new Error(`Please specify if it is a create or an update. Path: ${cleanPath}.${field}`);
-							}
-							if (subNode.$tempId) {
-								if (
-									!(
-										subNode.$op === undefined ||
-										subNode.$op === 'link' ||
-										subNode.$op === 'create' ||
-										subNode.$op === 'update' ||
-										subNode.$op === 'replace'
-									)
-								) {
-									throw new Error(
-										`Invalid op ${subNode.$op} for tempId. TempIds can be created, or linked when created in another part of the same mutation.`,
-									);
-								}
-							}
-						});
-						/// 3.2.4 children enrichment
-						//redefining childrenArray as it might have changed
-						if (['linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							enrichChildren(node, field, fieldSchema, schema);
-						}
+					if (relField || refField) {
+						enrichChildren(node, field, fieldSchema, schema);
 
+						//validateChildren
+						validateChildren(node, node[field], schema);
+					}
+
+					if (relField || rootField) {
 						//3.2.5 splitIds()
+						//this simplifies typeDB mutations
 						splitMultipleIds(node, field, schema);
 
-						/// 3.2.6 Field computes
-						if (['rootField', 'linkField', 'roleField'].includes(fieldSchema.fieldType)) {
-							computeFields(node, field, schema);
-						}
+						/// 3.2.6 Field computes on nested created nodes. It only runs in CREATE operations.
+						computeFields(node, field, schema);
 
 						// 3.2.7
 						//#region BQL validations
+						//Ideally, in updates we could not demand the $thing, but then we need to check that the field belongs to all the potential $things
 						const toValidate = isArray(node[field]) ? node[field] : [node[field]];
 
 						toValidate.forEach((subNode: BQLMutationBlock) => {

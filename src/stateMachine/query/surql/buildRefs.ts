@@ -6,12 +6,15 @@ import type {
 	EnrichedBormSchema,
 	EnrichedFieldQuery,
 	EnrichedLinkQuery,
+	EnrichedRefQuery,
 	EnrichedRoleQuery,
 } from '../../../types';
 import { FieldSchema, QueryPath } from '../../../types/symbols';
 import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { buildSuqlFilter, parseFilter, buildSorter } from '../../../adapters/surrealDB/filters/filters';
+import { isObject } from 'radash';
 
+//todo: Change name to build and remove the edge mode
 export const buildRefs = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
 	const { queries, schema } = props;
 	//console.log('queries!', queries);
@@ -42,7 +45,8 @@ const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema
 		)[],
 		schema,
 	);
-	const FIELDS = [...META, ...DATA_FIELDS, ...EDGE_FIELDS].join(',\n');
+	const REF_FIELDS = createRefFields($fields.filter((f) => f.$fieldType === 'ref') as EnrichedRefQuery[]);
+	const FIELDS = [...META, ...DATA_FIELDS, ...EDGE_FIELDS, ...REF_FIELDS].join(',\n');
 	const FROM = createRootFromClause(query, currentSchema);
 	const WHERE = $filter ? `WHERE id AND (${buildSuqlFilter(parseFilter($filter, $thing, schema))})` : 'WHERE id';
 
@@ -76,7 +80,11 @@ const createRootFromClause = (query: EnrichedBQLQuery, currentSchema: EnrichedBo
 };
 
 const createMetaFields = (queryPath: string) => {
-	return [`"${queryPath}" as \`$$queryPath\``, 'record::id(id) as `$id`', 'record::tb(id) as `$thing`'];
+	return [
+		`"${queryPath}" as \`$$queryPath\``,
+		'id && record::id(id) || null as `$id`', //the id is on case we try to extend flex stuff
+		'id && record::tb(id) || null as `$thing`',
+	];
 };
 
 const createDataFields = (dataFields: EnrichedAttributeQuery[] | EnrichedFieldQuery[]) => {
@@ -98,6 +106,9 @@ const createEdgeFields = (
 	return edgeFields
 		.map((ef) => {
 			//logger('ef', ef);
+			if (!ef[QueryPath]) {
+				throw new Error(`[Internal] QueryPath is missing. Value: ${JSON.stringify(ef)}`);
+			}
 			const META = createMetaFields(ef[QueryPath]);
 			const DATA_FIELDS = createDataFields(ef.$fields.filter((f) => f.$fieldType === 'data'));
 			const LINK_FIELDS = createEdgeFields(
@@ -107,7 +118,8 @@ const createEdgeFields = (
 				)[],
 				schema,
 			);
-			const FIELDS = [...META, ...DATA_FIELDS, ...LINK_FIELDS].join(',\n');
+			const REF_FIELDS = createRefFields(ef.$fields.filter((f) => f.$fieldType === 'ref'));
+			const FIELDS = [...META, ...DATA_FIELDS, ...LINK_FIELDS, ...REF_FIELDS].filter(Boolean).join(',\n');
 			const FROM = `FROM $parent.\`${ef[FieldSchema].path}\`[*]`;
 			const WHERE =
 				ef.$filter && Object.keys(ef.$filter).length > 0
@@ -119,4 +131,21 @@ const createEdgeFields = (
 			return `( SELECT ${FIELDS} ${FROM} ${WHERE} ${SORT} ${LIMIT} ${OFFSET}  ) AS \`${ef.$as}\``;
 		})
 		.filter((f) => f);
+};
+const createRefFields = (refFields: EnrichedRefQuery[]) => {
+	return refFields.map((rf) => {
+		if (!rf[QueryPath]) {
+			throw new Error(`[Internal] QueryPath is missing. Value: ${JSON.stringify(rf)}`);
+		}
+		const META = createMetaFields(rf[QueryPath]);
+		if (rf.$fields?.some((f) => isObject(f))) {
+			throw new Error("[Unsupported]: Can't query nested ref fields yet");
+		}
+		const FLEX_REF = 'id && null || $this as `$value`';
+		const FIELDS = [...META, FLEX_REF, ...(rf.$justId ? '' : rf.$fields?.map((f) => `⟨${f}⟩`) || ['*'])].join(',\n'); //if no fields, get everything
+		const FROM = `FROM $parent.\`${rf[FieldSchema].dbPath}\``; //removing the [*]
+		//const WHERE = 'WHERE true'; //can't filter inside ref Fields
+		// In ref fields we don't have the ref of the fields so we go blind
+		return `( SELECT ${FIELDS} ${FROM}) AS \`${rf.$as}\``;
+	});
 };

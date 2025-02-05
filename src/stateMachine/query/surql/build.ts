@@ -111,9 +111,14 @@ const buildFieldQuery = (props: {
 	level: number;
 }): string | null => {
 	const { query, schema, level } = props;
+	//console.log('query!', query);
 
 	if (query.$fieldType === 'data') {
 		return buildAttributeQuery({ query, level });
+	}
+	if (query.$fieldType === 'ref') {
+		throw new Error('Ref fields are not supported in this context');
+		//return buildLinkQuery({ query, level, schema });
 	}
 	if (query.$fieldType === 'link') {
 		return buildLinkQuery({ query, level, schema });

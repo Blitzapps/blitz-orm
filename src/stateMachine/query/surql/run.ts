@@ -10,7 +10,10 @@ export const run = async (props: { client: SimpleSurrealClient; queries: string[
 	COMMIT TRANSACTION;
 	`;
 
-	logDebug(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
-	//console.log('batchedQuery', batchedQuery);
+	if (config.query?.debugger) {
+	  logDebug(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
+	}
+	//console.log('batchedQuery!', batchedQuery);
+
 	return await client.query(batchedQuery);
 };

@@ -17,6 +17,7 @@ export const postHooks = async (
 	}
 
 	const queryPostHooks = (blocks: any) => {
+		//console.log('queryPostHooks', blocks[0]);
 		return produce(blocks, (draft: any) =>
 			traverse(draft, ({ value: val }: TraversalCallbackContext) => {
 				if (isObject(val)) {
@@ -32,10 +33,13 @@ export const postHooks = async (
 
 						const queryPath = value[QueryPath as any];
 						if (!queryPath) {
-							throw new Error('[Internal] QueryPath is missing');
+							throw new Error(`[Internal] QueryPath is missing. Value: ${JSON.stringify(value)}`);
 						}
 
 						const originalNode = getNodeByPath(enrichedBqlQuery, queryPath);
+						if (originalNode.$fieldType === 'ref') {
+							return; // Not supported with refFields
+						}
 						const queriedFields = originalNode.$fields.map((f: any) => f.$path);
 						const excludedFields = originalNode.$excludedFields;
 
@@ -67,6 +71,7 @@ export const postHooks = async (
 						//EXCLUDE FIELDS
 						if (excludedFields) {
 							//this should only happen for id fields, as we query them always. Might remove also dependencies in the future
+							//todo: move this as a last step of the machine, as a cleaner. Note: we are skipping it now for reference fields but we should not
 							excludedFields.forEach((excludedField: string) => {
 								if (typeof excludedField !== 'string') {
 									throw new Error('[Internal] ExcludedField is not a string');

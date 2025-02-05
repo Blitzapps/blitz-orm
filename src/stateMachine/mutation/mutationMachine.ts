@@ -266,6 +266,7 @@ export const runMutationMachine = async (
 				things: [],
 				edges: [],
 				arcs: [],
+				references: [],
 			},
 			res: [],
 		},

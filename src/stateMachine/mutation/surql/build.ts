@@ -2,13 +2,12 @@ import { isArray } from 'radash';
 import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { getCurrentFields, getSchemaByThing, oFilter } from '../../../helpers';
 import type { EnrichedBQLMutationBlock, EnrichedBormRelation, EnrichedBormSchema } from '../../../types';
-import { EdgeSchema, Parent } from '../../../types/symbols';
+import { Parent } from '../../../types/symbols';
 import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filters/filters';
 import type { FlatBqlMutation } from '../bql/flatter';
 import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
-	//console.log('flat!', flat);
 	const buildThings = (block: EnrichedBQLMutationBlock) => {
 		//console.log('currentThing:', block);
 		const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
@@ -18,7 +17,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 		const { idFields } = currentSchema;
 		const idValue = $id || block[idFields[0]];
 
-		const sanitizedThings = (block[EdgeSchema]?.$things || [$thing]).map(sanitizeNameSurrealDB);
+		const sanitizedThings = (isArray($thing) ? $thing : [$thing]).map(sanitizeNameSurrealDB);
 
 		const meta = oFilter(block, (k: string) => k.startsWith('$'));
 		const rest = oFilter(block, (k: string) => !k.startsWith('$'));
@@ -137,7 +136,17 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 
 						if (cardinality === 'ONE') {
 							if (asArrayOfVars.length > 1) {
-								throw new Error(`${$op === 'link' ? 'Linking' : 'Replacing'} multiple values to a ONE field ${rf}`);
+								//This is ok as long as only one is a match, but we can link to several in card ONE. This is practical if we don't know the $thing for instance, we can try multiple ones
+								const arrayString = `array::filter(array::flatten([${asArrayOfVars}]), |$v| !!$v)`;
+								switch ($op) {
+									case 'link':
+									case 'replace':
+										return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || ${arrayString}`; //todo: throw a custom error instead
+									case 'unlink':
+										return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
+									default:
+										throw new Error(`Unsupported operation ${$op} for ONE cardinality`);
+								}
 							}
 							switch ($op) {
 								case 'link':
@@ -202,12 +211,47 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 			const roleTwoSchema = currentSchema.roles[roleB];
 			const isMany2 = roleTwoSchema.cardinality === 'MANY';
 
-			const arcs = thingsA.flatMap((thingA) =>
-				thingsB.flatMap(
-					(thingB) =>
-						`FOR $node1 IN fn::as_array($⟨${thingA}⟩) { FOR $node2 IN fn::as_array($⟨${thingB}⟩) { CREATE ONLY ${tableName} SET ${roleA} = ${isMany1 ? 'fn::as_array($node1)' : '$node1'}, ${roleB} = ${isMany2 ? 'fn::as_array($node2)' : '$node2'} RETURN ${OUTPUT}; } }`,
-				),
-			);
+			/*const thingsAString = thingsA.map((thingA) => `$⟨${thingA}⟩`).join(', ');
+			const thingsAArrayString = `array::flatten([${thingsAString}])`;
+			const thingsBString = thingsB.map((thingB) => `$⟨${thingB}⟩`).join(', ');
+			const thingsBArrayString = `array::flatten([${thingsBString}])`;
+*/
+			/*
+			//this is the third version, where we only create one arc per arc defined in the flatter function. Todo: Check cardinality and throw error if it is not correct instead of the || to trigger it internally
+			const arc = `CREATE ONLY ${tableName} SET
+					${roleA} = ${isMany1 ? thingsAArrayString : `array::len(${thingsAArrayString}) == 1  && array::first(${thingsAArrayString}) || ${thingsAArrayString}`},
+					${roleB} = ${isMany2 ? thingsBArrayString : `array::len(${thingsBArrayString}) == 1  && array::first(${thingsBArrayString}) || ${thingsBArrayString}`}
+			`;
+
+			return arc; 
+			*/
+
+			///before it was multiple arcs, running a loop over thingsA and thingsB in addition to the surrealDB loop inside the surql
+			const arcs = [
+				///This ignored cardinality and created N*M arcs. I keep it here as it could be an option in the mutation config in the future.
+
+				//
+				//
+				`
+				${!isMany1 ? `IF array::len(array::filter(array::flatten([$⟨${thingsA}⟩]), |$v| !!$v))>1 { THROW "[Validation] Cardinality constraint: ${roleA} is cardinality one and can link a single thing." + <string>$⟨${thingsA}⟩; };` : ''}
+				${!isMany2 ? `IF array::len(array::filter(array::flatten([$⟨${thingsB}⟩]), |$v| !!$v))>1 { THROW "[Validation] Cardinality constraint: ${roleB} is cardinality one and can link a single thing." + <string>$⟨${thingsB}⟩; };` : ''}
+				FOR $node1 IN array::flatten([$⟨${thingsA}⟩]) { 
+							IF $node1 {
+								FOR $node2 IN array::flatten([$⟨${thingsB}⟩]) { 
+									IF $node2 {
+										CREATE ONLY ${tableName} SET 
+											${roleA} = ${isMany1 ? 'array::flatten([$node1])' : '$node1'}, 
+											${roleB} = ${isMany2 ? 'array::flatten([$node2])' : '$node2'} 
+										RETURN ${OUTPUT}; 
+									}
+								}
+							}
+						}`,
+			];
+
+			///This is the throw error version that checks the cardinality, if it is ugly but it works, it ain't ugly
+			//	`CREATE ONLY ${tableName} SET ${roleA} = ${isMany1 ? `fn::as_array($⟨${thingA}⟩)` : `array::len(fn::as_array($⟨${thingA}⟩)) == 1  && array::first(fn::as_array($⟨${thingA}⟩)) || $⟨${thingA}⟩`}, ${roleB} = ${isMany2 ? `fn::as_array($⟨${thingB}⟩)` : `array::len(fn::as_array($⟨${thingB}⟩)) == 1  && array::first(fn::as_array($⟨${thingB}⟩)) || $⟨${thingB}⟩`} RETURN ${OUTPUT};`,
+
 			//console.log('arcs', arcs);
 			return arcs;
 		}
@@ -217,7 +261,79 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 		}
 	};
 
-	const result = [...flat.things.map(buildThings), ...flat.edges.map(buildEdges), ...flat.arcs.flatMap(buildArcs)];
+	const buildReferences = (block: EnrichedBQLMutationBlock) => {
+		const { $thing, $bzId, $op, $tempId } = block;
+		const currentSchema = getSchemaByThing(schema, $thing);
+		const { usedRefFields } = getCurrentFields(currentSchema, block);
+
+		const VAR = `$⟨${$tempId || $bzId}⟩`;
+
+		const refFields = usedRefFields.flatMap((rf) => {
+			const refFieldSchema = currentSchema.refFields[rf];
+			if (!refFieldSchema) {
+				throw new Error(`ReferenceField schema not found for ${rf}`);
+			}
+			const { cardinality, contentType } = refFieldSchema;
+			if (contentType === 'REF') {
+				const asArrayOfVars = isArray(block[rf]) ? block[rf] : [`${block[rf]}`];
+
+				if (cardinality === 'ONE') {
+					if (asArrayOfVars.length > 1) {
+						//This is ok as long as only one is a match, but we can link to several in card ONE. This is practical if we don't know the $thing for instance, we can try multiple ones
+						const arrayString = `array::filter(array::flatten([${asArrayOfVars}]), |$v| !!$v)`;
+						switch ($op) {
+							case 'link':
+							case 'replace':
+								return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || ${arrayString}`; //todo: throw a custom error instead
+							case 'unlink':
+								return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
+							default:
+								throw new Error(`Unsupported operation ${$op} for ONE cardinality`);
+						}
+					}
+					switch ($op) {
+						case 'link':
+						case 'replace':
+							return `${rf} = ((type::is::array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]}`;
+						case 'unlink':
+							return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
+						default:
+							throw new Error(`Unsupported operation ${$op} for ONE cardinality`);
+					}
+				} else if (cardinality === 'MANY') {
+					const nodesString = `array::flatten([${asArrayOfVars}])`;
+					switch ($op) {
+						case 'link':
+							return `${rf} += ${nodesString}`;
+						case 'unlink':
+							return `${rf} -= ${nodesString}`;
+						case 'replace':
+							return `${rf} = ${nodesString}`;
+						default:
+							throw new Error(`Unsupported operation ${$op} for MANY cardinality`);
+					}
+				} else {
+					throw new Error(`Unsupported cardinality ${cardinality}`);
+				}
+			}
+			if (contentType === 'FLEX') {
+				//todo: card one check len 1
+				//todo: add/remove etc
+				return `${rf} = ${cardinality === 'ONE' ? `array::flatten([${block[rf]}])[0]` : `array::flatten([${block[rf]}])`}`;
+			}
+		});
+		const refFieldsString = refFields.length > 0 ? `${refFields.join(', ')}` : '';
+		const SET = refFieldsString ? `SET ${refFieldsString}` : '';
+
+		return `IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END; ${VAR};`;
+	};
+
+	const result = [
+		...flat.things.map(buildThings),
+		...flat.edges.map(buildEdges),
+		...flat.arcs.flatMap(buildArcs),
+		...flat.references.map(buildReferences),
+	];
 	//console.log('builtMutation', result);
 	return result;
 };

@@ -5,10 +5,12 @@ import { testEdgesMutation } from './edges';
 import { testMutationErrors } from './errors';
 import { testFilteredMutation } from './filtered';
 import { testMutationPrehooks } from './preHooks';
+import { testRefFieldsMutations } from './refFields';
 import { testReplaceMutation } from './replaces';
 import { testUnsupportedMutation } from './unsupported';
 
 testBasicMutation(init);
+testRefFieldsMutations(init);
 testMutationErrors(init);
 testEdgesMutation(init);
 testBatchedMutation(init);

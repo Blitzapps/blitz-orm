@@ -374,6 +374,7 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
 			$id: 'utg-2',
 			$op: 'update',
 			tags: ['tag-3'],
+			color: 'blue',
 		});
 
 		// the test

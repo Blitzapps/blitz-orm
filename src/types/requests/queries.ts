@@ -1,4 +1,4 @@
-import type { BQLField, EnrichedDataField, EnrichedLinkField, EnrichedRoleField } from '..';
+import type { BQLField, EnrichedDataField, EnrichedLinkField, EnrichedRefField, EnrichedRoleField } from '..';
 import type { FieldSchema, QueryPath } from '../symbols';
 
 export type Sorter = { field: string; desc?: boolean } | string;
@@ -126,7 +126,21 @@ export type EnrichedRoleQuery = {
 	[FieldSchema]: EnrichedRoleField;
 };
 
-export type EnrichedFieldQuery = EnrichedAttributeQuery | EnrichedLinkQuery | EnrichedRoleQuery;
+export type EnrichedRefQuery = {
+	$fieldType: 'ref';
+	$contentType: 'REF' | 'FLEX';
+	$path: string;
+	$dbPath: string;
+	$as: string;
+	$var: string;
+	$justId: boolean;
+	$id: string;
+	$fields?: string[]; //Special because is inherited form the user query and we can't get their definitions before we receive the rows
+	[QueryPath]?: string;
+	[FieldSchema]: EnrichedRefField;
+};
+
+export type EnrichedFieldQuery = EnrichedAttributeQuery | EnrichedLinkQuery | EnrichedRoleQuery | EnrichedRefQuery;
 
 export type EnrichedEntityQuery = {
 	$id?: string | string[];

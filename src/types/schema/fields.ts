@@ -18,6 +18,13 @@ export type RoleField = {
 	dbConnector?: DBConnector;
 };
 
+export type RefField = {
+	dbPath?: string;
+	cardinality: DiscreteCardinality;
+	contentType: 'REF' | 'FLEX';
+	dbConnector?: DBConnector;
+};
+
 export type LinkField = BormField & {
 	relation: string;
 	cardinality: DiscreteCardinality;
@@ -50,6 +57,7 @@ type MultiField = BormField & {
 		fn?: (value: unknown) => boolean;
 	};
 };
+
 type StringField = BormField & {
 	contentType:
 		| 'ID'

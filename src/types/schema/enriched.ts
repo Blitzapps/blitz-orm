@@ -1,7 +1,7 @@
 import type { LinkedFieldWithThing, BormEntity, BormRelation, DBHandleKey } from '..';
 import type { AdapterContext } from '../../adapters';
 import type { SharedMetadata, SuqlMetadata } from '../symbols';
-import type { RoleField, DataField, LinkField } from './fields';
+import type { RoleField, DataField, LinkField, RefField } from './fields';
 
 export type EnrichedBormSchema = {
 	entities: { [s: string]: EnrichedBormEntity };
@@ -17,6 +17,7 @@ type SharedEnrichedProps = {
 	fnValidatedFields: string[];
 	linkFields?: EnrichedLinkField[];
 	dataFields?: EnrichedDataField[];
+	refFields: { [key: string]: EnrichedRefField };
 	db: DBHandleKey;
 	dbContext: AdapterContext;
 	allExtends?: string[];
@@ -43,10 +44,19 @@ export type EnrichedRoleField = RoleField & {
 	fieldType: 'roleField';
 	inherited: boolean;
 	[SharedMetadata]: {
-		inheritanceOrigin: string;
+		inheritanceOrigin?: string;
+		fieldType: 'roleField';
 	};
 	[SuqlMetadata]: {
 		queryPath: string;
+	};
+};
+
+export type EnrichedRefField = RefField & {
+	dbPath: string; //not inside any symbol because it could be configured by the user
+	[SharedMetadata]: {
+		inheritanceOrigin?: string;
+		fieldType: 'refField';
 	};
 };
 
@@ -54,19 +64,26 @@ export type EnrichedDataField = DataField & {
 	dbPath: string;
 	inherited: boolean;
 	[SharedMetadata]: {
-		inheritanceOrigin: string;
+		inheritanceOrigin?: string;
+		fieldType: 'dataField';
+	};
+	[SuqlMetadata]: {
+		dbPath: string;
 	};
 };
 
+//todo: remove all internal metadata and put them in Extension or SharedMetadata
 export type EnrichedLinkField = LinkField & {
 	name: string; // same as the key it has, maybe to rename to key
 	relation: string;
 	plays: string;
 	$things: string[]; //all potential candidates
-	fieldType: 'linkField';
+	fieldType: 'linkField'; //todo: remove
 	inherited: boolean;
 	[SharedMetadata]: {
-		inheritanceOrigin: string;
+		//todo: Move everything that the user can't touch here here
+		inheritanceOrigin?: string;
+		fieldType: 'linkField';
 	};
 	[SuqlMetadata]: {
 		queryPath: string;

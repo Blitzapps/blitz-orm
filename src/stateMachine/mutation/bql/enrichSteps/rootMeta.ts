@@ -1,13 +1,13 @@
 import { isArray } from 'radash';
 import type { BQLMutationBlock, EnrichedBormSchema } from '../../../../types';
-import { getOp } from '../shared/getOp';
+import { getOpAndValidate } from '../shared/getOp';
 import { genId, getThingType } from '../../../../helpers';
 
 export const setRootMeta = (node: { $root: BQLMutationBlock | BQLMutationBlock[] }, schema: EnrichedBormSchema) => {
 	const rootArray = isArray(node.$root) ? node.$root : [node.$root];
 
 	const withMetadataRootArray = rootArray.map((rootNode) => {
-		const rootOp = getOp(rootNode, rootNode, schema);
+		const rootOp = getOpAndValidate(rootNode, rootNode, schema);
 
 		const withMetadata = {
 			...(rootNode.$thing ? {} : { $thing: rootNode.$entity || rootNode.$relation }),

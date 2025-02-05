@@ -107,6 +107,9 @@ Power sub entity,
 	owns description,
 	plays Space-User:power;
 
+FlexRef sub entity,
+  owns id @key;
+
 Hook sub entity,
 	owns id @key,
 	owns Hook·requiredOption,
