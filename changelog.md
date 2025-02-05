@@ -2,11 +2,18 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
 ## 0.11.26(2024-11-13)
 
 - Fix: Replace SurrealPool with SimpleSurrealClient in various type definitions and type casts.
 
-## 0.11.25(2024-11-12)
+## 0.11.25(2025-12-01)
+
+- Feat: Added safety checks for duplicated paths.
+- Feat: Replaces with $temp ids
+
+## 0.11.24-25(2024-11-12)
+
 
 - Fix: Added dayjs and fixed some issues with FLEX values storing dateTime in iso.
 

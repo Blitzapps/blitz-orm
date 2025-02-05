@@ -259,6 +259,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					const val = value as EnrichedBormRelation;
 
 					val.linkFields?.forEach((linkField) => {
+						///Check if the path is already in use
+						if (
+							val.dataFields?.find((df) => df.path === linkField.path) ||
+							Object.keys(val.roles || {}).includes(linkField.path)
+						) {
+							throw new Error(
+								`[Schema] The path ${linkField.path} is already in use by a dataField or linkField in ${val.name}. Path:${meta.nodePath}`,
+							);
+						}
 						linkField.fieldType = 'linkField';
 						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation] as EnrichedBormRelation;
 
@@ -363,6 +372,15 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					const val = value as EnrichedBormRelation;
 
 					Object.entries(val.roles).forEach(([roleKey, role]) => {
+						//Check if the key is used by linkFields or roleFields already
+						if (
+							val.dataFields?.find((df) => df.path === roleKey) ||
+							val.linkFields?.find((lf) => lf.path === roleKey)
+						) {
+							throw new Error(
+								`[Schema] The path ${roleKey} is already in use by a dataField or linkField in ${val.name}. Path:${meta.nodePath}`,
+							);
+						}
 						// eslint-disable-next-line no-param-reassign
 						role.fieldType = 'roleField';
 						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
