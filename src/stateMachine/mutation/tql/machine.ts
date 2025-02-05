@@ -125,6 +125,7 @@ export const runTypeDbMutationMachine = async (
 				things: [],
 				edges: [],
 				arcs: [],
+				references: [],
 			},
 			res: [],
 		},

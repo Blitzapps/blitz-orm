@@ -253,7 +253,10 @@ BEGIN TRANSACTION;
 			DEFINE FIELD color ON TABLE UserTagGroup TYPE option<record<Color>>;
 				DEFINE EVENT update_color ON TABLE UserTagGroup WHEN $before.color != $after.color THEN {
 					IF ($before.color) THEN {UPDATE $before.color SET group = NONE} END;
-					IF ($after.color) THEN {UPDATE $after.color SET group = $after.id} END;
+					IF ($after.color) THEN {
+          	IF ($after.color.group) THEN {UPDATE $after.color.group SET color = NONE} END;
+            UPDATE $after.color SET group = $after.id;
+        	} END;
 				};
 			DEFINE FIELD space ON TABLE UserTagGroup TYPE option<record<Space>>;
 				DEFINE EVENT update_space ON TABLE UserTagGroup WHEN $before.space != $after.space THEN {
@@ -480,6 +483,14 @@ BEGIN TRANSACTION;
 					IF ($before.company) THEN {UPDATE $before.company SET employees -= $before.id} END;
 					IF ($after.company) THEN {UPDATE $after.company SET employees += $after.id} END;
 				};
+
+	DEFINE TABLE FlexRef SCHEMAFULL PERMISSIONS FULL; 
+		-- DATA FIELDS
+			DEFINE FIELD reference ON TABLE FlexRef TYPE option<record>;
+			DEFINE FIELD references ON TABLE FlexRef TYPE option<array<record>>;
+			DEFINE FIELD flexReference ON TABLE FlexRef TYPE option<record|bool|bytes|datetime|duration|geometry|number|object|string>;
+			DEFINE FIELD flexReferences ON TABLE FlexRef TYPE option<array<record|bool|bytes|datetime|duration|geometry|number|object|string>>;
+		
 -- BORM TOOLS
 	DEFINE FUNCTION fn::get_mutated_edges(
 		$before_relation: option<array|record>,

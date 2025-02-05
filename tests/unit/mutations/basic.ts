@@ -64,9 +64,9 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				$thing: 'UserTag',
 				id: 'bo-ut1',
 				users: [
-					{ id: 'bo-u1', name: 'bo-u1' },
-					{ id: 'bo-u2', name: 'bo-u2' },
-					{ id: 'bo-u3', name: 'bo-u3' },
+					{ $thing: 'User', id: 'bo-u1', name: 'bo-u1' },
+					{ $thing: 'User', id: 'bo-u2', name: 'bo-u2' },
+					{ $thing: 'User', id: 'bo-u3', name: 'bo-u3' },
 				],
 			},
 			{ noMetadata: true },
@@ -111,7 +111,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{
 				$thing: 'UserTag',
 				$id: 'bo-ut1',
-				users: [{ $op: 'delete' }, { id: 'bo-u4', name: 'bo-u4' }],
+				users: [{ $op: 'delete' }, { $thing: 'User', id: 'bo-u4', name: 'bo-u4' }],
 			},
 			{ noMetadata: true },
 		);
@@ -159,9 +159,9 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				$thing: 'UserTag',
 				id: 'b0b-ut1',
 				users: [
-					{ id: 'b0b-u1', name: 'bo-u1' },
-					{ id: 'b0b-u2', name: 'bo-u2' },
-					{ id: 'b0b-u3', name: 'bo-u3' },
+					{ $thing: 'User', id: 'b0b-u1', name: 'bo-u1' },
+					{ $thing: 'User', id: 'b0b-u2', name: 'bo-u2' },
+					{ $thing: 'User', id: 'b0b-u3', name: 'bo-u3' },
 				],
 			},
 			{ noMetadata: true },
@@ -752,7 +752,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		await ctx.mutate({
 			$relation: 'User-Accounts',
 			id: 'r1',
-			user: { id: 'u1' },
+			user: { $thing: 'User', id: 'u1' },
 			accounts: [{ id: 'a1' }],
 		});
 		await ctx.mutate({
@@ -790,6 +790,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				$relation: 'User-Accounts',
 				id: 'r1',
 				user: {
+					'$thing': 'User',
 					'id': 'u2',
 					'email': 'hey',
 					'user-tags': [
@@ -1751,10 +1752,12 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				id: 'sp1',
 				users: [
 					{
+						$thing: 'User',
 						id: 'u1',
 						name: 'new name',
 					},
 					{
+						$thing: 'User',
 						id: 'u2',
 						name: 'new name 2',
 					},
@@ -2203,7 +2206,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{
 				$entity: 'Space',
 				$id: 'space-3',
-				fields: [{ id: 'ext3-field', $thing: 'dataField', $op: 'create', name: 'myDataField' }], //so by default should be a Field but we casted into a DataField
+				fields: [{ id: 'ext3-field', $thing: 'DataField', $op: 'create', name: 'myDataField' }], //so by default should be a Field but we casted into a DataField
 			},
 			{ noMetadata: true },
 		);
@@ -2214,7 +2217,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 				$id: 'space-3',
 				$fields: ['id', { $path: 'fields', $fields: ['id', 'name'] }],
 			},
-			{ noMetadata: true },
+			{ noMetadata: false },
 		);
 
 		//clean up
@@ -2228,7 +2231,18 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
 		expect(res).toEqual({
 			id: 'space-3',
-			fields: [{ id: 'ext3-field', name: 'myDataField' }],
+			$id: 'space-3',
+			$thing: 'Space',
+			$thingType: 'entity',
+			fields: [
+				{
+					$id: 'ext3-field',
+					$thing: 'DataField', //necessary to ensure this worked
+					$thingType: 'relation',
+					id: 'ext3-field',
+					name: 'myDataField',
+				},
+			],
 		});
 	});
 });

@@ -90,6 +90,22 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	});
 
 	it('l2[link, nested, relation] Create and update 3-level nested. Also test getting ids by type', async () => {
+		//create two colors for this test
+		await ctx.mutate(
+			[
+				{
+					$entity: 'Color',
+					$op: 'create',
+					id: 'l2-yellow',
+				},
+				{
+					$entity: 'Color',
+					$op: 'create',
+					id: 'l2-blue',
+				},
+			],
+			{ noMetadata: true },
+		);
 		const mutation = await ctx.mutate(
 			{
 				'$entity': 'User',
@@ -97,11 +113,11 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				'user-tags': [
 					{
 						name: 'another tag',
-						group: { color: { $id: 'yellow' } }, // link to pre-existing
+						group: { color: { $id: 'l2-yellow' } }, // link to pre-existing
 					},
 					{
 						name: 'yet another tag',
-						group: { color: { $id: 'blue' } }, // link to pre-existing
+						group: { color: { $id: 'l2-blue' } }, // link to pre-existing
 					},
 				],
 			},
@@ -137,24 +153,8 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
-		expect(resUser).toBeDefined();
-		expect(resUser).toEqual({
-			'id': 'user4',
-			'user-tags': expect.arrayContaining([
-				{
-					id: expect.any(String),
-					name: 'another tag',
-					group: { color: 'yellow' },
-				},
-				{
-					id: expect.any(String),
-					name: 'yet another tag',
-					group: { color: 'blue' },
-				},
-			]),
-		});
 
-		/// now delete the two new tags
+		///Clean:  now delete the two new tags
 		await ctx.mutate(
 			{
 				$relation: 'UserTag',
@@ -172,6 +172,33 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
+		//and colors
+		await ctx.mutate(
+			{
+				$entity: 'Color',
+				$id: ['l2-yellow', 'l2-blue'],
+				$op: 'delete',
+			},
+			{ noMetadata: true },
+		);
+
+		//Check the results
+		expect(resUser).toBeDefined();
+		expect(resUser).toEqual({
+			'id': 'user4',
+			'user-tags': expect.arrayContaining([
+				{
+					id: expect.any(String),
+					name: 'another tag',
+					group: { color: 'l2-yellow' },
+				},
+				{
+					id: expect.any(String),
+					name: 'yet another tag',
+					group: { color: 'l2-blue' },
+				},
+			]),
+		});
 	});
 
 	it('l3ent[unlink, multiple, entity] unlink multiple linkFields (not roleFields)', async () => {
@@ -520,6 +547,22 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$id: 'utg-2',
 			tags: [{ $op: 'link', $id: 'tag-3' }], // todo: simplify when replaces work
 			color: { $op: 'link', $id: 'blue' }, // todo: simplify when replaces work
+		});
+
+		const utg2 = await ctx.query({
+			$relation: 'UserTagGroup',
+			$id: 'utg-2',
+		});
+
+		expect(utg2).toBeDefined();
+		expect(deepSort(utg2, 'id')).toEqual({
+			$thing: 'UserTagGroup',
+			$thingType: 'relation',
+			id: 'utg-2',
+			$id: 'utg-2',
+			space: 'space-3',
+			tags: ['tag-3'],
+			color: 'blue',
 		});
 	});
 
@@ -1074,6 +1117,19 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 	});
 
 	it('l15b[unlink, link, nested, relation] Unlink in a nested field', async () => {
+		//check the original state is correct
+		await ctx.mutate([
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-1',
+				color: 'yellow',
+			},
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-2',
+				color: 'blue',
+			},
+		]);
 		/// this test unlinks nested, then links nested edge
 		await ctx.mutate(
 			// unlink all color in all the groups linked to usertag tag.2
@@ -1082,7 +1138,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				$id: 'tag-2',
 				group: {
 					$op: 'update', // we need to specify $op = 'update' or it will be considered as 'create'
-					color: null, //this should unlink the color of the utg connected to tag-2, so the yellow gets unlinked
+					color: null, //this should unlink the color of the utg connected to tag-2, so the yellow gets unlinked frp, tag-1 and tag-2 which shared group 1
 				},
 			},
 			{ noMetadata: true },
@@ -1119,7 +1175,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 		]);
 
-		///now tag-2 (so utg-1) should also be blue
+		///now tag-2 (so utg-1) ot be red (two groups can't have the same color as color.group is card ONE)
 		await ctx.mutate(
 			[
 				{
@@ -1127,7 +1183,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 					$id: 'tag-2',
 					group: {
 						$op: 'update',
-						color: 'blue',
+						color: 'red',
 					},
 				},
 			],
@@ -1148,7 +1204,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				group: {
 					id: 'utg-1',
 					tags: ['tag-1', 'tag-2'],
-					color: 'blue',
+					color: 'red',
 				},
 			},
 			{
@@ -1156,7 +1212,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				group: {
 					id: 'utg-1',
 					tags: ['tag-1', 'tag-2'],
-					color: 'blue',
+					color: 'red',
 				},
 			},
 			{
@@ -1173,12 +1229,19 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 		]);
 
-		/// and now we get yellow back into utg-1 (reverted)
-		await ctx.mutate({
-			$relation: 'UserTagGroup',
-			$id: 'utg-1',
-			color: 'yellow',
-		});
+		/// and now we get yellow back into utg-1 (reverted) and blue into utg-2
+		await ctx.mutate([
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-1',
+				color: 'yellow',
+			},
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-2',
+				color: 'blue',
+			},
+		]);
 	});
 
 	it('TODO{TS}:l16[replace, nested, create, replace] replacing nested under a create', async () => {
@@ -1360,56 +1423,133 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			$id: ['tmpUTG1', 'tmpUTG2'],
 			$op: 'delete',
 		});
+		// put blue and yellow into their respective owners
+		await ctx.mutate([
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-2',
+				color: 'blue',
+			},
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-1',
+				color: 'yellow',
+			},
+		]);
 	});
 
 	it('rep4[replace, multiId] Replace multiple ids', async () => {
-		/// create
-		await ctx.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'utg-rep4-1',
-			color: 'blue',
-		});
-
-		await ctx.mutate({
-			$relation: 'UserTagGroup',
-			$op: 'create',
-			id: 'utg-rep4-2',
-			color: 'blue',
-		});
+		/// create two tags
+		await ctx.mutate([
+			{
+				$thing: 'UserTag',
+				id: 'rep4-tag1',
+				users: [{ $thing: 'User', id: 'rep4-u1' }],
+			},
+			{
+				$thing: 'UserTag',
+				id: 'rep4-tag2',
+				users: [{ $thing: 'User', id: 'rep4-u2' }],
+			},
+			{
+				$thing: 'User',
+				id: 'rep4-u3',
+			},
+		]);
 
 		/// the mutations to be tested:
 		await ctx.mutate({
-			$id: ['utg-rep4-1', 'utg-rep4-2'],
-			$relation: 'UserTagGroup',
-			$op: 'update',
-			color: 'yellow',
+			$thing: 'UserTag',
+			$id: ['rep4-tag1', 'rep4-tag2'],
+			users: ['rep4-u3'],
 		});
 
-		const tmpUTG1 = await ctx.query(
+		const tag = await ctx.query(
+			{
+				$relation: 'UserTag',
+				$id: ['rep4-tag1', 'rep4-tag2'],
+				$fields: ['id', 'users'],
+			},
+			{ noMetadata: true },
+		);
+		expect(deepSort(tag)).toEqual([
+			{
+				id: 'rep4-tag1',
+				users: ['rep4-u3'],
+			},
+			{
+				id: 'rep4-tag2',
+				users: ['rep4-u3'],
+			},
+		]);
+
+		//clean changes by deleting the new things
+		await ctx.mutate([
+			{
+				$relation: 'UserTag',
+				$id: ['rep4-tag1', 'rep4-tag2'],
+				$op: 'delete',
+			},
+			{ $thing: 'User', $id: ['rep4-u1', 'rep4-u2', 'rep4-u3'], $op: 'delete' },
+		]);
+	});
+
+	it('rep5[replace, cardOne] Replace indirectly a card one field', async () => {
+		const preUtg2 = await ctx.query(
 			{
 				$relation: 'UserTagGroup',
-				$id: ['utg-rep4-1', 'utg-rep4-2'],
+				$id: 'utg-2',
 				$fields: ['id', 'color'],
 			},
 			{ noMetadata: true },
 		);
-		expect(deepSort(tmpUTG1)).toEqual([
-			{
-				id: 'utg-rep4-1',
-				color: 'yellow',
-			},
-			{
-				id: 'utg-rep4-2',
-				color: 'yellow',
-			},
-		]);
 
-		//clean changes by deleting the new tmpUTGs
+		expect(preUtg2).toEqual({
+			id: 'utg-2',
+			color: 'blue',
+		});
+
 		await ctx.mutate({
 			$relation: 'UserTagGroup',
-			$id: ['utg-rep4-1', 'utg-rep4-2'],
-			$op: 'delete',
+			$op: 'create',
+			id: 'utg-rep5',
+			color: 'blue',
+		});
+
+		const postUtg2 = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'utg-2',
+				$fields: ['id', 'color'],
+			},
+			{ noMetadata: true },
+		);
+
+		const postBlue = await ctx.query(
+			{
+				$thing: 'Color',
+				$thingType: 'entity',
+				$id: 'blue',
+				$fields: ['group', 'id'],
+			},
+			{ noMetadata: true },
+		);
+
+		expect(postBlue).toEqual({
+			id: 'blue',
+			group: 'utg-rep5',
+		});
+
+		expect(postUtg2).toEqual({
+			id: 'utg-2',
+			color: undefined,
+		});
+
+		//clean changes by linking it back to utg-2
+		await ctx.mutate({
+			$relation: 'UserTagGroup',
+			$id: 'utg-2',
+			color: 'blue',
 		});
 	});
 
@@ -2843,6 +2983,13 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 			},
 			{ noMetadata: true },
 		);
+		const repDel = await ctx.query(
+			{
+				$relation: 'UserTagGroup',
+				$id: 'rep-del1-utg1',
+			},
+			{ noMetadata: true },
+		);
 
 		expect(colors).toBeDefined();
 		expect(deepSort(colors, 'id')).toEqual([
@@ -2862,6 +3009,12 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				id: 'yellow',
 			},
 		]);
+
+		expect(repDel).toBeDefined();
+		expect(repDel).toEqual({
+			id: 'rep-del1-utg1',
+			color: 'purple',
+		});
 	});
 
 	it('TODO:m1[Multi] Multi nested, deletion and creation same brach', async () => {
@@ -2872,7 +3025,10 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				tags: [
 					{
 						id: 'm1-tag1',
-						users: [{ id: 'm1-user1' }, { id: 'm1-user2' }],
+						users: [
+							{ $thing: 'User', id: 'm1-user1' },
+							{ $thing: 'User', id: 'm1-user2' },
+						],
 					},
 				],
 			},
@@ -2886,7 +3042,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 				tags: [
 					{
 						$id: 'm1-tag1',
-						users: [{ $op: 'delete' }, { id: 'm1-user3' }],
+						users: [{ $op: 'delete' }, { $thing: 'User', id: 'm1-user3' }],
 					},
 				],
 			},
@@ -2936,8 +3092,9 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 					{
 						id: 'm2-tag1',
 						users: [
-							{ id: 'm2-user1', accounts: [{ id: 'm2-acc1', provider: 'github' }] },
+							{ $thing: 'User', id: 'm2-user1', accounts: [{ id: 'm2-acc1', provider: 'github' }] },
 							{
+								$thing: 'User',
 								id: 'm2-user2',
 								accounts: [
 									{ id: 'm2-acc2', provider: 'facebook' },
@@ -2960,7 +3117,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 						$id: 'm2-tag1',
 						users: [
 							{ $op: 'delete', accounts: [{ $op: 'delete' }] },
-							{ id: 'm2-user3', accounts: [{ id: 'm2-acc4', provider: 'twitter' }] },
+							{ $thing: 'User', id: 'm2-user3', accounts: [{ id: 'm2-acc4', provider: 'twitter' }] },
 						],
 					},
 				],

@@ -6,6 +6,7 @@ import { testEdgesMutation } from './mutations/edges';
 import { testMutationErrors } from './mutations/errors';
 import { testFilteredMutation } from './mutations/filtered';
 import { testMutationPrehooks } from './mutations/preHooks';
+import { testRefFieldsMutations } from './mutations/refFields';
 import { testReplaceMutation } from './mutations/replaces';
 import { testUnsupportedMutation } from './mutations/unsupported';
 import { testQuery } from './queries/query';
@@ -16,6 +17,7 @@ testSchemaDefine(init);
 testQuery(init);
 
 testBasicMutation(init);
+testRefFieldsMutations(init);
 testEdgesMutation(init);
 testMutationErrors(init);
 testBatchedMutation(init);

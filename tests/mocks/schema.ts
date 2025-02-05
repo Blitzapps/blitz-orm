@@ -553,6 +553,29 @@ export const schema: BormSchema = {
 				},
 			],
 		},
+		FlexRef: {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default' },
+			refFields: {
+				reference: {
+					cardinality: 'ONE',
+					contentType: 'REF',
+				},
+				references: {
+					cardinality: 'MANY',
+					contentType: 'REF',
+				},
+				flexReference: {
+					cardinality: 'ONE',
+					contentType: 'FLEX',
+				},
+				flexReferences: {
+					cardinality: 'MANY',
+					contentType: 'FLEX',
+				},
+			},
+			dataFields: [{ ...id }],
+		},
 		Hook: {
 			idFields: ['id'],
 			defaultDBConnector: { id: 'default', path: 'Hook' },

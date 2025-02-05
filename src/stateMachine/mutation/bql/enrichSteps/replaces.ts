@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
-import { isArray } from 'radash';
-import type { BQLMutationBlock, EnrichedLinkField, EnrichedRoleField } from '../../../../types';
+import { isArray, isObject } from 'radash';
+import type { BQLMutationBlock, EnrichedLinkField, EnrichedRefField, EnrichedRoleField } from '../../../../types';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
 import { nanoid } from 'nanoid';
 
@@ -69,4 +69,22 @@ export const replaceToObj = (
 			`[Mutation Error] Replace can only be used with a single id or an array of ids. (Field: ${field} Nodes: ${JSON.stringify(subNodes)} Parent: ${JSON.stringify(node, null, 2)})`,
 		);
 	}
+};
+
+//todo: This is not doing any replaces, just checking the format, should be cleaned to do it
+export const replaceToObjRef = (node: BQLMutationBlock, field: string, fieldSchema: EnrichedRefField) => {
+	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
+	if (fieldSchema.contentType === 'REF') {
+		if (subNodes.some((sn) => !isObject(sn))) {
+			throw new Error(
+				"[Wrong format] Field of contentType REF can't use strings as references", //future: unless they are prefixed
+			);
+		}
+		return;
+	}
+
+	if (fieldSchema.contentType === 'FLEX') {
+		return;
+	}
+	throw new Error(`[Internal] Field ${field} is not a refField`);
 };

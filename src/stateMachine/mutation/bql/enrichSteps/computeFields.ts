@@ -15,6 +15,9 @@ export const computeFields = (node: BQLMutationBlock, field: string, schema: Enr
 		return;
 	}
 	(isArray(currentNode) ? currentNode : [currentNode]).forEach((subNode: EnrichedBQLMutationBlock) => {
+		if (subNode.$op !== 'create') {
+			return;
+		}
 		const currentSchema = getCurrentSchema(schema, subNode);
 		const { unidentifiedFields } = getCurrentFields(currentSchema, subNode);
 		const { computedFields, virtualFields } = currentSchema;
@@ -43,7 +46,7 @@ export const computeFields = (node: BQLMutationBlock, field: string, schema: Enr
 			}
 
 			// We generate the other default fields if they are not defined. We ignore the id field which was created before for $id
-			if (subNode.$op === 'create' && !subNode[fieldPath]) {
+			if (!subNode[fieldPath]) {
 				const defaultValue = computeField({
 					currentThing: subNode,
 					fieldSchema: currentDef as EnrichedDataField, //id is always a datafield.

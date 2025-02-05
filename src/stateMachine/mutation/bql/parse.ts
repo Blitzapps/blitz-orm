@@ -14,7 +14,7 @@ import type {
 } from '../../../types';
 import { computeField } from '../../../engine/compute';
 import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
-import { EdgeSchema, EdgeType } from '../../../types/symbols';
+import { EdgeSchema, EdgeType, SharedMetadata } from '../../../types/symbols';
 
 export const parseBQLMutation = async (
 	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
@@ -114,7 +114,7 @@ export const parseBQLMutation = async (
 				}
 
 				if (!value.$bzId) {
-					throw new Error('[internal error] BzId not found');
+					throw new Error(`[internal error] BzId not found ${JSON.stringify(value)}`);
 				}
 				/// this is used to group the right delete/unlink operations with the involved things
 
@@ -164,7 +164,7 @@ export const parseBQLMutation = async (
 				// CASE 1: HAVE A PARENT THROUGH LINKFIELDS
 				const edgeSchema = value[EdgeSchema] as EnrichedLinkField;
 
-				if (edgeSchema?.fieldType === 'linkField') {
+				if (edgeSchema?.[SharedMetadata].fieldType === 'linkField') {
 					if (value.$op === 'link' || value.$op === 'unlink') {
 						if (value.$id || value.$filter) {
 							if (value.$tempId) {
@@ -178,7 +178,7 @@ export const parseBQLMutation = async (
 					// this linkObj comes from nesting, which means it has no properties and no ID
 					// relations explicitely created are not impacted by this, and they get the $id from it's actual current value
 
-					const ownRelation = edgeSchema.relation === value.$thing;
+					const ownRelation = edgeSchema.$things.includes(value.$thing); //might be a subclass of the relation
 
 					const linkTempId = ownRelation ? value.$bzId : `LT_${uuidv4()}`;
 
@@ -233,7 +233,7 @@ export const parseBQLMutation = async (
 
 					const edgeType1 = {
 						$bzId: linkTempId,
-						$thing: edgeSchema.relation,
+						$thing: ownRelation ? value.$thing : edgeSchema.relation, //if it is its own relation, it might be a relation that extends it
 						$thingType: 'relation' as const,
 						...(value.$tempId ? { $tempId: value.$tempId } : {}),
 						$op: getLinkObjOp(),
@@ -316,8 +316,9 @@ export const parseBQLMutation = async (
 
 								if (Array.isArray(v)) {
 									if (currentRoleCardinality === 'ONE') {
+										//console.log('v!', v);
 										if (v.length > 1) {
-											throw new Error(`[Error] Role ${k} is not a MANY relation`);
+											return [k, v.map((vNested: any) => vNested.$bzId || vNested)]; //Even if is Card ONE, we might actually try to link to N things, as long as the result is a single one, it is ok. The DB should throw an error if it is not the case
 										} else {
 											return [k, v[0].$bzId || v[0]];
 										}
@@ -538,6 +539,7 @@ export const parseBQLMutation = async (
 	/// VALIDATIONS
 
 	// VALIDATION: Check that every thing in the list that is an edge, has at least one player
+
 	mergedThings.forEach((thing) => {
 		if (thing.$thingType === 'relation' || 'relation' in thing) {
 			//if it is a relation, we need at lease one edge defined for it

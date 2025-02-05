@@ -1,4 +1,4 @@
-import type { DBConnector, DataField, LinkField, RoleField, EnrichedBQLMutationBlock } from '..';
+import type { DBConnector, DataField, LinkField, RoleField, EnrichedBQLMutationBlock, RefField } from '..';
 
 export type BormSchema = {
 	entities: { [s: string]: BormEntity };
@@ -12,6 +12,7 @@ export type BormEntity =
 			defaultDBConnector: DBConnector; // at least one default connector
 			dataFields?: readonly DataField[];
 			linkFields?: readonly LinkField[];
+			refFields?: { [key: string]: RefField };
 			hooks?: Hooks;
 	  }
 	| {
@@ -19,6 +20,7 @@ export type BormEntity =
 			defaultDBConnector: DBConnector; // at least one default connector
 			dataFields?: readonly DataField[];
 			linkFields?: readonly LinkField[];
+			refFields?: { [key: string]: RefField };
 			hooks?: Hooks;
 	  };
 

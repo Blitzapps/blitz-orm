@@ -136,6 +136,16 @@ INSERT INTO ⟨ThingRelation⟩ [
 	{ id: "tr11", root: Thing:thing4, extra: Thing:thing5 }
 ];
 
+## FlexRef
+
+INSERT INTO ⟨FlexRef⟩ [
+	{ id: "fr1", reference: User:user1 },
+	{ id: "fr2", references: [User:user1, User:user2]},
+	{ id: 'fr3', flexReference: 7},
+	{ id: 'fr4', flexReference: User:user1},
+	{ id: 'fr5', flexReferences: [7, User:user1,'hey']},
+];
+	
 ## big numbers
 
 LET $companies = (

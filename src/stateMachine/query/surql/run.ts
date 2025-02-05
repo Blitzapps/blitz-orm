@@ -13,6 +13,6 @@ export const run = async (props: { client: SurrealPool; queries: string[]; confi
 	if (config.query?.debugger) {
 		console.log(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
 	}
-	//console.log('batchedQuery', batchedQuery);
+	//console.log('batchedQuery!', batchedQuery);
 	return await client.query(batchedQuery);
 };

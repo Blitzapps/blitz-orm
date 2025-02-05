@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.0(2025-05-02)
+
+- Feat: Reference fields and flexible reference fields that also admit dataFields. Limited version without complicated mutations or deeply nested mutations
+- Fix: several fixes
+
 ## 0.11.26(2025-12-01)
 
 - Feat: Added safety checks for duplicated paths.

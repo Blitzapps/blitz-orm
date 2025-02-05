@@ -27,6 +27,9 @@ import type {
 	EnrichedDataField,
 	EnrichedLinkField,
 	EnrichedRoleField,
+	LinkField,
+	RefField,
+	EnrichedRefField,
 } from './types';
 import type { AdapterContext } from './adapters';
 import { adapterContext } from './adapters';
@@ -69,15 +72,61 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 				if (meta.depth !== 2) {
 					return;
 				}
+				const val = value as BormEntity | BormRelation;
+
 				if (key) {
-					// * Adding dbPath of local dataFields. This happens in every dataField
-					value.dataFields = value.dataFields?.map((df: DataField | EnrichedDataField) => ({
+					//* DATA_FIELDS: Adding default values and metadata to every dataField
+					val.dataFields = val.dataFields?.map((df: DataField | EnrichedDataField) => ({
 						...df,
-						...(value.idFields?.includes(df.path) ? { isIdField: true } : { isIdField: false }),
+						...(val.idFields?.includes(df.path) ? { isIdField: true } : { isIdField: false }),
 						cardinality: df.cardinality || 'ONE',
+						//todo: Make this user defined and remove the prefix by default
 						dbPath: 'dbPath' in df ? df.dbPath : getDbPath(key, df.path, df.shared), //if it was already defined in a parent, we keep it
+						[SharedMetadata]: {
+							fieldType: 'dataField',
+						},
 					})) as EnrichedDataField[];
+
+					//* REFERENCE_FIELDS: Adding default values and metadata to every refField
+					val.refFields = mapEntries(val.refFields || {}, (refFieldKey, refField) => {
+						return [
+							refFieldKey,
+							{
+								...refField,
+								cardinality: refField.cardinality || 'ONE',
+								path: refFieldKey,
+								[SharedMetadata]: {
+									fieldType: 'refField',
+								},
+							},
+						];
+					});
+
+					//* LINK_FIELDS: Adding default values and metadata to every linkField
+					val.linkFields = val.linkFields?.map((lf: LinkField | EnrichedLinkField) => ({
+						...lf,
+						[SharedMetadata]: {
+							fieldType: 'linkField',
+						},
+					}));
+
+					//* ROLE_FIELDS: Adding default values and metadata to every roleField
+					if ('roles' in val) {
+						val.roles = mapEntries(val.roles || {}, (roleKey, role) => {
+							return [
+								roleKey,
+								{
+									...role,
+									cardinality: role.cardinality || 'ONE',
+									[SharedMetadata]: {
+										fieldType: 'roleField',
+									},
+								},
+							];
+						});
+					}
 				}
+
 				if (value.extends) {
 					if (!value.defaultDBConnector.as) {
 						//todo: Check if we can add the "as" as default. When the path of the parent === name of the parent then it's fine. As would be used for those cases where they are not equal (same as path, which is needed only if different names)
@@ -128,6 +177,8 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 										dbPath: 'dbPath' in df ? df.dbPath : getDbPath(deepExtendedThing, df.path, df.shared), //i
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
+											...df[SharedMetadata],
+											//@ts-expect-error - Is normal because we are extending it here
 											inheritanceOrigin: df[SharedMetadata]?.inheritanceOrigin || value.extends,
 										},
 									};
@@ -148,6 +199,8 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 										inherited: true,
 										[SharedMetadata]: {
 											//@ts-expect-error - Is normal because we are extending it here
+											...role[SharedMetadata],
+											//@ts-expect-error - Is normal because we are extending it here
 											inheritanceOrigin: role[SharedMetadata]?.inheritanceOrigin || value.extends,
 										},
 									},
@@ -161,12 +214,40 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 						}
 					}
 
+					if ('refFields' in extendedSchema) {
+						const val = value as BormRelation | BormEntity;
+						const extendedThingSchema = extendedSchema as BormRelation | BormEntity;
+						if (extendedThingSchema.refFields) {
+							const extendedRefFields = mapEntries(extendedThingSchema.refFields, (refFieldKey, refField) => {
+								return [
+									refFieldKey,
+									{
+										...refField,
+										inherited: true,
+										[SharedMetadata]: {
+											//@ts-expect-error - Is normal because we are extending it here
+											...refField[SharedMetadata],
+											//@ts-expect-error - Is normal because we are extending it here
+											inheritanceOrigin: refField[SharedMetadata]?.inheritanceOrigin || value.extends,
+										},
+									},
+								];
+							});
+
+							val.refFields = {
+								...(val.refFields || {}),
+								...extendedRefFields,
+							};
+						}
+					}
+
 					value.linkFields = extendedSchema.linkFields
 						? (value.linkFields || []).concat(
 								extendedSchema.linkFields.map((lf) => ({
 									...lf,
 									inherited: true,
 									[SharedMetadata]: {
+										...lf[SharedMetadata],
 										inheritanceOrigin: lf[SharedMetadata]?.inheritanceOrigin || value.extends,
 									},
 								})),
@@ -268,7 +349,6 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 								`[Schema] The path ${linkField.path} is already in use by a dataField or linkField in ${val.name}. Path:${meta.nodePath}`,
 							);
 						}
-						linkField.fieldType = 'linkField';
 						const linkFieldRelation = withExtensionsSchema.relations[linkField.relation] as EnrichedBormRelation;
 
 						if (!linkField.isVirtual) {
@@ -367,6 +447,16 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 					});
 				}
 
+				if ('refFields' in value && value.refFields) {
+					value.refFields = mapEntries(value.refFields, (refFieldKey: string, refField: RefField) => {
+						const enrichedRefField = {
+							...refField,
+							dbPath: refField.dbPath || refFieldKey,
+						};
+						return [refFieldKey, enrichedRefField];
+					});
+				}
+
 				// adding all the linkFields to roles
 				if ('roles' in value) {
 					const val = value as EnrichedBormRelation;
@@ -381,8 +471,6 @@ export const enrichSchema = (schema: BormSchema, dbHandles: DBHandles): Enriched
 								`[Schema] The path ${roleKey} is already in use by a dataField or linkField in ${val.name}. Path:${meta.nodePath}`,
 							);
 						}
-						// eslint-disable-next-line no-param-reassign
-						role.fieldType = 'roleField';
 						const playedBy = allLinkedFields.filter((x) => x.relation === key && x.plays === roleKey) || [];
 						// Duplicating path to relation here and in normal linkfields as it is used in both places
 						role.playedBy = playedBy.map((lf) => ({
@@ -635,7 +723,7 @@ export const getFieldSchema = (
 	schema: EnrichedBormSchema,
 	node: Partial<BQLMutationBlock>,
 	field: string,
-): EnrichedDataField | EnrichedLinkField | EnrichedRoleField => {
+): EnrichedDataField | EnrichedLinkField | EnrichedRoleField | EnrichedRefField => {
 	const currentSchema = getCurrentSchema(schema, node);
 	const foundLinkField = currentSchema.linkFields?.find((lf) => lf.path === field);
 	if (foundLinkField) {
@@ -648,6 +736,10 @@ export const getFieldSchema = (
 	const foundRoleField = 'roles' in currentSchema ? currentSchema.roles?.[field] : undefined;
 	if (foundRoleField) {
 		return foundRoleField as EnrichedRoleField;
+	}
+	const foundRefField = 'refFields' in currentSchema ? currentSchema.refFields?.[field] : undefined;
+	if (foundRefField) {
+		return foundRefField as EnrichedRefField;
 	}
 	throw new Error(`Field ${field} not found in schema`);
 };
@@ -666,6 +758,7 @@ type ReturnTypeWithoutNode = {
 	dataFields: string[];
 	roleFields: string[];
 	linkFields: string[];
+	refFields: string[];
 };
 
 type ReturnTypeWithNode = ReturnTypeWithoutNode & {
@@ -673,6 +766,7 @@ type ReturnTypeWithNode = ReturnTypeWithoutNode & {
 	usedRoleFields: string[];
 	usedLinkFields: string[];
 	usedDataFields: string[];
+	usedRefFields: string[];
 	unidentifiedFields: string[];
 };
 
@@ -683,11 +777,13 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 ): T extends undefined ? ReturnTypeWithoutNode : ReturnTypeWithNode => {
 	const availableDataFields = currentSchema.dataFields?.map((x) => x.path) || [];
 	const availableLinkFields = currentSchema.linkFields?.map((x) => x.path) || [];
+	const availableRefFields = 'refFields' in currentSchema ? listify(currentSchema.refFields, (k: string) => k) : [];
 	const availableRoleFields = 'roles' in currentSchema ? listify(currentSchema.roles, (k: string) => k) : [];
 	const availableFields = [
 		...(availableDataFields || []),
 		...(availableLinkFields || []),
 		...(availableRoleFields || []),
+		...(availableRefFields || []),
 	];
 
 	// spot non existing fields
@@ -698,7 +794,7 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		'$tempId',
 		'$bzId',
 		'$relation',
-		'$parentKey', //todo: this is not a valid one, to delete!
+		'$parentKey', //todo: this is not a valid one, to delete and migrate to symbol!
 		'$filter',
 		'$fields',
 		'$excludedFields',
@@ -768,10 +864,12 @@ export const getCurrentFields = <T extends (BQLMutationBlock | RawBQLQuery) | un
 		dataFields: availableDataFields,
 		roleFields: availableRoleFields,
 		linkFields: availableLinkFields,
+		refFields: availableRefFields,
 		usedFields,
 		usedLinkFields: availableLinkFields.filter((x) => usedFields.includes(x)),
 		usedRoleFields: availableRoleFields.filter((x) => usedFields.includes(x)),
 		usedDataFields: availableDataFields.filter((x) => usedFields.includes(x)),
+		usedRefFields: availableRefFields.filter((x) => usedFields.includes(x)),
 		unidentifiedFields,
 		...(localFilterFields.length ? { localFilters } : {}),
 		...(nestedFilterFields.length ? { nestedFilters } : {}),
