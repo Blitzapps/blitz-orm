@@ -6,17 +6,23 @@
 
 - Feat: Reference fields and flexible reference fields that also admit dataFields. Limited version without complicated mutations or deeply nested mutations
 - Fix: several fixes
+- Breaking changes: $thing must be specified in some cases where it was optional, an error will be thrown when required
 
-## 0.11.26(2025-12-01)
+## 0.11.26(2024-11-13)
+
+- Fix: Replace SurrealPool with SimpleSurrealClient in various type definitions and type casts.
+
+## 0.11.25(2025-12-01)
 
 - Feat: Added safety checks for duplicated paths.
 - Feat: Replaces with $temp ids
 
 ## 0.11.24-25(2024-11-12)
 
+
 - Fix: Added dayjs and fixed some issues with FLEX values storing dateTime in iso.
 
-## 0.11.12-23(2024-11-12)
+## 0.11.24(2024-11-12)
 
 - Fix: Actions are now run one after each other properly.
 
