@@ -2,7 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.12.0(2025-05-02)
+## 0.12.1(2025-02-05)
+
+- Fix: lint and merge issues
+
+## 0.12.0(2025-02-05)
 
 - Feat: Reference fields and flexible reference fields that also admit dataFields. Limited version without complicated mutations or deeply nested mutations
 - Fix: several fixes
