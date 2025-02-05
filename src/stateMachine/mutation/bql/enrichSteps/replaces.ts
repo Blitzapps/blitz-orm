@@ -2,7 +2,7 @@
 import { isArray, isObject } from 'radash';
 import type { BQLMutationBlock, EnrichedLinkField, EnrichedRefField, EnrichedRoleField } from '../../../../types';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
-import { nanoid } from 'nanoid';
+import { genId } from '../../../../helpers';
 
 export const replaceToObj = (
 	node: BQLMutationBlock,
@@ -53,7 +53,7 @@ export const replaceToObj = (
 				{
 					...base,
 					$id: nonTempIds,
-					$bzId: `S_${nanoid()}`,
+					$bzId: `S_${genId()}`,
 				},
 			];
 		} else {
@@ -61,7 +61,7 @@ export const replaceToObj = (
 			node[field] = {
 				...base,
 				$id: node[field],
-				$bzId: `S_${nanoid()}`,
+				$bzId: `S_${genId()}`,
 			};
 		}
 	} else {

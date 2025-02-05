@@ -1,6 +1,6 @@
 import type { BormSchema, DataField } from '../../src/index';
 import { isArray, isObject } from 'radash';
-import { nanoid } from 'nanoid';
+import { genId } from '../../src/helpers';
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {
@@ -23,7 +23,7 @@ const timestamp: DataField = {
 const id: DataField = {
 	shared: true,
 	path: 'id',
-	default: { type: 'fn', fn: () => nanoid() },
+	default: { type: 'fn', fn: () => genId() },
 	validations: { required: true, unique: true },
 	contentType: 'ID',
 	rights: ['CREATE'],

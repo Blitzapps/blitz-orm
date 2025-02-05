@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs';
 import { SessionType, TransactionType, TypeDB } from 'typedb-driver';
-import { nanoid } from 'nanoid';
 
 import type { BormConfig, BormSchema, Provider, TypeDBProvider } from '../../src/index';
 import BormClient from '../../src/index';
+import { genId } from '../../src/helpers';
 
 export const setup = async (props: {
 	config: BormConfig;
@@ -44,7 +44,7 @@ const setupTypeDB = async (props: {
 	const { connector, schemaTqlPath, dataTqlPath } = props;
 	const schemaTql = schemaTqlPath && readFileSync(schemaTqlPath, 'utf8');
 	const dataTql = dataTqlPath && readFileSync(dataTqlPath, 'utf8');
-	const dbName = `${connector.dbName}_${nanoid(5)}`;
+	const dbName = `${connector.dbName}_${genId(5)}`;
 	const client = await TypeDB.coreDriver(connector.url);
 	await client.databases.create(dbName);
 
