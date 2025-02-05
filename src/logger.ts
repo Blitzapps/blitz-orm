@@ -1,63 +1,24 @@
-// customLogger.ts
+const LOG_LEVEL = new Set(
+	// eslint-disable-next-line turbo/no-undeclared-env-vars
+	(process.env.LOG_LEVEL || '')
+		.split(',')
+		.map((i) => i.trim())
+		.filter((i) => !!i),
+);
 
-import * as fs from 'fs';
+type LogLevel = 'debug' | 'info' | 'warning' | 'error';
 
-type LogEntry = {
-	readonly timestamp: string;
-	readonly data: ReadonlyArray<unknown>;
-};
-
-type LogFile = ReadonlyArray<LogEntry>;
-
-const LOG_FILE_PATH = 'logs.json';
-
-const readLogFile = (): LogFile => {
-	try {
-		return JSON.parse(fs.readFileSync(LOG_FILE_PATH, 'utf8'));
-	} catch {
-		return [];
+export const log = (level: LogLevel | LogLevel[], ...args: unknown[]) => {
+	const shouldLog = Array.isArray(level) ? level.some((l) => LOG_LEVEL.has(l)) : LOG_LEVEL.has(level);
+	if (shouldLog) {
+		console.log(...args);
 	}
 };
 
-const writeLogFile = (logs: LogFile): void => {
-	fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(logs, null, 2));
-};
+export const logDebug = (...args: unknown[]) => log('debug', ...args);
 
-const serializeValue = (value: unknown): unknown => {
-	if (typeof value === 'function') {
-		return `[Function: ${value.name || 'anonymous'}]`;
-	}
-	if (typeof value === 'symbol') {
-		return value.toString();
-	}
-	if (Array.isArray(value)) {
-		return value.map(serializeValue);
-	}
-	if (value && typeof value === 'object') {
-		return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, serializeValue(v)]));
-	}
-	return value;
-};
+export const logInfo = (...args: unknown[]) => log('info', ...args);
 
-const createLogEntry = (...args: unknown[]): LogEntry => ({
-	timestamp: new Date().toISOString(),
-	data: args.map(serializeValue),
-});
+export const logWarning = (...args: unknown[]) => log('warning', ...args);
 
-export const logger = (...args: unknown[]): void => {
-	//print them in the regular console as well
-	console.log(...args);
-
-	const logs = readLogFile();
-	const newEntry = createLogEntry(...args);
-	const updatedLogs = [...logs, newEntry];
-	writeLogFile(updatedLogs);
-
-	// Also log to console for immediate feedback
-	console.log(...args);
-};
-
-// Initialize the log file if it doesn't exist
-if (!fs.existsSync(LOG_FILE_PATH)) {
-	writeLogFile([]);
-}
+export const logError = (...args: unknown[]) => log('error', ...args);
