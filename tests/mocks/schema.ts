@@ -325,6 +325,13 @@ export const schema: BormSchema = {
 					plays: 'space',
 					target: 'relation',
 				},
+				{
+					path: 'flexRefRels',
+					cardinality: 'MANY',
+					relation: 'FlexRefRel',
+					plays: 'space',
+					target: 'relation',
+				},
 			],
 		},
 		Account: {
@@ -1138,6 +1145,32 @@ export const schema: BormSchema = {
 					},
 				],
 			},
+		},
+		'FlexRefRel': {
+			idFields: ['id'],
+			defaultDBConnector: { id: 'default', path: 'FlexRefRel' },
+			roles: {
+				space: { cardinality: 'ONE' },
+			},
+			refFields: {
+				reference: {
+					cardinality: 'ONE',
+					contentType: 'REF',
+				},
+				references: {
+					cardinality: 'MANY',
+					contentType: 'REF',
+				},
+				flexReference: {
+					cardinality: 'ONE',
+					contentType: 'FLEX',
+				},
+				flexReferences: {
+					cardinality: 'MANY',
+					contentType: 'FLEX',
+				},
+			},
+			dataFields: [{ ...id }],
 		},
 		'Employee': {
 			idFields: ['id'],

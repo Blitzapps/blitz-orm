@@ -123,6 +123,7 @@ export const parseBQLMutation = async (
 					dataFields: dataFieldPaths,
 					roleFields: roleFieldPaths,
 					linkFields: linkFieldPaths,
+					refFields: refFieldPaths,
 					usedFields,
 				} = getCurrentFields(currentThingSchema, value);
 
@@ -135,10 +136,11 @@ export const parseBQLMutation = async (
 						const usedDataFields = usedFields.filter((x: string) => dataFieldPaths?.includes(x));
 						const usedRoleFields = usedFields.filter((x: string) => roleFieldPaths?.includes(x));
 						const usedLinkFields = usedFields.filter((x: string) => linkFieldPaths?.includes(x));
+						const usedRefFields = usedFields.filter((x: string) => refFieldPaths?.includes(x));
 						if (usedDataFields.length > 0) {
 							return 'update';
 						}
-						if (usedRoleFields.length > 0 || usedLinkFields.length > 0) {
+						if (usedRoleFields.length > 0 || usedLinkFields.length > 0 || usedRefFields.length > 0) {
 							return 'match';
 						}
 						throw new Error(`No fields on an $op:"update" for node ${JSON.stringify(value)}`);

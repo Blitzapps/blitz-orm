@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.3(2025-02-06)
+
+- Fix: Fixed issues with reference fields
+- Note: Reference fields are not consistent with normal edgefields, and are always in replace mode
+- Tests: Added several tests for reference fields
+
 ## 0.12.2(2025-02-05)
 
 - Fix: nanoid dictionary issues

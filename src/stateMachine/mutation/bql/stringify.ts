@@ -73,6 +73,13 @@ const tField = (
 		tObject(schema, value, $thing);
 		return;
 	}
+
+	const refField = thing.refFields[key];
+	if (refField) {
+		//We can't know its thing beforehand
+		return;
+	}
+
 	if (thing.thingType === 'relation') {
 		const role = thing.roles[key];
 		// Assume a role can be played by only one thing.
