@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.4(2025-02-07)
+
+- Fix: Issue with special chars in string values in FLEX fields
+
 ## 0.12.3(2025-02-06)
 
 - Fix: Fixed issues with reference fields

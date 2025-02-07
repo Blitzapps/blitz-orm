@@ -1488,6 +1488,42 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 		]);
 	});
 
+	it('mv3[create, multiVal, specialChars] ', async () => {
+		await ctx.mutate(
+			{
+				$thing: 'Color',
+				id: 'mv3',
+				freeForAll: "it's",
+			},
+			{ noMetadata: true },
+		);
+
+		try {
+			const colors = await ctx.query(
+				{
+					$entity: 'Color',
+					$id: 'mv3',
+					$fields: ['id', 'freeForAll'],
+				},
+				{ noMetadata: true },
+			);
+
+			expect(deepSort(colors, 'id')).toEqual({
+				id: 'mv3',
+				freeForAll: "it's",
+			});
+		} finally {
+			await ctx.mutate(
+				{
+					$thing: 'Color',
+					$op: 'delete',
+					$id: 'mv3',
+				},
+				{ noMetadata: true },
+			);
+		}
+	});
+
 	it('n1[create, nested] nested', async () => {
 		await ctx.mutate(
 			{
