@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.5(2025-02-10)
+
+- Fix: Wrong assignation of $thing on some mutations
+- Feat: Prefixed strings can be used now in replaces to state the thing. This enables using the string version in refFields. Caution: Not working in other places and no breaking changes
+
 ## 0.12.4(2025-02-07)
 
 - Fix: Issue with special chars in string values in FLEX fields

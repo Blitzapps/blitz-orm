@@ -1369,6 +1369,16 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 			{ noMetadata: true },
 		);
 
+		//clean
+		await ctx.mutate(
+			{
+				$entity: 'Session',
+				$op: 'delete',
+				$filter: { sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4' },
+			},
+			{ noMetadata: true },
+		);
+
 		expect(sessions).toEqual([
 			{
 				expires: '2023-06-10T14:58:09.066Z',
@@ -2279,6 +2289,78 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 					name: 'myDataField',
 				},
 			],
+		});
+	});
+
+	it('pf1[prefix, lf] Prefixed linkfield tunnel', async () => {
+		await ctx.mutate(
+			{
+				$entity: 'Session',
+				user: 'God:god1',
+				expires: new Date('2023-06-10T14:58:09.066Z'),
+			},
+			{ noMetadata: true },
+		);
+
+		const sessions = await ctx.query(
+			{
+				$entity: 'Session',
+			},
+			{ noMetadata: true },
+		);
+
+		//clean
+		await ctx.mutate(
+			{
+				$entity: 'Session',
+				$op: 'delete',
+				$filter: { user: 'God:god1' }, //todo: Probably this does not work, we should add the feature and tests
+			},
+			{ noMetadata: true },
+		);
+
+		expect(sessions).toEqual([
+			{
+				expires: '2023-06-10T14:58:09.066Z',
+				id: expect.any(String),
+				user: 'god1',
+			},
+		]);
+	});
+
+	it('pf2[prefix, lf, wrong] Prefixed linkfield tunnel with wrong thing', async () => {
+		await ctx.mutate(
+			{
+				$entity: 'Session',
+				user: 'God:user1',
+				id: 'pf2-session',
+				expires: new Date('2023-06-10T14:58:09.066Z'),
+			},
+			{ noMetadata: true },
+		);
+
+		const sessions = await ctx.query(
+			{
+				$entity: 'Session',
+				$id: 'pf2-session',
+			},
+			{ noMetadata: true },
+		);
+
+		//clean
+		await ctx.mutate(
+			{
+				$entity: 'Session',
+				$op: 'delete',
+				$id: 'pf2-session',
+			},
+			{ noMetadata: true },
+		);
+
+		expect(sessions).toEqual({
+			expires: '2023-06-10T14:58:09.066Z',
+			id: expect.any(String),
+			user: undefined,
 		});
 	});
 });

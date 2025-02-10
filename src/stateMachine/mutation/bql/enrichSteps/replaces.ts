@@ -1,90 +1,101 @@
 /* eslint-disable no-param-reassign */
 import { isArray, isObject } from 'radash';
-import type { BQLMutationBlock, EnrichedLinkField, EnrichedRefField, EnrichedRoleField } from '../../../../types';
-import { getOppositePlayers } from '../shared/getOppositePlayers';
-import { genId } from '../../../../helpers';
+import type { BQLMutationBlock, EnrichedRefField } from '../../../../types';
 
-export const replaceToObj = (
-	node: BQLMutationBlock,
-	field: string,
-	fieldSchema: EnrichedLinkField | EnrichedRoleField,
-) => {
+type PrefixedResult = { isPrefixed: true; obj: { $thing: string; $id: string } } | { isPrefixed: false; obj: unknown };
+
+const prefixedToObj = (value: unknown): PrefixedResult => {
+	if (typeof value !== 'string') {
+		return { isPrefixed: false, obj: value };
+	}
+
+	const prefixMatch = value.match(/^(?!_:)([^:]+):([^:]+)$/);
+	if (!prefixMatch) {
+		return { isPrefixed: false, obj: value };
+	}
+
+	const [, $thing, $id] = prefixMatch;
+	return { isPrefixed: true, obj: { $thing, $id } };
+};
+
+export const replaceToObj = (node: BQLMutationBlock, field: string) => {
+	///Simplified so the only purpose of this function is to change strings to obj, but not assign BzIds or $things
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
 
-	/// Only objects, is fine
-	if (subNodes.every((child: unknown) => typeof child === 'object')) {
+	// If all elements are objects, return early (no transformation needed)
+	if (subNodes.every((child) => typeof child === 'object')) {
 		return;
-		///all strings, then we proceed to replace
-	} else if (subNodes.every((child: unknown) => typeof child === 'string')) {
-		const oppositePlayers = getOppositePlayers(field, fieldSchema);
-		const [player] = oppositePlayers;
+	}
 
-		//if parent === create, then is a link
-		const $op = node.$op === 'create' ? 'link' : 'replace';
-		const $thing = player.thing;
-		const $thingType = player.thingType;
-
-		//todo _: tempId included in the array, or as a single one of them
-
-		const base = {
-			$op,
-			$thing,
-			$thingType,
-		};
-
-		const tempIds = subNodes.filter((child: string) => child.startsWith('_:'));
-		const nonTempIds = subNodes.filter((child: string) => !child.startsWith('_:'));
-
-		if (tempIds.length && !nonTempIds.length) {
-			//only $tempIds
-			node[field] = tempIds.map((tempId: string) => ({
-				...base,
-				$tempId: tempId,
-				$bzId: tempId,
-			}));
-		} else if (tempIds.length && nonTempIds.length) {
-			//both
-			node[field] = [
-				...tempIds.map((tempId: string) => ({
-					...base,
-					$tempId: tempId,
-					$bzId: tempId,
-				})),
-				{
-					...base,
-					$id: nonTempIds,
-					$bzId: `S_${genId()}`,
-				},
-			];
-		} else {
-			//only $ids
-			node[field] = {
-				...base,
-				$id: node[field],
-				$bzId: `S_${genId()}`,
-			};
-		}
-	} else {
+	// Ensure all elements are strings or objects with "$op: replace"; otherwise, throw an error
+	if (
+		!subNodes.every(
+			(child) => typeof child === 'string' || (isObject(child) && '$op' in child && child.$op === 'replace'),
+		)
+	) {
 		throw new Error(
-			`[Mutation Error] Replace can only be used with a single id or an array of ids. (Field: ${field} Nodes: ${JSON.stringify(subNodes)} Parent: ${JSON.stringify(node, null, 2)})`,
+			`[Mutation Error] Replace can only be used with a single id, an array of ids, or objects with $op: replace. (Field: ${field} Nodes: ${JSON.stringify(subNodes)})`,
 		);
 	}
+
+	const $op = node.$op === 'create' ? 'link' : 'replace';
+
+	node[field] = subNodes.map((child) => {
+		if (typeof child === 'string') {
+			if (child.startsWith('_:')) {
+				return { $tempId: child, $op };
+			}
+
+			const { isPrefixed, obj } = prefixedToObj(child);
+			if (isPrefixed) {
+				return { ...obj, $op };
+			}
+
+			// Otherwise, it's a normal $id
+			return { $id: child, $op };
+		}
+		// If already an object with $op: replace, keep it as is
+		return child;
+	});
 };
 
 //todo: This is not doing any replaces, just checking the format, should be cleaned to do it
 export const replaceToObjRef = (node: BQLMutationBlock, field: string, fieldSchema: EnrichedRefField) => {
 	const subNodes = isArray(node[field]) ? node[field] : [node[field]];
-	if (fieldSchema.contentType === 'REF') {
-		if (subNodes.some((sn) => !isObject(sn))) {
+
+	const $op = node.$op === 'create' ? 'link' : 'replace';
+
+	return (node[field] = subNodes.map((child) => {
+		if (typeof child === 'string') {
+			if (child.startsWith('_:')) {
+				return { $tempId: child, $op };
+			}
+
+			const { isPrefixed, obj } = prefixedToObj(child);
+			if (isPrefixed) {
+				return { ...obj, $op };
+			}
+
+			if (fieldSchema.contentType === 'FLEX') {
+				// it's ok we just keep the string
+				return child;
+			}
+
 			throw new Error(
-				"[Wrong format] Field of contentType REF can't use strings as references", //future: unless they are prefixed
+				"[Wrong format] Field of contentType REF can't use strings as references unless they follow the format `$thing:$id`", //future: unless they are prefixed
 			);
 		}
-		return;
-	}
 
-	if (fieldSchema.contentType === 'FLEX') {
-		return;
-	}
-	throw new Error(`[Internal] Field ${field} is not a refField`);
+		if (typeof child === 'object' && '$thing' in child) {
+			return child; //this is ok as well
+		}
+
+		if (fieldSchema.contentType === 'FLEX') {
+			return child; //any other type is fine in FLEX too
+		}
+
+		throw new Error(
+			'[Wrong format] Field of contentType REF can use prefixed id strings, tempIds or objects indicating their $thing', //future: unless they are prefixed
+		);
+	}));
 };

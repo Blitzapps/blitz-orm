@@ -324,6 +324,64 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
 		expect(deepSort(res.references)).toEqual(['fl2rep-u3', 'fl2rep-u4']);
 	});
 
+	it('TODO{T}:fl2repShort[ref, many, replace, prefix] Replace existing using prefix', async () => {
+		// Create initial entity with references
+		await ctx.mutate(
+			[
+				{
+					$entity: 'FlexRef',
+					id: 'fl2repShort-ref1',
+					references: [
+						{ $thing: 'User', id: 'fl2repShort-u1', name: 'User 1' },
+						{ $thing: 'User', id: 'fl2repShort-u2', name: 'User 2' },
+					],
+				},
+				{ $op: 'create', $thing: 'User', id: 'fl2repShort-u3' }, //todo: find a cleaner way to do this
+				{ $op: 'create', $thing: 'User', id: 'fl2repShort-u4' },
+			],
+			{ noMetadata: true },
+		);
+
+		// Replace all references
+		await ctx.mutate(
+			[
+				{
+					$entity: 'FlexRef',
+					$id: 'fl2repShort-ref1',
+					references: ['User:fl2repShort-u3', 'User:fl2repShort-u4'],
+				},
+			],
+
+			{ noMetadata: true },
+		);
+
+		const res = (await ctx.query(
+			{
+				$entity: 'FlexRef',
+				$id: 'fl2repShort-ref1',
+				$fields: ['id', 'references'],
+			},
+			{ noMetadata: true },
+		)) as BQLResponseSingle;
+
+		// Clean up
+		await ctx.mutate([
+			{
+				$entity: 'FlexRef',
+				$op: 'delete',
+				$id: 'fl2repShort-ref1',
+			},
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: ['fl2repShort-u1', 'fl2repShort-u2', 'fl2repShort-u3', 'fl2repShort-u4'],
+			},
+		]);
+
+		expect(res).toBeDefined();
+		expect(deepSort(res.references)).toEqual(['fl2repShort-u3', 'fl2repShort-u4']);
+	});
+
 	// 1.2 FLEX
 	it('TODO{T}:fl3[ref, flex, one] Test ONE cardinality with FLEX type', async () => {
 		// Test with reference
@@ -702,6 +760,64 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
 
 		expect(res).toBeDefined();
 		expect(deepSort(res.references)).toEqual(['flr2rep-u3', 'flr2rep-u4']);
+	});
+
+	it('TODO{T}:flr2repShort[ref, many, replace, prefix] Replace existing relation references with prefixes', async () => {
+		// Create initial relation with references
+		await ctx.mutate(
+			[
+				{
+					$relation: 'FlexRefRel',
+					id: 'flr2repShort-ref1',
+					references: [
+						{ $thing: 'User', id: 'flr2repShort-u1', name: 'User 1' },
+						{ $thing: 'User', id: 'flr2repShort-u2', name: 'User 2' },
+					],
+					space: { id: 'flr2rep-space', name: 'flr2rep-space' },
+				},
+				{ $thing: 'User', id: 'flr2repShort-u3', name: 'User 3' },
+				{ $thing: 'User', id: 'flr2repShort-u4', name: 'User 4' },
+			],
+
+			{ noMetadata: true },
+		);
+		// Replace all references
+		await ctx.mutate(
+			{
+				$relation: 'FlexRefRel',
+				$id: 'flr2repShort-ref1',
+				references: ['User:flr2repShort-u3', 'User:flr2repShort-u4'],
+			},
+
+			{ noMetadata: true },
+		);
+
+		const res = (await ctx.query(
+			{
+				$relation: 'FlexRefRel',
+				$id: 'flr2repShort-ref1',
+				$fields: ['id', 'references'],
+			},
+			{ noMetadata: true },
+		)) as BQLResponseSingle;
+
+		// Clean up
+		await ctx.mutate([
+			{
+				$relation: 'FlexRefRel',
+				$op: 'delete',
+				$id: 'flr2repShort-ref1',
+				space: { $op: 'delete' },
+			},
+			{
+				$entity: 'User',
+				$op: 'delete',
+				$id: ['flr2repShort-u3', 'flr2repShort-u4', 'flr2repShort-u1', 'flr2repShort-u2'],
+			},
+		]);
+
+		expect(res).toBeDefined();
+		expect(deepSort(res.references)).toEqual(['flr2repShort-u3', 'flr2repShort-u4']);
 	});
 
 	// 2.2 FLEX
