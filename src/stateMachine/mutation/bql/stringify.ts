@@ -15,7 +15,7 @@ export const stringify = (
 	blocks: BQLMutationBlock | BQLMutationBlock[],
 	schema: EnrichedBormSchema,
 ): EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[] => {
-	const result = produce(blocks, (draft) => tObject(schema, draft));
+	const result = produce(blocks, (draft) => stringifyObject(schema, draft));
 	return result as EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[];
 };
 
@@ -24,7 +24,7 @@ export const stringify = (
  * is played by one thing, otherwise $thing, $relation, or $entity must be defined
  * in the mutation object.
  */
-const tObject = (
+const stringifyObject = (
 	schema: EnrichedBormSchema,
 	tree: Record<string, any> | string | (Record<string, any> | string)[],
 	$thing?: string,
@@ -34,7 +34,7 @@ const tObject = (
 		return;
 	}
 	if (Array.isArray(tree)) {
-		tree.forEach((i) => tObject(schema, i, $thing));
+		tree.forEach((i) => stringifyObject(schema, i, $thing));
 		return;
 	}
 	const thing = getSchemaByThing(schema, $thing || tree.$entity || tree.$relation || tree.$thing);
@@ -42,11 +42,11 @@ const tObject = (
 		if (k.startsWith('$') || k.startsWith('%')) {
 			return;
 		}
-		tField(schema, tree, k, thing);
+		stringifyField(schema, tree, k, thing);
 	});
 };
 
-const tField = (
+const stringifyField = (
 	schema: EnrichedBormSchema,
 	tree: Record<string, any>,
 	key: string,
@@ -70,26 +70,34 @@ const tField = (
 	const linkField = thing.linkFields?.find((f) => f.path === key);
 	if (linkField) {
 		const $thing = linkField.oppositeLinkFieldsPlayedBy[0]?.thing;
-		tObject(schema, value, $thing);
+		stringifyObject(schema, value, $thing);
 		return;
 	}
-
 	const refField = thing.refFields[key];
 	if (refField) {
-		//We can't know its thing beforehand
+		if (Array.isArray(value)) {
+			value.forEach((i) => {
+				if (typeof i === 'object' && i !== null && '$thing' in i) {
+					stringifyObject(schema, i, i.$thing);
+				}
+			});
+		} else {
+			if (typeof value === 'object' && value !== null && '$thing' in value) {
+				stringifyObject(schema, value, value.$thing);
+			}
+		}
 		return;
 	}
-
 	if (thing.thingType === 'relation') {
 		const role = thing.roles[key];
 		// Assume a role can be played by only one thing.
 		if (!role) {
-			throw new Error(`[Schema] Role ${key} in ${thing.name} is not defined`);
+			throw new Error(`[Schema] Role/link field ${key} in ${thing.name} is not defined`);
 		}
 		const [oppositeThing] = role.playedBy || [];
 		if (!oppositeThing) {
 			throw new Error(`Role ${role.path} in ${thing} is not played by anything`);
 		}
-		tObject(schema, value, oppositeThing.thing);
+		stringifyObject(schema, value, oppositeThing.thing);
 	}
 };
