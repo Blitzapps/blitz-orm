@@ -3,7 +3,7 @@ import { TypeDB, SessionType, TypeDBCredential } from 'typedb-driver';
 
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
-import { enrichSchema } from './helpers';
+import { enrichSchema } from './enrichSchema';
 import type {
 	AllDbHandles,
 	BQLMutation,
