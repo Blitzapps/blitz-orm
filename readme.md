@@ -72,7 +72,7 @@ book·title sub attribute, value string;
 
 You can find example mutations and queries in the tests
 There is no official documentation but you can check the draft RFC:
-https://www.notion.so/blitzapps/BlitzORM-RFC-eb4a5e1464754cd7857734eabdeaa73c
+https://lveillard.notion.site/BlitzORM-RFC-8b11f519fc464f86804259259c72bb19?pvs=4
 
 The RFC includes future features and is not updated so please keep an eye on the query and mutation tests as those are designed for the features already working.
 
