@@ -1,6 +1,6 @@
 // CommonJS require syntax
 
-import { enrichSchema } from '../../src/enrichSchemaNew';
+import { enrichSchema } from '../../src/enrichSchemaNew_NEW';
 import { schema } from './schema';
 import fs from 'fs';
 
