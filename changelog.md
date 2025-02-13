@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+
+## 0.12.6(2025-02-13)
+- Fix: 
+
 ## 0.12.5(2025-02-10)
 
 - Fix: Wrong assignation of $thing on some mutations

@@ -74,7 +74,7 @@ const tField = (
 		return;
 	}
 
-	const refField = thing.refFields[key];
+	const refField = 'refFields' in thing && thing.refFields[key];
 	if (refField) {
 		//We can't know its thing beforehand
 		return;

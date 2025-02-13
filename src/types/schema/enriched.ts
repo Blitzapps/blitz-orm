@@ -1,4 +1,4 @@
-import type { LinkedFieldWithThing, BormEntity, BormRelation, DBHandleKey } from '..';
+import type { LinkedFieldWithThing, BormEntity, BormRelation, DBHandleKey, Hooks } from '..';
 import type { AdapterContext } from '../../adapters';
 import type { SharedMetadata, SuqlMetadata } from '../symbols';
 import type { RoleField, DataField, LinkField, RefField } from './fields';
@@ -8,9 +8,11 @@ export type EnrichedBormSchema = {
 	relations: { [s: string]: EnrichedBormRelation };
 };
 
-type SharedEnrichedProps = {
+export type SharedEnrichedProps = {
 	name: string;
 	computedFields: string[];
+	extends?: string;
+	idFields: string[];
 	virtualFields: string[];
 	requiredFields: string[];
 	enumFields: string[];
@@ -22,18 +24,16 @@ type SharedEnrichedProps = {
 	dbContext: AdapterContext;
 	allExtends?: string[];
 	subTypes?: string[];
+	hooks?: Hooks;
 };
 
 export type EnrichedBormEntity = Omit<BormEntity, 'linkFields' | 'idFields' | 'dataFields'> & {
-	extends?: string;
 	thingType: 'entity';
-	idFields: string[];
 } & SharedEnrichedProps;
 
 export type EnrichedBormRelation = Omit<BormRelation, 'linkFields' | 'dataFields'> & {
 	thingType: 'relation';
 	roles: { [key: string]: EnrichedRoleField };
-	idFields: string[];
 } & SharedEnrichedProps;
 
 export type EnrichedRoleField = RoleField & {
@@ -53,7 +53,9 @@ export type EnrichedRoleField = RoleField & {
 };
 
 export type EnrichedRefField = RefField & {
+	path: string;
 	dbPath: string; //not inside any symbol because it could be configured by the user
+	inherited: boolean;
 	[SharedMetadata]: {
 		inheritanceOrigin?: string;
 		fieldType: 'refField';
@@ -62,6 +64,7 @@ export type EnrichedRefField = RefField & {
 
 export type EnrichedDataField = DataField & {
 	dbPath: string;
+	isIdField: boolean;
 	inherited: boolean;
 	[SharedMetadata]: {
 		inheritanceOrigin?: string;
@@ -74,7 +77,7 @@ export type EnrichedDataField = DataField & {
 
 //todo: remove all internal metadata and put them in Extension or SharedMetadata
 export type EnrichedLinkField = LinkField & {
-	name: string; // same as the key it has, maybe to rename to key
+	// name: string; // same as the key it has, maybe to rename to key
 	relation: string;
 	plays: string;
 	$things: string[]; //all potential candidates
