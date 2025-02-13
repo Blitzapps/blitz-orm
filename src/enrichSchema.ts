@@ -337,7 +337,6 @@ const enrichLinkField = (params: {
 }): EnrichedLinkField => {
 	const { linkField, thing, thingName, schema, allLinkFields } = params;
 	const linkFieldRelation = schema.relations[linkField.relation] as EnrichedBormRelation;
-	const todo = 'todo';
 
 	if (!linkField.isVirtual) {
 		//its ok for virtual linkFields to don't have a relation
@@ -358,7 +357,7 @@ const enrichLinkField = (params: {
 	if (linkField.target === 'relation') {
 		if (linkField.isVirtual) {
 			throw new Error(
-				`[Schema] Virtual linkFields can't target a relation. Thing: "${thingName}" LinkField: "${linkField.path}. Path:${todo}."`,
+				`[Schema] Virtual linkFields can't target a relation. Thing: "${thingName}" LinkField: "${linkField.path}."`,
 			);
 		}
 
@@ -389,7 +388,7 @@ const enrichLinkField = (params: {
 
 	if (oppositeLinkFieldsPlayedBy.length === 0) {
 		throw new Error(
-			`[Schema] LinkFields require to have at least one opposite linkField playing an opposite role. Thing: "${thingName}" LinkField: "${linkField.path}. Path:${todo}."`,
+			`[Schema] LinkFields require to have at least one opposite linkField playing an opposite role. Thing: "${thingName}" LinkField: "${linkField.path}."`,
 		);
 	}
 
@@ -427,16 +426,13 @@ const enrichRoleField = (params: {
 	allLinkFields: LinkedFieldWithThing[];
 }): EnrichedRoleField => {
 	const { role, roleName, relationName, relation, allExtends, allLinkFields } = params;
-	const todo = 'todo';
 
 	//Check if the key is used by linkFields or roleFields already
 	if (
 		relation.dataFields?.find((df) => df.path === roleName) ||
 		relation.linkFields?.find((lf) => lf.path === roleName)
 	) {
-		throw new Error(
-			`[Schema] The path ${roleName} is already in use by a dataField or linkField in ${relationName}. Path:${todo}`,
-		);
+		throw new Error(`[Schema] The path ${roleName} is already in use by a dataField or linkField in ${relationName}.`);
 	}
 	const playedBy = allLinkFields.filter((x) => x.relation === relationName && x.plays === roleName);
 
