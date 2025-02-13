@@ -490,6 +490,7 @@ const expandSubThings = (enrichedSchema: EnrichedBormSchema, things: string[]) =
 	return things.flatMap((i) => [i, ...((enrichedSchema.entities[i] ?? enrichedSchema.relations[i])?.subTypes ?? [])]);
 };
 
+//todo!: review line per line to ensure all behaviour has been migrated. Specially the errors and checks
 // /* eslint-disable no-param-reassign */
 // import { produce } from 'immer';
 // import type { TraversalCallbackContext } from 'object-traversal';
