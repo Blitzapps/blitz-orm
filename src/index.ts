@@ -35,111 +35,134 @@ enableMapSet();
 
 class BormClient {
 	private schema: BormSchema;
-
 	private config: BormConfig;
-
-	private dbHandles?: DBHandles;
+  private initializing = false;
+  private subscribers: ((err?: unknown) => void)[] = [];
+  private initialized: { enrichedSchema: EnrichedBormSchema; dbHandles: DBHandles } | null = null;
 
 	constructor({ schema, config }: BormProps) {
 		this.schema = schema;
 		this.config = config;
 	}
-	getDbHandles = () => this.dbHandles;
+
+	getDbHandles = () => this.initialized?.dbHandles;
+
+  private getInitialized = async () => {
+		if (this.initialized) {
+      return this.initialized;
+		}
+    await this.init();
+		if (this.initialized) {
+      return this.initialized;
+		}
+    throw new Error('Client is not initialized');
+  };
 
 	init = async () => {
+    if (this.initializing) {
+      return new Promise<void>((resolve, reject) => {
+        this.subscribers.push((err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    }
+
+    this.initializing = true;
 		const dbHandles: AllDbHandles = { typeDB: new Map(), surrealDB: new Map() };
-		await Promise.all(
-			this.config.dbConnectors.map(async (dbc) => {
-				if (dbc.provider === 'surrealDB') {
-					const client = new SimpleSurrealClient({
-						url: dbc.url,
-						username: dbc.username,
-						password: dbc.password,
-						namespace: dbc.namespace,
-						database: dbc.dbName,
-					});
-					// const pool = new SurrealPool({
-					// 	url: dbc.url,
-					// 	username: dbc.username,
-					// 	password: dbc.password,
-					// 	namespace: dbc.namespace,
-					// 	database: dbc.dbName,
-					// 	totalConnections: 8,
-					// });
-					dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
-				}
-				if (dbc.provider === 'typeDB' && dbc.dbName) {
-					// const client = await TypeDB.coreClient(dbc.url);
-					// const clientErr = undefined;
-					const [clientErr, client] = await tryit(TypeDB.coreDriver)(dbc.url);
-					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
-							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
-							clientErr.message ?? "Can't create TypeDB Client"
-						}`;
-						throw new Error(message);
-					}
-					try {
-						const session = await client.session(dbc.dbName, SessionType.DATA);
-						dbHandles.typeDB.set(dbc.id, { client, session });
-					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
-							// eslint-disable-next-line no-underscore-dangle
-							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
-						}`;
-						throw new Error(message);
-					}
-				}
-				if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
-					const credential = new TypeDBCredential(dbc.username, dbc.password, dbc.tlsRootCAPath);
-					const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, credential);
 
-					if (clientErr) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
-							// clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
-							clientErr.message ?? "Can't create TypeDB Cluster Client"
-						}`;
-						throw new Error(message);
-					}
-					try {
-						const session = await client.session(dbc.dbName, SessionType.DATA);
-						dbHandles.typeDB.set(dbc.id, { client, session });
-					} catch (sessionErr: any) {
-						const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
-							// eslint-disable-next-line no-underscore-dangle
-							(sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
-						}`;
-						throw new Error(message);
-					}
-				}
-			}),
-		);
-		const enrichedSchema = enrichSchema(this.schema, dbHandles);
+    try {
+      await Promise.all(
+        this.config.dbConnectors.map(async (dbc) => {
+          if (dbc.provider === 'surrealDB') {
+            const client = new SimpleSurrealClient({
+              url: dbc.url,
+              username: dbc.username,
+              password: dbc.password,
+              namespace: dbc.namespace,
+              database: dbc.dbName,
+            });
+            // const pool = new SurrealPool({
+            // 	url: dbc.url,
+            // 	username: dbc.username,
+            // 	password: dbc.password,
+            // 	namespace: dbc.namespace,
+            // 	database: dbc.dbName,
+            // 	totalConnections: 8,
+            // });
+            dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
+          } else if (dbc.provider === 'typeDB' && dbc.dbName) {
+            // const client = await TypeDB.coreClient(dbc.url);
+            // const clientErr = undefined;
+            const [clientErr, client] = await tryit(TypeDB.coreDriver)(dbc.url);
+            if (clientErr) {
+              const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
+                // clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
+                clientErr.message ?? "Can't create TypeDB Client"
+              }`;
+              throw new Error(message);
+            }
+            try {
+              const session = await client.session(dbc.dbName, SessionType.DATA);
+              dbHandles.typeDB.set(dbc.id, { client, session });
+            } catch (sessionErr: any) {
+              const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
+                // eslint-disable-next-line no-underscore-dangle
+                (sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
+              }`;
+              throw new Error(message);
+            }
+          } else if (dbc.provider === 'typeDBCluster' && dbc.dbName) {
+            const credential = new TypeDBCredential(dbc.username, dbc.password, dbc.tlsRootCAPath);
+            const [clientErr, client] = await tryit(TypeDB.cloudDriver)(dbc.addresses, credential);
 
-		this.schema = enrichedSchema as EnrichedBormSchema;
-		this.dbHandles = dbHandles;
-	};
+            if (clientErr) {
+              const message = `[BORM:${dbc.provider}:${dbc.dbName}:core] ${
+                // clientErr.messageTemplate?._messageBody() ?? "Can't create TypeDB Client"
+                clientErr.message ?? "Can't create TypeDB Cluster Client"
+              }`;
+              throw new Error(message);
+            }
+            try {
+              const session = await client.session(dbc.dbName, SessionType.DATA);
+              dbHandles.typeDB.set(dbc.id, { client, session });
+            } catch (sessionErr: any) {
+              const message = `[BORM:${dbc.provider}:${dbc.dbName}:session] ${
+                // eslint-disable-next-line no-underscore-dangle
+                (sessionErr.messageTemplate?._messageBody() || sessionErr.message) ?? "Can't create TypeDB Session"
+              }`;
+              throw new Error(message);
+            }
+          }
+        }),
+      );
 
-	#enforceConnection = async () => {
-		if (!this.dbHandles) {
-			await this.init();
-			if (!this.dbHandles) {
-				throw new Error("Can't init BormClient");
-			}
-		}
+      this.initialized = {
+        enrichedSchema: enrichSchema(this.schema, dbHandles),
+        dbHandles,
+      };
+      const subscribers = this.subscribers;
+      this.subscribers = [];
+      subscribers.forEach((s) => s());
+    } catch (e) {
+      const subscribers = this.subscribers;
+      this.subscribers = [];
+      subscribers.forEach((s) => s(e));
+    } finally {
+      this.initializing = false;
+    }
 	};
 
 	introspect = async () => {
-		await this.#enforceConnection();
-		return this.schema;
+		return (await this.getInitialized()).enrichedSchema;
 	};
 
 	define = async () => {
-		await this.#enforceConnection();
-		if (!this.dbHandles) {
-			throw new Error('dbHandles undefined');
-		}
-		const schemas = await bormDefine(this.config, this.schema as EnrichedBormSchema, this.dbHandles);
+    const initialized = await this.getInitialized();
+		const schemas = await bormDefine(this.config, initialized.enrichedSchema, initialized.dbHandles);
 		return schemas;
 	};
 
@@ -162,7 +185,7 @@ class BormClient {
 	// };
 
 	query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
-		await this.#enforceConnection();
+    const initialized = await this.getInitialized();
 
 		const qConfig = {
 			...this.config,
@@ -177,9 +200,9 @@ class BormClient {
 
 		const [errorRes, res] = await tryit(runQueryMachine)(
 			queries,
-			this.schema as EnrichedBormSchema,
+			initialized.enrichedSchema,
 			qConfig,
-			this.dbHandles as DBHandles,
+			initialized.dbHandles,
 		);
 		if (errorRes) {
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
@@ -195,7 +218,7 @@ class BormClient {
 	};
 
 	mutate = async (mutation: BQLMutation, mutationConfig?: MutationConfig) => {
-		await this.#enforceConnection();
+    const initialized = await this.getInitialized();
 		const mConfig = {
 			...this.config,
 			mutation: {
@@ -207,12 +230,11 @@ class BormClient {
 
 		const [errorRes, res] = await tryit(runMutationMachine)(
 			mutation,
-			this.schema as EnrichedBormSchema,
+			initialized.enrichedSchema,
 			mConfig,
-			this.dbHandles as DBHandles,
+			initialized.dbHandles,
 		);
 		if (errorRes) {
-			//console.error(errorRes.error.stack.split('\n').slice(0, 4).join('\n'));
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
 			const error = new Error(errorRes.error.message);
 			//@ts-expect-error - errorRes has error. Also no idea where the error: comes from
@@ -226,17 +248,21 @@ class BormClient {
 	};
 
 	close = async () => {
-		if (!this.dbHandles) {
+		if (!this.initialized) {
 			return;
 		}
 		//todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for instance
-		this.dbHandles.typeDB?.forEach(async ({ client, session }) => {
-			if (session.isOpen()) {
-				await session.close();
-			}
-			await client.close();
-		});
-		// TODO: Close SurrealDB clients.
+    try {
+      await Promise.all([...(this.initialized.dbHandles.typeDB?.values() ?? [])].map(async ({ client, session}) => {
+        if (session.isOpen()) {
+          await session.close();
+        }
+        await client.close();
+      }));
+      // TODO: Close SurrealDB clients.
+    } finally {
+      this.initialized = null;
+    }
 		// Currently there's no `close()` method in the client.
 		// See https://github.com/surrealdb/surrealdb.node/issues/36
 	};
