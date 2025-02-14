@@ -66,6 +66,7 @@ const errorTransition = transition(
 	'error',
 	'error',
 	reduce((ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => {
+		// console.log('\n> surrealDBMutationError\n', JSON.stringify({ schema: ctx.schema, enrichedBql: ctx.bql.enriched, flatBql: ctx.bql.flat }));
 		return {
 			...ctx,
 			error: event.error,

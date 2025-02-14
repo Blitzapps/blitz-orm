@@ -8,7 +8,7 @@ export default defineConfig({
 	target: 'esnext',
 	clean: true,
 	treeshake: true,
-	minify: true,
+	minify: false,
 	sourcemap: true,
 	esbuildOptions(options) {
 		// eslint-disable-next-line no-param-reassign

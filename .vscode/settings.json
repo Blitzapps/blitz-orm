@@ -63,12 +63,10 @@
 	},
 	"eslint.workingDirectories": [
 		{
-			"pattern": "./apps/*/"
+			"pattern": "./"
 		},
-		{
-			"pattern": "./packages/*/"
-		}
 	],
+	"eslint.debug": true,
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"files.exclude": {
 		"**/.git": true,
@@ -78,6 +76,5 @@
 		"**/.DS_Store": true,
 		"**/Thumbs.db": true,
 		"**/node_modules": true
-	},
-	"terminal.integrated.scrollback": 3000,
+	}
 }
