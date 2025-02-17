@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.12.7(2025-02-17)
+
+- Fix: Query filtered by single id
+
 ## 0.12.6(2025-02-13)
 
 - Fix: Fixed an issue that was creating multiple clients and adding noise in mutations and queries
