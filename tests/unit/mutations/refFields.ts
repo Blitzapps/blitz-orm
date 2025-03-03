@@ -1,5 +1,3 @@
-/* eslint-disable prefer-destructuring */
-
 import { expect, it } from 'vitest';
 import type { BQLResponseSingle } from '../../../src';
 import { createTest } from '../../helpers/createTest';
@@ -483,45 +481,45 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
     });
   });
 
-it('should not parse number in string format as date in refField', async () => {
-  await ctx.mutate(
-    {
-      $thing: 'FlexRef',
-      id: 'test-refField-string-number',
+  it('fl5:[ref, data] Should not parse number in string format as date in refField', async () => {
+    await ctx.mutate(
+      {
+        $thing: 'FlexRef',
+        id: 'fl5-refField-string-number',
+        flexReference: '8',
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $entity: 'FlexRef',
+        $id: 'fl5-refField-string-number',
+        $fields: ['id', 'flexReference'],
+      },
+      { noMetadata: true },
+    );
+
+    // Clean up
+    await ctx.mutate(
+      {
+        $thing: 'FlexRef',
+        $op: 'delete',
+        $id: 'fl5-refField-string-number',
+      },
+      { noMetadata: true },
+    );
+
+    expect(res).toEqual({
+      id: 'fl5-refField-string-number',
       flexReference: '8',
-    },
-    { noMetadata: true },
-  );
-
-  const res = await ctx.query(
-    {
-      $entity: 'FlexRef',
-      $id: 'test-refField-string-number',
-      $fields: ['id', 'flexReference'],
-    },
-    { noMetadata: true },
-  );
-
-  // Clean up
-  await ctx.mutate(
-    {
-      $thing: 'FlexRef',
-      $op: 'delete',
-      $id: 'test-refField-string-number',
-    },
-    { noMetadata: true },
-  );
-
-  expect(res).toEqual({
-    id: 'test-refField-string-number',
-    flexReference: '8',
+    });
   });
-});
 
   // 2.Relations
   // 2.1 REF
 
-  it('TODO{T}:fl1[ref, one, rel] Create relation with flexible values and read it', async () => {
+  it('TODO{T}:flr1[ref, one, rel] Create relation with flexible values and read it', async () => {
     /// cardinality ONE
     await ctx.mutate(
       {

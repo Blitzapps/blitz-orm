@@ -17,11 +17,7 @@ const prefixedToObj = (value: unknown): PrefixedResult => {
   if (standardPrefixMatch) {
     const [, $thing, id] = standardPrefixMatch;
 
-    if (id.startsWith('_:')) {
-      return { isPrefixed: true, obj: { $thing, $tempId: id } };
-    }
-
-    return { isPrefixed: true, obj: { $thing, $id: id } };
+    return { isPrefixed: true, obj: { $thing, ...(id.startsWith('_:') ? { $tempId: id } : { $id: id }) } };
   }
 
   return { isPrefixed: false, obj: value };
@@ -56,11 +52,11 @@ export const replaceToObj = (node: BQLMutationBlock, field: string) => {
 
       const { isPrefixed, obj } = prefixedToObj(child);
       if (isPrefixed) {
-        return { ...obj, $op, isPrefixed: undefined };
+        return { ...obj, $op };
       }
 
       // Otherwise, it's a normal $id
-      return { $id: child, $op, isPrefixed: undefined };
+      return { $id: child, $op };
     }
     // If already an object with $op: replace, keep it as is
     return child;
