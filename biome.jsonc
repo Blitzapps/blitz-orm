@@ -11,7 +11,8 @@
       "**/.turbo",
       "**/node_modules",
       "**/scripts",
-      "./src/stateMachine/robot3"
+      "./src/stateMachine/robot3",
+      "./tests/mocks/buildSchema.js"
     ]
   },
   "formatter": {
