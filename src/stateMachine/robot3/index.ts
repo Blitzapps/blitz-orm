@@ -1,21 +1,14 @@
-/* eslint-disable import/export */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable prefer-destructuring */
-/* eslint-disable no-param-reassign */
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable func-style */
-/* eslint-disable no-prototype-builtins */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
+// biome-ignore
 
 /**
  * TS Helpers
  */
 type NestedKeys<T> = T extends object
-	? {
-			[P in keyof T]-?: P extends string ? keyof T[P] : never;
-		}[keyof T]
-	: never;
+  ? {
+      [P in keyof T]-?: P extends string ? keyof T[P] : never;
+    }[keyof T]
+  : never;
 
 type AllStateKeys<T> = NestedKeys<T> | keyof T;
 
@@ -24,8 +17,8 @@ type AllStateKeys<T> = NestedKeys<T> | keyof T;
  * this function on every transition.
  */
 export const d: {
-	_onEnter?: OnEnterFunction<Machine>;
-} = {};
+  _onEnter?: OnEnterFunction<Machine>;
+} = Record<string, unknown>;
 
 /**
  * The `createMachine` function creates a state machine. It takes an object of *states* with the key being the state name.
@@ -35,10 +28,10 @@ export const d: {
  * @param states - An object of states, where each key is a state name, and the values are one of *state* or *invoke*.
  * @param context - A function that returns an object of extended state values. The function can receive an `event` argument.
  */
-export function createMachine<S = {}, C = {}>(
-	initial: keyof S,
-	states: { [K in keyof S]: MachineState },
-	context?: ContextFunction<C>,
+export function createMachine<S = Record<string, unknown>, C = Record<string, unknown>>(
+  initial: keyof S,
+  states: { [K in keyof S]: MachineState },
+  context?: ContextFunction<C>,
 ): Machine<typeof states, C, AllStateKeys<S>>;
 /**
  * The `createMachine` function creates a state machine. It takes an object of *states* with the key being the state name.
@@ -47,9 +40,9 @@ export function createMachine<S = {}, C = {}>(
  * @param states - An object of states, where each key is a state name, and the values are one of *state* or *invoke*.
  * @param context - A function that returns an object of extended state values. The function can receive an `event` argument.
  */
-export function createMachine<S = {}, C = {}>(
-	states: { [K in keyof S]: MachineState },
-	context?: ContextFunction<C>,
+export function createMachine<S = Record<string, unknown>, C = Record<string, unknown>>(
+  states: { [K in keyof S]: MachineState },
+  context?: ContextFunction<C>,
 ): Machine<typeof states, C, AllStateKeys<S>>;
 
 /**
@@ -67,9 +60,9 @@ export function state(...args: (Transition | Immediate)[]): MachineState;
  * @param args - Any extra argument will be evaluated to check if they are one of Reducer, Guard or Action.
  */
 export function transition<C, E>(
-	event: string,
-	state: string,
-	...args: (Reducer<C, E> | Guard<C, E> | Action<C, E>)[]
+  event: string,
+  state: string,
+  ...args: (Reducer<C, E> | Guard<C, E> | Action<C, E>)[]
 ): Transition;
 
 /**
@@ -112,10 +105,10 @@ export function action<C, E>(actionFunction?: ActionFunction<C, E>): Action<C, E
  * @param event The `event` can be any object. It is passed to the context function
  */
 export function interpret<M extends Machine, E>(
-	machine: M,
-	onChange?: InterpretOnChangeFunction<typeof machine>,
-	initialContext?: M['context'],
-	event?: { [K in keyof E]: any },
+  machine: M,
+  onChange?: InterpretOnChangeFunction<typeof machine>,
+  initialContext?: M['context'],
+  event?: { [K in keyof E]: any },
 ): Service<typeof machine>;
 
 /**
@@ -124,9 +117,9 @@ export function interpret<M extends Machine, E>(
  * @param fn - Promise-returning function
  * @param args - Any argument needs to be of type Transition or Immediate.
  */
-export function invoke<C, T, E extends {} = any>(
-	fn: (ctx: C, e?: E) => Promise<T>,
-	...args: (Transition | Immediate)[]
+export function invoke<C, T, E extends Record<string, unknown> = any>(
+  fn: (ctx: C, e?: E) => Promise<T>,
+  ...args: (Transition | Immediate)[]
 ): MachineState;
 
 /**
@@ -135,9 +128,9 @@ export function invoke<C, T, E extends {} = any>(
  * @param fn - Machine-returning function
  * @param args - Any argument needs to be of type Transition or Immediate.
  */
-export function invoke<C, E extends {} = any, M extends Machine>(
-	fn: (ctx: C, e?: E) => M,
-	...args: (Transition | Immediate)[]
+export function invoke<C, E extends Record<string, unknown> = any, M extends Machine>(
+  fn: (ctx: C, e?: E) => M,
+  ...args: (Transition | Immediate)[]
 ): MachineState;
 
 /**
@@ -174,275 +167,274 @@ export type SendFunction<T = SendEvent> = (event: T) => void;
  * @param event - event provoking the state change
  */
 export type OnEnterFunction<M extends Machine> = <C = M['state']>(
-	machine: M,
-	to: string,
-	state: C,
-	prevState: C,
-	event?: SendEvent,
+  machine: M,
+  to: string,
+  state: C,
+  prevState: C,
+  event?: SendEvent,
 ) => void;
 
-export type Machine<S = {}, C = {}, K = string> = {
-	context: C;
-	current: K;
-	states: S;
-	state: {
-		name: K;
-		value: MachineState;
-	};
+export type Machine<S = Record<string, unknown>, C = Record<string, unknown>, K = string> = {
+  context: C;
+  current: K;
+  states: S;
+  state: {
+    name: K;
+    value: MachineState;
+  };
 };
 
 export type Action<C, E> = {
-	fn: ActionFunction<C, E>;
+  fn: ActionFunction<C, E>;
 };
 
 export type Reducer<C, E> = {
-	fn: ReduceFunction<C, E>;
+  fn: ReduceFunction<C, E>;
 };
 
 export type Guard<C, E> = {
-	fn: GuardFunction<C, E>;
+  fn: GuardFunction<C, E>;
 };
 
 export interface MachineState {
-	final: boolean;
-	transitions: Map<string, Transition[]>;
-	immediates?: Map<string, Immediate[]>;
-	enter?: any;
+  final: boolean;
+  transitions: Map<string, Transition[]>;
+  immediates?: Map<string, Immediate[]>;
+  enter?: any;
 }
 
 export interface Transition {
-	from: string | null;
-	to: string;
-	guards: any[];
-	reducers: any[];
+  from: string | null;
+  to: string;
+  guards: any[];
+  reducers: any[];
 }
 
 export interface Service<M extends Machine> {
-	child?: Service<M>;
-	machine: M;
-	context: M['context'];
-	onChange: InterpretOnChangeFunction<M>;
-	send: SendFunction;
+  child?: Service<M>;
+  machine: M;
+  context: M['context'];
+  onChange: InterpretOnChangeFunction<M>;
+  send: SendFunction;
 }
 
 export type Immediate = Transition;
 
 function valueEnumerable(value) {
-	return { enumerable: true, value };
+  return { enumerable: true, value };
 }
 
 function valueEnumerableWritable(value) {
-	return { enumerable: true, writable: true, value };
+  return { enumerable: true, writable: true, value };
 }
 
 const truthy = () => true;
-const empty = () => ({});
+const empty = () => Record<string, unknown>;
 const identity = (a) => a;
 const callBoth = (par, fn, self, args) => par.apply(self, args) && fn.apply(self, args);
 const callForward = (par, fn, self, [a, b]) => fn.call(self, par.call(self, a, b), b);
 const create = (a, b) => Object.freeze(Object.create(a, b));
 
 function stack(fns, def, caller) {
-	return fns.reduce((par, fn) => {
-		return function (...args) {
-			return caller(par, fn, this, args);
-		};
-	}, def);
+  return fns.reduce((par, fn) => {
+    return function (...args) {
+      return caller(par, fn, this, args);
+    };
+  }, def);
 }
 
 function fnType(fn) {
-	return create(this, { fn: valueEnumerable(fn) });
+  return create(this, { fn: valueEnumerable(fn) });
 }
 
-const reduceType = {};
+const reduceType = Record<string, unknown>;
 export const reduce = fnType.bind(reduceType);
 export const action = (fn) => reduce((ctx, ev) => !!~fn(ctx, ev) && ctx);
 
-const guardType = {};
+const guardType = Record<string, unknown>;
 export const guard = fnType.bind(guardType);
 
 function filter(Type, arr) {
-	return arr.filter((value) => Type.isPrototypeOf(value));
+  return arr.filter((value) => Type.isPrototypeOf(value));
 }
 
 function makeTransition(from, to, ...args) {
-	const guards = stack(
-		filter(guardType, args).map((t) => t.fn),
-		truthy,
-		callBoth,
-	);
-	const reducers = stack(
-		filter(reduceType, args).map((t) => t.fn),
-		identity,
-		callForward,
-	);
-	return create(this, {
-		from: valueEnumerable(from),
-		to: valueEnumerable(to),
-		guards: valueEnumerable(guards),
-		reducers: valueEnumerable(reducers),
-	});
+  const guards = stack(
+    filter(guardType, args).map((t) => t.fn),
+    truthy,
+    callBoth,
+  );
+  const reducers = stack(
+    filter(reduceType, args).map((t) => t.fn),
+    identity,
+    callForward,
+  );
+  return create(this, {
+    from: valueEnumerable(from),
+    to: valueEnumerable(to),
+    guards: valueEnumerable(guards),
+    reducers: valueEnumerable(reducers),
+  });
 }
 
-const transitionType = {};
-const immediateType = {};
+const transitionType = Record<string, unknown>;
+const immediateType = Record<string, unknown>;
 export const transition = makeTransition.bind(transitionType);
 export const immediate = makeTransition.bind(immediateType, null);
 
 function enterImmediate(machine, service, event) {
-	return transitionTo(service, machine, event, this.immediates) || machine;
+  return transitionTo(service, machine, event, this.immediates) || machine;
 }
 
 function transitionsToMap(transitions) {
-	const m = new Map();
-	for (const t of transitions) {
-		if (!m.has(t.from)) {
-			m.set(t.from, []);
-		}
-		m.get(t.from).push(t);
-	}
-	return m;
+  const m = new Map();
+  for (const t of transitions) {
+    if (!m.has(t.from)) {
+      m.set(t.from, []);
+    }
+    m.get(t.from).push(t);
+  }
+  return m;
 }
 
 const stateType = { enter: identity };
 export function state(...args) {
-	const transitions = filter(transitionType, args);
-	const immediates = filter(immediateType, args);
-	const desc = {
-		final: valueEnumerable(args.length === 0),
-		transitions: valueEnumerable(transitionsToMap(transitions)),
-	};
-	if (immediates.length) {
-		desc.immediates = valueEnumerable(immediates);
-		desc.enter = valueEnumerable(enterImmediate);
-	}
-	return create(stateType, desc);
+  const transitions = filter(transitionType, args);
+  const immediates = filter(immediateType, args);
+  const desc = {
+    final: valueEnumerable(args.length === 0),
+    transitions: valueEnumerable(transitionsToMap(transitions)),
+  };
+  if (immediates.length) {
+    desc.immediates = valueEnumerable(immediates);
+    desc.enter = valueEnumerable(enterImmediate);
+  }
+  return create(stateType, desc);
 }
 
 const invokeFnType = {
-	enter(machine2, service, event) {
-		const rn = this.fn.call(service, service.context, event);
-		if (machine.isPrototypeOf(rn)) {
-			return create(invokeMachineType, {
-				machine: valueEnumerable(rn),
-				transitions: valueEnumerable(this.transitions),
-			}).enter(machine2, service, event);
-		}
-		rn.then((data) => service.send({ type: 'done', data })).catch((error) => service.send({ type: 'error', error }));
-		return machine2;
-	},
+  enter(machine2, service, event) {
+    const rn = this.fn.call(service, service.context, event);
+    if (machine.isPrototypeOf(rn)) {
+      return create(invokeMachineType, {
+        machine: valueEnumerable(rn),
+        transitions: valueEnumerable(this.transitions),
+      }).enter(machine2, service, event);
+    }
+    rn.then((data) => service.send({ type: 'done', data })).catch((error) => service.send({ type: 'error', error }));
+    return machine2;
+  },
 };
 const invokeMachineType = {
-	enter(machine, service, event) {
-		service.child = interpret(
-			this.machine,
-			(s) => {
-				service.onChange(s);
-				if (service.child == s && s.machine.state.value.final) {
-					delete service.child;
-					service.send({ type: 'done', data: s.context });
-				}
-			},
-			service.context,
-			event,
-		);
-		if (service.child.machine.state.value.final) {
-			const data = service.child.context;
-			delete service.child;
-			return transitionTo(service, machine, { type: 'done', data }, this.transitions.get('done'));
-		}
-		return machine;
-	},
+  enter(machine, service, event) {
+    service.child = interpret(
+      this.machine,
+      (s) => {
+        service.onChange(s);
+        if (service.child === s && s.machine.state.value.final) {
+          service.child = undefined;
+          service.send({ type: 'done', data: s.context });
+        }
+      },
+      service.context,
+      event,
+    );
+    if (service.child.machine.state.value.final) {
+      const data = service.child.context;
+      service.child = undefined;
+      return transitionTo(service, machine, { type: 'done', data }, this.transitions.get('done'));
+    }
+    return machine;
+  },
 };
 export function invoke(fn, ...transitions) {
-	const t = valueEnumerable(transitionsToMap(transitions));
-	return machine.isPrototypeOf(fn)
-		? create(invokeMachineType, {
-				machine: valueEnumerable(fn),
-				transitions: t,
-			})
-		: create(invokeFnType, {
-				fn: valueEnumerable(fn),
-				transitions: t,
-			});
+  const t = valueEnumerable(transitionsToMap(transitions));
+  return machine.isPrototypeOf(fn)
+    ? create(invokeMachineType, {
+        machine: valueEnumerable(fn),
+        transitions: t,
+      })
+    : create(invokeFnType, {
+        fn: valueEnumerable(fn),
+        transitions: t,
+      });
 }
 
 const machine = {
-	get state() {
-		return {
-			name: this.current,
-			value: this.states[this.current],
-		};
-	},
+  get state() {
+    return {
+      name: this.current,
+      value: this.states[this.current],
+    };
+  },
 };
 
 export function createMachine(current, states, contextFn = empty) {
-	if (typeof current !== 'string') {
-		contextFn = states || empty;
-		states = current;
-		current = Object.keys(states)[0];
-	}
-	if (d._create) {
-		d._create(current, states);
-	}
-	return create(machine, {
-		context: valueEnumerable(contextFn),
-		current: valueEnumerable(current),
-		states: valueEnumerable(states),
-	});
+  if (typeof current !== 'string') {
+    contextFn = states || empty;
+    states = current;
+    current = Object.keys(states)[0];
+  }
+  if (d._create) {
+    d._create(current, states);
+  }
+  return create(machine, {
+    context: valueEnumerable(contextFn),
+    current: valueEnumerable(current),
+    states: valueEnumerable(states),
+  });
 }
 
 function transitionTo(service, machine, fromEvent, candidates) {
-	const { context } = service;
-	for (const { to, guards, reducers } of candidates) {
-		if (guards(context, fromEvent)) {
-			service.context = reducers.call(service, context, fromEvent);
+  const { context } = service;
+  for (const { to, guards, reducers } of candidates) {
+    if (guards(context, fromEvent)) {
+      service.context = reducers.call(service, context, fromEvent);
 
-			const original = machine.original || machine;
-			const newMachine = create(original, {
-				current: valueEnumerable(to),
-				original: { value: original },
-			});
+      const original = machine.original || machine;
+      const newMachine = create(original, {
+        current: valueEnumerable(to),
+        original: { value: original },
+      });
 
-			if (d._onEnter) {
-				d._onEnter(machine, to, service.context, context, fromEvent);
-			}
-			const state = newMachine.state.value;
-			service.machine = newMachine;
-			service.onChange(service);
-			return state.enter(newMachine, service, fromEvent);
-		}
-	}
+      if (d._onEnter) {
+        d._onEnter(machine, to, service.context, context, fromEvent);
+      }
+      const state = newMachine.state.value;
+      service.machine = newMachine;
+      service.onChange(service);
+      return state.enter(newMachine, service, fromEvent);
+    }
+  }
 }
 
 function send(service, event) {
-	const eventName = event.type || event;
-	const { machine } = service;
-	const { value: state, name: currentStateName } = machine.state;
+  const eventName = event.type || event;
+  const { machine } = service;
+  const { value: state, name: currentStateName } = machine.state;
 
-	if (state.transitions.has(eventName)) {
-		return transitionTo(service, machine, event, state.transitions.get(eventName)) || machine;
-	} else {
-		if (d._send) {
-			d._send(eventName, currentStateName);
-		}
-	}
-	return machine;
+  if (state.transitions.has(eventName)) {
+    return transitionTo(service, machine, event, state.transitions.get(eventName)) || machine;
+  }
+  if (d._send) {
+    d._send(eventName, currentStateName);
+  }
+  return machine;
 }
 
 const service = {
-	send(event) {
-		send(this, event);
-	},
+  send(event) {
+    send(this, event);
+  },
 };
 
 export function interpret(machine, onChange, initialContext, event) {
-	const s = Object.create(service, {
-		machine: valueEnumerableWritable(machine),
-		context: valueEnumerableWritable(machine.context(initialContext, event)),
-		onChange: valueEnumerable(onChange),
-	});
-	s.send = s.send.bind(s);
-	s.machine = s.machine.state.value.enter(s.machine, s, event);
-	return s;
+  const s = Object.create(service, {
+    machine: valueEnumerableWritable(machine),
+    context: valueEnumerableWritable(machine.context(initialContext, event)),
+    onChange: valueEnumerable(onChange),
+  });
+  s.send = s.send.bind(s);
+  s.machine = s.machine.state.value.enter(s.machine, s, event);
+  return s;
 }

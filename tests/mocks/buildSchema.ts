@@ -1,8 +1,8 @@
 // CommonJS require syntax
 
+import fs from 'fs';
 import { enrichSchema } from '../../src/enrichSchema';
 import { schema } from './schema';
-import fs from 'fs';
 
 //@ts-expect-error - Exceptionally ok, used for types only
 const enrichedSchema = enrichSchema(schema, { typeDB: undefined, surrealDB: undefined });

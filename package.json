@@ -1,105 +1,97 @@
 {
-	"name": "@blitznocode/blitz-orm",
-	"version": "0.12.7",
-	"author": "blitznocode.com",
-	"description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
-	"main": "dist/index.mjs",
-	"module": "dist/index.mjs",
-	"types": "dist/index.d.ts",
-	"exports": {
-		".": {
-			"import": "./dist/index.mjs",
-			"types": "./dist/index.d.ts"
-		}
-	},
-	"scripts": {
-		"build": "tsup",
-		"dev": "tsup --watch --sourcemap",
-		"lint:check": "eslint src --quiet --ext .ts,.tsx",
-		"lint:fix": "eslint src --ext .ts,.tsx --fix",
-		"lint-staged": "lint-staged",
-		"precommit": "pnpm lint-staged && pnpm test:ignoreTodo",
-		"preinstall": "npx only-allow pnpm",
-		"prepare": "husky",
-		"pub": "pnpm build && pnpm publish",
-		"knip": "knip",
-		"bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
-		"bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/bench.sh tests/unit/bench",
-		"bench:typedb": "vitest bench typedb/bench",
-		"test": "./tests/test.sh --coverage",
-		"test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
-		"test:multidb": "./tests/test.sh multidb",
-		"test:query": "./tests/test.sh query.test.ts",
-		"test:surrealdb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[S].*}:).*\"",
-		"test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
-		"test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/queries/query.test.ts",
-		"test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/queries/query.test.ts",
-		"test:surrealdb-mutation:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/mutations",
-		"test:surrealdb-mutation:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/mutations",
-		"test:surrealdb-schema": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/schema",
-		"test:typedb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[T].*}:).*\" ",
-		"test:typedb-mutation": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/mutations",
-		"test:typedb-query": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/queries --watch",
-		"test:typedb-schema": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/schema",
-		"types": "tsc --noEmit",
-		"types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js"
-	},
-	"private": false,
-	"license": "AGPL-3.0-only",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Blitzapps/blitz-orm"
-	},
-	"files": [
-		"README.md",
-		"dist"
-	],
-	"engines": {
-		"node": ">=16.8.0"
-	},
-	"publishConfig": {
-		"registry": "https://registry.npmjs.org/"
-	},
-	"dependencies": {
-		"acorn": "^8.12.1",
-		"dayjs": "^1.11.13",
-		"dotenv": "^16.4.5",
-		"immer": "10.1.1",
-		"nanoid": "^5.0.7",
-		"object-traversal": "^1.0.1",
-		"radash": "^12.1.0",
-		"robot3": "^0.4.1",
-		"surrealdb": "^1.0.6",
-		"typedb-driver": "^2.28.6-rc0",
-		"uuid": "^10.0.0"
-	},
-	"devDependencies": {
-		"@blitznocode/eslint-config": "^1.1.0",
-		"@types/node": "^22.5.5",
-		"@types/uuid": "^10.0.0",
-		"@vitest/coverage-v8": "^2.1.1",
-		"cross-env": "^7.0.3",
-		"esbuild": "^0.23.1",
-		"eslint": "^8.57.0",
-		"husky": "^9.1.6",
-		"knip": "^5.30.2",
-		"lint-staged": "^15.2.10",
-		"only-allow": "^1.2.1",
-		"prettier": "^3.3.3",
-		"tsup": "^8.3.0",
-		"typescript": "^5.6.2",
-		"vitest": "^3.0.5"
-	},
-	"keywords": [
-		"ORM",
-		"database",
-		"graph-database"
-	],
-	"bugs": {
-		"url": "https://github.com/Blitzapps/blitz-orm/issues"
-	},
-	"homepage": "https://github.com/Blitzapps/blitz-orm#readme",
-	"directories": {
-		"test": "tests"
-	}
+  "name": "@blitznocode/blitz-orm",
+  "version": "0.12.7",
+  "author": "blitznocode.com",
+  "description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch --sourcemap",
+    "lint:check": "biome check --diagnostic-level=error",
+    "lint:fix": "biome check --write --unsafe",
+    "lint-staged": "lint-staged",
+    "precommit": "pnpm lint-staged && pnpm test:ignoreTodo",
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "husky",
+    "pub": "pnpm build && pnpm publish",
+    "knip": "knip",
+    "bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
+    "bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/bench.sh tests/unit/bench",
+    "bench:typedb": "vitest bench typedb/bench",
+    "test": "./tests/test.sh --coverage",
+    "test:ignoreTodo": "pnpm test:surrealdb-ignoreTodo && pnpm test:typedb-ignoreTodo && pnpm test:multidb",
+    "test:multidb": "./tests/test.sh multidb",
+    "test:query": "./tests/test.sh query.test.ts",
+    "test:surrealdb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[S].*}:).*\"",
+    "test:surrealdb-ignoreTodo:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit -t \"^(?!.*TODO{.*[S].*}:).*\"",
+    "test:surrealdb-query:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/queries/query.test.ts",
+    "test:surrealdb-query:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/queries/query.test.ts",
+    "test:surrealdb-mutation:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/test.sh tests/unit/mutations",
+    "test:surrealdb-mutation:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/mutations",
+    "test:surrealdb-schema": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/test.sh tests/unit/schema",
+    "test:typedb-ignoreTodo": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/allTests.test.ts -t \"^(?!.*TODO{.*[T].*}:).*\" ",
+    "test:typedb-mutation": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/mutations",
+    "test:typedb-query": "cross-env BORM_TEST_ADAPTER=typeDB vitest run tests/unit/queries --watch",
+    "test:typedb-schema": "cross-env BORM_TEST_ADAPTER=typeDB vitest run unit/schema",
+    "types": "tsc --noEmit",
+    "types:buildSchema": "npx esbuild tests/mocks/buildSchema.ts --bundle --loader:.ts=ts --platform=node --format=cjs --outfile=tests/mocks/buildSchema.js && node tests/mocks/buildSchema.js"
+  },
+  "private": false,
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Blitzapps/blitz-orm"
+  },
+  "files": ["README.md", "dist"],
+  "engines": {
+    "node": ">=16.8.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "acorn": "^8.12.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5",
+    "immer": "10.1.1",
+    "nanoid": "^5.0.7",
+    "object-traversal": "^1.0.1",
+    "radash": "^12.1.0",
+    "robot3": "^0.4.1",
+    "surrealdb": "^1.0.6",
+    "typedb-driver": "^2.28.6-rc0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.5.5",
+    "@types/uuid": "^10.0.0",
+    "@vitest/coverage-v8": "^2.1.1",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.23.1",
+    "husky": "^9.1.6",
+    "knip": "^5.30.2",
+    "lint-staged": "^15.2.10",
+    "only-allow": "^1.2.1",
+    "prettier": "^3.3.3",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.2",
+    "vitest": "^3.0.5"
+  },
+  "keywords": ["ORM", "database", "graph-database"],
+  "bugs": {
+    "url": "https://github.com/Blitzapps/blitz-orm/issues"
+  },
+  "homepage": "https://github.com/Blitzapps/blitz-orm#readme",
+  "directories": {
+    "test": "tests"
+  }
 }
