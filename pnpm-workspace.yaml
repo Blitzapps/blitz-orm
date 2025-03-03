@@ -1,2 +1,8 @@
 packages:
-  - 'src'
+  - src
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - bufferutil
+  - esbuild
+  - protobufjs
+  - utf-8-validate

@@ -5,91 +5,91 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { expect } from 'vitest';
 
-export const deepSort = <T>(obj: T, key: string = '$id'): T => {
-	if (typeof obj !== 'object' || obj === null) {
-		return obj;
-	}
+export const deepSort = <T>(obj: T, key = '$id'): T => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
 
-	const sorter = (a: unknown, b: unknown) => {
-		if (Array.isArray(a) || Array.isArray(b) || typeof a !== typeof b) {
-			// Don't sort an array of arrays or an array with different types.
-			return 0;
-		}
-		let aCmp;
-		let bCmp;
-		if (typeof a === 'object' && a !== null) {
-			aCmp = (a as Record<string, any>)[key];
-		} else {
-			aCmp = a;
-		}
-		if (typeof b === 'object' && b !== null) {
-			bCmp = (b as Record<string, any>)[key];
-		} else {
-			bCmp = b;
-		}
-		if (aCmp < bCmp) {
-			return -1;
-		}
-		if (aCmp > bCmp) {
-			return 1;
-		}
-		return 0;
-	};
+  const sorter = (a: unknown, b: unknown) => {
+    if (Array.isArray(a) || Array.isArray(b) || typeof a !== typeof b) {
+      // Don't sort an array of arrays or an array with different types.
+      return 0;
+    }
+    let aCmp: any;
+    let bCmp: any;
+    if (typeof a === 'object' && a !== null) {
+      aCmp = (a as Record<string, any>)[key];
+    } else {
+      aCmp = a;
+    }
+    if (typeof b === 'object' && b !== null) {
+      bCmp = (b as Record<string, any>)[key];
+    } else {
+      bCmp = b;
+    }
+    if (aCmp < bCmp) {
+      return -1;
+    }
+    if (aCmp > bCmp) {
+      return 1;
+    }
+    return 0;
+  };
 
-	if (Array.isArray(obj)) {
-		const newObj = obj.map((i) => deepSort(i, key));
-		return newObj.sort(sorter) as T;
-	}
+  if (Array.isArray(obj)) {
+    const newObj = obj.map((i) => deepSort(i, key));
+    return newObj.sort(sorter) as T;
+  }
 
-	if (typeof obj === 'object' && obj !== null) {
-		return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepSort(v, key)])) as T;
-	}
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepSort(v, key)])) as T;
+  }
 
-	return obj;
+  return obj;
 };
 
 export const deepRemoveMetaData = (obj: object) => {
-	const removeMeta = ({ value }: TraversalCallbackContext) => {
-		if (value && typeof value === 'object' && '$id' in value) {
-			const metas = Object.keys(value).filter((k) => k.startsWith('$'));
-			metas.forEach((k) => delete value[k]);
-			const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
-			symbols.forEach((s) => delete value[s]);
-		}
-		return value;
-	};
-	return produce(obj, (draft) => traverse(draft, removeMeta));
+  const removeMeta = ({ value }: TraversalCallbackContext) => {
+    if (value && typeof value === 'object' && '$id' in value) {
+      const metas = Object.keys(value).filter((k) => k.startsWith('$'));
+      metas.forEach((k) => delete value[k]);
+      const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
+      symbols.forEach((s) => delete value[s]);
+    }
+    return value;
+  };
+  return produce(obj, (draft) => traverse(draft, removeMeta));
 };
 
 const checkRecursive = <T>(obj: T): T => {
-	if (Array.isArray(obj)) {
-		return expect.arrayContaining(obj.map(checkRecursive)) as unknown as T;
-	}
-	if (typeof obj === 'object' && obj !== null) {
-		const newObj: { [key: string]: any } = {};
-		Object.entries(obj).forEach(([key, value]) => {
-			newObj[key] = checkRecursive(value);
-		});
-		return newObj as T;
-	}
-	return obj;
+  if (Array.isArray(obj)) {
+    return expect.arrayContaining(obj.map(checkRecursive)) as unknown as T;
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const newObj: { [key: string]: any } = {};
+    Object.entries(obj).forEach(([key, value]) => {
+      newObj[key] = checkRecursive(value);
+    });
+    return newObj as T;
+  }
+  return obj;
 };
 
 export const expectArraysInObjectToContainSameElements = <T extends any[]>(received: T, expected: T): void => {
-	if (Array.isArray(received)) {
-		expect(received.length).toEqual(expected.length);
-		expect(received).toEqual(expect.arrayContaining(expected.map(checkRecursive)));
-	} else if (typeof received === 'object' && received !== null) {
-		Object.entries(received).forEach(([key, value]) => {
-			// @ts-expect-error - TODO description
-			expectArraysInObjectToContainSameElements(value, expected[key as keyof typeof expected]);
-		});
-	} else {
-		if (typeof expected === 'string' && (expected as string).startsWith('$')) {
-			return;
-		}
-		expect(received).toEqual(expected);
-	}
+  if (Array.isArray(received)) {
+    expect(received.length).toEqual(expected.length);
+    expect(received).toEqual(expect.arrayContaining(expected.map(checkRecursive)));
+  } else if (typeof received === 'object' && received !== null) {
+    Object.entries(received).forEach(([key, value]) => {
+      // @ts-expect-error - TODO description
+      expectArraysInObjectToContainSameElements(value, expected[key as keyof typeof expected]);
+    });
+  } else {
+    if (typeof expected === 'string' && (expected as string).startsWith('$')) {
+      return;
+    }
+    expect(received).toEqual(expected);
+  }
 };
 
 export const expectResLikeTemplate = () => {};

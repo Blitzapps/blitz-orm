@@ -1,47 +1,47 @@
-import type { DBConnector, DataField, LinkField, RoleField, EnrichedBQLMutationBlock, RefField } from '..';
+import type { DBConnector, DataField, EnrichedBQLMutationBlock, LinkField, RefField, RoleField } from '..';
 
 export type BormSchema = {
-	entities: { [s: string]: BormEntity };
-	relations: { [s: string]: BormRelation };
+  entities: { [s: string]: BormEntity };
+  relations: { [s: string]: BormRelation };
 };
 
 export type BormEntity =
-	| {
-			extends: string; //if extends, the rest are optional
-			idFields?: readonly string[];
-			defaultDBConnector: DBConnector; // at least one default connector
-			dataFields?: readonly DataField[];
-			linkFields?: readonly LinkField[];
-			refFields?: { [key: string]: RefField };
-			hooks?: Hooks;
-	  }
-	| {
-			idFields: readonly string[];
-			defaultDBConnector: DBConnector; // at least one default connector
-			dataFields?: readonly DataField[];
-			linkFields?: readonly LinkField[];
-			refFields?: { [key: string]: RefField };
-			hooks?: Hooks;
-	  };
+  | {
+      extends: string; //if extends, the rest are optional
+      idFields?: readonly string[];
+      defaultDBConnector: DBConnector; // at least one default connector
+      dataFields?: readonly DataField[];
+      linkFields?: readonly LinkField[];
+      refFields?: { [key: string]: RefField };
+      hooks?: Hooks;
+    }
+  | {
+      idFields: readonly string[];
+      defaultDBConnector: DBConnector; // at least one default connector
+      dataFields?: readonly DataField[];
+      linkFields?: readonly LinkField[];
+      refFields?: { [key: string]: RefField };
+      hooks?: Hooks;
+    };
 
 export type BormRelation = BormEntity & {
-	defaultDBConnector: DBConnector & { path: string }; /// mandatory in relations
-	roles?: { [key: string]: RoleField };
+  defaultDBConnector: DBConnector & { path: string }; /// mandatory in relations
+  roles?: { [key: string]: RoleField };
 };
 
 export type BormOperation = 'create' | 'update' | 'delete' | 'link' | 'unlink' | 'replace' | 'match';
 export type BormTrigger = 'onCreate' | 'onUpdate' | 'onDelete' | 'onLink' | 'onUnlink' | 'onReplace' | 'onMatch';
 
 export type Hooks = {
-	pre?: readonly PreHook[];
-	//post?: PostHook[];
+  pre?: readonly PreHook[];
+  //post?: PostHook[];
 };
 
 export type PreHook = {
-	triggers?: {
-		[K in BormTrigger]?: () => boolean;
-	};
-	actions: readonly Action[];
+  triggers?: {
+    [K in BormTrigger]?: () => boolean;
+  };
+  actions: readonly Action[];
 };
 
 //export type PostHook = any;
@@ -49,20 +49,20 @@ export type PreHook = {
 export type Action = { name?: string; description?: string } & (TransFormAction | ValidateAction);
 
 export type NodeFunctionParams = [
-	currentNode: EnrichedBQLMutationBlock,
-	parentNode: EnrichedBQLMutationBlock,
-	context: Record<string, any>,
-	dbNode: EnrichedBQLMutationBlock | Record<string, never>,
+  currentNode: EnrichedBQLMutationBlock,
+  parentNode: EnrichedBQLMutationBlock,
+  context: Record<string, any>,
+  dbNode: EnrichedBQLMutationBlock | Record<string, never>,
 ];
 
 export type TransFormAction = {
-	type: 'transform';
-	fn: (...args: NodeFunctionParams) => Partial<EnrichedBQLMutationBlock>;
+  type: 'transform';
+  fn: (...args: NodeFunctionParams) => Partial<EnrichedBQLMutationBlock>;
 };
 
 export type ValidateAction = {
-	type: 'validate';
-	fn: (...args: NodeFunctionParams) => boolean;
-	severity: 'error' | 'warning' | 'info';
-	message: string;
+  type: 'validate';
+  fn: (...args: NodeFunctionParams) => boolean;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
 };

@@ -1,107 +1,104 @@
-import type { PipelineOperation, BQLResponseSingle, BormConfig, Request } from '../../../../../types';
 import { produce } from 'immer';
-import type { SurrealDbResponse, EnrichedBqlQuery } from '../../../types/base';
+import type { BQLResponseSingle, BormConfig, PipelineOperation, Request } from '../../../../../types';
+import type { EnrichedBqlQuery, SurrealDbResponse } from '../../../types/base';
 
 // expecting mutation, therefore disable reassign rule here
 /* eslint-disable no-param-reassign */
 const processNull = (config: BormConfig, obj: Record<string, unknown>) => {
-	for (const key in obj) {
-		const value = obj[key];
+  for (const key in obj) {
+    const value = obj[key];
 
-		if (config.query?.returnNulls) {
-			if (Array.isArray(value) && value.length === 0) {
-				obj[key] = null;
-				continue;
-			}
-		} else {
-			if (value === null) {
-				delete obj[key];
-				continue;
-			}
+    if (config.query?.returnNulls) {
+      if (Array.isArray(value) && value.length === 0) {
+        obj[key] = null;
+      }
+    } else {
+      if (value === null) {
+        delete obj[key];
+        continue;
+      }
 
-			if (Array.isArray(value) && value.length === 0) {
-				delete obj[key];
-				continue;
-			}
-		}
-	}
+      if (Array.isArray(value) && value.length === 0) {
+        delete obj[key];
+      }
+    }
+  }
 };
 
 const cleanUpObj = ({
-	config,
-	item,
-	query,
-	schema,
+  config,
+  item,
+  query,
+  schema,
 }: {
-	schema: Request['schema'];
-	query: EnrichedBqlQuery;
-	config: BormConfig;
-	item: BQLResponseSingle;
+  schema: Request['schema'];
+  query: EnrichedBqlQuery;
+  config: BormConfig;
+  item: BQLResponseSingle;
 }) => {
-	const thingSchema = schema[query.$thingType === 'entity' ? 'entities' : 'relations'][query['$thing']];
+  const thingSchema = schema[query.$thingType === 'entity' ? 'entities' : 'relations'][query.$thing];
 
-	processNull(config, item);
+  processNull(config, item);
 
-	// INTERNAL SYMBOLS
-	Object.getOwnPropertySymbols(item).forEach((symbol) => {
-		delete item[symbol];
-	});
+  // INTERNAL SYMBOLS
+  Object.getOwnPropertySymbols(item).forEach((symbol) => {
+    delete item[symbol];
+  });
 
-	/// USER FACING METADATA
-	if (config.query?.noMetadata === true) {
-		// eslint-disable-next-line no-param-reassign
-		Object.keys(item).forEach((k: string) => {
-			if (k.startsWith('$')) {
-				delete item[k];
-			}
-		});
-	}
+  /// USER FACING METADATA
+  if (config.query?.noMetadata === true) {
+    // eslint-disable-next-line no-param-reassign
+    Object.keys(item).forEach((k: string) => {
+      if (k.startsWith('$')) {
+        delete item[k];
+      }
+    });
+  }
 
-	// filter out id
-	if (query.$idNotIncluded) {
-		const idField = thingSchema.idFields?.[0];
-		delete item[idField ?? 'id'];
-	}
+  // filter out id
+  if (query.$idNotIncluded) {
+    const idField = thingSchema.idFields?.[0];
+    delete item[idField ?? 'id'];
+  }
 };
 
-/* eslint-enable no-param-reassign */
-
+//@ts-expect-error todo: fix this
 export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, res) => {
-	const { config, enrichedBqlQuery, schema } = req;
-	const { bqlRes } = res;
+  const { config, enrichedBqlQuery, schema } = req;
+  const { bqlRes } = res;
 
-	if (!bqlRes) {
-		return;
-	}
+  if (!bqlRes) {
+    return;
+  }
 
-	const querySet = enrichedBqlQuery as Array<EnrichedBqlQuery>;
+  const querySet = enrichedBqlQuery as Array<EnrichedBqlQuery>;
 
-	// TODO handle batch queries
-	if (querySet.length > 1) {
-		throw new Error('batch query unimplemented');
-	}
+  // TODO handle batch queries
+  if (querySet.length > 1) {
+    throw new Error('batch query unimplemented');
+  }
 
-	const [query] = enrichedBqlQuery;
+  const [query] = enrichedBqlQuery;
 
-	const cleanedMetadata = produce(bqlRes, (payload) => {
-		if (Array.isArray(payload)) {
-			for (const item of payload) {
-				cleanUpObj({
-					config,
-					item,
-					query,
-					schema,
-				});
-			}
-		} else {
-			cleanUpObj({
-				config,
-				item: payload,
-				query,
-				schema,
-			});
-		}
-	});
+  const cleanedMetadata = produce(bqlRes, (payload) => {
+    if (Array.isArray(payload)) {
+      for (const item of payload) {
+        cleanUpObj({
+          config,
+          item,
+          query,
+          schema,
+        });
+      }
+    } else {
+      cleanUpObj({
+        config,
+        item: payload,
+        query,
+        schema,
+      });
+    }
+  });
 
-	res.bqlRes = cleanedMetadata;
+  res.bqlRes = cleanedMetadata;
 };

@@ -1,5 +1,5 @@
 export const revertTqlTx = () => {
-	const result = {};
+  const result = {};
 
-	return result;
+  return result;
 };

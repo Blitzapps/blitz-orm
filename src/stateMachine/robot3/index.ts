@@ -1,11 +1,3 @@
-/* eslint-disable import/export */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable prefer-destructuring */
-/* eslint-disable no-param-reassign */
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable func-style */
-/* eslint-disable no-prototype-builtins */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 
 /**

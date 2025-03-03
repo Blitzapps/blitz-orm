@@ -1,5 +1,5 @@
 export const commitTqlTx = () => {
-	const result = {};
+  const result = {};
 
-	return result;
+  return result;
 };

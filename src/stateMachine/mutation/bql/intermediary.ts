@@ -5,17 +5,17 @@ import { traverse } from 'object-traversal';
 import type { EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
 
 export const addIntermediaryRelationsBQLMutation = (
-	blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
-	schema: EnrichedBormSchema,
+  blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
+  schema: EnrichedBormSchema,
 ) => {
-	const rootBlock = { $root: { $subRoot: blocks } };
-	const result = produce(rootBlock, (draft) =>
-		traverse(draft, ({ value: val, parent, key }: TraversalCallbackContext) => {
-			if (parent || val || key || schema) {
-				return;
-			}
-		}),
-	);
+  const rootBlock = { $root: { $subRoot: blocks } };
+  const result = produce(rootBlock, (draft) =>
+    traverse(draft, ({ value: val, parent, key }: TraversalCallbackContext) => {
+      if (parent || val || key || schema) {
+        return;
+      }
+    }),
+  );
 
-	return result.$root.$subRoot;
+  return result.$root.$subRoot;
 };

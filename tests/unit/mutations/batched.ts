@@ -1,555 +1,555 @@
-import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
-import { createTest } from '../../helpers/createTest';
 import { expect, it } from 'vitest';
+import { createTest } from '../../helpers/createTest';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
 export const testBatchedMutation = createTest('Mutations: batched and tempId', (ctx) => {
-	it('c0-lfr[link, create, linkfield-role] Simple tempIds', async () => {
-		await ctx.mutate([
-			{
-				$entity: 'User',
-				name: 'Hanna',
-				email: 'hanna@test.ru',
-				accounts: [{ $op: 'link', $tempId: '_:acc-c0' }],
-			},
-			{
-				$tempId: '_:acc-c0',
-				$op: 'create',
-				$entity: 'Account',
-				provider: 'MetaMask',
-			},
-		]);
+  it('c0-lfr[link, create, linkfield-role] Simple tempIds', async () => {
+    await ctx.mutate([
+      {
+        $entity: 'User',
+        name: 'Hanna',
+        email: 'hanna@test.ru',
+        accounts: [{ $op: 'link', $tempId: '_:acc-c0' }],
+      },
+      {
+        $tempId: '_:acc-c0',
+        $op: 'create',
+        $entity: 'Account',
+        provider: 'MetaMask',
+      },
+    ]);
 
-		const user = await ctx.query(
-			{ $entity: 'User', $filter: { name: 'Hanna' }, $fields: ['name', 'email', { $path: 'accounts' }] },
-			{ noMetadata: true },
-		);
-		expect(user).toBeDefined();
-		expect(user).toEqual([
-			{
-				name: 'Hanna',
-				email: 'hanna@test.ru',
-				accounts: [
-					{
-						id: expect.any(String),
-						provider: 'MetaMask',
-						isSecureProvider: false,
-						user: expect.any(String),
-					},
-				],
-			},
-		]);
+    const user = await ctx.query(
+      { $entity: 'User', $filter: { name: 'Hanna' }, $fields: ['name', 'email', { $path: 'accounts' }] },
+      { noMetadata: true },
+    );
+    expect(user).toBeDefined();
+    expect(user).toEqual([
+      {
+        name: 'Hanna',
+        email: 'hanna@test.ru',
+        accounts: [
+          {
+            id: expect.any(String),
+            provider: 'MetaMask',
+            isSecureProvider: false,
+            user: expect.any(String),
+          },
+        ],
+      },
+    ]);
 
-		// clean
-		await ctx.mutate([
-			{
-				$entity: 'User',
-				$filter: { name: 'Hanna' },
-				$op: 'delete',
-				accounts: [{ $op: 'delete' }],
-			},
-		]);
-	});
+    // clean
+    await ctx.mutate([
+      {
+        $entity: 'User',
+        $filter: { name: 'Hanna' },
+        $op: 'delete',
+        accounts: [{ $op: 'delete' }],
+      },
+    ]);
+  });
 
-	it('c0-rf[link, create, roleField] Simple tempIds', async () => {
-		await ctx.mutate([
-			{
-				$relation: 'UserTag',
-				id: 'c0-tag',
-				group: [{ $op: 'link', $tempId: '_:group-c0' }],
-				users: [{ $thing: 'User', name: 'c0-rf-user' }],
-			},
-			{
-				$tempId: '_:group-c0',
-				$op: 'create',
-				$relation: 'UserTagGroup',
-			},
-		]);
+  it('c0-rf[link, create, roleField] Simple tempIds', async () => {
+    await ctx.mutate([
+      {
+        $relation: 'UserTag',
+        id: 'c0-tag',
+        group: [{ $op: 'link', $tempId: '_:group-c0' }],
+        users: [{ $thing: 'User', name: 'c0-rf-user' }],
+      },
+      {
+        $tempId: '_:group-c0',
+        $op: 'create',
+        $relation: 'UserTagGroup',
+      },
+    ]);
 
-		const UserTag = await ctx.query(
-			{ $relation: 'UserTag', $id: 'c0-tag', $fields: ['id', { $path: 'group' }] },
-			{ noMetadata: true },
-		);
-		expect(UserTag).toBeDefined();
-		expect(UserTag).toEqual({
-			id: 'c0-tag',
-			group: {
-				id: expect.any(String),
-				tags: ['c0-tag'],
-			},
-		});
-	});
+    const UserTag = await ctx.query(
+      { $relation: 'UserTag', $id: 'c0-tag', $fields: ['id', { $path: 'group' }] },
+      { noMetadata: true },
+    );
+    expect(UserTag).toBeDefined();
+    expect(UserTag).toEqual({
+      id: 'c0-tag',
+      group: {
+        id: expect.any(String),
+        tags: ['c0-tag'],
+      },
+    });
+  });
 
-	it('c1[multi, create, link] Simple tempIds', async () => {
-		const res = await ctx.mutate([
-			{
-				$entity: 'User',
-				name: 'Peter',
-				email: 'Peter@test.ru',
-				accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
-			},
-			{
-				$tempId: '_:acc1',
-				$op: 'create',
-				$entity: 'Account',
-				provider: 'MetaMask',
-			},
-		]);
+  it('c1[multi, create, link] Simple tempIds', async () => {
+    const res = await ctx.mutate([
+      {
+        $entity: 'User',
+        name: 'Peter',
+        email: 'Peter@test.ru',
+        accounts: [{ provider: 'google' }, { $op: 'link', $tempId: '_:acc1' }],
+      },
+      {
+        $tempId: '_:acc1',
+        $op: 'create',
+        $entity: 'Account',
+        provider: 'MetaMask',
+      },
+    ]);
 
-		const peter = await ctx.query(
-			{
-				$entity: 'User',
-				$fields: ['id', { $path: 'accounts', $fields: ['id', 'provider'] }],
-				$filter: { name: 'Peter' },
-			},
-			{ noMetadata: true },
-		);
+    const peter = await ctx.query(
+      {
+        $entity: 'User',
+        $fields: ['id', { $path: 'accounts', $fields: ['id', 'provider'] }],
+        $filter: { name: 'Peter' },
+      },
+      { noMetadata: true },
+    );
 
-		expect(peter).toBeDefined();
-		expect(peter).toEqual([
-			{
-				id: expect.any(String),
-				accounts: [
-					{
-						id: expect.any(String),
-						provider: 'google',
-					},
-					{
-						id: expect.any(String),
-						provider: 'MetaMask',
-					},
-				],
-			},
-		]);
+    expect(peter).toBeDefined();
+    expect(peter).toEqual([
+      {
+        id: expect.any(String),
+        accounts: [
+          {
+            id: expect.any(String),
+            provider: 'google',
+          },
+          {
+            id: expect.any(String),
+            provider: 'MetaMask',
+          },
+        ],
+      },
+    ]);
 
-		const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
+    const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
 
-		const account = await ctx.query({ $entity: 'Account', $id: acc1Id });
-		expect(account).toBeDefined();
-		expect(account).toEqual({
-			$thing: 'Account',
-			$thingType: 'entity',
-			$id: acc1Id,
-			id: acc1Id,
-			provider: 'MetaMask',
-			isSecureProvider: false,
-			// expect any string as the user id is generated by the server
-			user: expect.any(String),
-		});
-	});
+    const account = await ctx.query({ $entity: 'Account', $id: acc1Id });
+    expect(account).toBeDefined();
+    expect(account).toEqual({
+      $thing: 'Account',
+      $thingType: 'entity',
+      $id: acc1Id,
+      id: acc1Id,
+      provider: 'MetaMask',
+      isSecureProvider: false,
+      // expect any string as the user id is generated by the server
+      user: expect.any(String),
+    });
+  });
 
-	it('c1r[multi, create, link] nested tempIds in relation', async () => {
-		const res = await ctx.mutate([
-			{
-				$relation: 'UserTagGroup',
-				$op: 'create',
-				$tempId: '_:utg1',
-			},
-			{
-				$relation: 'UserTag',
-				name: 'hey',
-				users: [{ $thing: 'User', name: 'toDelete' }],
-				group: { $tempId: '_:utg1', $op: 'link' },
-			},
-		]);
+  it('c1r[multi, create, link] nested tempIds in relation', async () => {
+    const res = await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'create',
+        $tempId: '_:utg1',
+      },
+      {
+        $relation: 'UserTag',
+        name: 'hey',
+        users: [{ $thing: 'User', name: 'toDelete' }],
+        group: { $tempId: '_:utg1', $op: 'link' },
+      },
+    ]);
 
-		const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
+    const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
 
-		const utg = await ctx.query({
-			$relation: 'UserTagGroup',
-			$id: utg1Id,
-			$fields: ['id', { $path: 'tags', $fields: ['id', 'name', 'users'] }],
-		});
-		expect(utg).toBeDefined();
-		expect(utg).toEqual({
-			$thing: 'UserTagGroup',
-			$thingType: 'relation',
-			$id: utg1Id,
-			id: utg1Id,
-			tags: [
-				{
-					$id: expect.any(String),
-					$thing: 'UserTag',
-					$thingType: 'relation',
-					id: expect.any(String),
-					name: 'hey',
-					users: [expect.any(String)],
-				},
-			],
-		});
-	});
+    const utg = await ctx.query({
+      $relation: 'UserTagGroup',
+      $id: utg1Id,
+      $fields: ['id', { $path: 'tags', $fields: ['id', 'name', 'users'] }],
+    });
+    expect(utg).toBeDefined();
+    expect(utg).toEqual({
+      $thing: 'UserTagGroup',
+      $thingType: 'relation',
+      $id: utg1Id,
+      id: utg1Id,
+      tags: [
+        {
+          $id: expect.any(String),
+          $thing: 'UserTag',
+          $thingType: 'relation',
+          id: expect.any(String),
+          name: 'hey',
+          users: [expect.any(String)],
+        },
+      ],
+    });
+  });
 
-	it('c2[multi, create, link] Nested tempIds simple', async () => {
-		const res = await ctx.mutate([
-			{
-				$entity: 'Account',
-				provider: 'Facebook',
-				user: {
-					$tempId: '_:bea',
-					$thing: 'User',
-					$op: 'link',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Google',
-				user: {
-					$thing: 'User',
-					$op: 'create', // atm we need to indicate 'create' whrn using $tempId
-					$tempId: '_:bea',
-					name: 'Bea',
-					email: 'bea@gmail.com',
-				},
-			},
-		]);
-		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
+  it('c2[multi, create, link] Nested tempIds simple', async () => {
+    const res = await ctx.mutate([
+      {
+        $entity: 'Account',
+        provider: 'Facebook',
+        user: {
+          $tempId: '_:bea',
+          $thing: 'User',
+          $op: 'link',
+        },
+      },
+      {
+        $entity: 'Account',
+        provider: 'Google',
+        user: {
+          $thing: 'User',
+          $op: 'create', // atm we need to indicate 'create' whrn using $tempId
+          $tempId: '_:bea',
+          name: 'Bea',
+          email: 'bea@gmail.com',
+        },
+      },
+    ]);
+    const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
 
-		const res2 = await ctx.query(
-			{
-				$entity: 'User',
-				$id: beaId,
-				$fields: ['id', 'name', 'email', { $path: 'accounts', $fields: ['provider'] }],
-			},
-			{ noMetadata: true },
-		);
+    const res2 = await ctx.query(
+      {
+        $entity: 'User',
+        $id: beaId,
+        $fields: ['id', 'name', 'email', { $path: 'accounts', $fields: ['provider'] }],
+      },
+      { noMetadata: true },
+    );
 
-		expect(res2).toBeDefined();
-		expect(res2).toEqual({
-			id: beaId,
-			name: 'Bea',
-			email: 'bea@gmail.com',
-			accounts: [{ provider: 'Facebook' }, { provider: 'Google' }],
-		});
-		// delete all
-		await ctx.mutate([
-			{
-				$entity: 'User',
-				$id: beaId, // not "bea" as before
-				$op: 'delete',
-				accounts: [{ $op: 'delete' }],
-			},
-		]);
-	});
+    expect(res2).toBeDefined();
+    expect(res2).toEqual({
+      id: beaId,
+      name: 'Bea',
+      email: 'bea@gmail.com',
+      accounts: [{ provider: 'Facebook' }, { provider: 'Google' }],
+    });
+    // delete all
+    await ctx.mutate([
+      {
+        $entity: 'User',
+        $id: beaId, // not "bea" as before
+        $op: 'delete',
+        accounts: [{ $op: 'delete' }],
+      },
+    ]);
+  });
 
-	it('c2r[multi, create, link] nested tempIds in relation', async () => {
-		const res = await ctx.mutate([
-			{
-				$relation: 'UserTagGroup',
-				$tempId: '_:utg1',
-				$op: 'create',
-				color: { id: 'darkGreen' },
-				tags: [{ id: 'tggege', users: [{ $op: 'create', $thing: 'User', $tempId: '_:us' }] }],
-			},
-			{
-				$relation: 'UserTag',
-				id: 'deletableTag',
-				name: 'hey',
-				users: [{ $tempId: '_:us', $op: 'link', $thing: 'User' }],
-				group: { $tempId: '_:utg1', $op: 'link', $thing: 'UserTagGroup' }, // todo => group: '_:utg1'
-			},
-		]);
+  it('c2r[multi, create, link] nested tempIds in relation', async () => {
+    const res = await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $tempId: '_:utg1',
+        $op: 'create',
+        color: { id: 'darkGreen' },
+        tags: [{ id: 'tggege', users: [{ $op: 'create', $thing: 'User', $tempId: '_:us' }] }],
+      },
+      {
+        $relation: 'UserTag',
+        id: 'deletableTag',
+        name: 'hey',
+        users: [{ $tempId: '_:us', $op: 'link', $thing: 'User' }],
+        group: { $tempId: '_:utg1', $op: 'link', $thing: 'UserTagGroup' }, // todo => group: '_:utg1'
+      },
+    ]);
 
-		const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
-		const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
+    const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
+    const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
 
-		const user = await ctx.query(
-			{
-				$entity: 'User',
-				$id: usId,
-				$fields: ['id', 'name', { $path: 'user-tags', $fields: ['color', 'group', 'users', 'name'] }],
-			},
-			{ noMetadata: true },
-		);
-		expect(user).toBeDefined();
+    const user = await ctx.query(
+      {
+        $entity: 'User',
+        $id: usId,
+        $fields: ['id', 'name', { $path: 'user-tags', $fields: ['color', 'group', 'users', 'name'] }],
+      },
+      { noMetadata: true },
+    );
+    expect(user).toBeDefined();
 
-		const expectedUser = {
-			'id': usId,
-			'name': 'toDelete',
-			'user-tags': [
-				{
-					color: 'darkGreen',
-					group: utg1Id,
-					users: [usId],
-				},
-				{
-					color: 'darkGreen',
-					name: 'hey',
-					group: utg1Id,
-					users: [usId],
-				},
-			],
-		};
-		// @ts-expect-error - TODO description
-		expectArraysInObjectToContainSameElements(user, expectedUser);
+    const expectedUser = {
+      id: usId,
+      name: 'toDelete',
+      'user-tags': [
+        {
+          color: 'darkGreen',
+          group: utg1Id,
+          users: [usId],
+        },
+        {
+          color: 'darkGreen',
+          name: 'hey',
+          group: utg1Id,
+          users: [usId],
+        },
+      ],
+    };
+    // @ts-expect-error - TODO description
+    expectArraysInObjectToContainSameElements(user, expectedUser);
 
-		// clean
+    // clean
 
-		await ctx.mutate([
-			{
-				$entity: 'User',
-				$id: usId,
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTagGroup',
-				$id: utg1Id,
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTag',
-				$id: 'tggege',
-				$op: 'delete',
-			},
-			{
-				$relation: 'UserTag',
-				$id: 'deletableTag',
-				$op: 'delete',
-			},
-		]);
-	});
+    await ctx.mutate([
+      {
+        $entity: 'User',
+        $id: usId,
+        $op: 'delete',
+      },
+      {
+        $relation: 'UserTagGroup',
+        $id: utg1Id,
+        $op: 'delete',
+      },
+      {
+        $relation: 'UserTag',
+        $id: 'tggege',
+        $op: 'delete',
+      },
+      {
+        $relation: 'UserTag',
+        $id: 'deletableTag',
+        $op: 'delete',
+      },
+    ]);
+  });
 
-	it('c3[multi, create, link] Nested tempIds triple', async () => {
-		const res = await ctx.mutate([
-			{
-				$entity: 'Account',
-				provider: 'Facebook',
-				user: {
-					$tempId: '_:bea',
-					$thing: 'User',
-					$op: 'link',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Metamask',
-				user: {
-					$tempId: '_:bea',
-					$thing: 'User',
-					$op: 'link',
-				},
-			},
-			{
-				$entity: 'Account',
-				provider: 'Google',
-				user: {
-					$thing: 'User',
-					$op: 'create', // atm we need to indicate 'create' whrn using $tempId
-					$tempId: '_:bea',
-					name: 'Bea',
-					email: 'bea@gmail.com',
-				},
-			},
-		]);
-		const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
+  it('c3[multi, create, link] Nested tempIds triple', async () => {
+    const res = await ctx.mutate([
+      {
+        $entity: 'Account',
+        provider: 'Facebook',
+        user: {
+          $tempId: '_:bea',
+          $thing: 'User',
+          $op: 'link',
+        },
+      },
+      {
+        $entity: 'Account',
+        provider: 'Metamask',
+        user: {
+          $tempId: '_:bea',
+          $thing: 'User',
+          $op: 'link',
+        },
+      },
+      {
+        $entity: 'Account',
+        provider: 'Google',
+        user: {
+          $thing: 'User',
+          $op: 'create', // atm we need to indicate 'create' whrn using $tempId
+          $tempId: '_:bea',
+          name: 'Bea',
+          email: 'bea@gmail.com',
+        },
+      },
+    ]);
+    const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
 
-		const res2 = await ctx.query({ $entity: 'User', $id: beaId });
-		expect(res2).toBeDefined();
-		expect(res2).toEqual({
-			$thing: 'User',
-			$thingType: 'entity',
-			$id: beaId,
-			id: beaId,
-			name: 'Bea',
-			email: 'bea@gmail.com',
-			accounts: [expect.any(String), expect.any(String), expect.any(String)],
-		});
-		// delete all
-		await ctx.mutate([
-			{
-				$entity: 'User',
-				$id: beaId,
-				$op: 'delete',
-				accounts: [{ $op: 'delete' }],
-			},
-		]);
-	});
+    const res2 = await ctx.query({ $entity: 'User', $id: beaId });
+    expect(res2).toBeDefined();
+    expect(res2).toEqual({
+      $thing: 'User',
+      $thingType: 'entity',
+      $id: beaId,
+      id: beaId,
+      name: 'Bea',
+      email: 'bea@gmail.com',
+      accounts: [expect.any(String), expect.any(String), expect.any(String)],
+    });
+    // delete all
+    await ctx.mutate([
+      {
+        $entity: 'User',
+        $id: beaId,
+        $op: 'delete',
+        accounts: [{ $op: 'delete' }],
+      },
+    ]);
+  });
 
-	it('c4[multi, create, link] Complex tempIds', async () => {
-		await ctx.mutate([
-			{
-				$thing: 'User',
-				name: 'PeterC4',
-				email: 'Peter@test.ru',
-				accounts: [
-					{ provider: 'google', $op: 'create' },
-					{ $op: 'create', $tempId: '_:acc1', provider: 'facebook' },
-				],
-			},
-			{
-				$tempId: '_:us1',
-				$op: 'create',
-				$entity: 'User',
-				name: 'Bob',
-			},
-			{
-				$entity: 'User',
-				name: 'Bea',
-				accounts: [
-					{ provider: 'facebook' },
-					{ $tempId: '_:gh1', $op: 'link', $thing: 'Account' },
-					// { $op: 'link', $filter: { provider: 'google' } },
-				],
-			},
-			{
-				$entity: 'Account',
-				provider: 'Microsoft',
-				user: { $thing: 'User', name: 'Carla' },
-			},
-			{
-				$tempId: '_:gh1',
-				$op: 'create',
-				$entity: 'Account',
-				provider: 'github',
-			},
-			{
-				$entity: 'Account',
-				$tempId: '_:mm',
-				$op: 'create',
-				provider: 'metamask',
-			},
-			{
-				$relation: 'User-Accounts',
-				accounts: [{ $tempId: '_:mm', $op: 'link' }],
-				user: { $tempId: '_:us1', $op: 'link', $thing: 'User' },
-			},
-		]);
+  it('c4[multi, create, link] Complex tempIds', async () => {
+    await ctx.mutate([
+      {
+        $thing: 'User',
+        name: 'PeterC4',
+        email: 'Peter@test.ru',
+        accounts: [
+          { provider: 'google', $op: 'create' },
+          { $op: 'create', $tempId: '_:acc1', provider: 'facebook' },
+        ],
+      },
+      {
+        $tempId: '_:us1',
+        $op: 'create',
+        $entity: 'User',
+        name: 'Bob',
+      },
+      {
+        $entity: 'User',
+        name: 'Bea',
+        accounts: [
+          { provider: 'facebook' },
+          { $tempId: '_:gh1', $op: 'link', $thing: 'Account' },
+          // { $op: 'link', $filter: { provider: 'google' } },
+        ],
+      },
+      {
+        $entity: 'Account',
+        provider: 'Microsoft',
+        user: { $thing: 'User', name: 'Carla' },
+      },
+      {
+        $tempId: '_:gh1',
+        $op: 'create',
+        $entity: 'Account',
+        provider: 'github',
+      },
+      {
+        $entity: 'Account',
+        $tempId: '_:mm',
+        $op: 'create',
+        provider: 'metamask',
+      },
+      {
+        $relation: 'User-Accounts',
+        accounts: [{ $tempId: '_:mm', $op: 'link' }],
+        user: { $tempId: '_:us1', $op: 'link', $thing: 'User' },
+      },
+    ]);
 
-		const userAndAccounts = await ctx.query(
-			{
-				$entity: 'User',
-				$fields: ['name', { $path: 'accounts', $fields: ['provider'] }],
-				//@ts-expect-error Filter types are not correct yet //todo
-				$filter: [{ name: 'Bea' }, { name: 'Bob' }, { name: 'PeterC4' }],
-			},
-			{ noMetadata: true },
-		);
+    const userAndAccounts = await ctx.query(
+      {
+        $entity: 'User',
+        $fields: ['name', { $path: 'accounts', $fields: ['provider'] }],
+        //@ts-expect-error Filter types are not correct yet //todo
+        $filter: [{ name: 'Bea' }, { name: 'Bob' }, { name: 'PeterC4' }],
+      },
+      { noMetadata: true },
+    );
 
-		expect(userAndAccounts).toBeDefined();
-		expect(deepSort(userAndAccounts, 'name')).toMatchObject([
-			{
-				name: 'Bea',
-				accounts: expect.arrayContaining([
-					expect.objectContaining({ provider: 'facebook' }),
-					expect.objectContaining({ provider: 'github' }),
-				]),
-			},
-			{ name: 'Bob', accounts: [{ provider: 'metamask' }] },
-			{
-				name: 'PeterC4',
-				accounts: expect.arrayContaining([
-					expect.objectContaining({ provider: 'facebook' }),
-					expect.objectContaining({ provider: 'google' }),
-				]),
-			},
-		]);
-	});
+    expect(userAndAccounts).toBeDefined();
+    expect(deepSort(userAndAccounts, 'name')).toMatchObject([
+      {
+        name: 'Bea',
+        accounts: expect.arrayContaining([
+          expect.objectContaining({ provider: 'facebook' }),
+          expect.objectContaining({ provider: 'github' }),
+        ]),
+      },
+      { name: 'Bob', accounts: [{ provider: 'metamask' }] },
+      {
+        name: 'PeterC4',
+        accounts: expect.arrayContaining([
+          expect.objectContaining({ provider: 'facebook' }),
+          expect.objectContaining({ provider: 'google' }),
+        ]),
+      },
+    ]);
+  });
 
-	it('c5[multi, create, link] tempIds in extended relation', async () => {
-		const [res1] = await ctx.mutate([
-			{
-				$entity: 'Space',
-				$tempId: '_:Personal',
-				$op: 'create',
-				name: 'Personal',
-			},
-		]);
+  it('c5[multi, create, link] tempIds in extended relation', async () => {
+    const [res1] = await ctx.mutate([
+      {
+        $entity: 'Space',
+        $tempId: '_:Personal',
+        $op: 'create',
+        name: 'Personal',
+      },
+    ]);
 
-		const spaceId = res1?.id as string;
+    const spaceId = res1?.id as string;
 
-		await ctx.mutate([
-			{
-				$entity: 'Space',
-				$id: spaceId,
-				kinds: [
-					{
-						$op: 'create',
-						$tempId: '_:person',
-						name: 'c5-person',
-					},
-				],
-			},
-		]);
+    await ctx.mutate([
+      {
+        $entity: 'Space',
+        $id: spaceId,
+        kinds: [
+          {
+            $op: 'create',
+            $tempId: '_:person',
+            name: 'c5-person',
+          },
+        ],
+      },
+    ]);
 
-		const spaceRes = await ctx.query(
-			{
-				$entity: 'Space',
-				$id: spaceId,
-				$fields: ['kinds'],
-			},
-			{ noMetadata: true },
-		);
+    const spaceRes = await ctx.query(
+      {
+        $entity: 'Space',
+        $id: spaceId,
+        $fields: ['kinds'],
+      },
+      { noMetadata: true },
+    );
 
-		expect(spaceRes).toBeDefined();
-		expect(spaceRes).toEqual({
-			kinds: [expect.any(String)],
-		});
+    expect(spaceRes).toBeDefined();
+    expect(spaceRes).toEqual({
+      kinds: [expect.any(String)],
+    });
 
-		//clean the new kind
-		await ctx.mutate([
-			{
-				$entity: 'Space',
-				$id: spaceId,
-				kinds: [{ $op: 'delete' }],
-			},
-		]);
-	});
+    //clean the new kind
+    await ctx.mutate([
+      {
+        $entity: 'Space',
+        $id: spaceId,
+        kinds: [{ $op: 'delete' }],
+      },
+    ]);
+  });
 
-	it('c6[multi, link] tempIds along with normalIds in string format', async () => {
-		try {
-			await ctx.mutate([
-				{
-					$entity: 'Space',
-					id: 'c6-space1',
-					$op: 'create',
-					name: 'Personal',
-				},
-			]);
+  it('c6[multi, link] tempIds along with normalIds in string format', async () => {
+    try {
+      await ctx.mutate([
+        {
+          $entity: 'Space',
+          id: 'c6-space1',
+          $op: 'create',
+          name: 'Personal',
+        },
+      ]);
 
-			await ctx.mutate([
-				{
-					$entity: 'Space',
-					$op: 'create',
-					id: 'c6-space2',
-					$tempId: '_:space2',
-				},
-				{
-					$thing: 'User',
-					id: 'c6-user1',
-					$op: 'create',
-					spaces: ['_:space2', 'c6-space1'],
-				},
-			]);
+      await ctx.mutate([
+        {
+          $entity: 'Space',
+          $op: 'create',
+          id: 'c6-space2',
+          $tempId: '_:space2',
+        },
+        {
+          $thing: 'User',
+          id: 'c6-user1',
+          $op: 'create',
+          spaces: ['_:space2', 'c6-space1'],
+        },
+      ]);
 
-			const userRes = await ctx.query(
-				{
-					$entity: 'User',
-					$id: 'c6-user1',
-					$fields: ['spaces'],
-				},
-				{ noMetadata: true },
-			);
+      const userRes = await ctx.query(
+        {
+          $entity: 'User',
+          $id: 'c6-user1',
+          $fields: ['spaces'],
+        },
+        { noMetadata: true },
+      );
 
-			expect(userRes).toBeDefined();
-			expect(deepSort(userRes, 'id')).toEqual({
-				spaces: ['c6-space1', 'c6-space2'],
-			});
-		} finally {
-			await ctx.mutate([
-				{
-					$entity: 'User',
-					$id: 'c6-user1',
-					$op: 'delete',
-				},
-				{
-					$entity: 'Space',
-					$id: 'c6-space1',
-					$op: 'delete',
-				},
-				{
-					$entity: 'Space',
-					$id: 'c6-space2',
-					$op: 'delete',
-				},
-			]);
-		}
-	});
+      expect(userRes).toBeDefined();
+      expect(deepSort(userRes, 'id')).toEqual({
+        spaces: ['c6-space1', 'c6-space2'],
+      });
+    } finally {
+      await ctx.mutate([
+        {
+          $entity: 'User',
+          $id: 'c6-user1',
+          $op: 'delete',
+        },
+        {
+          $entity: 'Space',
+          $id: 'c6-space1',
+          $op: 'delete',
+        },
+        {
+          $entity: 'Space',
+          $id: 'c6-space2',
+          $op: 'delete',
+        },
+      ]);
+    }
+  });
 });

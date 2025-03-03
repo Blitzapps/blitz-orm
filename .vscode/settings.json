@@ -1,83 +1,70 @@
 {
-	"editor.tabSize": 2,
-	"editor.detectIndentation": false,
-	"search.exclude": {
-		"package-lock.json": true
-	},
-	"editor.defaultFormatter": "dbaeumer.vscode-eslint",
-	"editor.formatOnSave": false,
-	"editor.codeActionsOnSave": ["source.addMissingImports", "source.fixAll.eslint"],
-	// Overriding multiple language files isn't available on VScode yet
-	"[json][jsonc]": {
-		"editor.formatOnSave": true,
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
-	"markdownlint.config": {
-		"MD024": false
-	},
-	"cSpell.words": [
-		"anyofterms",
-		"atts",
-		"blitzapps",
-		"blitznocode",
-		"Borm",
-		"datafield",
-		"Datagrid",
-		"datepicker",
-		"datetime",
-		"dgraph",
-		"Dismissable",
-		"endregion",
-		"headlessui",
-		"Immer",
-		"knip",
-		"lilypad",
-		"listify",
-		"mantine",
-		"multiplayed",
-		"prehook",
-		"prehooks",
-		"prequery",
-		"radash",
-		"refacto",
-		"reling",
-		"superjson",
-		"Suql",
-		"surql",
-		"surrealdb",
-		"tailwindcss",
-		"tanstack",
-		"treeshake",
-		"tryit",
-		"tsup",
-		"typedb",
-		"Uids",
-		"Upsert",
-		"uuidv",
-		"vals",
-		"xstate",
-		"zustand"
-	],
-	"[typescript]": {
-		"editor.defaultFormatter": "vscode.typescript-language-features"
-	},
-	"eslint.workingDirectories": [
-		{
-			"pattern": "./apps/*/"
-		},
-		{
-			"pattern": "./packages/*/"
-		}
-	],
-	"typescript.tsdk": "node_modules/typescript/lib",
-	"files.exclude": {
-		"**/.git": true,
-		"**/.svn": true,
-		"**/.hg": true,
-		"**/CVS": true,
-		"**/.DS_Store": true,
-		"**/Thumbs.db": true,
-		"**/node_modules": true
-	},
-	"terminal.integrated.scrollback": 3000,
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "search.exclude": {
+    "package-lock.json": true
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": ["source.addMissingImports"],
+  "[json][jsonc]": {
+    "editor.formatOnSave": true
+  },
+  "markdownlint.config": {
+    "MD024": false
+  },
+  "cSpell.words": [
+    "anyofterms",
+    "atts",
+    "blitzapps",
+    "blitznocode",
+    "Borm",
+    "datafield",
+    "Datagrid",
+    "datepicker",
+    "datetime",
+    "dgraph",
+    "Dismissable",
+    "endregion",
+    "headlessui",
+    "Immer",
+    "knip",
+    "lilypad",
+    "listify",
+    "mantine",
+    "multiplayed",
+    "prehook",
+    "prehooks",
+    "prequery",
+    "radash",
+    "refacto",
+    "reling",
+    "superjson",
+    "Suql",
+    "surql",
+    "surrealdb",
+    "tailwindcss",
+    "tanstack",
+    "treeshake",
+    "tryit",
+    "tsup",
+    "typedb",
+    "Uids",
+    "Upsert",
+    "uuidv",
+    "vals",
+    "xstate",
+    "zustand"
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true
+  },
+  "terminal.integrated.scrollback": 3000
 }
