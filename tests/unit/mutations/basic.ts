@@ -2410,3 +2410,47 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
     ]);
   });
 });
+it('should reset enum value to null without error', async () => {
+  await ctx.mutate(
+    {
+      $op: 'create',
+      $entity: 'EnumTest',
+      id: 'enum-test-1',
+      enumField: 'OPTION_A',
+    },
+    { noMetadata: true },
+  );
+
+  await ctx.mutate(
+    {
+      $op: 'update',
+      $entity: 'EnumTest',
+      $id: 'enum-test-1',
+      enumField: null,
+    },
+    { noMetadata: true },
+  );
+
+  const res = await ctx.query(
+    {
+      $entity: 'EnumTest',
+      $id: 'enum-test-1',
+      $fields: ['enumField'],
+    },
+    { noMetadata: true, returnNulls: true },
+  );
+
+  // Clean up
+  await ctx.mutate(
+    {
+      $op: 'delete',
+      $entity: 'EnumTest',
+      $id: 'enum-test-1',
+    },
+    { noMetadata: true },
+  );
+
+  expect(res).toEqual({
+    enumField: null,
+  });
+});
