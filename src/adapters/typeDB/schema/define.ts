@@ -24,7 +24,7 @@ const removeDuplicateObjects = (arr: Attribute[]) => {
   return uniqueObjects;
 };
 
-export const convertTQLSchema = (connectorId, schema: EnrichedBormSchema) => {
+export const convertTQLSchema = (connectorId: any, schema: EnrichedBormSchema) => {
   let output = '';
   const usedAttributes: Attribute[] = [];
 

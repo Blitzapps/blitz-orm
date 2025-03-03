@@ -62,8 +62,7 @@ const cleanUpObj = ({
   }
 };
 
-/* eslint-enable no-param-reassign */
-
+//@ts-expect-error todo: fix this
 export const cleanQueryRes: PipelineOperation<SurrealDbResponse> = async (req, res) => {
   const { config, enrichedBqlQuery, schema } = req;
   const { bqlRes } = res;

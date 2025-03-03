@@ -4,6 +4,7 @@ import type { BQLMutationBlock, PipelineOperation } from '../../../types';
 //import type { TypeDbResponse } from '../../pipeline.ts.old';
 type TypeDbResponse = any;
 
+//@ts-expect-error todo: fix this
 export const parseTQLMutation: PipelineOperation<TypeDbResponse> = async (req, res) => {
   const { bqlRequest, config, tqlRequest } = req;
   const { rawTqlRes } = res;

@@ -70,6 +70,7 @@ const parseArrayMetadata = (str: string) => {
   }
 };
 
+//@ts-expect-error todo: fix this
 export const parseTQLQuery: PipelineOperation<TypeDbResponse> = async (req, res) => {
   const { enrichedBqlQuery, rawBqlRequest, schema, config } = req;
   const { rawTqlRes, isBatched } = res;

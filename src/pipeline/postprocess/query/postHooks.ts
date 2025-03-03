@@ -10,6 +10,7 @@ import { QueryPath } from '../../../types/symbols';
 //import type { TypeDbResponse } from '../../pipeline.ts.old';
 type TypeDbResponse = any;
 
+//@ts-expect-error todo: fix this
 export const postHooks: PipelineOperation<TypeDbResponse> = async (req, res) => {
   const { schema, enrichedBqlQuery } = req;
   const { bqlRes } = res;

@@ -81,10 +81,10 @@ export const enrichBQLMutation = (
             throw new Error('Root things must specify $entity or $relation');
           }
           if (
-            !toIgnore.includes(lastPath) &&
-            !toIgnore.includes(secondToLastPath) &&
-            !lastPath.startsWith('%') &&
-            !secondToLastPath.startsWith('%')
+            !toIgnore.includes(lastPath || '') &&
+            !toIgnore.includes(secondToLastPath || '') &&
+            !lastPath?.startsWith('%') &&
+            !secondToLastPath?.startsWith('%')
           ) {
             throw new Error(
               `[Internal] This object has not been initiated with a $thing: ${JSON.stringify(isDraft(value) ? current(value) : value)}`,

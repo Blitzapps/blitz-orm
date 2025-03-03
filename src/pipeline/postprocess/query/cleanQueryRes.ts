@@ -7,6 +7,7 @@ import type { PipelineOperation } from '../../../types';
 //import type { TypeDbResponse } from '../../pipeline.ts.old';
 type TypeDbResponse = any;
 
+//@ts-expect-error todo: fix this
 export const cleanQueryRes: PipelineOperation<TypeDbResponse> = async (req, res) => {
   const { config } = req;
   const { bqlRes } = res;

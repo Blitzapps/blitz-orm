@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.13.0(2025-03-03)
+
+-Fix: Replaced eslint
+
 ## 0.12.7(2025-02-17)
 
 - Fix: Query filtered by single id

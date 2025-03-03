@@ -609,11 +609,11 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
     throw new Error('Expected mutation to throw an error');
 
     //clean changes by deleting the new tmpUTG
-    await ctx.mutate({
+    /*await ctx.mutate({
       $relation: 'UserTagGroup',
       $id: ['tmpUTG1', 'tmpUTG2'],
       $op: 'delete',
-    });
+    });*/
   });
 
   it('TODO{TS}:e-lm[link and unlink many] linking to things that do not exist', async () => {

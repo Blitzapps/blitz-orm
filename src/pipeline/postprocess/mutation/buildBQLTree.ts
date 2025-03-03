@@ -92,6 +92,7 @@ const hasMatches = (resItems: any[], things: any[]): boolean => {
   return found;
 };
 
+//@ts-expect-error todo: fix this
 export const buildBQLTree: PipelineOperation<TypeDbResponse> = async (req, res) => {
   const { bqlRequest, config } = req;
   // const queryConfig = config.query;
