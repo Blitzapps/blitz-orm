@@ -1,9 +1,8 @@
-import dayjs from 'dayjs';
 import { isDate } from 'radash';
 
 export const parseFlexValSurrealDB = (v: unknown) => {
   //dates are potentially defined as strings in flex-values
-  if (typeof v === 'string' && dayjs(v, 'YYYY-MM-DDTHH:mm:ssZ', true).isValid()) {
+  if (typeof v === 'string' && !Number.isNaN(Date.parse(v)) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v)) {
     return `<datetime>"${v}"`;
   }
   if (isDate(v)) {

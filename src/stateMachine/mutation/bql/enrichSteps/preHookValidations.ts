@@ -15,7 +15,7 @@ export const preHookValidations = (
   subNodes.forEach((subNode: EnrichedBQLMutationBlock) => {
     if ('$thing' in subNode) {
       if (subNode.$fields) {
-        ///change machine context so we are sun we run preQueryDeps before coming back to here
+        ///change machine context so we are sure we run preQueryDeps before coming back to here
         return subNode;
       }
 
@@ -39,11 +39,11 @@ export const preHookValidations = (
             }
             if (isArray(subNode[field])) {
               subNode[field].some((val: any) => {
-                if (!enumOptions.includes(val)) {
+                if (val !== null && !enumOptions.includes(val)) {
                   throw new Error(`[Validations] Option "${val}" is not a valid option for field "${field}".`);
                 }
               });
-            } else if (enumOptions && !enumOptions.includes(subNode[field])) {
+            } else if (enumOptions && !enumOptions.includes(subNode[field]) && !(subNode[field] === null)) {
               throw new Error(`[Validations] Option "${subNode[field]}" is not a valid option for field "${field}".`);
             }
           }

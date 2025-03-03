@@ -2363,4 +2363,193 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       user: undefined,
     });
   });
+
+  it('pf3[prefix, lf, tempId] Prefixed linkfield tunnel with tempId', async () => {
+    await ctx.mutate(
+      [
+        {
+          $entity: 'God',
+          name: 'Ann',
+          isEvil: false,
+          power: 'walkthrough',
+          $tempId: '_:tempUser',
+        },
+        {
+          $entity: 'Session',
+          user: 'God:_:tempUser',
+          id: 'pf3-session',
+          expires: new Date('2025-06-10T14:58:09.066Z'),
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const sessions = await ctx.query(
+      {
+        $entity: 'Session',
+        $id: 'pf3-session',
+        $fields: ['id', { $path: 'user', $fields: ['name'] }],
+      },
+      { noMetadata: true },
+    );
+
+    //clean
+    await ctx.mutate(
+      {
+        $entity: 'Session',
+        $op: 'delete',
+        $id: 'pf3-session',
+      },
+      { noMetadata: true },
+    );
+
+    expect(sessions).toEqual({
+      id: expect.any(String),
+      user: { name: 'Ann' },
+    });
+  });
+
+  it('TODO{TS}:pf4[prefix, lf, tempId, wrong] Prefixed linkfield tunnel with tempId from wrong kind', async () => {
+    try {
+      await ctx.mutate(
+        [
+          {
+            $entity: 'User',
+            name: 'Ann',
+            $tempId: '_:tempUser',
+          },
+          {
+            $entity: 'Session',
+            user: 'God:_:tempUser',
+            id: 'pf4-session',
+            expires: new Date('2025-06-10T14:58:09.066Z'),
+          },
+        ],
+        { noMetadata: true },
+      );
+      throw new Error('This test should throw an error');
+    } catch (err) {
+      console.log('log', err);
+      expect(err).toBeInstanceOf(Error);
+      if (err instanceof Error) {
+        expect(err.message.startsWith(`Can't link a $tempId that has not been created in the current mutation:`)).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it('TODO{TS}:pf5[prefix, lf, tempId] Prefixed linkfield tunnel with tempId', async () => {
+    try {
+      await ctx.mutate(
+        [
+          {
+            $entity: 'User',
+            name: 'Bob',
+            $tempId: '_:tempUser',
+          },
+          {
+            $entity: 'Session',
+            user: { $thing: 'God', $tempId: '_:tempUser' }, //notice is not the right one
+            id: 'pf5-session',
+            expires: new Date('2025-06-10T14:58:09.066Z'),
+          },
+        ],
+        { noMetadata: true },
+      );
+    } catch (err) {
+      expect(err).toBeInstanceOf(Error);
+    }
+  });
+
+  it('enum1[create, update, reset] Should reset enum value to null without error', async () => {
+    await ctx.mutate(
+      {
+        $op: 'create',
+        $entity: 'Company',
+        name: 'company1',
+        id: 'enum1-test-1',
+        industry: 'Tech',
+      },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate(
+      {
+        $op: 'update',
+        $entity: 'Company',
+        $id: 'enum1-test-1',
+        industry: null,
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $entity: 'Company',
+        $id: 'enum1-test-1',
+        $fields: ['id', 'industry'],
+      },
+      { noMetadata: true, returnNulls: true },
+    );
+
+    const res2 = await ctx.query(
+      {
+        $entity: 'Company',
+        $id: 'enum1-test-1',
+        $fields: ['id', 'industry'],
+      },
+      { noMetadata: true, returnNulls: false },
+    );
+
+    // Clean up
+    await ctx.mutate(
+      {
+        $op: 'delete',
+        $entity: 'Hook',
+        $id: 'enum1-test-1',
+      },
+      { noMetadata: true },
+    );
+
+    expect(res).toEqual({
+      id: 'enum1-test-1',
+      industry: null,
+    });
+    expect(res2).toEqual({
+      id: 'enum1-test-1',
+      industry: undefined,
+    });
+  });
+
+  it('enum2[create, update, reset] Should not let reset on non nullable property', async () => {
+    await ctx.mutate(
+      {
+        $op: 'create',
+        $entity: 'Hook',
+        id: 'enum2-test-1',
+        requiredOption: 'b',
+      },
+      { noMetadata: true },
+    );
+
+    try {
+      await ctx.mutate(
+        {
+          $op: 'update',
+          $entity: 'Hook',
+          $id: 'enum2-test-1',
+          requiredOption: null,
+        },
+        { noMetadata: true },
+      );
+      throw new Error('This test should throw an error');
+    } catch (err) {
+      if (err instanceof Error) {
+        expect(
+          err.message.startsWith('Error running SURQL mutation: [{"result":"Found NONE for field `requiredOption`'),
+        ).toBe(true);
+      }
+    }
+  });
 });
