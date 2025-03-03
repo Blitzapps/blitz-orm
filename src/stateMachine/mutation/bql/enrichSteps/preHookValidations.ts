@@ -15,7 +15,7 @@ export const preHookValidations = (
   subNodes.forEach((subNode: EnrichedBQLMutationBlock) => {
     if ('$thing' in subNode) {
       if (subNode.$fields) {
-        ///change machine context so we are sun we run preQueryDeps before coming back to here
+        ///change machine context so we are sure we run preQueryDeps before coming back to here
         return subNode;
       }
 

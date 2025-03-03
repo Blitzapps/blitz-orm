@@ -20,7 +20,7 @@ export const preHookTransformations = (
 
     // @ts-expect-error todo
     if (subNode.$fields || subNode[IsTransformed]) {
-      ///todo: change machine context so we are sun we run preQueryDeps before coming back to here
+      ///todo: change machine context so we are sure we run preQueryDeps before coming back to here
       return;
     }
 

@@ -2,7 +2,7 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.13.2(2025-03-03)
+## 0.13.3(2025-03-03)
 
 -Feat: Can prefix $tempIds too like User:_:tempUser
 
@@ -464,7 +464,7 @@
 ### Features
 
 - Types: New type gen (Ex: `type UserType = TypeGen<typeof typesSchema.entities.User>`)
-- TYpes Schema builder to generate an schema with inherited fields
+- Types Schema builder to generate an schema with inherited fields
 
 ### Bug fixes / Chore
 
@@ -478,7 +478,7 @@
 
 ## 0.4.6(2023-10-26)
 
-- Types: $filter can infer the array vs object dilema (yet)
+- Types: $filter can infer the array vs object dilemma (yet)
 
 ## 0.4.5(2023-10-26)
 
@@ -508,7 +508,7 @@
 
 ## 0.3.3(2023-10-20)
 
-- Virtual's depencencies are optional
+- Virtual's dependencies are optional
 - Default values with formula require always all the dependencies
 - Can't send virtual fields
 
@@ -577,7 +577,7 @@
 
 - minor type fixes
 - cleaned oFilter types
-- moved the selfprelation exception in fill to parseBQLMutation (should reduce the need of the edgeeMerger)
+- moved the selfprelation exception in fill to parseBQLMutation (should reduce the need of the edgeMerger)
 - Stopped including temp things match in the match queries (only create are required)
 - Fixed an old bug that sometimes added [Object Object] to tql queries
 
