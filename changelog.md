@@ -4,6 +4,10 @@
 
 ## 0.13.2(2025-03-03)
 
+-Feat: Can prefix $tempIds too like User:_:tempUser
+
+## 0.13.2(2025-03-03)
+
 -Fix: Number as strings in flexVals were identified as Date (dayjs UX issue)
 -Fix: Enums could not be deleted with null
 

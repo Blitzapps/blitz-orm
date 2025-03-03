@@ -2363,4 +2363,50 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       user: undefined,
     });
   });
+
+  it('pf3[prefix, lf, tempId] Prefixed linkfield tunnel with tempId', async () => {
+    await ctx.mutate(
+      [
+        {
+          $entity: 'User',
+          name: 'Ann',
+          $tempId: '_:tempUser1',
+        },
+        {
+          $entity: 'Session',
+          user: 'God:_:tempUser`',
+          id: 'pf3-session',
+          expires: new Date('2025-06-10T14:58:09.066Z'),
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const sessions = await ctx.query(
+      {
+        $entity: 'Session',
+        $id: 'pf3-session',
+        $fields: ['id', { $path: 'user', $fields: ['name'] }],
+      },
+      { noMetadata: true },
+    );
+
+    //clean
+    await ctx.mutate(
+      {
+        $entity: 'Session',
+        $op: 'delete',
+        $id: 'pf3-session',
+      },
+      { noMetadata: true },
+    );
+
+    expect(sessions).toEqual([
+      {
+        expires: '2025-06-10T14:58:09.066Z',
+        id: expect.any(String),
+        name: 'Ann',
+      },
+    ]);
+  });
 });
