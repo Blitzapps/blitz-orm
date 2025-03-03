@@ -2,6 +2,15 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.13.2(2025-03-03)
+
+-Fix: Number as strings in flexVals were identified as Date (dayjs UX issue)
+-Fix: Enums could not be deleted with null
+
+## 0.13.1(2025-03-03)
+
+-Env: LOG_LEVEL changed to BORM_LOG_LEVEL
+
 ## 0.13.0(2025-03-03)
 
 -Fix: Replaced eslint

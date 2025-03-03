@@ -39,11 +39,11 @@ export const preHookValidations = (
             }
             if (isArray(subNode[field])) {
               subNode[field].some((val: any) => {
-                if (!enumOptions.includes(val)) {
+                if (!enumOptions.includes(val && val !== null)) {
                   throw new Error(`[Validations] Option "${val}" is not a valid option for field "${field}".`);
                 }
               });
-            } else if (enumOptions && !enumOptions.includes(subNode[field])) {
+            } else if (enumOptions && !enumOptions.includes(subNode[field]) && !(subNode[field] === null)) {
               throw new Error(`[Validations] Option "${subNode[field]}" is not a valid option for field "${field}".`);
             }
           }

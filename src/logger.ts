@@ -1,6 +1,6 @@
 const LOG_LEVEL = new Set(
   // eslint-disable-next-line turbo/no-undeclared-env-vars
-  (process.env.LOG_LEVEL || '')
+  (process.env.BORM_LOG_LEVEL || '')
     .split(',')
     .map((i) => i.trim())
     .filter((i) => !!i),
