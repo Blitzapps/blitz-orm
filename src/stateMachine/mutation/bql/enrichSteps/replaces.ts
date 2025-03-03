@@ -2,22 +2,30 @@
 import { isArray, isObject } from 'radash';
 import type { BQLMutationBlock, EnrichedRefField } from '../../../../types';
 
-type PrefixedResult = { isPrefixed: true; obj: { $thing: string; $id: string } } | { isPrefixed: false; obj: unknown };
+type PrefixedResult =
+  | { isPrefixed: true; obj: { $thing: string; $id: string } | { $thing: string; $tempId: string } }
+  | { isPrefixed: false; obj: unknown };
 
 const prefixedToObj = (value: unknown): PrefixedResult => {
   if (typeof value !== 'string') {
     return { isPrefixed: false, obj: value };
   }
 
-  const prefixMatch = value.match(/^(?!_:)([^:]+):([^:]+)$/);
-  if (!prefixMatch) {
-    return { isPrefixed: false, obj: value };
+  // Handle case 1: $thing:$id (xxx:yyy)
+  const standardPrefixMatch = value.match(/^([^:]+):([^:].*)$/);
+
+  if (standardPrefixMatch) {
+    const [, $thing, id] = standardPrefixMatch;
+
+    if (id.startsWith('_:')) {
+      return { isPrefixed: true, obj: { $thing, $tempId: id } };
+    }
+
+    return { isPrefixed: true, obj: { $thing, $id: id } };
   }
 
-  const [, $thing, $id] = prefixMatch;
-  return { isPrefixed: true, obj: { $thing, $id } };
+  return { isPrefixed: false, obj: value };
 };
-
 export const replaceToObj = (node: BQLMutationBlock, field: string) => {
   ///Simplified so the only purpose of this function is to change strings to obj, but not assign BzIds or $things
   const subNodes = isArray(node[field]) ? node[field] : [node[field]];
@@ -48,11 +56,11 @@ export const replaceToObj = (node: BQLMutationBlock, field: string) => {
 
       const { isPrefixed, obj } = prefixedToObj(child);
       if (isPrefixed) {
-        return { ...obj, $op };
+        return { ...obj, $op, isPrefixed: undefined };
       }
 
       // Otherwise, it's a normal $id
-      return { $id: child, $op };
+      return { $id: child, $op, isPrefixed: undefined };
     }
     // If already an object with $op: replace, keep it as is
     return child;
