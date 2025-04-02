@@ -1,6 +1,6 @@
 {
   "name": "@blitznocode/blitz-orm",
-  "version": "0.13.4",
+  "version": "0.13.5",
   "author": "blitznocode.com",
   "description": "Blitz-orm is an Object Relational Mapper (ORM) for graph databases that uses a JSON query language called Blitz Query Language (BQL). BQL is similar to GraphQL but uses JSON instead of strings. This makes it easier to build dynamic queries.",
   "main": "dist/index.mjs",
@@ -58,33 +58,33 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "acorn": "^8.12.1",
+    "acorn": "^8.14.1",
     "dayjs": "^1.11.13",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "immer": "10.1.1",
-    "nanoid": "^5.0.7",
+    "nanoid": "^5.1.5",
     "object-traversal": "^1.0.1",
     "radash": "^12.1.0",
-    "robot3": "^0.4.1",
-    "surrealdb": "^1.0.6",
-    "typedb-driver": "^2.28.6-rc0",
-    "uuid": "^10.0.0"
+    "robot3": "^1.1.1",
+    "surrealdb": "^1.2.1",
+    "typedb-driver": "^2.29.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/node": "^22.5.5",
+    "@types/node": "^22.13.17",
     "@types/uuid": "^10.0.0",
-    "@vitest/coverage-v8": "^2.1.1",
+    "@vitest/coverage-v8": "^3.1.1",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.23.1",
-    "husky": "^9.1.6",
-    "knip": "^5.30.2",
-    "lint-staged": "^15.2.10",
+    "esbuild": "^0.25.2",
+    "husky": "^9.1.7",
+    "knip": "^5.46.4",
+    "lint-staged": "^15.5.0",
     "only-allow": "^1.2.1",
-    "prettier": "^3.3.3",
-    "tsup": "^8.3.0",
-    "typescript": "^5.6.2",
-    "vitest": "^3.0.5"
+    "prettier": "^3.5.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.1.1"
   },
   "keywords": ["ORM", "database", "graph-database"],
   "bugs": {

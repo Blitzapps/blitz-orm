@@ -5,7 +5,7 @@ import type {
   EnrichedBQLMutationBlock,
   EnrichedBormSchema,
 } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import type { bqlMutationContext } from '../mutationMachine';
 import { buildTQLMutation } from './build';
 import type { TqlRes } from './parse';

@@ -4,7 +4,7 @@ import { assertDefined, getSchemaByThing } from '../../helpers';
 import { logDebug } from '../../logger';
 import type { BormConfig, DBHandles, EnrichedBQLQuery, EnrichedBormSchema, RawBQLQuery } from '../../types';
 import { VERSION } from '../../version';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import { cleanQueryRes } from './bql/clean';
 import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';

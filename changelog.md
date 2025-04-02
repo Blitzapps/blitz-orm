@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.14.5(2025-04-02)
+
+- Fix: Removed manual robot3 as the package supports ts now
+
 ## 0.13.4(2025-04-02)
 
 - Fix: Iso with ms and some tests

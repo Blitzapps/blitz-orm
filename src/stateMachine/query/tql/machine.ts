@@ -1,6 +1,6 @@
 import { assertDefined } from '../../../helpers';
 import type { BormConfig, DBHandles, EnrichedBQLQuery, EnrichedBormSchema, RawBQLQuery } from '../../../types';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
 import { buildTQLQuery } from './build';
 import { parseTQLQuery } from './parse';
 import { runTQLQuery } from './run';
