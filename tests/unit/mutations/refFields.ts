@@ -5,6 +5,7 @@ import { deepSort } from '../../helpers/matchers';
 
 export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) => {
   // 1. Entities
+
   it('TODO{T}:fl1[ref, ent, one] Create entity with flexible values and read it', async () => {
     /// cardinality ONE
     await ctx.mutate(
@@ -91,6 +92,7 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
       reference: 'fl1r-user2',
     });
   });
+
   it('TODO{T}:fl2[ref, many] Test MANY cardinality with REF type', async () => {
     // Create a FlexRef with multiple references
     await ctx.mutate(
@@ -381,6 +383,7 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
   });
 
   // 1.2 FLEX
+
   it('TODO{T}:fl3[ref, flex, one] Test ONE cardinality with FLEX type', async () => {
     // Test with reference
     await ctx.mutate(
@@ -513,6 +516,38 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
     expect(res).toEqual({
       id: 'fl5-refField-string-number',
       flexReference: '8',
+    });
+  });
+
+  it('fl6:[ref, data, weirdFormat] Should accept strings with weird formats as string', async () => {
+    await ctx.mutate(
+      {
+        $thing: 'FlexRef',
+        id: 'fl6-refField-weirdFormat',
+        flexReferences: [1, '}) * 100'],
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $entity: 'FlexRef',
+        $id: 'fl6-refField-weirdFormat',
+        $fields: ['id', 'flexReferences'],
+      },
+      { noMetadata: true },
+    );
+
+    //clean up
+    await ctx.mutate({
+      $thing: 'FlexRef',
+      $op: 'delete',
+      $id: 'fl6-refField-weirdFormat',
+    });
+
+    expect(res).toEqual({
+      id: 'fl6-refField-weirdFormat',
+      flexReferences: [1, '}) * 100'],
     });
   });
 
@@ -1014,6 +1049,54 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
     expect(res).toEqual({
       id: 'flr5-ref1',
       flexReferences: ['1990-10-10T00:00:00.000Z', 9, 'hello', 'flr5-u2'],
+    });
+  });
+
+  it('fl6:[ref, data, tempVar] Should accept strings with weird formats as string and tempVars', async () => {
+    await ctx.mutate(
+      [
+        {
+          $thing: 'FlexRefRel',
+          id: 'flr6-refField-weirdFormat',
+          flexReferences: ['(TARGET.{', 'User:_:flr6-u1', '} / TARGET.{', 'User:_:flr6-u2', '}) * 100'],
+          space: { id: 'flr6-space', name: 'flr6-space' },
+        },
+        {
+          $thing: 'User',
+          $tempId: '_:flr6-u1',
+          id: 'flr6-u1',
+          name: 'User 1',
+        },
+        {
+          $thing: 'User',
+          $tempId: '_:flr6-u2',
+          id: 'flr6-u2',
+          name: 'User 2',
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'FlexRefRel',
+        $id: 'flr6-refField-weirdFormat',
+        $fields: ['id', 'flexReferences'],
+      },
+      { noMetadata: true },
+    );
+
+    //clean up
+    await ctx.mutate({
+      $thing: 'FlexRefRel',
+      $op: 'delete',
+      $id: 'flr6-refField-weirdFormat',
+      space: { $op: 'delete' },
+    });
+
+    expect(res).toEqual({
+      id: 'flr6-refField-weirdFormat',
+      flexReferences: ['(TARGET.{', 'flr6-u1', '} / TARGET.{', 'flr6-u2', '}) * 100'],
     });
   });
 });

@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { isArray, isDate } from 'radash';
 import { parseFlexValSurrealDB } from './parseFlexVal';
 
@@ -43,13 +42,17 @@ export const parseValueSurrealDB = (value: unknown, ct?: string): any => {
       case 'JSON':
         return value;
       case 'DATE':
-        if (typeof value === 'string' && dayjs(value, 'YYYY-MM-DDTHH:mm:ssZ', true).isValid()) {
+        if (
+          typeof value === 'string' &&
+          !Number.isNaN(Date.parse(value)) &&
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value)
+        ) {
           return `<datetime>"${value}"`;
         }
         if (isDate(value)) {
           return `d"${value.toISOString()}"`;
         }
-        return `$<datetime>"${value}"`; //let surrealDB try to do the conversion
+        return `<datetime>"${value}"`; //let surrealDB try to do the conversion
       case 'FLEX': {
         // array elements go throw the parsing
         const parsedVal = isArray(value) ? value.map((v) => parseFlexValSurrealDB(v)) : parseFlexValSurrealDB(value);

@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.13.4(2025-04-02)
+
+- Fix: Iso with ms and some tests
+
 ## 0.13.3(2025-03-03)
 
 -Feat: Can prefix $tempIds too like User:_:tempUser
