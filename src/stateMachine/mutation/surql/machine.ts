@@ -9,7 +9,7 @@ import type {
   EnrichedBormSchema,
 } from '../../../types';
 import { VERSION } from '../../../version';
-import { createMachine, interpret, invoke, reduce, state, transition } from 'robot3';
+import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3'
 import type { FlatBqlMutation } from '../bql/flatter';
 import type { bqlMutationContext } from '../mutationMachine';
 import { buildSURQLMutation } from './build';

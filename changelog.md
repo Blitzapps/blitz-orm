@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.14.6(2025-04-21)
+
+- Fix: Robot3 module issue fix
+
 ## 0.14.5(2025-04-02)
 
 - Fix: Removed manual robot3 as the package supports ts now
