@@ -4,6 +4,7 @@ import pkg from './package.json';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
+	noExternal: ["robot3"], //needed because is not ESM
   dts: true,
   target: 'esnext',
   clean: true,

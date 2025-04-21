@@ -2,7 +2,7 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.14.6(2025-04-21)
+## 0.14.6-7(2025-04-21)
 
 - Fix: Robot3 module issue fix
 
