@@ -2,9 +2,9 @@ import type { TypeDBDriver } from 'typedb-driver';
 import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
 import { assertDefined, getSchemaByThing } from '../../helpers';
 import { logDebug } from '../../logger';
+import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
 import type { BormConfig, DBHandles, EnrichedBQLQuery, EnrichedBormSchema, RawBQLQuery } from '../../types';
 import { VERSION } from '../../version';
-import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3'
 import { cleanQueryRes } from './bql/clean';
 import { enrichBQLQuery } from './bql/enrich';
 import { postHooks } from './postHook';

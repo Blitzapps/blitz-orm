@@ -11,13 +11,20 @@ const prefixedToObj = (value: unknown): PrefixedResult => {
     return { isPrefixed: false, obj: value };
   }
 
-  // Handle case 1: $thing:$id (xxx:yyy)
-  const standardPrefixMatch = value.match(/^([^:]+):([^:].*)$/);
+  // There are exactly 2 formats we accept:
+  // 1. $thing:$id with no spaces
+  // 2. $thing:_:$id with no spaces
+  const normalFormat = value.match(/^([^:]+):([^:]+)$/);
+  const tempIdFormat = value.match(/^([^:]+):_:([^:]+)$/);
 
-  if (standardPrefixMatch) {
-    const [, $thing, id] = standardPrefixMatch;
+  if (normalFormat && !value.includes(' ')) {
+    const [, $thing, $id] = normalFormat;
+    return { isPrefixed: true, obj: { $thing, $id } };
+  }
 
-    return { isPrefixed: true, obj: { $thing, ...(id.startsWith('_:') ? { $tempId: id } : { $id: id }) } };
+  if (tempIdFormat && !value.includes(' ')) {
+    const [, $thing, id] = tempIdFormat;
+    return { isPrefixed: true, obj: { $thing, $tempId: `_:${id}` } };
   }
 
   return { isPrefixed: false, obj: value };

@@ -13,7 +13,7 @@ const surqlOperators = {
   $exists: '$exists',
 };
 
-export const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter => {
+export const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter | Filter[] => {
   if (filter === null || filter === undefined) {
     return filter;
   }

@@ -11,8 +11,8 @@ import { parseBQLMutation } from './bql/parse';
 import { mutationPreQuery } from './bql/preQuery';
 
 import { logDebug } from '../../logger';
+import { createMachine, guard, interpret, invoke, reduce, state, transition } from '../../robot3';
 import { VERSION } from '../../version';
-import { createMachine, guard, interpret, invoke, reduce, state, transition } from '../../robot3'
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
 import type { FlatBqlMutation } from './bql/flatter';
 import { flattenBQLMutation } from './bql/flatter';

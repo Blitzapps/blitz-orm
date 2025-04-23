@@ -1099,4 +1099,40 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
       flexReferences: ['(TARGET.{', 'flr6-u1', '} / TARGET.{', 'flr6-u2', '}) * 100'],
     });
   });
+
+  it('fl7:[ref, data, tempVar] $thing:id format not triggered with other strings using ":" ', async () => {
+    await ctx.mutate(
+      [
+        {
+          $thing: 'FlexRefRel',
+          id: 'flr7-refField-weirdFormat',
+          flexReferences: ['hello ? yes : no', 'User:abc:xyz', 'things it can do: jumping', 'User: hey', 'User:hey '], //this should not be interpreted asa $thing:id
+          space: { id: 'flr7-space', name: 'flr7-space' },
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'FlexRefRel',
+        $id: 'flr7-refField-weirdFormat',
+        $fields: ['id', 'flexReferences'],
+      },
+      { noMetadata: true },
+    );
+
+    //clean
+    await ctx.mutate({
+      $thing: 'FlexRefRel',
+      $op: 'delete',
+      $id: 'flr7-refField-weirdFormat',
+      space: { $op: 'delete' },
+    });
+
+    expect(res).toEqual({
+      id: 'flr7-refField-weirdFormat',
+      flexReferences: ['hello ? yes : no', 'User:abc:xyz', 'things it can do: jumping', 'User: hey', 'User:hey '],
+    });
+  });
 });
