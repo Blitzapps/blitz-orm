@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import type { BormConfig } from '../../../../src';
+
 dotenv.config();
 
 // eslint-disable-next-line turbo/no-undeclared-env-vars

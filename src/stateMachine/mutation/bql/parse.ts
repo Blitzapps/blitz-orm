@@ -7,11 +7,11 @@ import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 import { computeField } from '../../../engine/compute';
 import { getCurrentFields, getCurrentSchema, getParentNode, oFilter } from '../../../helpers';
 import type {
-  BQLMutationBlock,
   BormOperation,
-  EnrichedBQLMutationBlock,
+  BQLMutationBlock,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
   EnrichedLinkField,
 } from '../../../types';
 import { EdgeSchema, EdgeType, SharedMetadata } from '../../../types/symbols';

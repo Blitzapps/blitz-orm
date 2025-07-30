@@ -8,8 +8,8 @@ import { isArray, isObject, listify, tryit } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
 import type {
-  BQLMutationBlock,
   BormSchema,
+  BQLMutationBlock,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
@@ -395,10 +395,10 @@ export const deepCurrent = <T>(obj: Drafted<T>): any => {
     // Handle non-null objects
     const plainObject = isDraft(obj) ? current(obj) : obj;
     const result: any = {};
-    Object.entries(plainObject).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(plainObject)) {
       // Use the key to dynamically assign the converted value
       result[key] = isDraft(value) ? current(value) : value;
-    });
+    }
     // Explicitly cast the return type for objects
     return result as DeepCurrent<T>;
   }

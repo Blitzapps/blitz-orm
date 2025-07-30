@@ -2,7 +2,7 @@ import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
-import type { BQLResponse, BormConfig, QueryConfig } from '../../../types';
+import type { BormConfig, BQLResponse, QueryConfig } from '../../../types';
 
 export const cleanQueryRes = (config: BormConfig, bqlRes: BQLResponse) => {
   if (!bqlRes) {

@@ -1,7 +1,7 @@
 import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 import { assertDefined } from '../../../helpers';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
-import type { BormConfig, EnrichedBQLQuery, EnrichedBormSchema } from '../../../types';
+import type { BormConfig, EnrichedBormSchema, EnrichedBQLQuery } from '../../../types';
 import type { SurrealDBProviderObject } from '../../../types/config/surrealdb';
 import { build } from './build';
 import { buildRefs } from './buildRefs';

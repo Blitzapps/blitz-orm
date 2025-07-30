@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getIdFieldKey, getSchemaByThing, indent } from '../../../helpers';
 import type {
   EnrichedAttributeQuery,
-  EnrichedBQLQuery,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   EnrichedLinkQuery,
   EnrichedRoleQuery,
 } from '../../../types';

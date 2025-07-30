@@ -1,8 +1,8 @@
 import type {
+  BormConfig,
   ParsedBQLMutation as BQLMutation,
   EnrichedBQLQuery as BQLQuery,
   BQLResponse,
-  BormConfig,
   DBHandles,
   EnrichedBormSchema,
   FilledBQLMutationBlock,

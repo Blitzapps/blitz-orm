@@ -117,7 +117,7 @@ export const buildSuqlFilter = (filter: object): string => {
   const entries = Object.entries(filter);
   const parts: string[] = [];
 
-  entries.forEach(([key, value]) => {
+  for (const [key, value] of entries) {
     // Handle logical operators
     if (['$OR', '$AND', '$!'].includes(key)) {
       const logicalOperator = key.replace('$', '');
@@ -130,7 +130,7 @@ export const buildSuqlFilter = (filter: object): string => {
       } else {
         parts.push(`(${nestedFilters.join(` ${logicalOperator} `)})`);
       }
-      return;
+      continue;
     }
 
     // Handle field-specific filters
@@ -195,7 +195,7 @@ export const buildSuqlFilter = (filter: object): string => {
         parts.push(`${key} ${operator} ${value === null ? 'NONE' : `'${value}'`}`);
       }
     }
-  });
+  }
 
   return parts.join(' AND ');
 };

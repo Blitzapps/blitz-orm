@@ -5,11 +5,11 @@ import { isArray, isObject } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 import { getCardinality, getCurrentSchema, getSymbols } from '../../../helpers';
 import type {
-  BQLResponse,
   BormConfig,
+  BQLResponse,
   DBHandles,
-  EnrichedBQLMutationBlock,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
   FilledBQLMutationBlock,
 } from '../../../types';
 import { runQueryMachine } from '../../query/queryMachine';

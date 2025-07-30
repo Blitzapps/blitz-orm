@@ -11,7 +11,7 @@ const removeDuplicateObjects = (arr: Attribute[]) => {
 
   const uniqueMap = new Map();
 
-  arr.forEach((obj) => {
+  for (const obj of arr) {
     const { dbPath, contentType } = obj;
     const key = `${dbPath}-${contentType}`;
 
@@ -19,7 +19,7 @@ const removeDuplicateObjects = (arr: Attribute[]) => {
       uniqueMap.set(key, true);
       uniqueObjects.push(obj);
     }
-  });
+  }
 
   return uniqueObjects;
 };
@@ -32,107 +32,107 @@ export const convertTQLSchema = (connectorId: any, schema: EnrichedBormSchema) =
 
   // CONVERTING ENTITIES
 
-  Object.keys(schema.entities)
-    .filter((eName) => schema.entities[eName].defaultDBConnector.id === connectorId)
-    .forEach((entityName) => {
-      const entity = schema.entities[entityName];
-      const { dataFields, linkFields, name } = entity;
-      // Checks to see if parent already contains these fields
+  for (const entityName of Object.keys(schema.entities).filter(
+    (eName) => schema.entities[eName].defaultDBConnector.id === connectorId,
+  )) {
+    const entity = schema.entities[entityName];
+    const { dataFields, linkFields, name } = entity;
+    // Checks to see if parent already contains these fields
 
-      output += `${name} sub ${'extends' in entity ? entity.extends : 'entity'},\n`;
+    output += `${name} sub ${'extends' in entity ? entity.extends : 'entity'},\n`;
 
-      // Adding data fields
-      if (dataFields && dataFields.length > 0) {
-        dataFields.forEach((field: any) => {
-          if (field.contentType === 'REF') {
-            return;
-          } //ignore ref types
-          if (field.inherited) {
-            return;
-          }
+    // Adding data fields
+    if (dataFields && dataFields.length > 0) {
+      for (const field of dataFields) {
+        if (field.contentType === 'REF') {
+          continue;
+        } //ignore ref types
+        if (field.inherited) {
+          continue;
+        }
+        if (field.isIdField) {
+          output += `\towns ${field.dbPath} @key,\n`;
+        } else {
+          output += `\towns ${field.dbPath},\n`;
+        }
+        usedAttributes.push({ dbPath: field.dbPath, contentType: field.contentType });
+      }
+    }
+    // Adding link fields
+    if (linkFields && linkFields.length > 0) {
+      const usedLinkFields: string[] = [];
+      for (const linkField of linkFields) {
+        const { relation, plays, inherited } = linkField;
+        if (inherited) {
+          continue;
+        }
+        //check if the role in the relation is inherited
+        const isInheritedRole = schema.relations[relation].roles[plays].inherited;
+        if (!isInheritedRole && !usedLinkFields.includes(`${relation}:${plays}`)) {
+          output += `\tplays ${relation}:${plays},\n`;
+          usedLinkFields.push(`${relation}:${plays}`);
+        }
+      }
+    }
+    output = output.replace(/,\s*$/, ';\n');
+    output += '\n';
+  }
+
+  // CONVERTING RELATIONS
+  for (const relationName of Object.keys(schema.relations).filter(
+    (rName) => schema.relations[rName].defaultDBConnector.id === connectorId,
+  )) {
+    const relation = schema.relations[relationName];
+    // TODO: fix name ts error
+    const { dataFields, roles, name, linkFields } = relation;
+    // Checks to see if parent already contains these fields
+
+    output += `${name} sub ${'extends' in relation ? relation.extends : 'relation'},\n`;
+    // Removes ids from data fields, so their attributes aren't repeated
+
+    // Adding data fields
+    if (dataFields && dataFields.length > 0) {
+      for (const field of dataFields) {
+        if (!field.inherited) {
           if (field.isIdField) {
             output += `\towns ${field.dbPath} @key,\n`;
           } else {
             output += `\towns ${field.dbPath},\n`;
           }
           usedAttributes.push({ dbPath: field.dbPath, contentType: field.contentType });
-        });
+        }
       }
-      // Adding link fields
-      if (linkFields && linkFields.length > 0) {
-        const usedLinkFields: string[] = [];
-        linkFields.forEach((linkField) => {
-          const { relation, plays, inherited } = linkField;
-          if (inherited) {
-            return;
-          }
-          //check if the role in the relation is inherited
-          const isInheritedRole = schema.relations[relation].roles[plays].inherited;
-          if (!isInheritedRole && !usedLinkFields.includes(`${relation}:${plays}`)) {
-            output += `\tplays ${relation}:${plays},\n`;
-            usedLinkFields.push(`${relation}:${plays}`);
-          }
-        });
+    }
+    // Adding role fields
+    if (roles) {
+      for (const roleName of Object.keys(roles)) {
+        if (!roles[roleName].inherited) {
+          output += `\trelates ${roleName},\n`;
+        }
       }
-      output = output.replace(/,\s*$/, ';\n');
-      output += '\n';
-    });
-
-  // CONVERTING RELATIONS
-  Object.keys(schema.relations)
-    .filter((rName) => schema.relations[rName].defaultDBConnector.id === connectorId)
-    .forEach((relationName) => {
-      const relation = schema.relations[relationName];
-      // TODO: fix name ts error
-      const { dataFields, roles, name, linkFields } = relation;
-      // Checks to see if parent already contains these fields
-
-      output += `${name} sub ${'extends' in relation ? relation.extends : 'relation'},\n`;
-      // Removes ids from data fields, so their attributes aren't repeated
-
-      // Adding data fields
-      if (dataFields && dataFields.length > 0) {
-        dataFields.forEach((field: any) => {
-          if (!field.inherited) {
-            if (field.isIdField) {
-              output += `\towns ${field.dbPath} @key,\n`;
-            } else {
-              output += `\towns ${field.dbPath},\n`;
-            }
-            usedAttributes.push({ dbPath: field.dbPath, contentType: field.contentType });
-          }
-        });
+    }
+    // Adding link fields
+    if (linkFields && linkFields.length > 0) {
+      const usedLinkFields: string[] = [];
+      for (const linkField of linkFields) {
+        const { plays, relation } = linkField;
+        const isInheritedRole = schema.relations[relation].roles[plays].inherited;
+        if (!isInheritedRole && !linkField.inherited && !usedLinkFields.includes(`${relation}:${plays}`)) {
+          output += `\tplays ${linkField.relation}:${plays},\n`;
+          usedLinkFields.push(`${relation}:${plays}`);
+        }
       }
-      // Adding role fields
-      if (roles) {
-        Object.keys(roles).forEach((roleName) => {
-          if (!roles[roleName].inherited) {
-            output += `\trelates ${roleName},\n`;
-          }
-        });
-      }
-      // Adding link fields
-      if (linkFields && linkFields.length > 0) {
-        const usedLinkFields: string[] = [];
-        linkFields.forEach((linkField) => {
-          const { plays, relation } = linkField;
-          const isInheritedRole = schema.relations[relation].roles[plays].inherited;
-          if (!isInheritedRole && !linkField.inherited && !usedLinkFields.includes(`${relation}:${plays}`)) {
-            output += `\tplays ${linkField.relation}:${plays},\n`;
-            usedLinkFields.push(`${relation}:${plays}`);
-          }
-        });
-      }
-      output = output.replace(/,\s*$/, ';\n');
-      output += '\n';
-    });
+    }
+    output = output.replace(/,\s*$/, ';\n');
+    output += '\n';
+  }
 
   // DEFINING ATTRIBUTES
 
   let attributes = 'define\n\n';
   const newUsedAttributes = removeDuplicateObjects(usedAttributes);
 
-  newUsedAttributes.forEach((attribute: Attribute) => {
+  for (const attribute of newUsedAttributes) {
     // All conditions for BORM to TQL attribute types
     if (attribute.contentType === 'TEXT' || attribute.contentType === 'ID' || attribute.contentType === 'JSON') {
       attributes += `${attribute.dbPath} sub attribute, value string;\n`;
@@ -149,13 +149,12 @@ export const convertTQLSchema = (connectorId: any, schema: EnrichedBormSchema) =
     } else if (attribute.contentType === 'FLEX') {
       attributes += `${attribute.dbPath} sub flexAttribute;\n`;
     } else if (attribute.contentType === 'REF') {
-      return; //not compatible with typeDB
     } else {
       throw new Error(
         `Conversion of borm schema to TypeDB schema for data type "${attribute.contentType}" is not implemented`,
       );
     }
-  });
+  }
 
   const utils = `#Tools, reserved for every schema using borm
 

@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import type { BQLResponseSingle, BormConfig, PipelineOperation, Request } from '../../../../../types';
+import type { BormConfig, BQLResponseSingle, PipelineOperation, Request } from '../../../../../types';
 import type { EnrichedBqlQuery, SurrealDbResponse } from '../../../types/base';
 
 // expecting mutation, therefore disable reassign rule here
@@ -41,18 +41,18 @@ const cleanUpObj = ({
   processNull(config, item);
 
   // INTERNAL SYMBOLS
-  Object.getOwnPropertySymbols(item).forEach((symbol) => {
+  for (const symbol of Object.getOwnPropertySymbols(item)) {
     delete item[symbol];
-  });
+  }
 
   /// USER FACING METADATA
   if (config.query?.noMetadata === true) {
     // eslint-disable-next-line no-param-reassign
-    Object.keys(item).forEach((k: string) => {
+    for (const k of Object.keys(item)) {
       if (k.startsWith('$')) {
         delete item[k];
       }
-    });
+    }
   }
 
   // filter out id

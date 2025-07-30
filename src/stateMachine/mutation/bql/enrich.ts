@@ -4,7 +4,7 @@ import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
-import type { BQLMutationBlock, BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type { BormConfig, BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { SharedMetadata } from '../../../types/symbols';
 import { enrichFilter } from '../../query/bql/enrich';
 import { computeFields } from './enrichSteps/computeFields';

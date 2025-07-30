@@ -3,7 +3,8 @@ import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
 
-import type { BQLMutationBlock, BormConfig, PipelineOperation, RawBQLQuery } from '../../../types';
+import type { BormConfig, BQLMutationBlock, PipelineOperation, RawBQLQuery } from '../../../types';
+
 //import type { TypeDbResponse } from '../../pipeline.ts.old';
 type TypeDbResponse = any;
 

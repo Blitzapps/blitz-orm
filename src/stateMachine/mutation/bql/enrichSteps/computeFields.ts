@@ -4,8 +4,8 @@ import { computeField } from '../../../../engine/compute';
 import { getCurrentFields, getCurrentSchema, oFind } from '../../../../helpers';
 import type {
   BQLMutationBlock,
-  EnrichedBQLMutationBlock,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
   EnrichedDataField,
 } from '../../../../types';
 

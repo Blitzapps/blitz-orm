@@ -1,6 +1,7 @@
 import { isArray, isObject } from 'radash';
 import { genId } from '../../src/helpers';
 import type { BormSchema, DataField } from '../../src/index';
+
 //* when updating, please run `pnpm test:buildSchema`
 
 const name: DataField = {

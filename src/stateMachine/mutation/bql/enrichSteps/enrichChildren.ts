@@ -2,8 +2,8 @@
 import { isArray, isObject } from 'radash';
 import type {
   BQLMutationBlock,
-  EnrichedBQLMutationBlock,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
   EnrichedLinkField,
   EnrichedRefField,
   EnrichedRoleField,

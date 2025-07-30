@@ -1,7 +1,7 @@
 import { isArray, isSymbol } from 'radash';
 import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 import { getCurrentFields, oFilter } from '../../../helpers';
-import type { BormOperation, EnrichedBQLMutationBlock, EnrichedBormSchema, EnrichedLinkField } from '../../../types';
+import type { BormOperation, EnrichedBormSchema, EnrichedBQLMutationBlock, EnrichedLinkField } from '../../../types';
 import { Parent } from '../../../types/symbols';
 
 export type FlatBqlMutation = {

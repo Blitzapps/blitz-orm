@@ -1,6 +1,6 @@
 import { isArray } from 'radash';
 import { getCurrentFields, getCurrentSchema } from '../../../../helpers';
-import type { BQLMutationBlock, BormOperation, EnrichedBormSchema } from '../../../../types';
+import type { BormOperation, BQLMutationBlock, EnrichedBormSchema } from '../../../../types';
 
 export const validateOp = (parentNode: BQLMutationBlock, node: BQLMutationBlock, schema: EnrichedBormSchema) => {
   if (node.$op) {

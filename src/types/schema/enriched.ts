@@ -1,5 +1,5 @@
-import type { BormEntity, BormRelation, DBHandleKey, Hooks, LinkedFieldWithThing } from '..';
 import type { AdapterContext } from '../../adapters';
+import type { BormEntity, BormRelation, DBHandleKey, Hooks, LinkedFieldWithThing } from '..';
 import type { SharedMetadata, SuqlMetadata } from '../symbols';
 import type { DataField, LinkField, RefField, RoleField } from './fields';
 

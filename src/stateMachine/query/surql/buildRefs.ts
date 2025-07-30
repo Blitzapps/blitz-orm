@@ -3,10 +3,10 @@ import { buildSorter, buildSuqlFilter, parseFilter } from '../../../adapters/sur
 import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import type {
   EnrichedAttributeQuery,
-  EnrichedBQLQuery,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   EnrichedFieldQuery,
   EnrichedLinkQuery,
   EnrichedRefQuery,

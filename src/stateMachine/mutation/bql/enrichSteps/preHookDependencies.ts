@@ -1,13 +1,13 @@
 import { isObject } from 'radash';
 import { getSchemaByThing } from '../../../../helpers';
 import type {
-  BQLResponse,
   BormConfig,
+  BQLResponse,
   DBHandles,
-  EnrichedBQLMutationBlock,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
   EnrichedDataField,
   EnrichedLinkField,
   EnrichedRoleField,

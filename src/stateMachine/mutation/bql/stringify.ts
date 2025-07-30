@@ -2,10 +2,10 @@ import { produce } from 'immer';
 import { getSchemaByThing } from '../../../helpers';
 import type {
   BQLMutationBlock,
-  EnrichedBQLMutationBlock,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLMutationBlock,
 } from '../../../types';
 
 /**

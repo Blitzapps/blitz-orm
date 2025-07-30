@@ -1,7 +1,6 @@
+import { enableMapSet } from 'immer';
 import { tryit } from 'radash';
 import { SessionType, TypeDB, TypeDBCredential } from 'typedb-driver';
-
-import { enableMapSet } from 'immer';
 import { SimpleSurrealClient } from './adapters/surrealDB/client';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
@@ -10,11 +9,11 @@ import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
 import type {
   AllDbHandles,
+  BormConfig,
+  BormSchema,
   BQLMutation,
   BQLResponse,
   BQLResponseMulti,
-  BormConfig,
-  BormSchema,
   DBHandles,
   EnrichedBormSchema,
   MutationConfig,
@@ -146,11 +145,15 @@ class BormClient {
       };
       const subscribers = this.subscribers;
       this.subscribers = [];
-      subscribers.forEach((s) => s());
+      for (const s of subscribers) {
+        s();
+      }
     } catch (e) {
       const subscribers = this.subscribers;
       this.subscribers = [];
-      subscribers.forEach((s) => s(e));
+      for (const s of subscribers) {
+        s(e);
+      }
     } finally {
       this.initializing = false;
     }

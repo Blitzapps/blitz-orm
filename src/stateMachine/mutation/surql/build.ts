@@ -3,7 +3,7 @@ import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filter
 import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 import { getCurrentFields, getSchemaByThing, oFilter } from '../../../helpers';
-import type { EnrichedBQLMutationBlock, EnrichedBormRelation, EnrichedBormSchema } from '../../../types';
+import type { EnrichedBormRelation, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { Parent } from '../../../types/symbols';
 import type { FlatBqlMutation } from '../bql/flatter';
 

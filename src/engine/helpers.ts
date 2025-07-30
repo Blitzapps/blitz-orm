@@ -55,13 +55,13 @@ export const getDependencies = (fn: (...args: any[]) => void) => {
 const getKeys = (pat?: acorn.Pattern): string[] => {
   const keys: string[] = [];
   if (pat?.type === 'ObjectPattern') {
-    pat?.properties?.forEach((p) => {
+    for (const p of pat?.properties ?? []) {
       if (p.type === 'Property') {
         if (p.key.type === 'Identifier') {
           keys.push(p.key.name);
         }
       }
-    });
+    }
   }
   return keys;
 };

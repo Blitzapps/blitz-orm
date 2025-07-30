@@ -1,18 +1,19 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.3/schema.json",
   "vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [
-      "**/.next",
-      "**/out",
-      "**/build",
-      "**/dist",
-      "**/.turbo",
-      "**/node_modules",
-      "**/scripts",
-      "./src/stateMachine/robot3",
-      "./tests/mocks/buildSchema.js"
+    "includes": [
+      "**",
+      "!**/.next",
+      "!**/out",
+      "!**/build",
+      "!**/dist",
+      "!**/.turbo",
+      "!**/node_modules",
+      "!**/scripts",
+      "!src/stateMachine/robot3",
+      "!tests/mocks/buildSchema.js"
     ]
   },
   "formatter": {
@@ -25,7 +26,7 @@
     "attributePosition": "auto",
     "bracketSpacing": true
   },
-  "organizeImports": { "enabled": true },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -41,13 +42,12 @@
       },
       "complexity": {
         "noExtraBooleanCast": "error",
-        "noMultipleSpacesInRegularExpressionLiterals": "error",
         "noUselessCatch": "error",
         "noUselessThisAlias": "error",
         "noUselessTypeConstraint": "error",
-        "noWith": "error",
         "useArrowFunction": "error",
-        "noForEach": "info" //todo: make it warn
+        "noForEach": "warn",
+        "noAdjacentSpacesInRegex": "error"
       },
       "correctness": {
         "noConstAssign": "error",
@@ -72,11 +72,11 @@
         "noUnusedLabels": "error",
         "noUnusedPrivateClassMembers": "error",
         "noUnusedVariables": "error",
-        "useArrayLiterals": "off",
         "useExhaustiveDependencies": "off", //probably we will need to turn this on eventually
         "useIsNan": "error",
         "useValidForDirection": "error",
-        "useYield": "error"
+        "useYield": "error",
+        "useValidTypeof": "error"
       },
       "performance": {
         "noAccumulatingSpread": "info" //todo warn
@@ -88,7 +88,10 @@
         "useBlockStatements": "error",
         "useImportType": "error",
         "useNodejsImportProtocol": "off", // it generates some issues
-        "useTemplate": "error"
+        "useTemplate": "error",
+        "useArrayLiterals": "off",
+        "recommended": true,
+        "useAtIndex": "info"
       },
       "suspicious": {
         "noAssignInExpressions": "error",
@@ -120,12 +123,10 @@
         "noUnsafeNegation": "error",
         "useGetterReturn": "error",
         "useNamespaceKeyword": "error",
-        "useValidTypeof": "error"
+        "noWith": "error"
       },
       "nursery": {
-        "useSortedClasses": "error",
-        // "noSecrets": "warn", todo: how to ignore them
-        "useAtIndex": "info"
+        "useSortedClasses": "error"
       }
     }
   },

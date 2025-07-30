@@ -1,4 +1,4 @@
-import type { DBConnector, DataField, EnrichedBQLMutationBlock, LinkField, RefField, RoleField } from '..';
+import type { DataField, DBConnector, EnrichedBQLMutationBlock, LinkField, RefField, RoleField } from '..';
 
 export type BormSchema = {
   entities: { [s: string]: BormEntity };

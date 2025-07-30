@@ -2,9 +2,13 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.14.8(2025-07-30)
+## 0.14.9(2025-07-30)
 
-- Chore: updates
+- Chore: biome 2 and fixed some warnings
+
+## 0.14.9(2025-07-30)
+
+- Chore: upgrade
 
 ## 0.14.8(2025-04-23)
 

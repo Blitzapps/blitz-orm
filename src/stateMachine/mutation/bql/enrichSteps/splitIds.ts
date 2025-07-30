@@ -1,6 +1,6 @@
 import { isArray, isObject } from 'radash';
 import { deepCurrent, getCurrentSchema, getSymbols } from '../../../../helpers';
-import type { BQLMutationBlock, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../../types';
+import type { BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
 import { doAction } from '../shared/doActions';
 
 export const splitMultipleIds = (node: BQLMutationBlock, field: string, schema: EnrichedBormSchema) => {

@@ -1,7 +1,7 @@
 import { clone } from 'radash';
 /* eslint-disable no-param-reassign */
 import { getSchemaByThing } from '../../../helpers';
-import type { BQLMutationBlock, BormConfig, EnrichedBormSchema } from '../../../types';
+import type { BormConfig, BQLMutationBlock, EnrichedBormSchema } from '../../../types';
 
 export type TqlRes = any;
 

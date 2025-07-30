@@ -2,7 +2,7 @@
 import { produce } from 'immer';
 import type { TraversalCallbackContext } from 'object-traversal';
 import { traverse } from 'object-traversal';
-import type { EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../types';
+import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 
 export const addIntermediaryRelationsBQLMutation = (
   blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],

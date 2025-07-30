@@ -6,10 +6,10 @@ import { getCurrentSchema, getFieldType } from '../../../helpers';
 import type {
   BQLMutationBlock,
   EnrichedAttributeQuery,
-  EnrichedBQLQuery,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   EnrichedDataField,
   EnrichedLinkField,
   EnrichedLinkQuery,

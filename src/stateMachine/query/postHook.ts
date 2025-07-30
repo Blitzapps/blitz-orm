@@ -4,7 +4,7 @@ import { getNodeByPath, traverse } from 'object-traversal';
 import { isObject } from 'radash';
 import { computeField } from '../../engine/compute';
 import { getCurrentSchema } from '../../helpers';
-import type { BQLResponseMulti, EnrichedBQLQuery, EnrichedBormSchema } from '../../types';
+import type { BQLResponseMulti, EnrichedBormSchema, EnrichedBQLQuery } from '../../types';
 import { QueryPath } from '../../types/symbols';
 
 export const postHooks = async (

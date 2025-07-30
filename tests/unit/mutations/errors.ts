@@ -47,7 +47,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
 
     try {
       await ctx.mutate(mutation, { noMetadata: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         expect(error.message).toBe(
           "[Wrong format] Can't write to computed field $id. Try writing to the id field directly.",
@@ -105,7 +105,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
           user: { name: 'Peter' },
         },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         expect(error.message).toBe(
           '"acc1" is connected to many entities. Entity with ID: acc1 in relation "User-Accounts" linked to multiple 2 entities in role "user".The relation\'s role is of cardinality ONE.\n',
@@ -132,7 +132,7 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
           accounts: [{ provider: 'google', $tempId: '_:acc1', $op: 'delete' }],
         },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         expect(error.message).toBe(
           'Invalid op delete for tempId. TempIds can be created, or linked when created in another part of the same mutation.',

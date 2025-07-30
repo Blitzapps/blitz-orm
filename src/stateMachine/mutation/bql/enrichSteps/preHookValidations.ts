@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { clone, isArray, isObject } from 'radash';
 import { deepCurrent, getCurrentSchema } from '../../../../helpers';
-import type { BormConfig, EnrichedBQLMutationBlock, EnrichedBormSchema } from '../../../../types';
+import type { BormConfig, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../../types';
 import { DBNode } from '../../../../types/symbols';
 import { getTriggeredActions } from '../shared/getTriggeredActions';
 

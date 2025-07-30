@@ -248,8 +248,8 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
       },
     ]);
 
-    const usId = (res as any[])?.find((r) => r.$tempId === '_:us')?.id;
-    const utg1Id = (res as any[])?.find((r) => r.$tempId === '_:utg1')?.id;
+    const usId = (res as Array<{ $tempId: string; id: string }>)?.find((r) => r.$tempId === '_:us')?.id;
+    const utg1Id = (res as Array<{ $tempId: string; id: string }>)?.find((r) => r.$tempId === '_:utg1')?.id;
 
     const user = await ctx.query(
       {
@@ -339,7 +339,7 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
         },
       },
     ]);
-    const beaId = (res as any[])?.find((r) => r.$tempId === '_:bea')?.id;
+    const beaId = (res as Array<{ $tempId: string; id: string }>)?.find((r) => r.$tempId === '_:bea')?.id;
 
     const res2 = await ctx.query({ $entity: 'User', $id: beaId });
     expect(res2).toBeDefined();

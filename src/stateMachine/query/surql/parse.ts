@@ -4,8 +4,8 @@ import { getSchemaByThing } from '../../../helpers';
 import type {
   BormConfig,
   ContentType,
-  EnrichedBQLQuery,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   EnrichedFieldQuery,
   EnrichedLinkQuery,
   EnrichedRoleQuery,

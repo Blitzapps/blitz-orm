@@ -4,8 +4,8 @@ import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { indent } from '../../../helpers';
 import type {
   EnrichedAttributeQuery,
-  EnrichedBQLQuery,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   EnrichedFieldQuery,
   EnrichedLinkQuery,
   EnrichedRoleQuery,

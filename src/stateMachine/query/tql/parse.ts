@@ -2,10 +2,10 @@ import { isArray } from 'radash';
 import { assertDefined, getCurrentSchema } from '../../../helpers';
 import type {
   BormConfig,
-  EnrichedBQLQuery,
   EnrichedBormEntity,
   EnrichedBormRelation,
   EnrichedBormSchema,
+  EnrichedBQLQuery,
   RawBQLQuery,
 } from '../../../types';
 import { QueryPath } from '../../../types/symbols';
