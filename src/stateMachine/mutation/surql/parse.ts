@@ -37,7 +37,8 @@ export const parseSURQLMutation = (props: {
 };
 
 const parseRes = (block: EnrichedSURQLMutationRes, config: BormConfig) => {
-  const thing = mapEntries(block.after || {}, (key, value) => [
+  const source = block.after ?? block.before ?? {};
+  const thing = mapEntries(source, (key, value) => [
     key,
     key === 'id' ? value.id : isArray(value) && value.length === 0 ? undefined : value,
   ]);
