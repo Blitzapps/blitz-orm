@@ -94,18 +94,32 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       }
       return `LET ${VAR} = (SELECT VALUE id FROM ${TARGET} ${WHERE});`;
     }
-    if (block.$op === 'create') {
-      if (isArray(idValue)) {
-        throw new Error('Cannot create multiple things at once');
+          if (block.$op === 'create') {
+        if (isArray(idValue)) {
+          throw new Error('Cannot create multiple things at once');
+        }
+        const tableName = sanitizeNameSurrealDB($thing);
+        return `LET ${VAR} = (CREATE ONLY ${tableName}:⟨${idValue}⟩ ${SET} RETURN VALUE id);
+LET $_after_⟨${$tempId || $bzId}⟩ = (SELECT * FROM ${VAR});
+CREATE ONLY Delta SET input = ${restString}, meta = {${metaString}, "$sid": ${VAR}, "$id": record::id(${VAR})}, after = $_after_⟨${$tempId || $bzId}⟩[0], before = NONE;`;
       }
-      const tableName = sanitizeNameSurrealDB($thing);
-      return `LET ${VAR} = (CREATE ONLY ${tableName}:⟨${idValue}⟩ ${SET} RETURN ${OUTPUT});`;
-    }
     if (block.$op === 'update') {
-      return `LET ${VAR} = IF (${COND}) THEN (UPDATE ${TARGET} ${SET} ${WHERE} RETURN ${OUTPUT}) END;`;
+      return `LET $_before_⟨${$tempId || $bzId}⟩ = IF (${COND}) THEN (SELECT * FROM ${TARGET} ${WHERE}) END;
+LET ${VAR} = IF (${COND}) THEN (UPDATE ${TARGET} ${SET} ${WHERE} RETURN AFTER) END;
+IF ${VAR} THEN (
+  FOR $d IN ${VAR} {
+    LET $_b = (SELECT * FROM $_before_⟨${$tempId || $bzId}⟩ WHERE id = $d.id)[0];
+    CREATE ONLY Delta SET input = ${restString}, meta = {${metaString}, "$sid": $d.id, "$id": record::id($d.id)}, after = $d, before = $_b;
+  }
+) END;`;
     }
     if (block.$op === 'delete') {
-      return `LET ${VAR} = IF (${COND}) THEN (DELETE ${TARGET} ${WHERE} RETURN ${DELETE_OUTPUT}) END;`;
+      return `LET ${VAR} = IF (${COND}) THEN (DELETE ${TARGET} ${WHERE} RETURN BEFORE) END;
+IF ${VAR} THEN (
+  FOR $d IN ${VAR} {
+    CREATE ONLY Delta SET input = ${restString}, meta = {${metaString}, "$sid": $d.id, "$id": record::id($d.id)}, after = NONE, before = $d;
+  }
+) END;`;
     }
 
     throw new Error(`Unsupported operation ${block.$op}`);
@@ -175,7 +189,21 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const roleFieldsString = roleFields.length > 0 ? `${roleFields.join(', ')}` : '';
     const SET = roleFieldsString ? `SET ${roleFieldsString}` : '';
 
-    return `IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END; ${VAR};`; //todo: confirm if the WHERE is actually needed here?
+    const $_before = `$_before_⟨${$tempId || $bzId}⟩`;
+    const $_after = `$_after_⟨${$tempId || $bzId}⟩`;
+    const META = `{${Object.entries(oFilter(block, (k) => k.startsWith('$')))
+      .map(([key, value]) => (key === '$tempId' ? `'${key}': '_:${value}'` : `'${key}': '${value}'`))
+      .join(',')}, "$sid": ${VAR}, "$id": record::id(${VAR})}`;
+    return `LET ${$_before} = IF ${VAR} THEN (SELECT * FROM ${VAR}) END;
+LET ${VAR} = IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END;
+LET ${$_after} = IF ${VAR} THEN (SELECT * FROM ${VAR}) END;
+IF ${VAR} THEN (
+  FOR $d IN ${VAR} {
+    LET $_b = (SELECT * FROM ${$_before} WHERE id = $d)[0];
+    LET $_a = (SELECT * FROM ${$_after} WHERE id = $d)[0];
+    CREATE ONLY Delta SET meta = ${META}, after = $_a, before = $_b;
+  }
+) END; ${VAR};`; //todo: confirm if the WHERE is actually needed here?
   };
 
   const buildArcs = (block: EnrichedBQLMutationBlock) => {
@@ -318,14 +346,30 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
         //todo: add/remove etc
         return `${rf} = ${cardinality === 'ONE' ? `array::flatten([${block[rf]}])[0]` : `array::flatten([${block[rf]}])`}`;
       }
-    });
+      return undefined;
+    }).filter(Boolean);
     const refFieldsString = refFields.length > 0 ? `${refFields.join(', ')}` : '';
     const SET = refFieldsString ? `SET ${refFieldsString}` : '';
 
-    return `IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END; ${VAR};`;
-  };
+    const $_before = `$_before_⟨${$tempId || $bzId}⟩`;
+    const $_after = `$_after_⟨${$tempId || $bzId}⟩`;
+    const META = `{${Object.entries(oFilter(block, (k) => k.startsWith('$')))
+      .map(([key, value]) => (key === '$tempId' ? `'${key}': '_:${value}'` : `'${key}': '${value}'`))
+      .join(',')}, "$sid": ${VAR}, "$id": record::id(${VAR})}`;
 
-  const result = [
+    return `LET ${$_before} = IF ${VAR} THEN (SELECT * FROM ${VAR}) END;
+LET ${VAR} = IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END;
+LET ${$_after} = IF ${VAR} THEN (SELECT * FROM ${VAR}) END;
+IF ${VAR} THEN (
+  FOR $d IN ${VAR} {
+    LET $_b = (SELECT * FROM ${$_before} WHERE id = $d)[0];
+    LET $_a = (SELECT * FROM ${$_after} WHERE id = $d)[0];
+    CREATE ONLY Delta SET meta = ${META}, after = $_a, before = $_b;
+  }
+) END; ${VAR};`;
+    };
+ 
+   const result = [
     ...flat.things.map(buildThings),
     ...flat.edges.map(buildEdges),
     ...flat.arcs.flatMap(buildArcs),
