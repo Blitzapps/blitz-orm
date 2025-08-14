@@ -115,7 +115,7 @@ const convertLinkFields = (linkFields: EnrichedLinkField[], parentName: string, 
             : `${baseDefinition} VALUE <future> {array::distinct(SELECT VALUE array::flatten(${relationPath} || []) FROM ONLY $this)};`;
         const supportField = relationLinkField?.path
           ? ''
-          : `${indent(level + 1)}DEFINE FIELD ${pathToRelation} ON TABLE ${parentName} TYPE option<${type}>;`;
+          : `${indent(level + 1)}DEFINE FIELD ${pathToRelation} ON TABLE ${parentName} TYPE references<${sanitizeNameSurrealDB(linkField.relation)}, ${targetPath}>;`;
 
         return [baseField, supportField].join('\n');
       }
@@ -134,73 +134,10 @@ const convertRoles = (roles: Record<string, EnrichedRoleField>, parentName: stri
         role.cardinality === 'MANY'
           ? `array<record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>>`
           : `record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>`;
-      const fieldDefinition = `${indent(level)}DEFINE FIELD ${roleName} ON TABLE ${parentName} TYPE option<${fieldType}>;`; //Todo: remove option when surrealDB transactions are smarter.
-      const roleEvent = generateRoleEvent(roleName, parentName, role, level);
-      return `${fieldDefinition}\n${roleEvent}`;
+      const fieldDefinition = `${indent(level)}DEFINE FIELD ${roleName} ON TABLE ${parentName} TYPE option<${fieldType}> REFERENCE;`;
+      return `${fieldDefinition}`;
     })
     .join('\n');
-
-const generateRoleEvent = (roleName: string, parentName: string, role: EnrichedRoleField, level: number): string => {
-  const eventName = `update_${roleName}`;
-
-  const targetRelationLinkField = role.playedBy?.find((lf) => lf.target === 'relation');
-  const targetRelationPath = targetRelationLinkField?.pathToRelation;
-  const firstTargetRoleLinkField = role.playedBy?.find((lf) => lf.target === 'role');
-  const firstTargetRolePath = firstTargetRoleLinkField?.pathToRelation;
-
-  const usedLinkField = targetRelationLinkField ?? firstTargetRoleLinkField;
-
-  if (!usedLinkField) {
-    throw new Error(`Invalid link field: ${JSON.stringify(role)}`);
-  }
-
-  const pathToRelation = sanitizeNameSurrealDB((targetRelationPath ?? firstTargetRolePath) as string);
-
-  const generateSet = (fields: { path: string; cardinality: 'ONE' | 'MANY' }[], action: 'remove' | 'add'): string => {
-    return fields
-      .map(({ path, cardinality }) => {
-        const operator =
-          action === 'remove' ? (cardinality === 'ONE' ? '=' : '-=') : cardinality === 'ONE' ? '=' : '+=';
-        const value = action === 'remove' ? (cardinality === 'ONE' ? 'NONE' : '$before.id') : '$after.id';
-        return `${path} ${operator} ${value}`;
-      })
-      .join(', ');
-  };
-
-  const impactedLinkFields =
-    role.impactedLinkFields?.map((lf) => ({
-      path: lf.path,
-      cardinality: lf.cardinality,
-    })) || [];
-
-  const directField = { path: pathToRelation, cardinality: usedLinkField.cardinality };
-  const allFields = [directField, ...impactedLinkFields];
-
-  const removalsSet = generateSet(allFields, 'remove');
-  const additionsSet = generateSet(allFields, 'add');
-
-  const cardOneEvents = `
-	IF ($before.${roleName}) THEN {UPDATE $before.${roleName} SET ${removalsSet}} END;
-	IF ($after.${roleName}) THEN {UPDATE $after.${roleName} SET ${additionsSet}} END;`;
-
-  const cardManyEvents = `
-	LET $edges = fn::get_mutated_edges($before.${roleName}, $after.${roleName});
-	FOR $unlink IN $edges.deletions {UPDATE $unlink SET ${removalsSet};};
-	FOR $link IN $edges.additions {${
-    usedLinkField.cardinality === 'ONE'
-      ? `
-		IF ($link.${pathToRelation}) THEN {UPDATE $link.${pathToRelation} SET ${roleName} ${role.cardinality === 'ONE' ? '= NONE' : '-= $link.id'}} END;` //! This should probably be an independnt event on card one field, that it replaces old one by new one, instead of doing it from here
-      : ''
-  }
-		UPDATE $link SET ${additionsSet};
-	};`;
-
-  return indentPar(
-    `DEFINE EVENT ${eventName} ON TABLE ${parentName} WHEN $before.${roleName} != $after.${roleName} THEN {${role.cardinality === 'ONE' ? cardOneEvents : cardManyEvents}
-};`,
-    level + 1,
-  );
-};
 
 const mapContentTypeToSurQL = (contentType: string, validations?: Validations): string => {
   const type = validations?.enum

@@ -9,11 +9,11 @@ BEGIN TRANSACTION;
 			DEFINE FIELD email ON TABLE User TYPE option<string>;
 		-- LINK FIELDS
 			DEFINE FIELD accounts ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-accounts⟩ ON TABLE User TYPE option<array<record<⟨User-Accounts⟩>>>;
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE User TYPE references<⟨User-Accounts⟩, user>;
 			DEFINE FIELD sessions ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-sessions⟩ ON TABLE User TYPE option<array<record<⟨User-Sessions⟩>>>;
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE User TYPE references<⟨User-Sessions⟩, user>;
 			DEFINE FIELD spaces ON TABLE User VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨space-user⟩ ON TABLE User TYPE option<array<record<⟨Space-User⟩>>>;
+				DEFINE FIELD ⟨space-user⟩ ON TABLE User TYPE references<⟨Space-User⟩, users>;
 			DEFINE FIELD ⟨user-tags⟩ ON TABLE User TYPE option<array<record<UserTag>>>;
 
 	DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL; //EXTENDS User;
@@ -23,11 +23,11 @@ BEGIN TRANSACTION;
 			DEFINE FIELD email ON TABLE SuperUser TYPE option<string>;
 		-- LINK FIELDS
 			DEFINE FIELD accounts ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-accounts⟩ ON TABLE SuperUser TYPE option<array<record<⟨User-Accounts⟩>>>;
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE SuperUser TYPE references<⟨User-Accounts⟩, user>;
 			DEFINE FIELD sessions ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-sessions⟩ ON TABLE SuperUser TYPE option<array<record<⟨User-Sessions⟩>>>;
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE SuperUser TYPE references<⟨User-Sessions⟩, user>;
 			DEFINE FIELD spaces ON TABLE SuperUser VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨space-user⟩ ON TABLE SuperUser TYPE option<array<record<⟨Space-User⟩>>>;
+				DEFINE FIELD ⟨space-user⟩ ON TABLE SuperUser TYPE references<⟨Space-User⟩, users>;
 			DEFINE FIELD ⟨user-tags⟩ ON TABLE SuperUser TYPE option<array<record<UserTag>>>;
 
 	DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL; //EXTENDS SuperUser;
@@ -38,11 +38,11 @@ BEGIN TRANSACTION;
 			DEFINE FIELD email ON TABLE God TYPE option<string>;
 		-- LINK FIELDS
 			DEFINE FIELD accounts ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-accounts⟩.accounts || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-accounts⟩ ON TABLE God TYPE option<array<record<⟨User-Accounts⟩>>>;
+				DEFINE FIELD ⟨user-accounts⟩ ON TABLE God TYPE references<⟨User-Accounts⟩, user>;
 			DEFINE FIELD sessions ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨user-sessions⟩.sessions || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨user-sessions⟩ ON TABLE God TYPE option<array<record<⟨User-Sessions⟩>>>;
+				DEFINE FIELD ⟨user-sessions⟩ ON TABLE God TYPE references<⟨User-Sessions⟩, user>;
 			DEFINE FIELD spaces ON TABLE God VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.spaces || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨space-user⟩ ON TABLE God TYPE option<array<record<⟨Space-User⟩>>>;
+				DEFINE FIELD ⟨space-user⟩ ON TABLE God TYPE references<⟨Space-User⟩, users>;
 			DEFINE FIELD ⟨user-tags⟩ ON TABLE God TYPE option<array<record<UserTag>>>;
 
 	DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
@@ -50,7 +50,7 @@ BEGIN TRANSACTION;
 			DEFINE FIELD name ON TABLE Space TYPE option<string>;
 		-- LINK FIELDS
 			DEFINE FIELD users ON TABLE Space VALUE <future> {array::distinct(SELECT VALUE array::flatten(⟨space-user⟩.users || []) FROM ONLY $this)};
-				DEFINE FIELD ⟨space-user⟩ ON TABLE Space TYPE option<array<record<⟨Space-User⟩>>>;
+				DEFINE FIELD ⟨space-user⟩ ON TABLE Space TYPE references<⟨Space-User⟩, spaces>;
 			DEFINE FIELD objects ON TABLE Space TYPE option<array<record<SpaceObj|Self|DataField|Field|Kind|SpaceDef>>>;
 			DEFINE FIELD definitions ON TABLE Space TYPE option<array<record<SpaceDef|DataField|Field|Kind>>>;
 			DEFINE FIELD kinds ON TABLE Space TYPE option<array<record<Kind>>>;
@@ -127,7 +127,7 @@ BEGIN TRANSACTION;
 		-- DATA FIELDS
 			DEFINE FIELD description ON TABLE Power TYPE option<string>;
 		-- LINK FIELDS
-			DEFINE FIELD ⟨space-user⟩ ON TABLE Power TYPE option<record<⟨Space-User⟩>>;
+			DEFINE FIELD ⟨space-user⟩ ON TABLE Power TYPE references<⟨Space-User⟩, power>;
 
 	DEFINE TABLE Hook SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -154,20 +154,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD accounts ON TABLE ⟨User-Accounts⟩ TYPE option<array<record<Account>>>;
-				DEFINE EVENT update_accounts ON TABLE ⟨User-Accounts⟩ WHEN $before.accounts != $after.accounts THEN {
-					LET $edges = fn::get_mutated_edges($before.accounts, $after.accounts);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET ⟨user-accounts⟩ = NONE;};
-					FOR $link IN $edges.additions {
-						IF ($link.⟨user-accounts⟩) THEN {UPDATE $link.⟨user-accounts⟩ SET accounts -= $link.id} END;
-						UPDATE $link SET ⟨user-accounts⟩ = $after.id;
-					};
-				};
-			DEFINE FIELD user ON TABLE ⟨User-Accounts⟩ TYPE option<record<God|SuperUser|User>>;
-				DEFINE EVENT update_user ON TABLE ⟨User-Accounts⟩ WHEN $before.user != $after.user THEN {
-					IF ($before.user) THEN {UPDATE $before.user SET ⟨user-accounts⟩ -= $before.id} END;
-					IF ($after.user) THEN {UPDATE $after.user SET ⟨user-accounts⟩ += $after.id} END;
-				};
+			DEFINE FIELD accounts ON TABLE ⟨User-Accounts⟩ TYPE option<array<record<Account>>> REFERENCE;
+			DEFINE FIELD user ON TABLE ⟨User-Accounts⟩ TYPE option<record<God|SuperUser|User>> REFERENCE;
 
 	DEFINE TABLE ⟨User-Sessions⟩ SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -175,20 +163,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD sessions ON TABLE ⟨User-Sessions⟩ TYPE option<array<record<Session>>>;
-				DEFINE EVENT update_sessions ON TABLE ⟨User-Sessions⟩ WHEN $before.sessions != $after.sessions THEN {
-					LET $edges = fn::get_mutated_edges($before.sessions, $after.sessions);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET ⟨user-sessions⟩ = NONE;};
-					FOR $link IN $edges.additions {
-						IF ($link.⟨user-sessions⟩) THEN {UPDATE $link.⟨user-sessions⟩ SET sessions -= $link.id} END;
-						UPDATE $link SET ⟨user-sessions⟩ = $after.id;
-					};
-				};
-			DEFINE FIELD user ON TABLE ⟨User-Sessions⟩ TYPE option<record<God|SuperUser|User>>;
-				DEFINE EVENT update_user ON TABLE ⟨User-Sessions⟩ WHEN $before.user != $after.user THEN {
-					IF ($before.user) THEN {UPDATE $before.user SET ⟨user-sessions⟩ -= $before.id} END;
-					IF ($after.user) THEN {UPDATE $after.user SET ⟨user-sessions⟩ += $after.id} END;
-				};
+			DEFINE FIELD sessions ON TABLE ⟨User-Sessions⟩ TYPE option<array<record<Session>>> REFERENCE;
+			DEFINE FIELD user ON TABLE ⟨User-Sessions⟩ TYPE option<record<God|SuperUser|User>> REFERENCE;
 
 	DEFINE TABLE ⟨Space-User⟩ SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -196,27 +172,9 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD spaces ON TABLE ⟨Space-User⟩ TYPE option<array<record<Space>>>;
-				DEFINE EVENT update_spaces ON TABLE ⟨Space-User⟩ WHEN $before.spaces != $after.spaces THEN {
-					LET $edges = fn::get_mutated_edges($before.spaces, $after.spaces);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET ⟨space-user⟩ -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET ⟨space-user⟩ += $after.id;
-					};
-				};
-			DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE option<array<record<God|SuperUser|User>>>;
-				DEFINE EVENT update_users ON TABLE ⟨Space-User⟩ WHEN $before.users != $after.users THEN {
-					LET $edges = fn::get_mutated_edges($before.users, $after.users);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET ⟨space-user⟩ -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET ⟨space-user⟩ += $after.id;
-					};
-				};
-			DEFINE FIELD power ON TABLE ⟨Space-User⟩ TYPE option<record<Power>>;
-				DEFINE EVENT update_power ON TABLE ⟨Space-User⟩ WHEN $before.power != $after.power THEN {
-					IF ($before.power) THEN {UPDATE $before.power SET ⟨space-user⟩ = NONE} END;
-					IF ($after.power) THEN {UPDATE $after.power SET ⟨space-user⟩ = $after.id} END;
-				};
+			DEFINE FIELD spaces ON TABLE ⟨Space-User⟩ TYPE option<array<record<Space>>> REFERENCE;
+			DEFINE FIELD users ON TABLE ⟨Space-User⟩ TYPE option<array<record<God|SuperUser|User>>> REFERENCE;
+			DEFINE FIELD power ON TABLE ⟨Space-User⟩ TYPE option<record<Power>> REFERENCE;
 
 	DEFINE TABLE UserTag SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -226,14 +184,7 @@ BEGIN TRANSACTION;
 
 			DEFINE FIELD group ON TABLE UserTag TYPE option<record<UserTagGroup>>;
 		-- ROLES
-			DEFINE FIELD users ON TABLE UserTag TYPE option<array<record<God|SuperUser|User>>>;
-				DEFINE EVENT update_users ON TABLE UserTag WHEN $before.users != $after.users THEN {
-					LET $edges = fn::get_mutated_edges($before.users, $after.users);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET ⟨user-tags⟩ -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET ⟨user-tags⟩ += $after.id;
-					};
-				};
+			DEFINE FIELD users ON TABLE UserTag TYPE option<array<record<God|SuperUser|User>>> REFERENCE;
 
 	DEFINE TABLE UserTagGroup SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -241,28 +192,9 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD tags ON TABLE UserTagGroup TYPE option<array<record<UserTag>>>;
-				DEFINE EVENT update_tags ON TABLE UserTagGroup WHEN $before.tags != $after.tags THEN {
-					LET $edges = fn::get_mutated_edges($before.tags, $after.tags);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET group = NONE;};
-					FOR $link IN $edges.additions {
-						IF ($link.group) THEN {UPDATE $link.group SET tags -= $link.id} END;
-						UPDATE $link SET group = $after.id;
-					};
-				};
-			DEFINE FIELD color ON TABLE UserTagGroup TYPE option<record<Color>>;
-				DEFINE EVENT update_color ON TABLE UserTagGroup WHEN $before.color != $after.color THEN {
-					IF ($before.color) THEN {UPDATE $before.color SET group = NONE} END;
-					IF ($after.color) THEN {
-          	IF ($after.color.group) THEN {UPDATE $after.color.group SET color = NONE} END;
-            UPDATE $after.color SET group = $after.id;
-        	} END;
-				};
-			DEFINE FIELD space ON TABLE UserTagGroup TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE UserTagGroup WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET userTagGroups -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET userTagGroups += $after.id} END;
-				};
+			DEFINE FIELD tags ON TABLE UserTagGroup TYPE option<array<record<UserTag>>> REFERENCE;
+						DEFINE FIELD color ON TABLE UserTagGroup TYPE option<record<Color>> REFERENCE;
+			DEFINE FIELD space ON TABLE UserTagGroup TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE SpaceObj SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -270,11 +202,7 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD space ON TABLE SpaceObj TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE SpaceObj WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET objects -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET objects += $after.id} END;
-				};
+			DEFINE FIELD space ON TABLE SpaceObj TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE SpaceDef SCHEMAFULL PERMISSIONS FULL; //EXTENDS SpaceObj;
 		-- DATA FIELDS
@@ -282,11 +210,7 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD space ON TABLE SpaceDef TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE SpaceDef WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET definitions -= $before.id, objects -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET definitions += $after.id, objects += $after.id} END;
-				};
+			DEFINE FIELD space ON TABLE SpaceDef TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE Kind SCHEMAFULL PERMISSIONS FULL; //EXTENDS SpaceDef;
 		-- DATA FIELDS
@@ -296,11 +220,7 @@ BEGIN TRANSACTION;
 			DEFINE FIELD fields ON TABLE Kind TYPE option<array<record<Field|DataField>>>;
 			DEFINE FIELD dataFields ON TABLE Kind TYPE option<array<record<DataField>>>;
 		-- ROLES
-			DEFINE FIELD space ON TABLE Kind TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE Kind WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET kinds -= $before.id, objects -= $before.id, definitions -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET kinds += $after.id, objects += $after.id, definitions += $after.id} END;
-				};
+			DEFINE FIELD space ON TABLE Kind TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE Field SCHEMAFULL PERMISSIONS FULL; //EXTENDS SpaceDef;
 		-- DATA FIELDS
@@ -310,19 +230,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD kinds ON TABLE Field TYPE option<array<record<Kind>>>;
-				DEFINE EVENT update_kinds ON TABLE Field WHEN $before.kinds != $after.kinds THEN {
-					LET $edges = fn::get_mutated_edges($before.kinds, $after.kinds);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET fields -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET fields += $after.id;
-					};
-				};
-			DEFINE FIELD space ON TABLE Field TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE Field WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET fields -= $before.id, objects -= $before.id, definitions -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET fields += $after.id, objects += $after.id, definitions += $after.id} END;
-				};
+			DEFINE FIELD kinds ON TABLE Field TYPE option<array<record<Kind>>> REFERENCE;
+			DEFINE FIELD space ON TABLE Field TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE DataField SCHEMAFULL PERMISSIONS FULL; //EXTENDS Field;
 		-- DATA FIELDS
@@ -335,19 +244,8 @@ BEGIN TRANSACTION;
 			DEFINE FIELD values ON TABLE DataField TYPE option<array<record<DataValue>>>;
 			DEFINE FIELD expression ON TABLE DataField TYPE option<record<Expression>>;
 		-- ROLES
-			DEFINE FIELD kinds ON TABLE DataField TYPE option<array<record<Kind>>>;
-				DEFINE EVENT update_kinds ON TABLE DataField WHEN $before.kinds != $after.kinds THEN {
-					LET $edges = fn::get_mutated_edges($before.kinds, $after.kinds);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET dataFields -= $before.id, fields -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET dataFields += $after.id, fields += $after.id;
-					};
-				};
-			DEFINE FIELD space ON TABLE DataField TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE DataField WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET dataFields -= $before.id, objects -= $before.id, definitions -= $before.id, fields -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET dataFields += $after.id, objects += $after.id, definitions += $after.id, fields += $after.id} END;
-				};
+			DEFINE FIELD kinds ON TABLE DataField TYPE option<array<record<Kind>>> REFERENCE;
+			DEFINE FIELD space ON TABLE DataField TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE DataValue SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -355,11 +253,7 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD dataField ON TABLE DataValue TYPE option<record<DataField>>;
-				DEFINE EVENT update_dataField ON TABLE DataValue WHEN $before.dataField != $after.dataField THEN {
-					IF ($before.dataField) THEN {UPDATE $before.dataField SET values -= $before.id} END;
-					IF ($after.dataField) THEN {UPDATE $after.dataField SET values += $after.id} END;
-				};
+			DEFINE FIELD dataField ON TABLE DataValue TYPE option<record<DataField>> REFERENCE;
 
 	DEFINE TABLE Expression SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -368,11 +262,7 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD dataField ON TABLE Expression TYPE option<record<DataField>>;
-				DEFINE EVENT update_dataField ON TABLE Expression WHEN $before.dataField != $after.dataField THEN {
-					IF ($before.dataField) THEN {UPDATE $before.dataField SET expression = NONE} END;
-					IF ($after.dataField) THEN {UPDATE $after.dataField SET expression = $after.id} END;
-				};
+			DEFINE FIELD dataField ON TABLE Expression TYPE option<record<DataField>> REFERENCE;
 
 	DEFINE TABLE Self SCHEMAFULL PERMISSIONS FULL; //EXTENDS SpaceObj;
 		-- DATA FIELDS
@@ -380,16 +270,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 			DEFINE FIELD owned ON TABLE Self TYPE option<array<record<Self>>>;
 		-- ROLES
-			DEFINE FIELD owner ON TABLE Self TYPE option<record<Self>>;
-				DEFINE EVENT update_owner ON TABLE Self WHEN $before.owner != $after.owner THEN {
-					IF ($before.owner) THEN {UPDATE $before.owner SET owned -= $before.id} END;
-					IF ($after.owner) THEN {UPDATE $after.owner SET owned += $after.id} END;
-				};
-			DEFINE FIELD space ON TABLE Self TYPE option<record<Space>>;
-				DEFINE EVENT update_space ON TABLE Self WHEN $before.space != $after.space THEN {
-					IF ($before.space) THEN {UPDATE $before.space SET selfs -= $before.id, objects -= $before.id} END;
-					IF ($after.space) THEN {UPDATE $after.space SET selfs += $after.id, objects += $after.id} END;
-				};
+			DEFINE FIELD owner ON TABLE Self TYPE option<record<Self>> REFERENCE;
+			DEFINE FIELD space ON TABLE Self TYPE option<record<Space>> REFERENCE;
 
 	DEFINE TABLE ThingRelation SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -397,24 +279,9 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD things ON TABLE ThingRelation TYPE option<array<record<SubthingTwo|SubthingOne|Thing>>>;
-				DEFINE EVENT update_things ON TABLE ThingRelation WHEN $before.things != $after.things THEN {
-					LET $edges = fn::get_mutated_edges($before.things, $after.things);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET things -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET things += $after.id;
-					};
-				};
-			DEFINE FIELD root ON TABLE ThingRelation TYPE option<record<SubthingTwo|SubthingOne|Thing>>;
-				DEFINE EVENT update_root ON TABLE ThingRelation WHEN $before.root != $after.root THEN {
-					IF ($before.root) THEN {UPDATE $before.root SET root = NONE} END;
-					IF ($after.root) THEN {UPDATE $after.root SET root = $after.id} END;
-				};
-			DEFINE FIELD extra ON TABLE ThingRelation TYPE option<record<SubthingTwo|SubthingOne|Thing>>;
-				DEFINE EVENT update_extra ON TABLE ThingRelation WHEN $before.extra != $after.extra THEN {
-					IF ($before.extra) THEN {UPDATE $before.extra SET extra = NONE} END;
-					IF ($after.extra) THEN {UPDATE $after.extra SET extra = $after.id} END;
-				};
+			DEFINE FIELD things ON TABLE ThingRelation TYPE option<array<record<SubthingTwo|SubthingOne|Thing>>> REFERENCE;
+			DEFINE FIELD root ON TABLE ThingRelation TYPE option<record<SubthingTwo|SubthingOne|Thing>> REFERENCE;
+			DEFINE FIELD extra ON TABLE ThingRelation TYPE option<record<SubthingTwo|SubthingOne|Thing>> REFERENCE;
 
 	DEFINE TABLE CascadeRelation SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -422,14 +289,7 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD things ON TABLE CascadeRelation TYPE option<array<record<CascadeThing>>>;
-				DEFINE EVENT update_things ON TABLE CascadeRelation WHEN $before.things != $after.things THEN {
-					LET $edges = fn::get_mutated_edges($before.things, $after.things);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET cascadeRelations -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET cascadeRelations += $after.id;
-					};
-				};
+			DEFINE FIELD things ON TABLE CascadeRelation TYPE option<array<record<CascadeThing>>> REFERENCE;
 
 	DEFINE TABLE HookParent SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -437,20 +297,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD hooks ON TABLE HookParent TYPE option<array<record<Hook>>>;
-				DEFINE EVENT update_hooks ON TABLE HookParent WHEN $before.hooks != $after.hooks THEN {
-					LET $edges = fn::get_mutated_edges($before.hooks, $after.hooks);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET hookParent = NONE;};
-					FOR $link IN $edges.additions {
-						IF ($link.hookParent) THEN {UPDATE $link.hookParent SET hooks -= $link.id} END;
-						UPDATE $link SET hookParent = $after.id;
-					};
-				};
-			DEFINE FIELD mainHook ON TABLE HookParent TYPE option<record<Hook>>;
-				DEFINE EVENT update_mainHook ON TABLE HookParent WHEN $before.mainHook != $after.mainHook THEN {
-					IF ($before.mainHook) THEN {UPDATE $before.mainHook SET asMainHookOf = NONE} END;
-					IF ($after.mainHook) THEN {UPDATE $after.mainHook SET asMainHookOf = $after.id} END;
-				};
+			DEFINE FIELD hooks ON TABLE HookParent TYPE option<array<record<Hook>>> REFERENCE;
+			DEFINE FIELD mainHook ON TABLE HookParent TYPE option<record<Hook>> REFERENCE;
 
 	DEFINE TABLE HookATag SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
@@ -458,19 +306,8 @@ BEGIN TRANSACTION;
 		-- LINK FIELDS
 
 		-- ROLES
-			DEFINE FIELD hookTypeA ON TABLE HookATag TYPE option<record<Hook>>;
-				DEFINE EVENT update_hookTypeA ON TABLE HookATag WHEN $before.hookTypeA != $after.hookTypeA THEN {
-					IF ($before.hookTypeA) THEN {UPDATE $before.hookTypeA SET hookatag -= $before.id} END;
-					IF ($after.hookTypeA) THEN {UPDATE $after.hookTypeA SET hookatag += $after.id} END;
-				};
-			DEFINE FIELD otherHooks ON TABLE HookATag TYPE option<array<record<Hook>>>;
-				DEFINE EVENT update_otherHooks ON TABLE HookATag WHEN $before.otherHooks != $after.otherHooks THEN {
-					LET $edges = fn::get_mutated_edges($before.otherHooks, $after.otherHooks);
-					FOR $unlink IN $edges.deletions {UPDATE $unlink SET hookatag -= $before.id;};
-					FOR $link IN $edges.additions {
-						UPDATE $link SET hookatag += $after.id;
-					};
-				};
+			DEFINE FIELD hookTypeA ON TABLE HookATag TYPE option<record<Hook>> REFERENCE;
+			DEFINE FIELD otherHooks ON TABLE HookATag TYPE option<array<record<Hook>>> REFERENCE;
 
 	DEFINE TABLE Employee SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
