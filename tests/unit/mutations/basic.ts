@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 import type { BQLResponse, BQLResponseMulti, BQLResponseSingle } from '../../../src';
 import { createTest } from '../../helpers/createTest';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { RecordId } from 'surrealdb';
 
 export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
   // some random issues forced a let here
@@ -2551,5 +2552,166 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
         ).toBe(true);
       }
     }
+  });
+
+  it.skip('bfi1[create, $fields] Create with $fields to see what we get in output', async () => {
+    // Create a user with $fields specified but not updating those fields
+    await ctx.mutate(
+      {
+        $thing: 'User',
+        id: 'bfi1-test-user-fields',
+        name: 'Test User',
+      },
+      { noMetadata: true },
+    );
+
+    // create a space linked to that user
+
+    const mutationResult = await ctx.mutate({
+      $thing: 'User',
+      $id: 'bfi1-test-user-fields',
+      spaces: [
+        {
+          $thing: 'Space',
+          id: 'bfi1-test-space',
+        },
+      ],
+    });
+    console.log('RES!', mutationResult);
+
+    // For now, just expect the mutation to work (we're testing what we get)
+    expect(mutationResult).toBeDefined();
+
+    // Clean up
+    await ctx.mutate([
+      {
+        $thing: 'User',
+        $op: 'delete',
+        $id: 'bfi1-test-user-fields',
+      },
+      {
+        $thing: 'Space',
+        $op: 'delete',
+        $id: 'bfi1-test-space',
+      },
+    ]);
+  });
+
+  it.skip('bfi2[create, $fields] Create with $fields to see what we get in output', async () => {
+    // Create a UserTagGroup relation with nested roleFields
+    await ctx.mutate(
+      {
+        $relation: 'UserTagGroup',
+        id: 'bfi2-test-group',
+        tags: [
+          {
+            $thing: 'UserTag',
+            id: 'bfi2-test-tag-1',
+            name: 'Tag 1',
+            users: [
+              {
+                $thing: 'User',
+                id: 'bfi2-test-user-1',
+              },
+              {
+                $thing: 'User',
+                id: 'bfi2-test-user-3',
+              },
+            ],
+          },
+          {
+            $thing: 'UserTag',
+            id: 'bfi2-test-tag-2',
+            name: 'Tag 2',
+            users: [
+              {
+                $thing: 'User',
+                id: 'bfi2-test-user-2',
+              },
+            ],
+          },
+        ],
+      },
+      { noMetadata: true },
+    );
+
+    // Now update the UserTagGroup with nested updates to see the mutation output
+    const mutationResult = await ctx.mutate({
+      $relation: 'UserTagGroup',
+      $id: 'bfi2-test-group',
+      tags: [
+        {
+          $id: 'bfi2-test-tag-1',
+          $op: 'update',
+          name: 'Updated Tag 1',
+          users: [{ $op: 'update', name: 'updated users' }],
+        },
+        {
+          $id: 'bfi2-test-tag-2',
+          $op: 'update',
+          color: { $op: 'create', $entity: 'Color', id: 'bfi2-teal' },
+        },
+      ],
+    });
+
+    console.log('BFI2 MUTATION RESULT:', deepSort(mutationResult, 'id'));
+
+    // Clean up
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'delete',
+        $id: 'bfi2-test-group',
+      },
+      {
+        $relation: 'UserTag',
+        $op: 'delete',
+        $id: ['bfi2-test-tag', 'bfi2-test-tag-1', 'bfi2-test-tag-2'],
+      },
+      {
+        $thing: 'User',
+        $op: 'delete',
+        $id: 'bfi2-test-user-1',
+      },
+      {
+        $thing: 'User',
+        $op: 'delete',
+        $id: 'bfi2-test-user-2',
+      },
+      {
+        $thing: 'User',
+        $op: 'delete',
+        $id: 'bfi2-test-user-3',
+      },
+      {
+        $thing: 'Color',
+        $op: 'delete',
+        $id: 'bfi2-teal',
+      },
+    ]);
+
+		expect(mutationResult.find(m => m.$id === 'bfi2-test-user-1')).toMatchObject({
+			$op: 'update',
+			$id: 'bfi2-test-user-1',
+			id: 'bfi2-test-user-1',
+			name: 'updated users',
+			'user-tags': [new RecordId('UserTag', 'bfi2-test-tag-1')],
+		})
+
+		expect(mutationResult.find(m => m.$id === 'bfi2-test-user-3')).toMatchObject({
+			$op: 'update',
+			$id: 'bfi2-test-user-3',
+			id: 'bfi2-test-user-3',
+			name: 'updated users',
+			'user-tags': [new RecordId('UserTag', 'bfi2-test-tag-1')],
+		})
+
+		expect(mutationResult.find(m => m.$id === 'bfi2-teal')).toMatchObject({
+			$op: 'create',
+			$entity: 'Color',
+			$id: 'bfi2-teal',
+			id: 'bfi2-teal',
+			'user-tags': [new RecordId('UserTag', 'bfi2-test-tag-2')],
+		})
   });
 });
