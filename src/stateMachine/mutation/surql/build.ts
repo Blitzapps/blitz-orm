@@ -200,7 +200,11 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       const rest = oFilter(block, (k: string) => !k.startsWith('$'));
       const restString = JSON.stringify(rest);
 
-      const OUTPUT = `(CREATE ONLY Delta SET input = ${restString}, meta = {"$sid": $parent.id, "$id": record::id($parent.id)}, after = $after, before = $before RETURN VALUE $parent.id )`;
+      const meta = oFilter(block, (k: string) => k.startsWith('$'));
+      const metaString = Object.entries(meta)
+        .map(([key, value]) => (key === '$tempId' ? `'$tempId': '_:${value}'` : `'${key}': '${value}'`))
+        .join(',');
+      const OUTPUT = `(CREATE ONLY Delta SET input = ${restString}, meta = {${metaString}, "$sid": $parent.id, "$id": record::id($parent.id)}, after = $after, before = $before RETURN VALUE $parent.id )`;
 
       const roleOneSchema = currentSchema.roles[roleA];
       const isMany1 = roleOneSchema.cardinality === 'MANY';
