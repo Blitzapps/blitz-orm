@@ -1,6 +1,8 @@
 import { isArray, isObject, mapEntries } from 'radash';
 import { oFilter } from '../../../helpers';
 import type { BormConfig, EnrichedBormSchema } from '../../../types';
+import { log } from '../../../logger';
+import { VERSION } from '../../../version';
 
 export type EnrichedSURQLMutationRes = {
   meta: Record<string, any>;
@@ -14,7 +16,7 @@ export const parseSURQLMutation = (props: {
   config: BormConfig;
 }) => {
   const { res, config } = props;
-  //console.log('res!', JSON.stringify(res, null, 2));
+  log('parseSURQLMutation', `>>> [${VERSION}] parseSURQLMutation`, JSON.stringify({ res }));
 
   const result = res
     .flat() //Todo: try to get it flat instead of [][]

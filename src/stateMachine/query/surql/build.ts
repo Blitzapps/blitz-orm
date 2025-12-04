@@ -11,6 +11,8 @@ import type {
   EnrichedRoleQuery,
 } from '../../../types';
 import { FieldSchema, QueryPath, SuqlMetadata } from '../../../types/symbols';
+import { log } from '../../../logger';
+import { VERSION } from '../../../version';
 
 export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBormSchema }) => {
   const { queries, schema } = props;
@@ -19,6 +21,7 @@ export const build = (props: { queries: EnrichedBQLQuery[]; schema: EnrichedBorm
 };
 
 const buildQuery = (props: { query: EnrichedBQLQuery; schema: EnrichedBormSchema }): string | null => {
+  log('buildQuery', `[${VERSION}] buildQuery/query`, JSON.stringify({ query: props.query }));
   const { query, schema } = props;
   const { $thing, $fields, $filter, $offset, $limit, $sort } = query;
 

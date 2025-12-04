@@ -1,5 +1,5 @@
 import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
-import { logDebug } from '../../../logger';
+import { log, } from '../../../logger';
 import { VERSION } from '../../../version';
 
 export const runSURQLMutation = async (client: SimpleSurrealClient, mutations: string[]): Promise<any[]> => {
@@ -15,9 +15,7 @@ export const runSURQLMutation = async (client: SimpleSurrealClient, mutations: s
 	COMMIT TRANSACTION; 
 	`;
 
-  logDebug(`>>> batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
-  //console.log('mutations', mutations);
-  //console.log('batchedMutation', batchedMutation);
+  log('runSURQLMutation', `[${VERSION}] batchedMutation`, JSON.stringify({ batchedMutation }));
   try {
     const result = await client.query(batchedMutation);
     return result.filter(Boolean);

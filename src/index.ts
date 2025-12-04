@@ -20,6 +20,8 @@ import type {
   QueryConfig,
   RawBQLQuery,
 } from './types';
+import { log } from './logger';
+import { VERSION } from './version';
 
 export * from './types';
 
@@ -188,6 +190,7 @@ class BormClient {
   // };
 
   query = async (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => {
+    log('BormClient', `>>> [${VERSION}] BormClient.query`, JSON.stringify({ query }));
     const initialized = await this.getInitialized();
 
     const qConfig = {
@@ -231,6 +234,7 @@ class BormClient {
       },
     };
 
+    log('BormClient', `>>> [${VERSION}] BormClient.mutate`, JSON.stringify({ mutation }));
     const [errorRes, res] = await tryit(runMutationMachine)(
       mutation,
       initialized.enrichedSchema,

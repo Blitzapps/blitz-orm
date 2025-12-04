@@ -6,9 +6,7 @@ const LOG_LEVEL = new Set(
     .filter((i) => !!i),
 );
 
-type LogLevel = 'debug' | 'info' | 'warning' | 'error';
-
-export const log = (level: LogLevel | LogLevel[], ...args: unknown[]) => {
+export const log = (level: string | string[], ...args: unknown[]) => {
   const shouldLog = Array.isArray(level) ? level.some((l) => LOG_LEVEL.has(l)) : LOG_LEVEL.has(level);
   if (shouldLog) {
     console.log(...args);
