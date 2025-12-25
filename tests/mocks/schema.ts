@@ -55,6 +55,7 @@ export const schema: BormSchema = {
           cardinality: 'MANY',
           plays: 'user',
           target: 'role',
+          targetRole: 'accounts',
         },
         {
           path: 'sessions',
@@ -62,6 +63,7 @@ export const schema: BormSchema = {
           cardinality: 'MANY',
           plays: 'user',
           target: 'role',
+          targetRole: 'sessions',
         },
         {
           path: 'spaces',
@@ -69,6 +71,7 @@ export const schema: BormSchema = {
           cardinality: 'MANY',
           plays: 'users',
           target: 'role',
+          targetRole: 'spaces',
         },
         {
           path: 'user-tags',
@@ -275,6 +278,7 @@ export const schema: BormSchema = {
           relation: 'Space-User',
           plays: 'spaces',
           target: 'role',
+          targetRole: 'users',
         },
         {
           path: 'objects',
@@ -362,6 +366,7 @@ export const schema: BormSchema = {
           relation: 'User-Accounts',
           plays: 'accounts',
           target: 'role',
+          targetRole: 'user',
           /// rights => Either you want to make it 1) read only 2)replace only 3) update only 4) delete only 5) create only ...
         },
       ],
@@ -381,6 +386,7 @@ export const schema: BormSchema = {
           relation: 'User-Sessions',
           plays: 'sessions',
           target: 'role',
+          targetRole: 'user',
         },
       ],
     },
@@ -518,6 +524,7 @@ export const schema: BormSchema = {
           relation: 'UserTagGroup',
           plays: 'color',
           target: 'role',
+          targetRole: 'tags',
         },
         {
           path: 'group',
@@ -638,6 +645,7 @@ export const schema: BormSchema = {
           relation: 'HookATag',
           plays: 'hookTypeA',
           target: 'role',
+          targetRole: 'otherHooks',
           isVirtual: true,
           dbValue: {
             surrealDB:
@@ -650,6 +658,7 @@ export const schema: BormSchema = {
           relation: 'HookATag',
           plays: 'otherHooks',
           target: 'role',
+          targetRole: 'hookTypeA',
           isVirtual: true,
           dbValue: {
             surrealDB:
@@ -755,6 +764,7 @@ export const schema: BormSchema = {
         {
           path: 'color',
           target: 'role',
+          targetRole: 'color',
           cardinality: 'ONE',
           plays: 'tags',
           relation: 'UserTagGroup',

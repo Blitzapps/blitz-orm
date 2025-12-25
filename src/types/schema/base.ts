@@ -1,4 +1,5 @@
 import type { DataField, DBConnector, EnrichedBQLMutationBlock, LinkField, RefField, RoleField } from '..';
+import type { Index } from './enriched.draft';
 
 export type BormSchema = {
   entities: { [s: string]: BormEntity };
@@ -14,6 +15,7 @@ export type BormEntity =
       linkFields?: readonly LinkField[];
       refFields?: { [key: string]: RefField };
       hooks?: Hooks;
+      indexes?: Index[];
     }
   | {
       idFields: readonly string[];
@@ -22,11 +24,13 @@ export type BormEntity =
       linkFields?: readonly LinkField[];
       refFields?: { [key: string]: RefField };
       hooks?: Hooks;
+      indexes?: Index[];
     };
 
 export type BormRelation = BormEntity & {
   defaultDBConnector: DBConnector & { path: string }; /// mandatory in relations
   roles?: { [key: string]: RoleField };
+  indexes?: Index[];
 };
 
 export type BormOperation = 'create' | 'update' | 'delete' | 'link' | 'unlink' | 'replace' | 'match';

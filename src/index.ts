@@ -20,6 +20,9 @@ import type {
   QueryConfig,
   RawBQLQuery,
 } from './types';
+import type { DRAFT_EnrichedBormSchema } from './types/schema/enriched.draft';
+import { enrichSchemaDraft } from './enrichSchema.draft';
+import { runSurrealDbQueryMachine2 } from './stateMachine/query/surql2/run';
 
 export * from './types';
 
@@ -37,7 +40,7 @@ class BormClient {
   private config: BormConfig;
   private initializing = false;
   private subscribers: ((err?: unknown) => void)[] = [];
-  private initialized: { enrichedSchema: EnrichedBormSchema; dbHandles: DBHandles } | null = null;
+  private initialized: { enrichedSchema: EnrichedBormSchema; draftSchema: DRAFT_EnrichedBormSchema; dbHandles: DBHandles } | null = null;
 
   constructor({ schema, config }: BormProps) {
     this.schema = schema;
@@ -140,6 +143,7 @@ class BormClient {
       );
 
       this.initialized = {
+        draftSchema: enrichSchemaDraft(this.schema),
         enrichedSchema: enrichSchema(this.schema, dbHandles),
         dbHandles,
       };
@@ -149,6 +153,7 @@ class BormClient {
         s();
       }
     } catch (e) {
+      console.error('error initializing', e);
       const subscribers = this.subscribers;
       this.subscribers = [];
       for (const s of subscribers) {
@@ -200,6 +205,12 @@ class BormClient {
     };
     const isBatched = Array.isArray(query);
     const queries = isBatched ? query : [query];
+
+    const surrealDBClient = initialized.dbHandles.surrealDB?.get('default')?.client;
+    if (surrealDBClient) {
+      const result = await runSurrealDbQueryMachine2(queries, initialized.draftSchema, qConfig, surrealDBClient);
+      return isBatched ? result : result[0];
+    }
 
     const [errorRes, res] = await tryit(runQueryMachine)(
       queries,

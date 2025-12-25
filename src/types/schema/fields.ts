@@ -35,6 +35,7 @@ export type LinkField = BormField & {
     | {
         target: 'role';
         filter?: Filter | Filter[];
+        targetRole: string;
       }
     | {
         target: 'relation';
