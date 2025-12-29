@@ -54,6 +54,7 @@ export type ProjectionField =
 export interface MetadataField {
   type: 'metadata';
   path: '$id' | '$thing';
+  alias?: string;
 };
 
 export interface DataField {
@@ -119,16 +120,24 @@ export interface RefFilter {
   right: string[];
   /**
    * Used for reference filter optimization when `cast` is 'record'. If specified the execution may use indexes.
-   * If not specified the filter will transformed be into `record::id(<left>) IN [<right>, ...]`,
+   * If not specified the filter will be transformed into `record::id(<left>) IN [<right>, ...]`,
    * which is a little bit slower than `<left> IN [type::record(<right>), ...]` when both are executed without indexes.
    */
   thing?: [string, ...string[]];
+  /**
+   * True if it's a link field with target "role".
+   */
+  tunnel: boolean;
 };
 
 export interface NullFilter {
   type: 'null';
   op: 'IS' | 'IS NOT';
   left: string;
+  /**
+   * True if it's a link field with target "role".
+   */
+  tunnel: boolean;
 }
 
 export interface LogicalOp {

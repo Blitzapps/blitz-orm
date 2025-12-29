@@ -72,6 +72,7 @@ export interface DRAFT_EnrichedBormLinkField {
   type: 'link';
   name: string;
   cardinality: DiscreteCardinality;
+  target: 'relation' | 'role';
   opposite: {
     thing: string;
     path: string;

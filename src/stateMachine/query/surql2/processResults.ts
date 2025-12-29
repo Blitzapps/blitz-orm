@@ -75,8 +75,14 @@ const transformResultObject = (params: {
 
   for (const fieldQuery of query.$fields ?? Object.keys(thing.fields)) {
     const path = typeof fieldQuery === 'string' ? fieldQuery : fieldQuery.$path;
+    const alias = typeof fieldQuery === 'string' ? fieldQuery : fieldQuery.$as ?? path;
     // Skip excluded fields.
     if (query.$excludedFields?.includes(path)) {
+      continue;
+    }
+
+    if (path === '$id' || path === '$thing') {
+      newResult[alias] = obj[alias] ?? null;
       continue;
     }
 
@@ -87,22 +93,22 @@ const transformResultObject = (params: {
     }
 
     if (field.type === 'constant') {
-      newResult[path] = field.value;
+      newResult[alias] = field.value;
       continue;
     }
 
     if (field.type === 'computed') {
-      newResult[path] = field.fn(obj);
+      newResult[alias] = field.fn(obj);
       continue;
     }
 
-    const value = obj[path] ?? null;
+    const value = obj[alias] ?? null;
 
     if (field.type === 'data') {
       if (!returnNulls && (value === null || value === undefined)) {
         continue;
       }
-      newResult[path] = value ?? null;
+      newResult[alias] = value ?? null;
       continue;
     }
 
@@ -111,12 +117,12 @@ const transformResultObject = (params: {
     }
 
     if (typeof fieldQuery === 'string' || field.type === 'ref') {
-      newResult[path] = Array.isArray(value) && value.length === 0 ? null : value ?? null;
+      newResult[alias] = Array.isArray(value) && value.length === 0 ? null : value ?? null;
       continue;
     }
 
     const opposite = schema[field.opposite.thing];
-    newResult[path] =  processNestedResult({ query: fieldQuery, result: value, thing: opposite, schema, metadata, returnNulls });
+    newResult[alias] =  processNestedResult({ query: fieldQuery, result: value, thing: opposite, schema, metadata, returnNulls });
   }
 
   return newResult;

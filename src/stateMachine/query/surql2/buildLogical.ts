@@ -59,6 +59,14 @@ const buildProjection = (params: {
 
   for (const field of fields) {
     if (typeof field === 'string') {
+      if (field === '$id' || field === '$thing') {
+        projectionFields.push({
+          type: 'metadata',
+          path: field,
+        });
+        continue;
+      }
+
       const fieldSchema = thing.fields[field];
       if (!fieldSchema) {
         throw new Error(`Field ${field} not found in ${thing.name}`);
@@ -68,6 +76,15 @@ const buildProjection = (params: {
     }
 
     const alias = validateAlias(field.$as);
+
+    if (field.$path === '$id' || field.$path === '$thing') {
+      projectionFields.push({
+        type: 'metadata',
+        path: field.$path,
+        alias,
+      });
+      continue;
+    }
 
     const fieldSchema = thing.fields[field.$path];
     if (!fieldSchema) {
@@ -254,6 +271,24 @@ const buildDataFieldFilter = (
   if (result.success) {
     const filters: Filter[] = [];
     for (const [op, right] of Object.entries(result.data)) {
+      if (op === '$exists') {
+        filters.push({
+          type: 'null',
+          op: right ? 'IS NOT' : 'IS',
+          left: field.name,
+          tunnel: false,
+        });
+        continue;
+      }
+      if ((op === '$eq' || op === '$ne') && right === null) {
+        filters.push({
+          type: 'null',
+          op: op === '$eq' ? 'IS' : 'IS NOT',
+          left: field.name,
+          tunnel: false,
+        });
+        continue;
+      }
       const scalarOp = scalarOpMap[op];
       if (scalarOp) {
         filters.push({
@@ -300,6 +335,14 @@ const buildDataFieldFilter = (
 
   // Single value
   if (field.cardinality === 'ONE') {
+    if (filter === null) {
+      return [{
+        type: 'null',
+        op: 'IS',
+        left: field.name,
+        tunnel: false,
+      }];
+    }
     return [{
       type: 'scalar',
       op: '=',
@@ -325,6 +368,7 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
           op: 'IN',
           left: field.name,
           right: [filter],
+          tunnel: false,
         };
       }
       if (StringArrayParser.safeParse(filter).success) {
@@ -333,6 +377,7 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
           op: 'IN',
           left: field.name,
           right: filter as string[],
+          tunnel: false,
         };
       }
       throw new Error(`Invalid filter value for ref field ${field.name}: ${JSON.stringify(filter)}`);
@@ -343,6 +388,7 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
         op: 'CONTAINSANY',
         left: field.name,
         right: [filter],
+        tunnel: false,
       };
     }
     if (StringArrayParser.safeParse(filter).success) {
@@ -351,6 +397,7 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
         op: 'CONTAINSANY',
         left: field.name,
         right: filter as string[],
+        tunnel: false,
       };
     }
     throw new Error(`Invalid filter value for ref field ${field.name}: ${JSON.stringify(filter)}`);
@@ -364,11 +411,14 @@ const buildLinkFieldFilter = (
   filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter,
   schema: DRAFT_EnrichedBormSchema,
 ): Filter[] => {
+  const tunnel = field.type === 'link' && field.target === 'role';
+
   if (filter === null) {
     return [{
       type: 'null',
       op: 'IS',
       left: field.name,
+      tunnel,
     }];
   }
 
@@ -378,6 +428,7 @@ const buildLinkFieldFilter = (
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: [filter],
+      tunnel,
     }];
   }
 
@@ -387,6 +438,7 @@ const buildLinkFieldFilter = (
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: filter as string[],
+      tunnel,
     }];
   }
 
@@ -434,6 +486,7 @@ const buildLinkFieldFilter = (
         type: 'null',
         op: op === '$eq' ? 'IS' : 'IS NOT',
         left: field.name,
+        tunnel,
       });
       continue;
     }
@@ -445,7 +498,8 @@ const buildLinkFieldFilter = (
       op: op === '$eq' ? 'IN' : 'NOT IN',
       left: field.name,
       right: [value],
-      thing: oppositeThings
+      thing: oppositeThings,
+      tunnel,
     });
   }
 
@@ -467,7 +521,8 @@ const buildLinkFieldFilter = (
       op: listOp,
       left: field.name,
       right: stringArray.data,
-      thing: oppositeThings
+      thing: oppositeThings,
+      tunnel,
     });
   }
 
@@ -562,7 +617,7 @@ const pushIfDefined = <T>(array: T[], item: T | undefined) => {
 };
 
 const validateAlias = (alias?: string): string | undefined => {
-  if (alias !== undefined && !/^[a-zA-Z_][a-zA-Z0-9_]+$/.test(alias)) {
+  if (alias !== undefined && !/^[a-zA-Z0-9_-]+$/.test(alias)) {
     throw new Error(`Invalid alias: ${alias}`);
   }
   return alias;

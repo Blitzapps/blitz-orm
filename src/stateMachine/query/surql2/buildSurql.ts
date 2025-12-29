@@ -1,4 +1,15 @@
-import type { DataSource, Filter, LogicalQuery, NestedReferenceField, Projection, DataField, ReferenceField, FlexField, Sort, MetadataField } from "./logical";
+import type {
+  DataField,
+  DataSource,
+  Filter,
+  FlexField,
+  LogicalQuery,
+  MetadataField,
+  NestedReferenceField,
+  Projection,
+  ReferenceField,
+  Sort,
+} from "./logical";
 
 export type SurqlParams = Record<string, unknown>;
 
@@ -63,9 +74,9 @@ const buildProjection = (projection: Projection, level: number, params: SurqlPar
 
 const buildMetadataFieldProjection = (field: MetadataField, level: number) => {
   if (field.path === '$id') {
-    return indent('record::id(id) AS `$id`', level);
+    return indent(`record::id(id) AS ${esc(field.alias ?? '$id')}`, level);
   } else if (field.path === '$thing') {
-    return indent('record::tb(id) AS `$thing`', level);
+    return indent(`record::tb(id) AS ${esc(field.alias ?? '$thing')}`, level);
   }
   throw new Error(`Unsupported metadata field: ${field.path}`);
 };
@@ -182,9 +193,11 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
   const _prefix = prefix ?? '';
   switch (filter.type) {
     case 'scalar': {
-        const key = insertParam(params, filter.right);
-        const path = `${_prefix}${esc(filter.left)}`;
-        return `${path} ${filter.op} $${key}`;
+      const path = filter.left === 'id'
+        ? `record::id(${_prefix}id)`
+        : `${_prefix}${esc(filter.left)}`;
+      const key = insertParam(params, filter.right);
+      return `${path} ${filter.op} $${key}`;
     }
     case 'list': {
       const items = filter.right.map((i) => `$${insertParam(params, i)}`).join(', ');
@@ -192,7 +205,9 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       return `${path} ${filter.op} [${items}]`;
     }
     case 'ref': {
-      const path = `${_prefix}${esc(filter.left)}`;
+      const path = filter.left === 'id'
+        ? `record::id(${_prefix}id)`
+        : `${_prefix}${esc(filter.left)}`;
       if (filter.thing) {
         const right = filter.thing.flatMap((t) => filter.right.map((i) => {
           const pointer = `${esc(t)}:${esc(i)}`
@@ -218,22 +233,40 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       }
       if (filter.right.length === 1) {
         if (filter.op === 'IN') {
-          return `array::any((${path} ?: []), |$item| record::id($item) = $${insertParam(params, filter.right[0])}`
+          if (filter.tunnel) {
+            return `(array::first(${path}) && record::id(array::first(${path})) = $${insertParam(params, filter.right[0])})`;
+          }
+          return `${path} && record::id(${path}) = $${insertParam(params, filter.right[0])}`;
         }
         if (filter.op === 'NOT IN') {
-          return `array::any((${path} ?: []), |$item| record::id($item) != $${insertParam(params, filter.right[0])}`
+          if (filter.tunnel) {
+            return `(!array::first(${path}) || record::id(array::first(${path})) != $${insertParam(params, filter.right[0])})`;
+          }
+          return `${path} && record::id(${path}) != $${insertParam(params, filter.right[0])}`;
         }
         if (filter.op === 'CONTAINSANY') {
+          if (filter.tunnel) {
+            return `$${insertParam(params, filter.right[0])} IN ${path}.map(|$i| record::id($i))`
+          }
           return `$${insertParam(params, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`
         }
         if (filter.op === 'CONTAINSNONE') {
+          if (filter.tunnel) {
+            return `$${insertParam(params, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`
+          }
           return `$${insertParam(params, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`
         }
+      }
+      if (filter.tunnel) {
+        return `${path}.map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(params, i)}`).join(', ')}]`;
       }
       return `(${path} ?: []).map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(params, i)}`).join(', ')}]`;
     }
     case 'null': {
-      return `${_prefix}${esc(filter.left)} ${filter.op} NULL`;
+      if (filter.tunnel) {
+        return `array::len(${_prefix}${esc(filter.left)}) = 0`;
+      }
+      return `${_prefix}${esc(filter.left)} ${filter.op} NONE`;
     }
     case 'and': {
       const conditions = filter.filters.map((f) => {
@@ -284,6 +317,7 @@ const insertParam = (params: Record<string, unknown>, value: unknown): string =>
   while (params[key] !== undefined) {
     key = generateAlphaKey(5);
   }
+  console.log('> insertParam', key, value);
   params[key] = value;
   return key;
 }

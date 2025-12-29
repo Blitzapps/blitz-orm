@@ -204,6 +204,7 @@ const enrichLinkFields = (
         type: 'link',
         name: lf.path,
         cardinality: lf.cardinality,
+        target: 'relation',
         opposite: {
           thing: lf.relation,
           path: lf.plays,
@@ -229,6 +230,7 @@ const enrichLinkFields = (
       type: 'link',
       name: lf.path,
       cardinality: lf.cardinality,
+      target: 'role',
       opposite: rolePlayer,
     };
     assertNoDuplicateField(thingName, enriched, existing);

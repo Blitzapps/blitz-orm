@@ -1479,8 +1479,9 @@ export const testQuery = createTest('Query', (ctx) => {
     const res = await ctx.query(
       {
         $entity: 'User',
-        //@ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
+        // @ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
         $filter: [{ spaces: ['space-1'] }, { email: 'ann@test.com' }],
+        // $filter: { $or: { spaces: ['space-1'],  email: 'ann@test.com' } },
         $fields: ['id'],
       },
       { noMetadata: true },

@@ -1,5 +1,6 @@
+import z from "zod/v4";
 import type { DRAFT_EnrichedBormEntity, DRAFT_EnrichedBormField, DRAFT_EnrichedBormRelation, DRAFT_EnrichedBormSchema, Index } from "../../../types/schema/enriched.draft";
-import type { DataSource, Filter, LogicalQuery, NestedFilter, Projection, ProjectionField, RecordPointer, RefFilter, SubQuery, TableScan } from "./logical";
+import type { DataSource, Filter, ListFilter, LogicalQuery, NestedFilter, Projection, ProjectionField, RecordPointer, RefFilter, ScalarFilter, SubQuery, TableScan } from "./logical";
 
 export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_EnrichedBormSchema): LogicalQuery => {
   const thing = getSourceThing(query.source, schema);
@@ -11,7 +12,70 @@ export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_Enriched
     projection: query.projection,
     filter: optimizedFilter,
     cardinality: query.cardinality,
+    limit: query.limit,
+    offset: query.offset,
+    sort: query.sort,
   }
+};
+
+/**
+ * If the source is a table scan and the filter is a nested filter, convert the filter to a relationship traversal.
+ */
+const optimizeSource = (params: { source: DataSource, filter?: Filter, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation }): { source: DataSource, filter?: Filter } => {
+  const { source, filter, schema, thing } = params;
+
+  if (source.type !== 'table_scan') {
+    return { source, filter };
+  }
+
+  // TODO: If we use SurrealDB(v3) REFERENCE, convert computed reference filter into relationship traversal.
+
+  const [firstFilter, ...restFilters] = filter?.type === 'and' ? filter.filters : filter ? [filter] : [];
+
+  const traversal = firstFilter?.type === 'scalar' || firstFilter?.type === 'list'
+    ? convertIdFilterToRecordPointer(firstFilter, source)
+    : firstFilter?.type === 'nested'
+    ? convertNestedFilterToRelationshipTraversal(firstFilter, schema, thing)
+    : firstFilter?.type === 'ref'
+    ? convertRefFilterToRelationshipTraversal(firstFilter, schema, thing)
+    : undefined;
+
+  if (traversal) {
+    return {
+      source: traversal,
+      filter: restFilters.length === 0
+        ? undefined
+        : restFilters.length === 1
+        ? restFilters[0]
+        : { type: 'and', filters: restFilters },
+    }
+  }
+
+  return {
+    source,
+    filter: filter ? pushDownIndexedFilter(filter, thing) : undefined,
+  }
+}
+
+const convertIdFilterToRecordPointer = (filter: ScalarFilter | ListFilter, source: TableScan): RecordPointer | undefined => {
+  if (filter.left !== 'id') {
+    return undefined;
+  }
+  if (filter.op === '=' && typeof filter.right === 'string') {
+    return {
+      type: 'record_pointer',
+      thing: [source.thing[0], ...source.thing.slice(1)],
+      ids: [filter.right],
+    }
+  }
+  if (filter.op === 'IN' && z.array(z.string()).safeParse(filter.right).success) {
+    return {
+      type: 'record_pointer',
+      thing: [source.thing[0], ...source.thing.slice(1)],
+      ids: filter.right as string[],
+    }
+  }
+  return undefined;
 };
 
 /**
@@ -29,6 +93,17 @@ const convertRefFilterToRelationshipTraversal = (
   if ((field.type !== 'role' && field.type !== 'link') || filter.op !== 'IN') {
     return undefined;
   }
+  if (field.type === 'role' && field.opposite) {
+    // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
+    // This relation is only used as intermediary relation.
+    const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
+    if (oppositeLinkField?.type !== 'link') {
+      throw new Error(`Role field ${field.name} in relation ${thing.name} is not played by a link field`);
+    }
+    if (oppositeLinkField.target !== 'relation') {
+      return undefined;
+    }
+  }
   const { thing: oppositeThing, path: oppositePath, cardinality } = field.opposite;
   const oppositeThingSchema = getThingSchema(oppositeThing, schema);
   const source: RecordPointer = {
@@ -45,54 +120,6 @@ const convertRefFilterToRelationshipTraversal = (
   return traversal;
 };
 
-/**
- * If the source is a table scan and the filter is a nested filter, convert the filter to a relationship traversal.
- */
-const optimizeSource = (params: { source: DataSource, filter?: Filter, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation }): { source: DataSource, filter?: Filter } => {
-  const { source, filter, schema, thing } = params;
-
-  // TODO: If we use SurrealDB(v3) REFERENCE, convert computed reference filter into relationship traversal.
-
-  // Convert a ref filter to a relationship traversal.
-  if (source.type === 'table_scan' && filter?.type === 'ref') {
-    const traversal = convertRefFilterToRelationshipTraversal(filter, schema, thing);
-    if (traversal) {
-      return { source: traversal };
-    }
-  }
-
-  // Convert source into relationship traversal if the filter is a nested filter
-  if (source.type === 'table_scan' && filter?.type === 'nested') {
-    const traversal = convertNestedFilterToRelationshipTraversal(filter, schema, thing);
-    if (traversal) {
-      return { source: traversal };
-    }
-  }
-
-  // Convert source into relationship traversal if the first filter is a nested filter
-  if (source.type === 'table_scan' && filter?.type === 'and') {
-    const [firstFilter, ...restFilters] = filter.filters ?? [];
-    if (firstFilter?.type === 'nested') {
-      const traversal = convertNestedFilterToRelationshipTraversal(firstFilter, schema, thing);
-      if (traversal) {
-        return {
-          source: traversal,
-          filter: restFilters.length === 0
-            ? undefined
-            : restFilters.length === 1
-            ? restFilters[0]
-            : { type: 'and', filters: restFilters },
-        }
-      }
-    }
-  }
-
-  return {
-    source,
-    filter: filter ? pushDownIndexedFilter(filter, thing) : undefined,
-  }
-}
-
 const convertNestedFilterToRelationshipTraversal = (
   filter: NestedFilter,
   schema: DRAFT_EnrichedBormSchema,
@@ -104,6 +131,17 @@ const convertNestedFilterToRelationshipTraversal = (
   }
   if (field.type !== 'link' && field.type !== 'role') {
     return undefined;
+  }
+  if (field.type === 'role' && field.opposite) {
+    // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
+    // This relation is only used as intermediary relation.
+    const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
+    if (oppositeLinkField?.type !== 'link') {
+      throw new Error(`Role field ${field.name} in relation ${thing.name} is not played by a link field`);
+    }
+    if (oppositeLinkField.target !== 'relation') {
+      return undefined;
+    }
   }
   const { thing: oppositeThing, path: oppositePath, cardinality } = field.opposite;
   const oppositeThingSchema = getThingSchema(oppositeThing, schema);
@@ -135,6 +173,9 @@ const optimizeProjectionField = (field: ProjectionField, schema: DRAFT_EnrichedB
     projection: optimizeProjection(field.projection, schema, thing),
     filter: field.filter ? optimizeLocalFilter(field.filter, schema, thing) : undefined,
     cardinality: field.cardinality,
+    limit: field.limit,
+    offset: field.offset,
+    sort: field.sort,
   }
 }
 

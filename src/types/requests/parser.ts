@@ -8,6 +8,8 @@ export const BQLFilterValueListParser = z.array(BQLFilterValueParser);
 
 export type BQLFilterValueList = z.infer<typeof BQLFilterValueListParser>;
 
+// TODO: Remove $and
+// TODO: Change $or to BQLFilter[]
 export type BQLFilter = {
   // Logic Operators
   $and?: BQLFilter;
@@ -36,6 +38,7 @@ export interface NestedBQLFilter extends BQLFilter {
 };
 
 export const StrictBQLValueFilterParser = z.strictObject({
+  $exists: z.boolean().optional(),
   $eq: BQLFilterValueParser.optional(),
   $neq: BQLFilterValueParser.optional(),
   $gt: BQLFilterValueParser.optional(),
@@ -73,6 +76,8 @@ export const NestedBQLFilterParser: z.ZodType<NestedBQLFilter> = z.lazy(() =>
     $and: z.lazy(() => BQLFilterParser).optional(),
     $or: z.lazy(() => BQLFilterParser).optional(),
     $not: z.lazy(() => BQLFilterParser).optional(),
+    // Exists Operators
+    $exists: z.boolean().optional(),
     // Scalar Value Operators
     $eq: BQLFilterValueParser.optional(),
     $neq: BQLFilterValueParser.optional(),
