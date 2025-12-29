@@ -147,17 +147,19 @@ const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: stri
 };
 
 const buildFilter = (
-  filter: BQLFilter,
+  filter: BQLFilter | BQLFilter[],
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
   schema: DRAFT_EnrichedBormSchema
 ): Filter | undefined => {
+  if (Array.isArray(filter)) {
+    const filters = filter.map((f) => buildFilter(f, thing, schema)).filter((f) => !!f);
+    return {
+      type: 'or',
+      filters: filters,
+    };
+  }
+
   const filters = buildFilters(filter, thing, schema);
-  if (filters.length === 0) {
-    return undefined;
-  }
-  if (filters.length === 1) {
-    return filters[0];
-  }
   return {
     type: 'and',
     filters,
@@ -174,11 +176,6 @@ const buildFilters = (
   for (const [key, value] of Object.entries(filter)) {
     if (key === '$not' && filter.$not) {
       pushIfDefined(filters, buildNotFilter(filter.$not, thing, schema));
-      continue;
-    }
-
-    if (key === '$and' && filter.$and) {
-      pushIfDefined(filters, buildAndFilter(filter.$and, thing, schema));
       continue;
     }
 
@@ -199,7 +196,7 @@ const buildFilters = (
 
     if (fieldSchema.type === 'data') {
       if (value !== undefined) {
-        filters.push(...buildDataFieldFilter(fieldSchema, value));
+        filters.push(buildDataFieldFilter(fieldSchema, value as BQLFilterValue | BQLFilterValueList | NestedBQLFilter));
       }
       continue;
     }
@@ -212,7 +209,7 @@ const buildFilters = (
     }
 
     if (value !== undefined) {
-      filters.push(...buildLinkFieldFilter(fieldSchema, value, schema));
+      filters.push(buildLinkFieldFilter(fieldSchema, value, schema));
     }
   }
 
@@ -231,37 +228,18 @@ const buildNotFilter = (
   } : undefined;
 };
 
-const buildAndFilter = (
-  $and: BQLFilter,
-  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-  schema: DRAFT_EnrichedBormSchema
-): Filter | undefined => {
-  const logicalFilter = buildFilter($and, thing, schema);
-  return logicalFilter ? logicalFilter : undefined;
-};
-
 const buildOrFilter = (
-  $or: BQLFilter,
+  $or: BQLFilter[],
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
   schema: DRAFT_EnrichedBormSchema,
 ): Filter | undefined => {
-  const logicalFilters = buildFilters($or, thing, schema);
-  if (logicalFilters.length === 0) {
-    return undefined;
-  }
-  if (logicalFilters.length === 1) {
-    return logicalFilters[0];
-  }
-  return {
-    type: 'or',
-    filters: logicalFilters,
-  };
+  return buildFilter($or, thing, schema);
 };
 
 const buildDataFieldFilter = (
   field: DRAFT_EnrichedBormDataField,
   filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter,
-): Filter[] => {
+): Filter => {
   // No-sub field. Only scalar and list filters are allowed.
   // If `right` is not of the same type as the field, the query will return an empty result.
   // Ideally SurrealDB's query planner should skip the query.
@@ -311,55 +289,58 @@ const buildDataFieldFilter = (
       }
       throw new Error(`Invalid filter operation: ${op}`);
     }
-    return filters;
+    return {
+      type: 'and',
+      filters,
+    };
   }
 
   // List value
   if (Array.isArray(filter)) {
     if (field.cardinality === 'ONE') {
-      return [{
+      return {
         type: 'list',
         op: 'IN',
         left: field.name,
         right: filter,
-      }];
+      };
     }
 
-    return [{
+    return {
       type: 'list',
       op: 'CONTAINSANY',
       left: field.name,
       right: filter,
-    }];
+    };
   }
 
   // Single value
   if (field.cardinality === 'ONE') {
     if (filter === null) {
-      return [{
+      return {
         type: 'null',
         op: 'IS',
         left: field.name,
         tunnel: false,
-      }];
+      };
     }
-    return [{
+    return {
       type: 'scalar',
       op: '=',
       left: field.name,
       right: filter as BQLFilterValue,
-    }];
+    };
   }
 
-  return [{
+  return {
     type: 'scalar',
     op: 'CONTAINS',
     left: field.name,
     right: filter as BQLFilterValue,
-  }];
+  };
 }
 
-const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter): Filter | undefined => {
+const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | BQLFilter[]): Filter | undefined => {
   if (field.contentType === 'REF') {
     if (field.cardinality === 'ONE') {
       if (typeof filter === 'string') {
@@ -408,42 +389,41 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
 
 const buildLinkFieldFilter = (
   field: DRAFT_EnrichedBormLinkField | DRAFT_EnrichedBormRoleField,
-  filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter,
+  filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | BQLFilter[],
   schema: DRAFT_EnrichedBormSchema,
-): Filter[] => {
+): Filter => {
   const tunnel = field.type === 'link' && field.target === 'role';
 
   if (filter === null) {
-    return [{
+    return {
       type: 'null',
       op: 'IS',
       left: field.name,
       tunnel,
-    }];
+    };
   }
 
   if (typeof filter === 'string') {
-    return [{
+    return {
       type: 'ref',
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: [filter],
       tunnel,
-    }];
+    };
   }
 
-  if (z.array(z.string()).safeParse(filter).success) {
-    return [{
+  if (StringArrayParser.safeParse(filter).success) {
+    return {
       type: 'ref',
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: filter as string[],
       tunnel,
-    }];
+    };
   }
 
-  const filters: Filter[] = [];
-  const nestedFilter = NestedBQLFilterParser.safeParse(filter);
+  const nestedFilter = z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)]).safeParse(filter);
 
   if (nestedFilter.error) {
     throw new Error(`Invalid nested filter: ${nestedFilter.error.message}`);
@@ -456,6 +436,14 @@ const buildLinkFieldFilter = (
   }
 
   const oppositeThings: [string, ...string[]] = [field.opposite.thing, ...oppositeThingSchema.subTypes];
+
+  if (Array.isArray(nestedFilter.data)) {
+    const filters = nestedFilter.data.map((f) => buildLinkFieldFilter(field, f, schema)).filter((f) => !!f);
+    return {
+      type: 'or',
+      filters,
+    };
+  }
 
   const {
     $eq: _eq,
@@ -476,9 +464,20 @@ const buildLinkFieldFilter = (
     }
   }
 
-  for (const op of ['$eq', '$ne', '$contains', '$containsNot']) {
+  const filters: Filter[] = [];
+
+  for (const op of ['$exists', '$eq', '$ne', '$contains', '$containsNot']) {
     const value = nestedFilter.data[op];
     if (value === undefined) {
+      continue;
+    }
+    if (op === '$exists') {
+      filters.push({
+        type: 'null',
+        op: value ? 'IS NOT' : 'IS',
+        left: field.name,
+        tunnel,
+      });
       continue;
     }
     if ((op === '$eq' || op === '$ne') && value === null) {
@@ -541,7 +540,10 @@ const buildLinkFieldFilter = (
     });
   }
 
-  return filters;
+  return {
+    type: 'and',
+    filters,
+  };
 }
 
 const isUniqueFilter = (thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation, filter?: Filter): boolean => {

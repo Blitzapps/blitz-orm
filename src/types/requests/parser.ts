@@ -8,18 +8,17 @@ export const BQLFilterValueListParser = z.array(BQLFilterValueParser);
 
 export type BQLFilterValueList = z.infer<typeof BQLFilterValueListParser>;
 
-// TODO: Remove $and
-// TODO: Change $or to BQLFilter[]
 export type BQLFilter = {
-  // Logic Operators
-  $and?: BQLFilter;
-  $or?: BQLFilter;
+  $or?: BQLFilter[];
   $not?: BQLFilter;
-  // Catch-all for fields or custom keys
-  [key: string]: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | undefined;
+  /**
+   * Depending on the field type, only a subset of this type is allowed.
+   */
+  [key: string]: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | NestedBQLFilter[] | undefined;
 };
 
 export interface NestedBQLFilter extends BQLFilter {
+  $exists?: boolean;
   // Scalar Operators
   $eq?: BQLFilterValue;
   $neq?: BQLFilterValue;
@@ -57,15 +56,14 @@ export const StrictBQLValueFilterParser = z.strictObject({
 export const BQLFilterParser: z.ZodType<BQLFilter> = z.lazy(() =>
   z.object({
     // Recursive Operators
-    $and: z.lazy(() => BQLFilterParser).optional(),
-    $or: z.lazy(() => BQLFilterParser).optional(),
+    $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
     $not: z.lazy(() => BQLFilterParser).optional(),
   }).catchall(
     // "Everything else" (Custom fields)
     z.union([
       BQLFilterValueParser,
       BQLFilterValueListParser,
-      z.lazy(() => NestedBQLFilterParser),
+      z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
     ])
   )
 );
@@ -73,8 +71,7 @@ export const BQLFilterParser: z.ZodType<BQLFilter> = z.lazy(() =>
 export const NestedBQLFilterParser: z.ZodType<NestedBQLFilter> = z.lazy(() =>
   z.object({
     // Recursive Operators
-    $and: z.lazy(() => BQLFilterParser).optional(),
-    $or: z.lazy(() => BQLFilterParser).optional(),
+    $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
     $not: z.lazy(() => BQLFilterParser).optional(),
     // Exists Operators
     $exists: z.boolean().optional(),
@@ -98,14 +95,14 @@ export const NestedBQLFilterParser: z.ZodType<NestedBQLFilter> = z.lazy(() =>
     z.union([
       BQLFilterValueParser,
       BQLFilterValueListParser,
-      z.lazy(() => NestedBQLFilterParser),
+      z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
     ])
   )
 );
 
 const BaseBQLParser = z.object({
   $id: z.union([z.string(), z.array(z.string())]).optional(),
-  $filter: BQLFilterParser.optional(),
+  $filter: z.union([BQLFilterParser, z.array(BQLFilterParser)]).optional(),
   $fields: z.array(z.union([z.string(), z.lazy(() => NestedBQLParser)])).optional(),
   $excludedFields: z.array(z.string()).optional(),
   $limit: z.number().optional(),
@@ -123,7 +120,7 @@ const BaseBQLParser = z.object({
 
 interface BaseBQL {
   $id?: string | string[];
-  $filter?: BQLFilter;
+  $filter?: BQLFilter | BQLFilter[];
   $fields?: (string | NestedBQL)[];
   $excludedFields?: string[];
   $limit?: number;
