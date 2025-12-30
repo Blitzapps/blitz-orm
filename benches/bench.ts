@@ -95,7 +95,7 @@ const summarize = (variants: { name: string, durations: number[] }[]): Summary[]
     return {
       name: variant.name,
       iter: variant.durations.length,
-      first: sorted[0] ?? 0,
+      first: variant.durations[0] ?? 0,
       min,
       max,
       mean,
