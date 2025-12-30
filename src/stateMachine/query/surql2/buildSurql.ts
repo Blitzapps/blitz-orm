@@ -317,7 +317,6 @@ const insertParam = (params: Record<string, unknown>, value: unknown): string =>
   while (params[key] !== undefined) {
     key = generateAlphaKey(5);
   }
-  console.log('> insertParam', key, value);
   params[key] = value;
   return key;
 }

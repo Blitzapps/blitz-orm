@@ -5,7 +5,7 @@ USER=borm_bench
 PASSWORD=borm_bench
 NAMESPACE=borm_bench
 DATABASE=borm_bench
-SCHEMA_FILE="./benches/schemav2.surql"
+SCHEMA_FILE="./benches/schema.v2.surql"
 
 # Start the container
 docker run \

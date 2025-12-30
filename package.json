@@ -23,6 +23,7 @@
     "prepare": "husky",
     "pub": "pnpm build && pnpm publish",
     "knip": "knip",
+    "bench:surrealdb": "./benches/bench.v2.sh",
     "bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
     "bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/bench.sh tests/unit/bench",
     "bench:typedb": "vitest bench typedb/bench",

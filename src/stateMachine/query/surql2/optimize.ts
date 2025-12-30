@@ -90,10 +90,10 @@ const convertRefFilterToRelationshipTraversal = (
   if (!field) {
     throw new Error(`Field ${filter.left} not found in ${thing.name}`);
   }
-  if ((field.type !== 'role' && field.type !== 'link') || filter.op !== 'IN') {
+  if ((field.type !== 'role' && field.type !== 'link') || (filter.op !== 'IN' && filter.op !== 'CONTAINSANY')) {
     return undefined;
   }
-  if (field.type === 'role' && field.opposite) {
+  if (field.type === 'role') {
     // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
     // This relation is only used as intermediary relation.
     const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
@@ -132,7 +132,7 @@ const convertNestedFilterToRelationshipTraversal = (
   if (field.type !== 'link' && field.type !== 'role') {
     return undefined;
   }
-  if (field.type === 'role' && field.opposite) {
+  if (field.type === 'role') {
     // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
     // This relation is only used as intermediary relation.
     const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];

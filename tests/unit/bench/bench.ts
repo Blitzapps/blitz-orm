@@ -4,9 +4,10 @@ import { bench, expect } from 'vitest';
 import type { WithBormMetadata } from '../../../src/index';
 import type { TypeGen } from '../../../src/types/typeGen';
 import { createTest } from '../../helpers/createTest';
-import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { UserType } from '../../types/testTypes';
+import { deepRemoveMetaData } from '../../../src/helpers';
 
 export const allBench = createTest('Bench', (ctx) => {
   bench('v1[validation] - $entity missing', async () => {

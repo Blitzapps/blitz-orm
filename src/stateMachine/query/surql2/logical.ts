@@ -37,6 +37,9 @@ export interface SubQuery {
    * The cardinality of the reference in DB. COMPUTED REFERENCE is always 'MANY'.
    */
   filter?: Filter;
+  /**
+   * This is the cardinality of 
+   */
   cardinality: 'MANY' | 'ONE';
 };
 

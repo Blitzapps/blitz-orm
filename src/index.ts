@@ -207,7 +207,7 @@ class BormClient {
     const queries = isBatched ? query : [query];
 
     const surrealDBClient = initialized.dbHandles.surrealDB?.get('default')?.client;
-    if (surrealDBClient) {
+    if (surrealDBClient && Date.now() > 0) {
       const result = await runSurrealDbQueryMachine2(queries, initialized.draftSchema, qConfig, surrealDBClient);
       return isBatched ? result : result[0];
     }

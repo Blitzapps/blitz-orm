@@ -3,9 +3,8 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { deepRemoveMetaData } from '../../../../tests/helpers/matchers';
 import { computeField } from '../../../engine/compute';
-import { getCurrentFields, getCurrentSchema, getParentNode, oFilter } from '../../../helpers';
+import { deepRemoveMetaData, getCurrentFields, getCurrentSchema, getParentNode, oFilter } from '../../../helpers';
 import type {
   BormOperation,
   BQLMutationBlock,

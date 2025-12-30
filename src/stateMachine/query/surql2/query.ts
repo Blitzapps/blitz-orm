@@ -14,13 +14,13 @@ export const query = async (props: {
   const batchedQuery = `BEGIN TRANSACTION;
 ${queries.join(';')};
 COMMIT TRANSACTION;`;
-  console.log('\n> batchedQuery\n', batchedQuery);
+  // console.log('\n> batchedQuery\n', batchedQuery);
 
   if (config.query?.debugger) {
     logDebug(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
   }
 
   const result = await client.query(batchedQuery, params);
-  console.log('> result', JSON.stringify(result, null, 2));
+  // console.log('> result', JSON.stringify(result, null, 2));
   return result as any[][];
 };

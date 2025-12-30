@@ -1,9 +1,9 @@
 /* eslint-disable no-param-reassign */
 import type { Draft } from 'immer';
-import { current, isDraft } from 'immer';
+import { current, isDraft, produce } from 'immer';
 import { customAlphabet } from 'nanoid';
-import type { TraversalMeta } from 'object-traversal';
-import { getNodeByPath } from 'object-traversal';
+import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
+import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify, tryit } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
@@ -429,4 +429,17 @@ export const genId = (n?: number) => {
   const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
   const nanoid = customAlphabet(alphabet, idLength);
   return nanoid();
+};
+
+export const deepRemoveMetaData = (obj: object) => {
+  const removeMeta = ({ value }: TraversalCallbackContext) => {
+    if (value && typeof value === 'object' && '$id' in value) {
+      const metas = Object.keys(value).filter((k) => k.startsWith('$'));
+      metas.forEach((k) => { delete value[k]; });
+      const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
+      symbols.forEach((s) => { delete value[s]; });
+    }
+    return value;
+  };
+  return produce(obj, (draft) => traverse(draft, removeMeta));
 };

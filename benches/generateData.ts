@@ -41,7 +41,7 @@ export const generateData = (params: {
 
   const generateBase = (): Base => ({
       id: uid(),
-      string_1: randomString(10, 100),
+      string_1: randomString(10, 20),
       number_1: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
       boolean_1: randomBoolean(),
       datetime_1: randomDate(),
