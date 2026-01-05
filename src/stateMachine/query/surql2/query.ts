@@ -12,15 +12,13 @@ export const query = async (props: {
 }): Promise<any[][]> => {
   const { client, queries, config, params } = props;
   const batchedQuery = `BEGIN TRANSACTION;
-${queries.join(';')};
+${queries.join(';\n')};
 COMMIT TRANSACTION;`;
-  // console.log('\n> batchedQuery\n', batchedQuery);
 
   if (config.query?.debugger) {
     logDebug(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
   }
 
   const result = await client.query(batchedQuery, params);
-  // console.log('> result', JSON.stringify(result, null, 2));
   return result as any[][];
 };

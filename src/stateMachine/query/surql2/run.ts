@@ -14,6 +14,9 @@ export const runSurrealDbQueryMachine2 = async (
   config: BormConfig,
   client: SimpleSurrealClient,
 ) => {
+  if (bql.length === 0) {
+    return [];
+  }
   const bqlQueries = bql.map((q) => BQLQueryParser.parse(q));
   const logicalQueries = bqlQueries.map((q) => buildLogicalQuery(q, schema, !config.query?.noMetadata));
   const optimizedQueries = logicalQueries.map((q) => optimizeLogicalQuery(q, schema));

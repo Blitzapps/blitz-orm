@@ -23,7 +23,7 @@ import type {
 
 export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_EnrichedBormSchema): LogicalQuery => {
   const thing = getSourceThing(query.source, schema);
-  const filter = query.filter ? optimizeLocalFilter(query.filter, schema, thing) : undefined;
+  const filter = query.filter ? optimizeLocalFilter(query.filter) : undefined;
   const { source, filter: optimizedFilter } = optimizeSource({ source: query.source, filter, schema, thing });
 
   return {
@@ -123,7 +123,7 @@ const convertRefFilterToRelationshipTraversal = (
     return undefined;
   }
   if (field.type === 'role') {
-    // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
+    // We can't do this optimization for role fields that has no player with target 'relation'.
     // This relation is only used as intermediary relation.
     const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
     if (oppositeLinkField?.type !== 'link') {
@@ -208,7 +208,7 @@ const optimizeProjectionField = (
     type: 'nested_reference',
     path: field.path,
     projection: optimizeProjection(field.projection, schema, thing),
-    filter: field.filter ? optimizeLocalFilter(field.filter, schema, thing) : undefined,
+    filter: field.filter ? optimizeLocalFilter(field.filter) : undefined,
     cardinality: field.cardinality,
     limit: field.limit,
     offset: field.offset,
@@ -220,52 +220,97 @@ const optimizeProjectionField = (
  * Flatten "and" and "or" filters into a single filter. Order the filters by cost.
  * This optimization doesn't consider indexes.
  */
-const optimizeLocalFilter = (
-  filter: Filter,
-  schema: DRAFT_EnrichedBormSchema,
-  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-): Filter | undefined => {
-  if (filter.type === 'list' && filter.right.length === 1) {
-    // TODO: Convert into simpler form if possible. Example: `<left> IN [<right>]` into `<left> = <right>`
+const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
+  if (filter.type === 'list') {
+    if (filter.right.length === 0) {
+      if (filter.op === 'IN' || filter.op === 'CONTAINSALL' || filter.op === 'CONTAINSANY') {
+        return { type: 'falsy' };
+      }
+      return undefined;
+    }
+    if (filter.right.length === 1) {
+      switch (filter.op) {
+        case 'IN':
+          return {
+            type: 'scalar',
+            op: '=',
+            left: filter.left,
+            right: filter.right[0],
+          };
+        case 'NOT IN':
+          return {
+            type: 'scalar',
+            op: '!=',
+            left: filter.left,
+            right: filter.right[0],
+          };
+        case 'CONTAINSALL':
+        case 'CONTAINSANY':
+          return {
+            type: 'scalar',
+            op: 'CONTAINS',
+            left: filter.left,
+            right: filter.right[0],
+          };
+        case 'CONTAINSNONE':
+          return {
+            type: 'scalar',
+            op: 'CONTAINSNOT',
+            left: filter.left,
+            right: filter.right[0],
+          };
+      }
+    }
   }
 
   if (filter.type === 'ref' && filter.right.length === 0) {
-    // TODO: Convert into simpler form if possible. Example: `<left> IN []` into `<left> IS NULL`
+    if (filter.op === 'IN' || filter.op === 'CONTAINSALL' || filter.op === 'CONTAINSANY') {
+      return { type: 'falsy' };
+    }
+    return undefined;
   }
 
   if (filter.type === 'and' || filter.type === 'or') {
-    const filters = filter.filters.flatMap((f) => {
-      const optimized = optimizeLocalFilter(f, schema, thing);
+    let filters = filter.filters.flatMap((f) => {
+      const optimized = optimizeLocalFilter(f);
       if (optimized === undefined) {
         return [];
       }
-      // Flatten nested "and" and nested "or" filters.
+      // Flatten nested "and" and "or" filters.
       if (optimized.type === filter.type) {
         return optimized.filters;
       }
       return [optimized];
     });
+    if (filter.type === 'and' && filters.some((f) => f.type === 'falsy')) {
+      return { type: 'falsy' };
+    }
+    if (filter.type === 'or') {
+      filters = filters.filter((f) => f.type !== 'falsy');
+      // TODO: Combine multiple "=" of the same field inside "or" filter into "in" filter.
+    }
     if (filters.length === 0) {
       return undefined;
     }
     if (filters.length === 1) {
       return filters[0];
     }
-    // TODO: Combine multiple "=" of the same field inside "or" filter into "in" filter.
     // TODO: Improve the scoring.
     const scored = filters.map((i): { filter: Filter; score: number } => {
       if (i.type === 'scalar') {
         return { filter: i, score: filterOpScoreMap[i.op] ?? 0 };
       }
       if (i.type === 'list') {
-        return { filter: i, score: 0.5 ** (i.right.length - 1) };
+        const baseScore = filterOpScoreMap[i.op] ?? 0;
+        return { filter: i, score: baseScore ** i.right.length };
       }
       if (i.type === 'ref') {
+        const baseScore = filterOpScoreMap[i.op] ?? 0;
         if (i.thing) {
-          return { filter: i, score: 0.5 ** ((i.right.length - 1) * i.thing.length) };
+          return { filter: i, score: baseScore ** (i.right.length * i.thing.length) };
         }
         // Without thing the filter is a bit slower because we need to call record::id(<left>)
-        return { filter: i, score: 0.5 ** (i.right.length - 1) * 0.9 };
+        return { filter: i, score: baseScore ** i.right.length * 0.9 };
       }
       return { filter: i, score: 0 };
     });
@@ -277,7 +322,7 @@ const optimizeLocalFilter = (
   }
 
   if (filter.type === 'not') {
-    const inner = optimizeLocalFilter(filter.filter, schema, thing);
+    const inner = optimizeLocalFilter(filter.filter);
     if (inner === undefined) {
       return undefined;
     }
@@ -309,7 +354,7 @@ const optimizeLocalFilter = (
   }
 
   if (filter.type === 'nested') {
-    const optimizedSubFilter = optimizeLocalFilter(filter.filter, schema, thing);
+    const optimizedSubFilter = optimizeLocalFilter(filter.filter);
     if (!optimizedSubFilter) {
       return undefined;
     }
@@ -325,11 +370,16 @@ const optimizeLocalFilter = (
 };
 
 const filterOpScoreMap: Record<string, number> = {
-  '=': 1,
+  '=': 0.9,
   '>': 0.5,
   '<': 0.5,
   '>=': 0.5,
   '<=': 0.5,
+  IN: 0.5,
+  'NOT IN': 0.5,
+  CONTAINSALL: 0.3,
+  CONTAINSANY: 0.4,
+  CONTAINSNONE: 0.3,
 };
 
 /**
@@ -340,6 +390,7 @@ const pushDownIndexedFilter = (
   filter: Filter,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): Filter => {
+  // Push down indexed filters from "and" filter with composite indexes.
   if (filter.type === 'and') {
     const filterMap = Object.fromEntries(
       filter.filters
@@ -389,6 +440,7 @@ const pushDownIndexedFilter = (
     }
   }
 
+  // Push down indexed filters from "and" or "or" filter with single indexes.
   if (filter.type === 'and' || filter.type === 'or') {
     const scored = filter.filters.map((f, index) => {
       if (f.type === 'scalar' && f.op === '=') {
@@ -408,7 +460,7 @@ const pushDownIndexedFilter = (
     const sorted = scored.sort((a, b) => b.score - a.score);
     const [first] = sorted;
     const indexed = first && first.score !== 0 ? first.filter : undefined;
-    // Convert indexed filter with IN operator to an OR filter with scalar filters.
+    // Convert indexed filter with IN operator to an OR filter of "=" scalar filters.
     const optimized: Filter | undefined =
       indexed?.type === 'list' && indexed.op === 'IN'
         ? {
@@ -421,6 +473,7 @@ const pushDownIndexedFilter = (
       filters: optimized ? [optimized, ...filter.filters.filter((_, i) => i !== first.index)] : filter.filters,
     };
   }
+
   return filter;
 };
 

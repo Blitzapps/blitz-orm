@@ -27,15 +27,13 @@ export interface SubQuery {
   type: 'subquery';
   source: DataSource;
   /**
-   * The link/role field path of the `source` thing. Example: If the source thing is "Post" then path is "author", not "authoredPosts".
+   * The link/role field path of the `source` thing to the parent thing. Example: If the parent thing is "User" and the source thing is "Post" then the opposite path is "author", not "authoredPosts".
    */
   oppositePath: string;
-  /**
-   * The cardinality of the reference in DB. COMPUTED REFERENCE is always 'MANY'.
-   */
   filter?: Filter;
   /**
-   * This is the cardinality of
+   * The cardinality of the reference in DB. If the surql sub-query returns an array the cardinality is 'MANY'. Otherwise it is 'ONE'.
+   * For COMPUTED REFERENCE it is always 'MANY'.
    */
   cardinality: 'MANY' | 'ONE';
 }
@@ -85,7 +83,15 @@ export interface FlexField {
   cardinality: 'MANY' | 'ONE';
 }
 
-export type Filter = ScalarFilter | ListFilter | RefFilter | LogicalOp | NotOp | NestedFilter | NullFilter;
+export type Filter =
+  | ScalarFilter
+  | ListFilter
+  | RefFilter
+  | LogicalOp
+  | NotOp
+  | NestedFilter
+  | NullFilter
+  | FalsyFilter;
 
 export interface ScalarFilter {
   type: 'scalar';
@@ -107,7 +113,7 @@ export interface RefFilter {
   left: string;
   right: string[];
   /**
-   * Used for reference filter optimization when `cast` is 'record'. If specified the execution may use indexes.
+   * Used for reference filter optimization when the values are pointers. If specified the execution may use indexes.
    * If not specified the filter will be transformed into `record::id(<left>) IN [<right>, ...]`,
    * which is a little bit slower than `<left> IN [type::record(<right>), ...]` when both are executed without indexes.
    */
@@ -128,6 +134,9 @@ export interface NullFilter {
   tunnel: boolean;
 }
 
+export interface FalsyFilter {
+  type: 'falsy';
+}
 export interface LogicalOp {
   type: 'and' | 'or';
   filters: Filter[];

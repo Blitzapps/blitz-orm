@@ -13,19 +13,16 @@ import type {
 
 export type SurqlParams = Record<string, unknown>;
 
-/**
- * NOTE: Mutate `params`.
- */
-export const buildSurql = (query: LogicalQuery, params: SurqlParams): string => {
+export const buildSurql = (query: LogicalQuery, mutParams: SurqlParams): string => {
   const lines: string[] = [];
   const level = query.cardinality === 'MANY' ? 0 : 1;
 
   if (query.cardinality === 'ONE') {
     lines.push('array::first(');
   }
-  lines.push(buildProjection(query.projection, level, params));
-  lines.push(buildFrom(query.source, level, params));
-  const filter = query.filter && buildFilter(query.filter, params);
+  lines.push(buildProjection(query.projection, level, mutParams));
+  lines.push(buildFrom(query.source, level, mutParams));
+  const filter = query.filter && buildFilter(query.filter, mutParams);
   if (filter) {
     lines.push(indent(`WHERE ${filter}`, level));
   }
@@ -45,10 +42,7 @@ export const buildSurql = (query: LogicalQuery, params: SurqlParams): string => 
   return lines.join('\n');
 };
 
-/**
- * NOTE: Mutate `params`.
- */
-const buildProjection = (projection: Projection, level: number, params: SurqlParams): string => {
+const buildProjection = (projection: Projection, level: number, mutParams: SurqlParams): string => {
   const fieldLines: string[] = [];
   const fieldLevel = level + 1;
   for (const field of projection.fields) {
@@ -59,7 +53,7 @@ const buildProjection = (projection: Projection, level: number, params: SurqlPar
     } else if (field.type === 'reference') {
       fieldLines.push(buildReferenceFieldProjection(field, fieldLevel));
     } else if (field.type === 'nested_reference') {
-      fieldLines.push(buildNestedFieldProjection(field, fieldLevel, params));
+      fieldLines.push(buildNestedFieldProjection(field, fieldLevel, mutParams));
     } else if (field.type === 'flex') {
       fieldLines.push(buildFlexFieldProjection(field, fieldLevel));
     }
@@ -102,24 +96,19 @@ const buildReferenceFieldProjection = (field: ReferenceField, level: number) => 
   return indent(`(SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]) AS ${escapedAlias}`, level);
 };
 
-const buildNestedFieldProjection = (field: NestedReferenceField, level: number, params: SurqlParams) => {
-  // SELECT
-  //   (
-  //       SELECT * FROM $this.ref_one
-  //   ) as ref_one
-  // FROM t_a
+const buildNestedFieldProjection = (field: NestedReferenceField, level: number, mutParams: SurqlParams) => {
   const lines: string[] = [];
   if (field.cardinality === 'MANY') {
     lines.push(indent('(', level));
   } else {
     lines.push(indent('array::first(', level));
   }
-  lines.push(buildProjection(field.projection, level + 1, params));
-  const filter = field.filter ? buildFilter(field.filter, params) : undefined;
+  lines.push(buildProjection(field.projection, level + 1, mutParams));
+  const filter = field.filter ? buildFilter(field.filter, mutParams) : undefined;
   lines.push(indent(`FROM $this.${esc(field.path)}[*]`, level + 1));
   const conditions: string[] = [];
   if (field.ids && field.ids.length > 0) {
-    const ids = field.ids.map((i) => `$${insertParam(params, i)}`);
+    const ids = field.ids.map((i) => `$${insertParam(mutParams, i)}`);
     if (ids.length === 1) {
       conditions.push(`record::id(id) = ${ids[0]}`);
     } else {
@@ -161,7 +150,7 @@ const buildFlexFieldProjection = (field: FlexField, level: number) => {
   );
 };
 
-const buildFrom = (source: DataSource, level: number, params: SurqlParams): string => {
+const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): string => {
   const lines: string[] = [];
   switch (source.type) {
     case 'table_scan': {
@@ -171,7 +160,7 @@ const buildFrom = (source: DataSource, level: number, params: SurqlParams): stri
     case 'record_pointer': {
       const pointers = source.thing
         .flatMap((t) => source.ids.map((i) => `${esc(t)}:${esc(i)}`))
-        .map((p) => `type::record($${insertParam(params, p)})`)
+        .map((p) => `type::record($${insertParam(mutParams, p)})`)
         .join(', ');
       lines.push(indent(`FROM ${pointers}`, level));
       break;
@@ -180,8 +169,8 @@ const buildFrom = (source: DataSource, level: number, params: SurqlParams): stri
       lines.push(indent(source.cardinality === 'MANY' ? 'FROM array::distinct(array::flatten(' : 'FROM (', level));
       source.oppositePath;
       lines.push(indent(`SELECT VALUE ${esc(source.oppositePath)}`, level + 1));
-      lines.push(buildFrom(source.source, level + 1, params));
-      const filter = source.filter ? buildFilter(source.filter, params) : undefined;
+      lines.push(buildFrom(source.source, level + 1, mutParams));
+      const filter = source.filter ? buildFilter(source.filter, mutParams) : undefined;
       if (filter) {
         lines.push(indent(`WHERE ${filter}`, level + 1));
       }
@@ -192,19 +181,16 @@ const buildFrom = (source: DataSource, level: number, params: SurqlParams): stri
   return lines.join('\n');
 };
 
-/**
- * Mutate `params`.
- */
-const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: string): string | undefined => {
+const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?: string): string | undefined => {
   const _prefix = prefix ?? '';
   switch (filter.type) {
     case 'scalar': {
       const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${esc(filter.left)}`;
-      const key = insertParam(params, filter.right);
+      const key = insertParam(mutParams, filter.right);
       return `${path} ${filter.op} $${key}`;
     }
     case 'list': {
-      const items = filter.right.map((i) => `$${insertParam(params, i)}`).join(', ');
+      const items = filter.right.map((i) => `$${insertParam(mutParams, i)}`).join(', ');
       const path = `${_prefix}${esc(filter.left)}`;
       return `${path} ${filter.op} [${items}]`;
     }
@@ -214,12 +200,12 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
         const right = filter.thing.flatMap((t) =>
           filter.right.map((i) => {
             const pointer = `${esc(t)}:${esc(i)}`;
-            const key = insertParam(params, pointer);
+            const key = insertParam(mutParams, pointer);
             return `type::record($${key})`;
           }),
         );
         if (right.length === 1) {
-          const key = insertParam(params, right[0]);
+          const key = insertParam(mutParams, right[0]);
           if (filter.op === 'IN') {
             return `${path} = $${key}`;
           }
@@ -238,33 +224,33 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       if (filter.right.length === 1) {
         if (filter.op === 'IN') {
           if (filter.tunnel) {
-            return `(array::first(${path}) && record::id(array::first(${path})) = $${insertParam(params, filter.right[0])})`;
+            return `(array::first(${path}) && record::id(array::first(${path})) = $${insertParam(mutParams, filter.right[0])})`;
           }
-          return `${path} && record::id(${path}) = $${insertParam(params, filter.right[0])}`;
+          return `${path} && record::id(${path}) = $${insertParam(mutParams, filter.right[0])}`;
         }
         if (filter.op === 'NOT IN') {
           if (filter.tunnel) {
-            return `(!array::first(${path}) || record::id(array::first(${path})) != $${insertParam(params, filter.right[0])})`;
+            return `(!array::first(${path}) || record::id(array::first(${path})) != $${insertParam(mutParams, filter.right[0])})`;
           }
-          return `${path} && record::id(${path}) != $${insertParam(params, filter.right[0])}`;
+          return `${path} && record::id(${path}) != $${insertParam(mutParams, filter.right[0])}`;
         }
         if (filter.op === 'CONTAINSANY') {
           if (filter.tunnel) {
-            return `$${insertParam(params, filter.right[0])} IN ${path}.map(|$i| record::id($i))`;
+            return `$${insertParam(mutParams, filter.right[0])} IN ${path}.map(|$i| record::id($i))`;
           }
-          return `$${insertParam(params, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`;
+          return `$${insertParam(mutParams, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`;
         }
         if (filter.op === 'CONTAINSNONE') {
           if (filter.tunnel) {
-            return `$${insertParam(params, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`;
+            return `$${insertParam(mutParams, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`;
           }
-          return `$${insertParam(params, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`;
+          return `$${insertParam(mutParams, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`;
         }
       }
       if (filter.tunnel) {
-        return `${path}.map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(params, i)}`).join(', ')}]`;
+        return `${path}.map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(mutParams, i)}`).join(', ')}]`;
       }
-      return `(${path} ?: []).map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(params, i)}`).join(', ')}]`;
+      return `(${path} ?: []).map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(mutParams, i)}`).join(', ')}]`;
     }
     case 'null': {
       if (filter.tunnel) {
@@ -275,7 +261,7 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
     case 'and': {
       const conditions = filter.filters
         .map((f) => {
-          const condition = buildFilter(f, params, prefix);
+          const condition = buildFilter(f, mutParams, prefix);
           return condition ? `(${condition})` : undefined;
         })
         .filter((i) => !!i);
@@ -284,21 +270,21 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
     case 'or': {
       const conditions = filter.filters
         .map((f) => {
-          const condition = buildFilter(f, params, prefix);
+          const condition = buildFilter(f, mutParams, prefix);
           return condition ? `(${condition})` : undefined;
         })
         .filter((i) => !!i);
       return conditions.length > 0 ? conditions.join(' OR ') : undefined;
     }
     case 'not': {
-      return `NOT(${buildFilter(filter.filter, params, prefix)})`;
+      return `NOT(${buildFilter(filter.filter, mutParams, prefix)})`;
     }
     case 'nested': {
       const path = `${_prefix}${esc(filter.path)}`;
       if (filter.cardinality === 'ONE') {
-        return buildFilter(filter.filter, params, `${path}.`);
+        return buildFilter(filter.filter, mutParams, `${path}.`);
       }
-      const subFilter = buildFilter(filter.filter, params);
+      const subFilter = buildFilter(filter.filter, mutParams);
       if (!subFilter) {
         return undefined;
       }
@@ -320,12 +306,12 @@ const indent = (text: string, level: number) => {
 /**
  * Insert `value` into `params` and return the param key.
  */
-const insertParam = (params: Record<string, unknown>, value: unknown): string => {
+const insertParam = (mutParams: Record<string, unknown>, value: unknown): string => {
   let key = generateAlphaKey(5);
-  while (params[key] !== undefined) {
+  while (mutParams[key] !== undefined) {
     key = generateAlphaKey(5);
   }
-  params[key] = value;
+  mutParams[key] = value;
   return key;
 };
 
@@ -339,11 +325,10 @@ const generateAlphaKey = (length: number): string => {
 };
 
 /**
- * Escape identifier with  for SurrealDB
- * Only escapes when identifier contains non-alphanumeric characters or starts with a number
+ * Escape identifier.  Only escapes when identifier contains non-alphanumeric and non-underscore characters or starts with non-alphabetic character.
  */
 const esc = (identifier: string): string => {
-  // Check if identifier starts with a number or contains non-alphanumeric characters (excluding underscore)
-  const needsEscaping = /^[0-9]/.test(identifier) || /[^a-zA-Z0-9_]/.test(identifier);
+  // Check if identifier starts with a non-alphabetic character or contains non-alphanumeric characters (excluding underscore)
+  const needsEscaping = /^[^a-zA-Z]/.test(identifier) || /[^a-zA-Z0-9_]/.test(identifier);
   return needsEscaping ? `⟨${identifier}⟩` : identifier;
 };
