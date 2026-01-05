@@ -8,36 +8,36 @@ const USERNAME = 'borm_bench';
 const PASSWORD = 'borm_bench';
 
 const insertData = async () => {
-    const db = await connect();
-    console.log('generating data');
-    const data = generateData({
-        records: 10,
-        few: { min: 2, max: 2 },
-        many: { min: 3, max: 3 },
-    });
-    const surql = createSurql(data);
-    console.log('\n> surql\n', surql);
-    console.log('inserting data');
-    const start = performance.now();
-    const result = await db.query(surql);
-    const end = performance.now();
-    console.log(`Time taken: ${end - start} milliseconds`);
-    return result;
-}
+  const db = await connect();
+  console.log('generating data');
+  const data = generateData({
+    records: 10,
+    few: { min: 2, max: 2 },
+    many: { min: 3, max: 3 },
+  });
+  const surql = createSurql(data);
+  console.log('\n> surql\n', surql);
+  console.log('inserting data');
+  const start = performance.now();
+  const result = await db.query(surql);
+  const end = performance.now();
+  console.log(`Time taken: ${end - start} milliseconds`);
+  return result;
+};
 
 const connect = async () => {
-    const db = new Surreal();
-    await db.connect(URL, {
-      namespace: NAMESPACE,
-      database: DATABASE,
-      auth: {
-        username: USERNAME,
-        password: PASSWORD,
-      },
-      versionCheck: false,
-    });
-    return db;
-}
+  const db = new Surreal();
+  await db.connect(URL, {
+    namespace: NAMESPACE,
+    database: DATABASE,
+    auth: {
+      username: USERNAME,
+      password: PASSWORD,
+    },
+    versionCheck: false,
+  });
+  return db;
+};
 
 // const createSurql = (data: { a: A[]; b: B[]; }): string => {
 //   const lines = ['BEGIN TRANSACTION;'];
@@ -67,7 +67,7 @@ const connect = async () => {
 //   return lines.join('\n');
 // };
 
-const createSurql = (data: { a: A[]; b: B[]; }): string => {
+const createSurql = (data: { a: A[]; b: B[] }): string => {
   const lines = ['BEGIN TRANSACTION;'];
 
   for (const b of data.b) {
@@ -85,7 +85,9 @@ const createSurql = (data: { a: A[]; b: B[]; }): string => {
     const tunnelFew = `[${tunnelFewIds.map((i) => `tunnel_few:${i}`).join(', ')}]`;
     const tunnelMany = `[${tunnelManyIds.map((i) => `tunnel_many:${i}`).join(', ')}]`;
 
-    lines.push(`CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`);
+    lines.push(
+      `CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`,
+    );
 
     lines.push(`CREATE ${tunnelOne} SET a = t_a:${a.id}, b = t_b:${a.one};`);
     lines.push(`UPDATE t_b:${a.one} SET ref_one = t_a:${a.id}, tunnel_one = tunnel_one:${tunnelOneId};`);
@@ -105,7 +107,9 @@ const createSurql = (data: { a: A[]; b: B[]; }): string => {
       lines.push(`RELATE t_a:${a.id}->edge_many->t_b:${b};`);
     }
 
-    lines.push(`UPDATE t_a:${a.id} SET tunnel_one = ${tunnelOne}, tunnel_few = ${tunnelFew}, tunnel_many = ${tunnelMany};`);
+    lines.push(
+      `UPDATE t_a:${a.id} SET tunnel_one = ${tunnelOne}, tunnel_few = ${tunnelFew}, tunnel_many = ${tunnelMany};`,
+    );
   }
 
   lines.push('COMMIT TRANSACTION;');
@@ -117,9 +121,10 @@ const createSurqlBaseSet = (data: Base): string => {
   return `string_1 = "${data.string_1}", number_1 = ${data.number_1}, boolean_1 = ${data.boolean_1}, datetime_1 = type::datetime("${data.datetime_1.toISOString()}")`;
 };
 
-insertData().then(() => {
+insertData()
+  .then(() => {
     console.log('Data inserted successfully');
-}).catch((error) => {
+  })
+  .catch((error) => {
     console.error('Error inserting data:', error);
-});
-
+  });

@@ -380,11 +380,8 @@ export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
 type Drafted<T> = T | Draft<T>;
 
 // Recursively define the type to handle nested structures
-type DeepCurrent<T> = T extends Array<infer U>
-  ? Array<DeepCurrent<U>>
-  : T extends object
-    ? { [K in keyof T]: DeepCurrent<T[K]> }
-    : T;
+type DeepCurrent<T> =
+  T extends Array<infer U> ? Array<DeepCurrent<U>> : T extends object ? { [K in keyof T]: DeepCurrent<T[K]> } : T;
 
 export const deepCurrent = <T>(obj: Drafted<T>): any => {
   if (Array.isArray(obj)) {
@@ -435,9 +432,13 @@ export const deepRemoveMetaData = (obj: object) => {
   const removeMeta = ({ value }: TraversalCallbackContext) => {
     if (value && typeof value === 'object' && '$id' in value) {
       const metas = Object.keys(value).filter((k) => k.startsWith('$'));
-      metas.forEach((k) => { delete value[k]; });
+      metas.forEach((k) => {
+        delete value[k];
+      });
       const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
-      symbols.forEach((s) => { delete value[s]; });
+      symbols.forEach((s) => {
+        delete value[s];
+      });
     }
     return value;
   };

@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { expect, it } from 'vitest';
+import { deepRemoveMetaData } from '../../../src/helpers';
 import type { WithBormMetadata } from '../../../src/index';
 import type { TypeGen } from '../../../src/types/typeGen';
 import { createTest } from '../../helpers/createTest';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { UserType } from '../../types/testTypes';
-import { deepRemoveMetaData } from '../../../src/helpers';
 
 export const testQuery = createTest('Query', (ctx) => {
   it('v1[validation] - $entity missing', async () => {
@@ -2870,13 +2870,13 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref1nf[ref, ONE, nested, someFields] Get also nested data but only some fields', async () => {
-    // SELECT 
+    // SELECT
     //     "0" AS `$$queryPath`,
     //     id && record::id(id) || null AS `$id`,
     //     id && record::tb(id) || null AS `$thing`,
     //     record::id(id) AS id,
     //     (
-    //         SELECT 
+    //         SELECT
     //             "0.$fields.1" AS `$$queryPath`,
     //             id && record::id(id) || null AS `$id`,
     //             id && record::tb(id) || null AS `$thing`,
@@ -2886,8 +2886,8 @@ export const testQuery = createTest('Query', (ctx) => {
     //             <email>
     //         FROM $parent.reference
     //     ) AS reference
-    // FROM FlexRef 
-    // WHERE id 
+    // FROM FlexRef
+    // WHERE id
     //   AND (record::id(id) IN ['fr1']);
     const res = await ctx.query(
       {
@@ -2979,24 +2979,24 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref4n[ref, flex, MANY, nested, $fields] Get flexReferences with nested data but only some fields', async () => {
-    // SELECT 
+    // SELECT
     //     "0" AS `$$queryPath`,
     //     (id && record::id(id)) || null AS `$id`,
     //     (id && record::tb(id)) || null AS `$thing`,
     //     record::id(id) AS id,
     //     (
-    //         SELECT 
+    //         SELECT
     //             "0.$fields.1" AS `$$queryPath`,
     //             (id && record::id(id)) || null AS `$id`,
     //             (id && record::tb(id)) || null AS `$thing`,
     //             (id && null) || $this AS `$value`,
     //             ⟨id⟩,
     //             ⟨name⟩,
-    //             ⟨user-tags⟩ 
+    //             ⟨user-tags⟩
     //         FROM $parent.`flexReferences`
-    //     ) AS `flexReferences` 
-    // FROM FlexRef 
-    // WHERE id 
+    //     ) AS `flexReferences`
+    // FROM FlexRef
+    // WHERE id
     //   AND record::id(id) IN ['fr5'];
     const res = await ctx.query(
       {

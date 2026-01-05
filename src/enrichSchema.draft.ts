@@ -1,5 +1,5 @@
-import { isEqual } from "radash";
-import type { BormEntity, BormRelation, BormSchema, DataField, LinkField, RefField, RoleField } from "./types";
+import { isEqual } from 'radash';
+import type { BormEntity, BormRelation, BormSchema, DataField, LinkField, RefField, RoleField } from './types';
 import type {
   DRAFT_EnrichedBormComputedField,
   DRAFT_EnrichedBormConstantField,
@@ -10,8 +10,8 @@ import type {
   DRAFT_EnrichedBormRefField,
   DRAFT_EnrichedBormRelation,
   DRAFT_EnrichedBormRoleField,
-  DRAFT_EnrichedBormSchema
-} from "./types/schema/enriched.draft";
+  DRAFT_EnrichedBormSchema,
+} from './types/schema/enriched.draft';
 
 export const enrichSchemaDraft = (schema: BormSchema): DRAFT_EnrichedBormSchema => {
   const extendedSchema = extendSchema(schema);
@@ -27,7 +27,7 @@ export const enrichSchemaDraft = (schema: BormSchema): DRAFT_EnrichedBormSchema 
   }
 
   return enrichedSchema;
-}
+};
 
 /**
  * Mutate the enriched schema in place.
@@ -46,12 +46,16 @@ const enrichThing = (
     }
     throw new Error(`Found entity and relation with the same name: ${thingName}`);
   }
-  const thing = type === 'entity' ? schema.entities[thingName] : schema.relations[thingName] as BormEntity | BormRelation;
+  const thing =
+    type === 'entity' ? schema.entities[thingName] : (schema.relations[thingName] as BormEntity | BormRelation);
   if (!thing) {
     throw new Error(`${type === 'entity' ? 'Entity' : 'Relation'} "${thingName}" not found`);
   }
 
-  const extended = 'extends' in thing && thing.extends ? enrichThing(type, thing.extends, mutEnrichedSchema, schema, rolePlayerMap) : undefined;
+  const extended =
+    'extends' in thing && thing.extends
+      ? enrichThing(type, thing.extends, mutEnrichedSchema, schema, rolePlayerMap)
+      : undefined;
 
   if (extended) {
     addSubType(extended.name, thingName, mutEnrichedSchema);
@@ -79,7 +83,12 @@ const enrichThing = (
   }
 
   if ('roles' in thing && thing.roles) {
-    enrichRoleFields(fields as Record<string, DRAFT_EnrichedBormRoleField>, thing.roles as Record<string, RoleField> ?? {}, thingName, rolePlayerMap);
+    enrichRoleFields(
+      fields as Record<string, DRAFT_EnrichedBormRoleField>,
+      (thing.roles as Record<string, RoleField>) ?? {},
+      thingName,
+      rolePlayerMap,
+    );
   }
 
   const enriched: DRAFT_EnrichedBormRelation = {
@@ -155,7 +164,7 @@ const enrichDataFields = (
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[df.path] = enriched;
   }
-}
+};
 
 /**
  * Mutate the enriched fields in place.
@@ -176,7 +185,7 @@ const enrichRefFields = (
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[refName] = enriched;
   }
-}
+};
 
 /**
  * Mutate the enriched fields in place.
@@ -236,7 +245,7 @@ const enrichLinkFields = (
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[lf.path] = enriched;
   }
-}
+};
 
 /**
  * Mutate the enriched fields in place.
@@ -255,7 +264,8 @@ const enrichRoleFields = (
     // SELECT * FROM <thingName> WHERE <roleName> = xyz
     // Is not the same as:
     // SELECT * FROM (SELECT VALUE <targetingRelation.path> FROM <targetingRelation.thing> WHERE id = xyz)
-    const opposite = rolePlayerMap[thingName]?.[roleName]?.targetingRelation ?? rolePlayerMap[thingName]?.[roleName]?.targetingRole;
+    const opposite =
+      rolePlayerMap[thingName]?.[roleName]?.targetingRelation ?? rolePlayerMap[thingName]?.[roleName]?.targetingRole;
     if (!opposite) {
       throw new Error(`Role ${roleName} in relation ${thingName} is not played by any other thing`);
     }
@@ -269,9 +279,13 @@ const enrichRoleFields = (
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[roleName] = enriched;
   }
-}
+};
 
-const assertNoDuplicateField = (thing: string, newField: DRAFT_EnrichedBormField, existing?: DRAFT_EnrichedBormField) => {
+const assertNoDuplicateField = (
+  thing: string,
+  newField: DRAFT_EnrichedBormField,
+  existing?: DRAFT_EnrichedBormField,
+) => {
   if (!existing) {
     return;
   }
@@ -287,7 +301,10 @@ type RolePlayerMap = Record<
   DRAFT_EnrichedBormRelation['name'],
   Record<
     DRAFT_EnrichedBormRoleField['name'],
-    { targetingRole?: DRAFT_EnrichedBormRoleField['opposite'], targetingRelation?: DRAFT_EnrichedBormRoleField['opposite'] }
+    {
+      targetingRole?: DRAFT_EnrichedBormRoleField['opposite'];
+      targetingRelation?: DRAFT_EnrichedBormRoleField['opposite'];
+    }
   >
 >;
 
@@ -314,8 +331,8 @@ const buildRolePlayerMap = (schema: BormSchema): RolePlayerMap => {
         }
       }
       if (lf.target === 'relation') {
-      rolePlayer.targetingRelation = {
-        thing: relName,
+        rolePlayer.targetingRelation = {
+          thing: relName,
           path: lf.path,
           cardinality: lf.cardinality,
         };
@@ -329,14 +346,14 @@ const buildRolePlayerMap = (schema: BormSchema): RolePlayerMap => {
     }
   }
   return rolePlayerMap;
-}
+};
 
 /**
  * Return true if thingA extends thingB directly or indirectly.
  */
 const isExtend = (thingA: string, thingB: string, schema: BormSchema): boolean => {
   const ancestorsA = getAncestors(thingA, schema);
-  return ancestorsA.includes(thingB)
+  return ancestorsA.includes(thingB);
 };
 
 const getAncestors = (thing: string, schema: BormSchema): string[] => {
@@ -354,7 +371,7 @@ const getAncestors = (thing: string, schema: BormSchema): string[] => {
     current = _thing.extends;
   }
   return ancestors.reverse();
-}
+};
 
 const getIdFields = (name: string, entity: BormEntity | BormRelation): [string, ...string[]] => {
   if (entity.idFields && entity.idFields.length > 0) {
@@ -365,7 +382,7 @@ const getIdFields = (name: string, entity: BormEntity | BormRelation): [string, 
     return [f.path];
   }
   throw new Error(`No id field found for entity "${name}"`);
-}
+};
 
 const extendSchema = (schema: BormSchema): BormSchema => {
   const extendedSchema: BormSchema = {
@@ -403,7 +420,7 @@ const extendEntity = (name: string, schema: BormSchema, mutExtendedSchema: BormS
   }
   mutExtendedSchema.entities[name] = entity;
   return entity;
-}
+};
 
 /**
  * NOTE: Mutate the extended schema in place.
@@ -433,21 +450,26 @@ const extendRelation = (name: string, schema: BormSchema, mutExtendedSchema: Bor
 const extendDataFields = (ancestor: BormEntity | BormRelation, entity: BormEntity | BormRelation): DataField[] => {
   const explicitDataFieldSet = new Set(entity.dataFields?.map((df) => df.path) ?? []);
   const inheritedDataFields = ancestor.dataFields?.filter((df) => !explicitDataFieldSet.has(df.path)) ?? [];
-  return [...inheritedDataFields, ...entity.dataFields ?? []];
-}
+  return [...inheritedDataFields, ...(entity.dataFields ?? [])];
+};
 
 const extendLinkFields = (ancestor: BormEntity | BormRelation, entity: BormEntity | BormRelation): LinkField[] => {
   const explicitLinkFieldSet = new Set(entity.linkFields?.map((lf) => lf.path) ?? []);
   const inheritedLinkFields = ancestor.linkFields?.filter((lf) => !explicitLinkFieldSet.has(lf.path)) ?? [];
-  return [...inheritedLinkFields, ...entity.linkFields ?? []];
-}
+  return [...inheritedLinkFields, ...(entity.linkFields ?? [])];
+};
 
-const extendRefFields = (ancestor: BormEntity | BormRelation, entity: BormEntity | BormRelation): Record<string, RefField> => {
-  const inheritedRefFields = Object.fromEntries(Object.entries(ancestor.refFields ?? {}).filter(([k]) => !entity.refFields?.[k]));
-  return { ...inheritedRefFields, ...entity.refFields ?? {} };
-}
+const extendRefFields = (
+  ancestor: BormEntity | BormRelation,
+  entity: BormEntity | BormRelation,
+): Record<string, RefField> => {
+  const inheritedRefFields = Object.fromEntries(
+    Object.entries(ancestor.refFields ?? {}).filter(([k]) => !entity.refFields?.[k]),
+  );
+  return { ...inheritedRefFields, ...(entity.refFields ?? {}) };
+};
 
 const extendRoles = (ancestor: BormRelation, entity: BormRelation): Record<string, RoleField> => {
   const inheritedRoles = Object.fromEntries(Object.entries(ancestor.roles ?? {}).filter(([k]) => !entity.roles?.[k]));
-  return { ...inheritedRoles, ...entity.roles ?? {} };
-}
+  return { ...inheritedRoles, ...(entity.roles ?? {}) };
+};

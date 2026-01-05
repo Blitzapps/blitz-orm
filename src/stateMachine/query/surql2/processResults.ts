@@ -1,23 +1,27 @@
-import type { BQLQuery, NestedBQL } from "../../../types/requests/parser";
-import type { DRAFT_EnrichedBormEntity, DRAFT_EnrichedBormRelation, DRAFT_EnrichedBormSchema } from "../../../types/schema/enriched.draft";
+import type { BQLQuery, NestedBQL } from '../../../types/requests/parser';
+import type {
+  DRAFT_EnrichedBormEntity,
+  DRAFT_EnrichedBormRelation,
+  DRAFT_EnrichedBormSchema,
+} from '../../../types/schema/enriched.draft';
 
 export const processResults = (params: {
-  batch: BQLQuery[],
-  results: unknown[],
-  schema: DRAFT_EnrichedBormSchema,
-  metadata: boolean,
-  returnNulls: boolean,
+  batch: BQLQuery[];
+  results: unknown[];
+  schema: DRAFT_EnrichedBormSchema;
+  metadata: boolean;
+  returnNulls: boolean;
 }) => {
   const { batch, results, schema, metadata, returnNulls } = params;
   return batch.map((query, i) => processQueryResult({ query, result: results[i], schema, metadata, returnNulls }));
-}
+};
 
 const processQueryResult = (params: {
-  query: BQLQuery,
-  result: unknown,
-  schema: DRAFT_EnrichedBormSchema,
-  metadata: boolean,
-  returnNulls: boolean,
+  query: BQLQuery;
+  result: unknown;
+  schema: DRAFT_EnrichedBormSchema;
+  metadata: boolean;
+  returnNulls: boolean;
 }) => {
   const { query, result, schema, metadata, returnNulls } = params;
   if (!result) {
@@ -31,15 +35,15 @@ const processQueryResult = (params: {
     return result.map((r) => transformResultObject({ query, result: r, thing, schema, metadata, returnNulls }));
   }
   return transformResultObject({ query, result, thing, schema, metadata, returnNulls });
-}
+};
 
 const processNestedResult = (params: {
-  query: NestedBQL,
-  result: unknown,
-  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-  schema: DRAFT_EnrichedBormSchema,
-  metadata: boolean,
-  returnNulls: boolean,
+  query: NestedBQL;
+  result: unknown;
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
+  schema: DRAFT_EnrichedBormSchema;
+  metadata: boolean;
+  returnNulls: boolean;
 }) => {
   const { query, result, thing, schema, metadata, returnNulls } = params;
   if (Array.isArray(result)) {
@@ -52,12 +56,12 @@ const processNestedResult = (params: {
 };
 
 const transformResultObject = (params: {
-  query: BQLQuery | NestedBQL,
-  result: unknown,
-  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-  schema: DRAFT_EnrichedBormSchema,
-  metadata: boolean,
-  returnNulls: boolean,
+  query: BQLQuery | NestedBQL;
+  result: unknown;
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
+  schema: DRAFT_EnrichedBormSchema;
+  metadata: boolean;
+  returnNulls: boolean;
 }) => {
   const { query, result, thing, schema, metadata, returnNulls } = params;
   if (!result || typeof result !== 'object') {
@@ -75,7 +79,7 @@ const transformResultObject = (params: {
 
   for (const fieldQuery of query.$fields ?? Object.keys(thing.fields)) {
     const path = typeof fieldQuery === 'string' ? fieldQuery : fieldQuery.$path;
-    const alias = typeof fieldQuery === 'string' ? fieldQuery : fieldQuery.$as ?? path;
+    const alias = typeof fieldQuery === 'string' ? fieldQuery : (fieldQuery.$as ?? path);
     // Skip excluded fields.
     if (query.$excludedFields?.includes(path)) {
       continue;
@@ -117,12 +121,19 @@ const transformResultObject = (params: {
     }
 
     if (typeof fieldQuery === 'string' || field.type === 'ref') {
-      newResult[alias] = Array.isArray(value) && value.length === 0 ? null : value ?? null;
+      newResult[alias] = Array.isArray(value) && value.length === 0 ? null : (value ?? null);
       continue;
     }
 
     const opposite = schema[field.opposite.thing];
-    newResult[alias] =  processNestedResult({ query: fieldQuery, result: value, thing: opposite, schema, metadata, returnNulls });
+    newResult[alias] = processNestedResult({
+      query: fieldQuery,
+      result: value,
+      thing: opposite,
+      schema,
+      metadata,
+      returnNulls,
+    });
   }
 
   return newResult;

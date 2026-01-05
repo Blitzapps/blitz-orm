@@ -1,22 +1,56 @@
-import z from "zod/v4";
-import { type NestedBQLFilter, NestedBQLFilterParser, StrictBQLValueFilterParser, type BQLField, type BQLFilter, type BQLFilterValue, type BQLFilterValueList, type BQLQuery } from "../../../types/requests/parser";
-import type { DRAFT_EnrichedBormDataField, DRAFT_EnrichedBormEntity, DRAFT_EnrichedBormField, DRAFT_EnrichedBormLinkField, DRAFT_EnrichedBormRefField, DRAFT_EnrichedBormRelation, DRAFT_EnrichedBormRoleField, DRAFT_EnrichedBormSchema } from "../../../types/schema/enriched.draft";
-import type { DataSource, Filter, ListFilter, LogicalQuery, Projection, ProjectionField, ScalarFilter, Sort } from "./logical";
+import z from 'zod/v4';
+import {
+  type BQLField,
+  type BQLFilter,
+  type BQLFilterValue,
+  type BQLFilterValueList,
+  type BQLQuery,
+  type NestedBQLFilter,
+  NestedBQLFilterParser,
+  StrictBQLValueFilterParser,
+} from '../../../types/requests/parser';
+import type {
+  DRAFT_EnrichedBormDataField,
+  DRAFT_EnrichedBormEntity,
+  DRAFT_EnrichedBormField,
+  DRAFT_EnrichedBormLinkField,
+  DRAFT_EnrichedBormRefField,
+  DRAFT_EnrichedBormRelation,
+  DRAFT_EnrichedBormRoleField,
+  DRAFT_EnrichedBormSchema,
+} from '../../../types/schema/enriched.draft';
+import type {
+  DataSource,
+  Filter,
+  ListFilter,
+  LogicalQuery,
+  Projection,
+  ProjectionField,
+  ScalarFilter,
+  Sort,
+} from './logical';
 
-export const buildLogicalQuery = (query: BQLQuery, schema: DRAFT_EnrichedBormSchema, metadata: boolean): LogicalQuery => {
+export const buildLogicalQuery = (
+  query: BQLQuery,
+  schema: DRAFT_EnrichedBormSchema,
+  metadata: boolean,
+): LogicalQuery => {
   const thingSchema = schema[query.$thing];
   const projection = buildProjection({ fields: query.$fields, thing: thingSchema, schema, metadata });
   const filter = query.$filter ? buildFilter(query.$filter, thingSchema, schema) : undefined;
   const ids = Array.isArray(query.$id) ? query.$id : query.$id ? [query.$id] : [];
   const cardinality = ids.length === 1 || isUniqueFilter(thingSchema, filter) ? 'ONE' : 'MANY';
-  const source: DataSource = ids.length > 0 ? {
-    type: 'record_pointer',
-    thing: [thingSchema.name, ...thingSchema.subTypes],
-    ids,
-  } : {
-    type: 'table_scan',
-    thing: [thingSchema.name, ...thingSchema.subTypes],
-  };
+  const source: DataSource =
+    ids.length > 0
+      ? {
+          type: 'record_pointer',
+          thing: [thingSchema.name, ...thingSchema.subTypes],
+          ids,
+        }
+      : {
+          type: 'table_scan',
+          thing: [thingSchema.name, ...thingSchema.subTypes],
+        };
 
   return {
     source,
@@ -27,7 +61,7 @@ export const buildLogicalQuery = (query: BQLQuery, schema: DRAFT_EnrichedBormSch
     sort: validateSort(projection, buildSort(query.$sort)),
     cardinality,
   };
-}
+};
 
 const buildProjection = (params: {
   fields?: BQLField[];
@@ -102,12 +136,14 @@ const buildProjection = (params: {
 
     const oppositeThingSchema = schema[fieldSchema.opposite.thing];
     const oppositeProjection = buildProjection({ fields: field.$fields, thing: oppositeThingSchema, schema, metadata });
-    const filter = '$filter' in field && field.$filter ? buildFilter(field.$filter, oppositeThingSchema, schema) : undefined;
+    const filter =
+      '$filter' in field && field.$filter ? buildFilter(field.$filter, oppositeThingSchema, schema) : undefined;
     projectionFields.push({
       type: 'nested_reference',
       path: field.$path,
       projection: oppositeProjection,
-      cardinality: typeof field.$id === 'string' || isUniqueFilter(oppositeThingSchema, filter) ? 'ONE' : fieldSchema.cardinality,
+      cardinality:
+        typeof field.$id === 'string' || isUniqueFilter(oppositeThingSchema, filter) ? 'ONE' : fieldSchema.cardinality,
       alias,
       ids: typeof field.$id === 'string' ? [field.$id] : field.$id,
       filter,
@@ -119,7 +155,7 @@ const buildProjection = (params: {
 
   return {
     fields: projectionFields,
-  }
+  };
 };
 
 const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: string): ProjectionField => {
@@ -136,20 +172,20 @@ const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: stri
       path: field.name,
       cardinality: field.cardinality,
       alias,
-    }
+    };
   }
   return {
     type: 'reference',
     path: field.name,
     cardinality: field.cardinality,
     alias,
-  }
+  };
 };
 
 const buildFilter = (
   filter: BQLFilter | BQLFilter[],
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-  schema: DRAFT_EnrichedBormSchema
+  schema: DRAFT_EnrichedBormSchema,
 ): Filter | undefined => {
   if (Array.isArray(filter)) {
     const filters = filter.map((f) => buildFilter(f, thing, schema)).filter((f) => !!f);
@@ -164,7 +200,7 @@ const buildFilter = (
     type: 'and',
     filters,
   };
-}
+};
 
 const buildFilters = (
   filter: BQLFilter,
@@ -219,13 +255,15 @@ const buildFilters = (
 const buildNotFilter = (
   $not: BQLFilter,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
-  schema: DRAFT_EnrichedBormSchema
+  schema: DRAFT_EnrichedBormSchema,
 ): Filter | undefined => {
   const inner = buildFilter($not, thing, schema);
-  return inner ? {
-    type: 'not',
-    filter: inner,
-  } : undefined;
+  return inner
+    ? {
+        type: 'not',
+        filter: inner,
+      }
+    : undefined;
 };
 
 const buildOrFilter = (
@@ -338,9 +376,12 @@ const buildDataFieldFilter = (
     left: field.name,
     right: filter as BQLFilterValue,
   };
-}
+};
 
-const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | BQLFilter[]): Filter | undefined => {
+const buildRefFieldFilter = (
+  field: DRAFT_EnrichedBormRefField,
+  filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | BQLFilter[],
+): Filter | undefined => {
   if (field.contentType === 'REF') {
     if (field.cardinality === 'ONE') {
       if (typeof filter === 'string') {
@@ -385,7 +426,7 @@ const buildRefFieldFilter = (field: DRAFT_EnrichedBormRefField, filter: BQLFilte
   }
   // The cast can't be determined.
   throw new Error('Filtering by FLEX reference is not supported');
-}
+};
 
 const buildLinkFieldFilter = (
   field: DRAFT_EnrichedBormLinkField | DRAFT_EnrichedBormRoleField,
@@ -544,7 +585,7 @@ const buildLinkFieldFilter = (
     type: 'and',
     filters,
   };
-}
+};
 
 const isUniqueFilter = (thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation, filter?: Filter): boolean => {
   if (!filter) {
@@ -584,27 +625,27 @@ const buildSort = (sort?: ({ field: string; desc?: boolean } | string)[]): Sort[
     if (typeof s === 'string') {
       return { field: s, desc: false };
     }
-    return { field: s.field, desc: s.desc ?? false }
+    return { field: s.field, desc: s.desc ?? false };
   });
 };
 
 const scalarOpMap: Record<string, ScalarFilter['op']> = {
-  '$eq': '=',
-  '$ne': '!=',
-  '$gt': '>',
-  '$lt': '<',
-  '$gte': '>=',
-  '$lte': '<=',
-  '$contains': 'CONTAINS',
-  '$containsNot': 'CONTAINSNOT',
+  $eq: '=',
+  $ne: '!=',
+  $gt: '>',
+  $lt: '<',
+  $gte: '>=',
+  $lte: '<=',
+  $contains: 'CONTAINS',
+  $containsNot: 'CONTAINSNOT',
 };
 
 const listOpMap: Record<string, ListFilter['op']> = {
-  '$in': 'IN',
-  '$nin': 'NOT IN',
-  '$containsAll': 'CONTAINSALL',
-  '$containsAny': 'CONTAINSANY',
-  '$containsNone': 'CONTAINSNONE',
+  $in: 'IN',
+  $nin: 'NOT IN',
+  $containsAll: 'CONTAINSALL',
+  $containsAny: 'CONTAINSANY',
+  $containsNone: 'CONTAINSNONE',
 };
 
 const StringArrayParser = z.array(z.string());
@@ -623,31 +664,31 @@ const validateAlias = (alias?: string): string | undefined => {
     throw new Error(`Invalid alias: ${alias}`);
   }
   return alias;
-}
+};
 
 const validateLimit = (limit?: number): number | undefined => {
   if (limit !== undefined && (typeof limit !== 'number' || limit < 0)) {
     throw new Error(`Invalid limit: ${limit}`);
   }
   return limit;
-}
+};
 
 const validateOffset = (offset?: number): number | undefined => {
   if (offset !== undefined && (typeof offset !== 'number' || offset < 0)) {
     throw new Error(`Invalid offset: ${offset}`);
   }
   return offset;
-}
+};
 
 const validateSort = (projection: Projection, sort?: Sort[]): Sort[] | undefined => {
   if (!sort || sort.length === 0) {
     return undefined;
   }
-  const projectionSet = new Set(projection.fields.map((f) => f.type === 'metadata' ? f.path : f.alias ?? f.path));
+  const projectionSet = new Set(projection.fields.map((f) => (f.type === 'metadata' ? f.path : (f.alias ?? f.path))));
   for (const s of sort) {
     if (!projectionSet.has(s.field)) {
       throw new Error(`Missing sorter field in the selected fields: ${s.field}`);
     }
   }
   return sort;
-}
+};

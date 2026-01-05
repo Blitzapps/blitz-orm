@@ -1,6 +1,25 @@
-import z from "zod/v4";
-import type { DRAFT_EnrichedBormEntity, DRAFT_EnrichedBormField, DRAFT_EnrichedBormRelation, DRAFT_EnrichedBormSchema, Index } from "../../../types/schema/enriched.draft";
-import type { DataSource, Filter, ListFilter, LogicalQuery, NestedFilter, Projection, ProjectionField, RecordPointer, RefFilter, ScalarFilter, SubQuery, TableScan } from "./logical";
+import z from 'zod/v4';
+import type {
+  DRAFT_EnrichedBormEntity,
+  DRAFT_EnrichedBormField,
+  DRAFT_EnrichedBormRelation,
+  DRAFT_EnrichedBormSchema,
+  Index,
+} from '../../../types/schema/enriched.draft';
+import type {
+  DataSource,
+  Filter,
+  ListFilter,
+  LogicalQuery,
+  NestedFilter,
+  Projection,
+  ProjectionField,
+  RecordPointer,
+  RefFilter,
+  ScalarFilter,
+  SubQuery,
+  TableScan,
+} from './logical';
 
 export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_EnrichedBormSchema): LogicalQuery => {
   const thing = getSourceThing(query.source, schema);
@@ -15,13 +34,18 @@ export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_Enriched
     limit: query.limit,
     offset: query.offset,
     sort: query.sort,
-  }
+  };
 };
 
 /**
  * If the source is a table scan and the filter is a nested filter, convert the filter to a relationship traversal.
  */
-const optimizeSource = (params: { source: DataSource, filter?: Filter, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation }): { source: DataSource, filter?: Filter } => {
+const optimizeSource = (params: {
+  source: DataSource;
+  filter?: Filter;
+  schema: DRAFT_EnrichedBormSchema;
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
+}): { source: DataSource; filter?: Filter } => {
   const { source, filter, schema, thing } = params;
 
   if (source.type !== 'table_scan') {
@@ -32,32 +56,37 @@ const optimizeSource = (params: { source: DataSource, filter?: Filter, schema: D
 
   const [firstFilter, ...restFilters] = filter?.type === 'and' ? filter.filters : filter ? [filter] : [];
 
-  const traversal = firstFilter?.type === 'scalar' || firstFilter?.type === 'list'
-    ? convertIdFilterToRecordPointer(firstFilter, source)
-    : firstFilter?.type === 'nested'
-    ? convertNestedFilterToRelationshipTraversal(firstFilter, schema, thing)
-    : firstFilter?.type === 'ref'
-    ? convertRefFilterToRelationshipTraversal(firstFilter, schema, thing)
-    : undefined;
+  const traversal =
+    firstFilter?.type === 'scalar' || firstFilter?.type === 'list'
+      ? convertIdFilterToRecordPointer(firstFilter, source)
+      : firstFilter?.type === 'nested'
+        ? convertNestedFilterToRelationshipTraversal(firstFilter, schema, thing)
+        : firstFilter?.type === 'ref'
+          ? convertRefFilterToRelationshipTraversal(firstFilter, schema, thing)
+          : undefined;
 
   if (traversal) {
     return {
       source: traversal,
-      filter: restFilters.length === 0
-        ? undefined
-        : restFilters.length === 1
-        ? restFilters[0]
-        : { type: 'and', filters: restFilters },
-    }
+      filter:
+        restFilters.length === 0
+          ? undefined
+          : restFilters.length === 1
+            ? restFilters[0]
+            : { type: 'and', filters: restFilters },
+    };
   }
 
   return {
     source,
     filter: filter ? pushDownIndexedFilter(filter, thing) : undefined,
-  }
-}
+  };
+};
 
-const convertIdFilterToRecordPointer = (filter: ScalarFilter | ListFilter, source: TableScan): RecordPointer | undefined => {
+const convertIdFilterToRecordPointer = (
+  filter: ScalarFilter | ListFilter,
+  source: TableScan,
+): RecordPointer | undefined => {
   if (filter.left !== 'id') {
     return undefined;
   }
@@ -66,14 +95,14 @@ const convertIdFilterToRecordPointer = (filter: ScalarFilter | ListFilter, sourc
       type: 'record_pointer',
       thing: [source.thing[0], ...source.thing.slice(1)],
       ids: [filter.right],
-    }
+    };
   }
   if (filter.op === 'IN' && z.array(z.string()).safeParse(filter.right).success) {
     return {
       type: 'record_pointer',
       thing: [source.thing[0], ...source.thing.slice(1)],
       ids: filter.right as string[],
-    }
+    };
   }
   return undefined;
 };
@@ -155,15 +184,23 @@ const convertNestedFilterToRelationshipTraversal = (
     filter: optimized.filter,
   };
   return traversal;
-}
+};
 
-const optimizeProjection = (projection: Projection, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation): Projection => {
+const optimizeProjection = (
+  projection: Projection,
+  schema: DRAFT_EnrichedBormSchema,
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
+): Projection => {
   return {
     fields: projection.fields.map((field) => optimizeProjectionField(field, schema, thing)),
   };
-}
+};
 
-const optimizeProjectionField = (field: ProjectionField, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation): ProjectionField => {
+const optimizeProjectionField = (
+  field: ProjectionField,
+  schema: DRAFT_EnrichedBormSchema,
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
+): ProjectionField => {
   if (field.type === 'metadata' || field.type === 'data' || field.type === 'flex' || field.type === 'reference') {
     return field;
   }
@@ -176,14 +213,18 @@ const optimizeProjectionField = (field: ProjectionField, schema: DRAFT_EnrichedB
     limit: field.limit,
     offset: field.offset,
     sort: field.sort,
-  }
-}
+  };
+};
 
 /**
  * Flatten "and" and "or" filters into a single filter. Order the filters by cost.
  * This optimization doesn't consider indexes.
  */
-const optimizeLocalFilter = (filter: Filter, schema: DRAFT_EnrichedBormSchema, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation): Filter | undefined => {
+const optimizeLocalFilter = (
+  filter: Filter,
+  schema: DRAFT_EnrichedBormSchema,
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
+): Filter | undefined => {
   if (filter.type === 'list' && filter.right.length === 1) {
     // TODO: Convert into simpler form if possible. Example: `<left> IN [<right>]` into `<left> = <right>`
   }
@@ -191,7 +232,6 @@ const optimizeLocalFilter = (filter: Filter, schema: DRAFT_EnrichedBormSchema, t
   if (filter.type === 'ref' && filter.right.length === 0) {
     // TODO: Convert into simpler form if possible. Example: `<left> IN []` into `<left> IS NULL`
   }
-
 
   if (filter.type === 'and' || filter.type === 'or') {
     const filters = filter.filters.flatMap((f) => {
@@ -213,7 +253,7 @@ const optimizeLocalFilter = (filter: Filter, schema: DRAFT_EnrichedBormSchema, t
     }
     // TODO: Combine multiple "=" of the same field inside "or" filter into "in" filter.
     // TODO: Improve the scoring.
-    const scored = filters.map((i): { filter: Filter; score: number} => {
+    const scored = filters.map((i): { filter: Filter; score: number } => {
       if (i.type === 'scalar') {
         return { filter: i, score: filterOpScoreMap[i.op] ?? 0 };
       }
@@ -282,7 +322,7 @@ const optimizeLocalFilter = (filter: Filter, schema: DRAFT_EnrichedBormSchema, t
   }
 
   return filter;
-}
+};
 
 const filterOpScoreMap: Record<string, number> = {
   '=': 1,
@@ -296,33 +336,43 @@ const filterOpScoreMap: Record<string, number> = {
  * Put indexed filters first. Only one set of indexed filter is pushed down.
  * This function assumes all link/role fields are indexed.
  */
-const pushDownIndexedFilter = (filter: Filter, thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation): Filter => {
+const pushDownIndexedFilter = (
+  filter: Filter,
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
+): Filter => {
   if (filter.type === 'and') {
-    const filterMap = Object.fromEntries(filter.filters.map((f, i): [string, { index: number, filter: Filter, score: number }] | undefined => {
-      if (f.type !== 'scalar') {
-        return undefined;
-      }
-      const score = filterOpScoreMap[f.op];
-      if (!score) {
-        return undefined;
-      }
-      return [f.left, { filter: f, index: i, score }];
-    }).filter((i) => i !== undefined));
+    const filterMap = Object.fromEntries(
+      filter.filters
+        .map((f, i): [string, { index: number; filter: Filter; score: number }] | undefined => {
+          if (f.type !== 'scalar') {
+            return undefined;
+          }
+          const score = filterOpScoreMap[f.op];
+          if (!score) {
+            return undefined;
+          }
+          return [f.left, { filter: f, index: i, score }];
+        })
+        .filter((i) => i !== undefined),
+    );
     // Longest composite indexes first.
-    const compositeIndexes = thing.indexes.filter((index) => index.type !== 'single').sort((a, b) => b.fields.length - a.fields.length);
+    const compositeIndexes = thing.indexes
+      .filter((index) => index.type !== 'single')
+      .sort((a, b) => b.fields.length - a.fields.length);
     if (compositeIndexes.length > 0) {
-      const compositeFilters: { filters: { index: number, filter: Filter }[], score: number }[] = [];
+      const compositeFilters: { filters: { index: number; filter: Filter }[]; score: number }[] = [];
       for (const index of compositeIndexes) {
-        const fs: { index: number, filter: Filter, score: number }[] = [];
+        const fs: { index: number; filter: Filter; score: number }[] = [];
         for (const field of index.fields) {
           const filter = filterMap[field];
-          if (!filter || fs.some((f) => f.index === filter.index)) { // Avoid duplicate filters.
+          if (!filter || fs.some((f) => f.index === filter.index)) {
+            // Avoid duplicate filters.
             break;
           }
           fs.push(filter);
         }
         if (fs.length > 0) {
-          compositeFilters.push({ filters: fs, score: fs.reduce((a, b) => a + (a * b.score), 1) });
+          compositeFilters.push({ filters: fs, score: fs.reduce((a, b) => a + a * b.score, 1) });
         }
       }
       compositeFilters.sort((a, b) => b.score - a.score);
@@ -334,7 +384,7 @@ const pushDownIndexedFilter = (filter: Filter, thing: DRAFT_EnrichedBormEntity |
             ...longestCompositeFilter.filters.map((f) => f.filter),
             ...filter.filters.filter((_, i) => !longestCompositeFilter.filters.some((f) => f.index === i)),
           ],
-        }
+        };
       }
     }
   }
@@ -354,15 +404,18 @@ const pushDownIndexedFilter = (filter: Filter, thing: DRAFT_EnrichedBormEntity |
         }
       }
       return { filter: f, score: 0, index };
-    })
+    });
     const sorted = scored.sort((a, b) => b.score - a.score);
     const [first] = sorted;
     const indexed = first && first.score !== 0 ? first.filter : undefined;
     // Convert indexed filter with IN operator to an OR filter with scalar filters.
-    const optimized: Filter | undefined = indexed?.type === 'list' && indexed.op === 'IN' ? {
-      type: 'or',
-      filters: indexed.right.map((r) => ({ type: 'scalar', op: '=', left: indexed.left, right: r })),
-    } : indexed;
+    const optimized: Filter | undefined =
+      indexed?.type === 'list' && indexed.op === 'IN'
+        ? {
+            type: 'or',
+            filters: indexed.right.map((r) => ({ type: 'scalar', op: '=', left: indexed.left, right: r })),
+          }
+        : indexed;
     return {
       type: filter.type,
       filters: optimized ? [optimized, ...filter.filters.filter((_, i) => i !== first.index)] : filter.filters,
@@ -373,18 +426,31 @@ const pushDownIndexedFilter = (filter: Filter, thing: DRAFT_EnrichedBormEntity |
 
 const isIndexed = (field: DRAFT_EnrichedBormField, indexes: Index[]): boolean => {
   // SurrealDB reference fields are assumed to be indexed.
-  return field.type === 'role' || field.type === 'link' || indexes.some((i) => (i.type === 'single' && i.field === field.name) || (i.type === 'composite' && i.fields.includes(field.name)));
+  return (
+    field.type === 'role' ||
+    field.type === 'link' ||
+    indexes.some(
+      (i) =>
+        (i.type === 'single' && i.field === field.name) || (i.type === 'composite' && i.fields.includes(field.name)),
+    )
+  );
 };
 
-const getThingSchema = (thing: string, schema: DRAFT_EnrichedBormSchema): DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation => {
+const getThingSchema = (
+  thing: string,
+  schema: DRAFT_EnrichedBormSchema,
+): DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation => {
   const thingSchema = schema[thing];
   if (!thingSchema) {
     throw new Error(`Thing ${thing} not found in schema`);
   }
   return thingSchema;
-}
+};
 
-const getSourceThing = (source: DataSource, schema: DRAFT_EnrichedBormSchema): DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation => {
+const getSourceThing = (
+  source: DataSource,
+  schema: DRAFT_EnrichedBormSchema,
+): DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation => {
   if (source.type === 'table_scan' || source.type === 'record_pointer') {
     const thingSchema = getThingSchema(source.thing[0], schema);
     return thingSchema;
@@ -403,4 +469,4 @@ const getSourceThing = (source: DataSource, schema: DRAFT_EnrichedBormSchema): D
     throw new Error(`Thing ${field.opposite.thing} not found in schema`);
   }
   return thing;
-}
+};

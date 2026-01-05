@@ -9,7 +9,7 @@ import type {
   Projection,
   ReferenceField,
   Sort,
-} from "./logical";
+} from './logical';
 
 export type SurqlParams = Record<string, unknown>;
 
@@ -21,7 +21,7 @@ export const buildSurql = (query: LogicalQuery, params: SurqlParams): string => 
   const level = query.cardinality === 'MANY' ? 0 : 1;
 
   if (query.cardinality === 'ONE') {
-    lines.push('array::first(')
+    lines.push('array::first(');
   }
   lines.push(buildProjection(query.projection, level, params));
   lines.push(buildFrom(query.source, level, params));
@@ -39,7 +39,7 @@ export const buildSurql = (query: LogicalQuery, params: SurqlParams): string => 
     lines.push(indent(`START ${query.offset}`, level));
   }
   if (query.cardinality === 'ONE') {
-    lines.push(')')
+    lines.push(')');
   }
 
   return lines.join('\n');
@@ -150,10 +150,16 @@ const buildFlexFieldProjection = (field: FlexField, level: number) => {
   const escapedPath = esc(path);
   const escapedAlias = esc(alias || path);
   if (cardinality === 'ONE') {
-    return indent(`${escapedPath} && IF type::is::record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } AS ${escapedAlias}`, level);
+    return indent(
+      `${escapedPath} && IF type::is::record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } AS ${escapedAlias}`,
+      level,
+    );
   }
-  return indent(`${escapedPath} && ${escapedPath}.map(|$i| IF type::is::record($i) { record::id($i)} ELSE { $i }) AS ${escapedAlias}`, level);
-}
+  return indent(
+    `${escapedPath} && ${escapedPath}.map(|$i| IF type::is::record($i) { record::id($i)} ELSE { $i }) AS ${escapedAlias}`,
+    level,
+  );
+};
 
 const buildFrom = (source: DataSource, level: number, params: SurqlParams): string => {
   const lines: string[] = [];
@@ -184,7 +190,7 @@ const buildFrom = (source: DataSource, level: number, params: SurqlParams): stri
     }
   }
   return lines.join('\n');
-}
+};
 
 /**
  * Mutate `params`.
@@ -193,9 +199,7 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
   const _prefix = prefix ?? '';
   switch (filter.type) {
     case 'scalar': {
-      const path = filter.left === 'id'
-        ? `record::id(${_prefix}id)`
-        : `${_prefix}${esc(filter.left)}`;
+      const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${esc(filter.left)}`;
       const key = insertParam(params, filter.right);
       return `${path} ${filter.op} $${key}`;
     }
@@ -205,15 +209,15 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       return `${path} ${filter.op} [${items}]`;
     }
     case 'ref': {
-      const path = filter.left === 'id'
-        ? `record::id(${_prefix}id)`
-        : `${_prefix}${esc(filter.left)}`;
+      const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${esc(filter.left)}`;
       if (filter.thing) {
-        const right = filter.thing.flatMap((t) => filter.right.map((i) => {
-          const pointer = `${esc(t)}:${esc(i)}`
-          const key = insertParam(params, pointer);
-          return `type::record($${key})`;
-        }));
+        const right = filter.thing.flatMap((t) =>
+          filter.right.map((i) => {
+            const pointer = `${esc(t)}:${esc(i)}`;
+            const key = insertParam(params, pointer);
+            return `type::record($${key})`;
+          }),
+        );
         if (right.length === 1) {
           const key = insertParam(params, right[0]);
           if (filter.op === 'IN') {
@@ -246,15 +250,15 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
         }
         if (filter.op === 'CONTAINSANY') {
           if (filter.tunnel) {
-            return `$${insertParam(params, filter.right[0])} IN ${path}.map(|$i| record::id($i))`
+            return `$${insertParam(params, filter.right[0])} IN ${path}.map(|$i| record::id($i))`;
           }
-          return `$${insertParam(params, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`
+          return `$${insertParam(params, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`;
         }
         if (filter.op === 'CONTAINSNONE') {
           if (filter.tunnel) {
-            return `$${insertParam(params, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`
+            return `$${insertParam(params, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`;
           }
-          return `$${insertParam(params, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`
+          return `$${insertParam(params, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`;
         }
       }
       if (filter.tunnel) {
@@ -269,17 +273,21 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       return `${_prefix}${esc(filter.left)} ${filter.op} NONE`;
     }
     case 'and': {
-      const conditions = filter.filters.map((f) => {
-        const condition = buildFilter(f, params, prefix);
-        return condition ? `(${condition})` : undefined;
-      }).filter((i) => !!i);
+      const conditions = filter.filters
+        .map((f) => {
+          const condition = buildFilter(f, params, prefix);
+          return condition ? `(${condition})` : undefined;
+        })
+        .filter((i) => !!i);
       return conditions.length > 0 ? conditions.join(' AND ') : undefined;
     }
     case 'or': {
-      const conditions = filter.filters.map((f) => {
-        const condition = buildFilter(f, params, prefix);
-        return condition ? `(${condition})` : undefined;
-      }).filter((i) => !!i);
+      const conditions = filter.filters
+        .map((f) => {
+          const condition = buildFilter(f, params, prefix);
+          return condition ? `(${condition})` : undefined;
+        })
+        .filter((i) => !!i);
       return conditions.length > 0 ? conditions.join(' OR ') : undefined;
     }
     case 'not': {
@@ -297,12 +305,12 @@ const buildFilter = (filter: Filter, params: Record<string, unknown>, prefix?: s
       return `${path}[WHERE ${subFilter}]`;
     }
   }
-}
+};
 
 const buildOrderBy = (sort: Sort[], level: number): string => {
   const sorters = sort.map((s) => `${esc(s.field)} ${s.desc ? 'DESC' : 'ASC'}`).join(', ');
   return indent(`ORDER BY ${sorters}`, level);
-}
+};
 
 const indent = (text: string, level: number) => {
   const spaces = ' '.repeat(level * 2);
@@ -319,7 +327,7 @@ const insertParam = (params: Record<string, unknown>, value: unknown): string =>
   }
   params[key] = value;
   return key;
-}
+};
 
 const generateAlphaKey = (length: number): string => {
   const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

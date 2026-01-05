@@ -1,4 +1,4 @@
-import type { BQLFilterValue, BQLFilterValueList } from "../../../types/requests/parser";
+import type { BQLFilterValue, BQLFilterValueList } from '../../../types/requests/parser';
 
 export interface LogicalQuery {
   source: DataSource;
@@ -8,23 +8,20 @@ export interface LogicalQuery {
   offset?: number;
   sort?: Sort[];
   cardinality: 'MANY' | 'ONE';
-};
+}
 
-export type DataSource = 
-  | TableScan
-  | RecordPointer
-  | SubQuery;
+export type DataSource = TableScan | RecordPointer | SubQuery;
 
 export interface TableScan {
   type: 'table_scan';
   thing: [string, ...string[]];
-};
+}
 
 export interface RecordPointer {
   type: 'record_pointer';
   thing: [string, ...string[]];
   ids: string[];
-};
+}
 
 export interface SubQuery {
   type: 'subquery';
@@ -38,40 +35,35 @@ export interface SubQuery {
    */
   filter?: Filter;
   /**
-   * This is the cardinality of 
+   * This is the cardinality of
    */
   cardinality: 'MANY' | 'ONE';
-};
+}
 
 export interface Projection {
   fields: ProjectionField[];
 }
 
-export type ProjectionField = 
-  | MetadataField
-  | DataField
-  | ReferenceField
-  | NestedReferenceField
-  | FlexField;
+export type ProjectionField = MetadataField | DataField | ReferenceField | NestedReferenceField | FlexField;
 
 export interface MetadataField {
   type: 'metadata';
   path: '$id' | '$thing';
   alias?: string;
-};
+}
 
 export interface DataField {
   type: 'data';
   path: string;
   alias?: string;
-};
+}
 
 export interface ReferenceField {
   type: 'reference';
   path: string;
   alias?: string;
   cardinality: 'MANY' | 'ONE';
-};
+}
 
 export interface NestedReferenceField {
   type: 'nested_reference';
@@ -84,37 +76,30 @@ export interface NestedReferenceField {
   limit?: number;
   offset?: number;
   sort?: Sort[];
-};
+}
 
 export interface FlexField {
   type: 'flex';
   path: string;
   alias?: string;
   cardinality: 'MANY' | 'ONE';
-};
+}
 
-export type Filter = 
-  | ScalarFilter
-  | ListFilter
-  | RefFilter
-  | LogicalOp
-  | NotOp
-  | NestedFilter
-  | NullFilter;
+export type Filter = ScalarFilter | ListFilter | RefFilter | LogicalOp | NotOp | NestedFilter | NullFilter;
 
 export interface ScalarFilter {
   type: 'scalar';
   op: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'CONTAINS' | 'CONTAINSNOT';
   left: string;
   right: BQLFilterValue;
-};
+}
 
 export interface ListFilter {
   type: 'list';
   op: 'IN' | 'NOT IN' | 'CONTAINSALL' | 'CONTAINSANY' | 'CONTAINSNONE';
   left: string;
   right: BQLFilterValueList;
-};
+}
 
 export interface RefFilter {
   type: 'ref';
@@ -131,7 +116,7 @@ export interface RefFilter {
    * True if it's a link field with target "role".
    */
   tunnel: boolean;
-};
+}
 
 export interface NullFilter {
   type: 'null';
@@ -146,12 +131,12 @@ export interface NullFilter {
 export interface LogicalOp {
   type: 'and' | 'or';
   filters: Filter[];
-};
+}
 
 export interface NotOp {
   type: 'not';
   filter: Filter;
-};
+}
 
 export interface NestedFilter {
   type: 'nested';

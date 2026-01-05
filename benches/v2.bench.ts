@@ -13,7 +13,7 @@ const PASSWORD = 'borm_bench';
 
 let client: BormClient;
 let cleanup: () => Promise<void>;
-let data: { a: A[]; b: B[]; };
+let data: { a: A[]; b: B[] };
 
 beforeAll(async () => {
   console.log('beforeAll');
@@ -60,7 +60,6 @@ afterAll(async () => {
 });
 
 describe('v2', () => {
-
   bench('Select all, sort by string_1, and limit 100', async () => {
     const start = performance.now();
     await client.query({ $relation: 't_a', $limit: 100, $sort: [{ field: 'string_1', desc: true }] });
@@ -85,20 +84,20 @@ describe('v2', () => {
 });
 
 const connect = async () => {
-    const db = new Surreal();
-    await db.connect(URL, {
-      namespace: NAMESPACE,
-      database: DATABASE,
-      auth: {
-        username: USERNAME,
-        password: PASSWORD,
-      },
-      versionCheck: false,
-    });
-    return db;
-}
+  const db = new Surreal();
+  await db.connect(URL, {
+    namespace: NAMESPACE,
+    database: DATABASE,
+    auth: {
+      username: USERNAME,
+      password: PASSWORD,
+    },
+    versionCheck: false,
+  });
+  return db;
+};
 
-const createSurql = (data: { a: A[]; b: B[]; }): string => {
+const createSurql = (data: { a: A[]; b: B[] }): string => {
   const lines = ['BEGIN TRANSACTION;'];
 
   for (const b of data.b) {
@@ -116,7 +115,9 @@ const createSurql = (data: { a: A[]; b: B[]; }): string => {
     const tunnelFew = `[${tunnelFewIds.map((i) => `tunnel_few:${i}`).join(', ')}]`;
     const tunnelMany = `[${tunnelManyIds.map((i) => `tunnel_many:${i}`).join(', ')}]`;
 
-    lines.push(`CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`);
+    lines.push(
+      `CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`,
+    );
 
     lines.push(`CREATE ${tunnelOne} SET a = t_a:${a.id}, b = t_b:${a.one};`);
     lines.push(`UPDATE t_b:${a.one} SET ref_one = t_a:${a.id}, tunnel_one = tunnel_one:${tunnelOneId};`);
@@ -136,7 +137,9 @@ const createSurql = (data: { a: A[]; b: B[]; }): string => {
       lines.push(`RELATE t_a:${a.id}->edge_many->t_b:${b};`);
     }
 
-    lines.push(`UPDATE t_a:${a.id} SET tunnel_one = ${tunnelOne}, tunnel_few = ${tunnelFew}, tunnel_many = ${tunnelMany};`);
+    lines.push(
+      `UPDATE t_a:${a.id} SET tunnel_one = ${tunnelOne}, tunnel_few = ${tunnelFew}, tunnel_many = ${tunnelMany};`,
+    );
   }
 
   lines.push('COMMIT TRANSACTION;');

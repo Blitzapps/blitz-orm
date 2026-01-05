@@ -262,7 +262,6 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const { $thing, $bzId, $op, $tempId } = block;
     const currentSchema = getSchemaByThing(schema, $thing);
     const { usedRefFields } = getCurrentFields(currentSchema, block);
-
     const VAR = `$⟨${$tempId || $bzId}⟩`;
 
     const refFields = usedRefFields.flatMap((rf) => {
@@ -273,7 +272,6 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       const { cardinality, contentType } = refFieldSchema;
       if (contentType === 'REF') {
         const asArrayOfVars = isArray(block[rf]) ? block[rf] : [`${block[rf]}`];
-
         if (cardinality === 'ONE') {
           if (asArrayOfVars.length > 1) {
             //This is ok as long as only one is a match, but we can link to several in card ONE. This is practical if we don't know the $thing for instance, we can try multiple ones
@@ -298,6 +296,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
               throw new Error(`Unsupported operation ${$op} for ONE cardinality`);
           }
         }
+
         if (cardinality === 'MANY') {
           const nodesString = `array::flatten([${asArrayOfVars}])`;
           switch ($op) {
@@ -311,14 +310,19 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
               throw new Error(`Unsupported operation ${$op} for MANY cardinality`);
           }
         }
+
         throw new Error(`Unsupported cardinality ${cardinality}`);
       }
+
       if (contentType === 'FLEX') {
         //todo: card one check len 1
         //todo: add/remove etc
         return `${rf} = ${cardinality === 'ONE' ? `array::flatten([${block[rf]}])[0]` : `array::flatten([${block[rf]}])`}`;
       }
+
+      throw new Error(`Unsupported contentType ${contentType}`);
     });
+
     const refFieldsString = refFields.length > 0 ? `${refFields.join(', ')}` : '';
     const SET = refFieldsString ? `SET ${refFieldsString}` : '';
 

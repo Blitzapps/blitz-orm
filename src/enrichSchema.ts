@@ -120,7 +120,9 @@ const orderExtended = (thingMap: Record<string, BormEntity | BormRelation>) => {
   const ordered: string[] = [];
   const seen = new Set<string>();
   const inProcess = new Set<string>();
-  Object.keys(thingMap).forEach((name) => pushExtended({ thingMap, name, inProcess, seen, ordered }));
+  for (const name of Object.keys(thingMap)) {
+    pushExtended({ thingMap, name, inProcess, seen, ordered });
+  }
   return ordered;
 };
 

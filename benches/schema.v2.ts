@@ -1,4 +1,4 @@
-import type { BormSchema } from "../src";
+import type { BormSchema } from '../src';
 
 export const schema: BormSchema = {
   entities: {},
@@ -193,4 +193,4 @@ export const schema: BormSchema = {
       linkFields: [],
     },
   },
-}
+};

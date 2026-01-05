@@ -59,6 +59,7 @@ export const enrichChildren = (
       if (subNode.$thing && subNode.$thing !== player.thing) {
         throw new Error(`[Wrong format] The field ${field} can only be played by ${player.thing}.`);
       }
+
       return {
         ...subNode,
         [EdgeSchema]: relFieldSchema,
@@ -68,44 +69,43 @@ export const enrichChildren = (
         $bzId,
       };
     }
-    if (relFieldSchema.$things.length > 1) {
-      if (subNode.$thing) {
-        return [
-          {
-            ...subNode,
-            [EdgeSchema]: relFieldSchema,
-            $thing: subNode.$thing,
-            $thingType: subNode.$thing in schema.entities ? 'entity' : 'relation',
-            $op,
-            $bzId,
-          },
-        ];
-      }
-      if (!subNode.$thing) {
-        if (subNode.$tempId) {
-          throw new Error(
-            '[Unsupported] Objects with $tempId and multiple potential players require to explicitly indicate the $thing type.',
-          );
-        }
-        if ($op === 'create') {
-          throw new Error(
-            `[Wrong format] The field ${field} can be played by multiple things, please specify one on creation.`,
-          );
-        }
 
-        return relFieldSchema.$things.map((thing) => {
-          return {
-            ...subNode,
-            [EdgeSchema]: relFieldSchema,
-            $thing: thing,
-            $thingType: thing in schema.entities ? 'entity' : 'relation',
-            $op,
-            $bzId: get$bzId(subNode, thing),
-            //[QueryContext]: { ...subNode[QueryContext], $multiThing: true }, //multiThing is used so the arcs of this manual split are merged in a single arc
-          };
-        });
-      }
+    if (subNode.$thing) {
+      return [
+        {
+          ...subNode,
+          [EdgeSchema]: relFieldSchema,
+          $thing: subNode.$thing,
+          $thingType: subNode.$thing in schema.entities ? 'entity' : 'relation',
+          $op,
+          $bzId,
+        },
+      ];
     }
+
+    if (subNode.$tempId) {
+      throw new Error(
+        '[Unsupported] Objects with $tempId and multiple potential players require to explicitly indicate the $thing type.',
+      );
+    }
+
+    if ($op === 'create') {
+      throw new Error(
+        `[Wrong format] The field ${field} can be played by multiple things, please specify one on creation.`,
+      );
+    }
+
+    return relFieldSchema.$things.map((thing) => {
+      return {
+        ...subNode,
+        [EdgeSchema]: relFieldSchema,
+        $thing: thing,
+        $thingType: thing in schema.entities ? 'entity' : 'relation',
+        $op,
+        $bzId: get$bzId(subNode, thing),
+        //[QueryContext]: { ...subNode[QueryContext], $multiThing: true }, //multiThing is used so the arcs of this manual split are merged in a single arc
+      };
+    });
     //#endregion nested nodes
   });
 

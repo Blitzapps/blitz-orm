@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { bench, expect } from 'vitest';
+import { deepRemoveMetaData } from '../../../src/helpers';
 import type { WithBormMetadata } from '../../../src/index';
 import type { TypeGen } from '../../../src/types/typeGen';
 import { createTest } from '../../helpers/createTest';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { UserType } from '../../types/testTypes';
-import { deepRemoveMetaData } from '../../../src/helpers';
 
 export const allBench = createTest('Bench', (ctx) => {
   bench('v1[validation] - $entity missing', async () => {

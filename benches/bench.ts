@@ -11,8 +11,8 @@ interface BenchOptions {
 }
 
 export const bench = async (
-  cb: (params: { beforeAll: BenchFn; afterAll: BenchFn, time: TimeitFn }) => Promise<void>,
-  opt?: BenchOptions
+  cb: (params: { beforeAll: BenchFn; afterAll: BenchFn; time: TimeitFn }) => Promise<void>,
+  opt?: BenchOptions,
 ) => {
   const { maxIter = MAX_ITER, maxDuration = MAX_DURATION } = opt ?? {};
   const beforePromises: (() => Promise<void>)[] = [];
@@ -23,7 +23,14 @@ export const bench = async (
   const afterAll = (cb: () => Promise<void>) => {
     afterPromises.push(cb);
   };
-  const variants: { name: string, cb: () => Promise<void>, durations: number[], totalDuration: number, maxIter: number, maxDuration: number }[] = [];
+  const variants: {
+    name: string;
+    cb: () => Promise<void>;
+    durations: number[];
+    totalDuration: number;
+    maxIter: number;
+    maxDuration: number;
+  }[] = [];
   const time = (name: string, cb: () => Promise<void>, opt?: BenchOptions) => {
     variants.push({
       name,
@@ -73,7 +80,7 @@ interface Summary {
   p95: number;
 }
 
-const summarize = (variants: { name: string, durations: number[] }[]): Summary[] => {
+const summarize = (variants: { name: string; durations: number[] }[]): Summary[] => {
   return variants.map((variant) => {
     const sorted = [...variant.durations].sort((a, b) => a - b);
     const total = sorted.reduce((a, b) => a + b, 0);
@@ -86,8 +93,8 @@ const summarize = (variants: { name: string, durations: number[] }[]): Summary[]
       count === 0
         ? 0
         : count % 2 === 0
-        ? (sorted[count / 2 - 1] + sorted[count / 2]) / 2
-        : sorted[Math.floor(count / 2)];
+          ? (sorted[count / 2 - 1] + sorted[count / 2]) / 2
+          : sorted[Math.floor(count / 2)];
 
     const p90 = count === 0 ? 0 : sorted[Math.floor(count * 0.9)];
     const p95 = count === 0 ? 0 : sorted[Math.floor(count * 0.95)];
@@ -107,7 +114,7 @@ const summarize = (variants: { name: string, durations: number[] }[]): Summary[]
 };
 
 const format = (summary: Summary[]): string => {
-  const headers = ["name", "iter", "first", "min", "max", "mean", "median"] as const;
+  const headers = ['name', 'iter', 'first', 'min', 'max', 'mean', 'median'] as const;
 
   const rows = summary.map((s) => ({
     name: s.name.slice(0, 50),
@@ -120,17 +127,15 @@ const format = (summary: Summary[]): string => {
   }));
 
   const allRows = [
-    { name: "name", iter: "iter", first: "first", min: "min", max: "max", mean: "mean", median: "median" },
+    { name: 'name', iter: 'iter', first: 'first', min: 'min', max: 'max', mean: 'mean', median: 'median' },
     ...rows,
   ];
 
-  const widths = headers.map((h) =>
-    Math.max(...allRows.map((r) => r[h].length))
-  );
+  const widths = headers.map((h) => Math.max(...allRows.map((r) => r[h].length)));
 
   return allRows
     .map((row) =>
-      headers.map((h, i) => row[h].padEnd(widths[i])).join(" | ")
+      headers.map((h, i) => (h === 'name' ? row[h].padEnd(widths[i]) : row[h].padStart(widths[i]))).join(' | '),
     )
-    .join("\n");
+    .join('\n');
 };

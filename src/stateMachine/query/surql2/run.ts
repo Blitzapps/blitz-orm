@@ -16,14 +16,9 @@ export const runSurrealDbQueryMachine2 = async (
 ) => {
   const bqlQueries = bql.map((q) => BQLQueryParser.parse(q));
   const logicalQueries = bqlQueries.map((q) => buildLogicalQuery(q, schema, !config.query?.noMetadata));
-  // console.log('> logicalQueries\n', JSON.stringify(logicalQueries, null, 2));
   const optimizedQueries = logicalQueries.map((q) => optimizeLogicalQuery(q, schema));
   const params: SurqlParams = {};
   const surqlQueries = optimizedQueries.map((q) => buildSurql(q, params));
-  // for (const surqlQuery of surqlQueries) {
-  //   console.log('\n> surqlQuery\n', surqlQuery);
-  // }
-  // console.log('> params\n', JSON.stringify(params, null, 2));
   const result = await query({ client, queries: surqlQueries, config, params });
   const finalResult = processResults({
     batch: bqlQueries,

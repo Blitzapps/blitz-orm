@@ -7,36 +7,36 @@ const USERNAME = 'borm_bench';
 const PASSWORD = 'borm_bench';
 
 const insertData = async () => {
-    const db = await connect();
-    console.log('generating data');
-    const data = generateData({
-        records: 10,
-        few: { min: 2, max: 2 },
-        many: { min: 2, max: 2 },
-    });
-    const surql = createSurql(data);
-    // console.log(surql);
-    console.log('inserting data');
-    const start = performance.now();
-    const result = await db.query(surql);
-    const end = performance.now();
-    console.log(`Time taken: ${end - start} milliseconds`);
-    return result;
-}
+  const db = await connect();
+  console.log('generating data');
+  const data = generateData({
+    records: 10,
+    few: { min: 2, max: 2 },
+    many: { min: 2, max: 2 },
+  });
+  const surql = createSurql(data);
+  // console.log(surql);
+  console.log('inserting data');
+  const start = performance.now();
+  const result = await db.query(surql);
+  const end = performance.now();
+  console.log(`Time taken: ${end - start} milliseconds`);
+  return result;
+};
 
 const connect = async () => {
-    const db = new Surreal();
-    await db.connect(URL, {
-      namespace: NAMESPACE,
-      database: DATABASE,
-      auth: {
-        username: USERNAME,
-        password: PASSWORD,
-      },
-      versionCheck: false,
-    });
-    return db;
-}
+  const db = new Surreal();
+  await db.connect(URL, {
+    namespace: NAMESPACE,
+    database: DATABASE,
+    auth: {
+      username: USERNAME,
+      password: PASSWORD,
+    },
+    versionCheck: false,
+  });
+  return db;
+};
 
 interface Base {
   id: string;
@@ -46,7 +46,7 @@ interface Base {
   datetime_1: Date;
 }
 
-interface A  extends Base {
+interface A extends Base {
   one: B['id'];
   few: B['id'][];
   many: B['id'][];
@@ -58,33 +58,33 @@ const generateData = (params: {
   records: number;
   few: { min: number; max: number };
   many: { min: number; max: number };
-}): { a: A[]; b: B[]; } => {
+}): { a: A[]; b: B[] } => {
   const a: A[] = [];
   const b: B[] = [];
 
   const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const randomString = (min: number, max: number) => {
-      const length = randomInt(min, max);
-      let result = '';
-      for (let i = 0; i < length; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+    const length = randomInt(min, max);
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
   const randomBoolean = () => Math.random() < 0.5;
   const randomDate = () => {
-      const start = new Date('2020-01-01').getTime();
-      const end = new Date('2026-01-01').getTime();
-      return new Date(start + Math.random() * (end - start));
+    const start = new Date('2020-01-01').getTime();
+    const end = new Date('2026-01-01').getTime();
+    return new Date(start + Math.random() * (end - start));
   };
 
   const generateBase = (): Base => ({
-      id: uid(),
-      string_1: randomString(10, 100),
-      number_1: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
-      boolean_1: randomBoolean(),
-      datetime_1: randomDate(),
+    id: uid(),
+    string_1: randomString(10, 100),
+    number_1: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+    boolean_1: randomBoolean(),
+    datetime_1: randomDate(),
   });
 
   for (let i = 0; i < params.records; i++) {
@@ -114,7 +114,7 @@ const generateData = (params: {
   }
 
   return { a, b };
-}
+};
 
 const uid = () => {
   const firstChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -126,7 +126,7 @@ const uid = () => {
   return result;
 };
 
-const createSurql = (data: { a: A[]; b: B[]; }): string => {
+const createSurql = (data: { a: A[]; b: B[] }): string => {
   const lines = ['BEGIN TRANSACTION;'];
 
   for (const b of data.b) {
@@ -136,7 +136,9 @@ const createSurql = (data: { a: A[]; b: B[]; }): string => {
   for (const a of data.a) {
     const refFew = `[${a.few.map((i) => `t_b:${i}`).join(', ')}]`;
     const refMany = `[${a.many.map((i) => `t_b:${i}`).join(', ')}]`;
-    lines.push(`CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`);
+    lines.push(
+      `CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`,
+    );
     lines.push(`RELATE t_a:${a.id}->t_a_b_one->t_b:${a.one};`);
     for (const i of a.few) {
       lines.push(`RELATE t_a:${a.id}->t_a_b_few->t_b:${i};`);
@@ -155,9 +157,10 @@ const createSurqlBaseSet = (data: Base): string => {
   return `string_1 = "${data.string_1}", number_1 = ${data.number_1}, boolean_1 = ${data.boolean_1}, datetime_1 = type::datetime("${data.datetime_1.toISOString()}")`;
 };
 
-insertData().then(() => {
+insertData()
+  .then(() => {
     console.log('Data inserted successfully');
-}).catch((error) => {
+  })
+  .catch((error) => {
     console.error('Error inserting data:', error);
-});
-
+  });

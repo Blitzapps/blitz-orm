@@ -75,20 +75,22 @@ export const flattenBQLMutation = (
         (k: string | symbol) => isSymbol(k) || k.startsWith('$'),
       ) as EnrichedBQLMutationBlock;
 
-      usedRoleFields.forEach((role) => {
+      for (const role of usedRoleFields) {
         //1 traverse them as well
-        isArray(block[role])
-          ? block[role].forEach((child: EnrichedBQLMutationBlock) =>
-              traverse(child, { bzId: $bzId, edgeField: role, tempId: $tempId }),
-            )
-          : traverse(block[role], { bzId: $bzId, edgeField: role, tempId: $tempId });
+        if (isArray(block[role])) {
+          for (const child of block[role] as EnrichedBQLMutationBlock[]) {
+            traverse(child, { bzId: $bzId, edgeField: role, tempId: $tempId });
+          }
+        } else {
+          traverse(block[role], { bzId: $bzId, edgeField: role, tempId: $tempId });
+        }
 
         //2 fill the arrays
         const edges = (isArray(block[role]) ? block[role] : [block[role]]).filter(
           Boolean,
         ) as EnrichedBQLMutationBlock[]; //pre-queries add some undefineds
 
-        Object.entries(operationMap).forEach(([operation, opTypes]) => {
+        for (const [operation, opTypes] of Object.entries(operationMap)) {
           const filteredEdges = edges.filter((edge) => opTypes.includes(edge.$op)).map((edge) => edge.$bzId);
 
           if (filteredEdges.length > 0) {
@@ -98,17 +100,19 @@ export const flattenBQLMutation = (
               $op: operation as BormOperation,
             });
           }
-        });
-      });
+        }
+      }
     }
     if (usedLinkFields) {
-      usedLinkFields.forEach((ulf) => {
+      for (const ulf of usedLinkFields) {
         //1 traverse them
-        isArray(block[ulf])
-          ? block[ulf].forEach((child: EnrichedBQLMutationBlock) =>
-              traverse(child, { bzId: $bzId, edgeField: ulf, tempId: $tempId }),
-            )
-          : traverse(block[ulf], { bzId: $bzId, edgeField: ulf, tempId: $tempId });
+        if (isArray(block[ulf])) {
+          for (const child of block[ulf] as EnrichedBQLMutationBlock[]) {
+            traverse(child, { bzId: $bzId, edgeField: ulf, tempId: $tempId });
+          }
+        } else {
+          traverse(block[ulf], { bzId: $bzId, edgeField: ulf, tempId: $tempId });
+        }
 
         //2 fill the arrays
         const edgeSchema = currentSchema.linkFields?.find((lf) => lf.path === ulf) as EnrichedLinkField;
@@ -117,10 +121,10 @@ export const flattenBQLMutation = (
 
         //case 2.2 indirect edges
         if (edgeSchema.target === 'relation') {
-          Object.entries(operationMap).forEach(([operation, opTypes]) => {
+          for (const [operation, opTypes] of Object.entries(operationMap)) {
             const filteredEdges = edges.filter((edge) => opTypes.includes(edge.$op));
 
-            filteredEdges.forEach((edge) => {
+            for (const edge of filteredEdges) {
               const edgeMeta = oFilter(
                 edge,
                 (k: string | symbol) => isSymbol(k) || k.startsWith('$'),
@@ -131,8 +135,8 @@ export const flattenBQLMutation = (
                 [edgeSchema.plays]: $bzId,
                 $op: operation as BormOperation,
               });
-            });
-          });
+            }
+          }
         }
         // 3. INFERRED EDGES
         if (edgeSchema.target === 'role') {
@@ -142,14 +146,14 @@ export const flattenBQLMutation = (
             replace: ['replace'],
           };
 
-          Object.entries(arcOperationMap).forEach(([operation, opTypes]) => {
+          for (const [operation, opTypes] of Object.entries(arcOperationMap)) {
             const filteredEdges = edges.filter((edge) => opTypes.includes(edge.$op));
 
             if (filteredEdges.length === 0) {
-              return;
+              continue;
             }
 
-            filteredEdges.forEach((edge) => {
+            for (const edge of filteredEdges) {
               const arc = {
                 //technically is a multi-arc
                 $thing: edgeSchema.relation,
@@ -161,20 +165,22 @@ export const flattenBQLMutation = (
               };
 
               result.arcs.push(arc);
-            });
-          });
+            }
+          }
         }
-      });
+      }
     }
     if (usedRefFields) {
-      usedRefFields.forEach((urf) => {
+      for (const urf of usedRefFields) {
         //const { contentType } = currentSchema.refFields[urf];
         //1 traverse them to push the nested items
-        isArray(block[urf])
-          ? block[urf].forEach((child: EnrichedBQLMutationBlock) =>
-              traverse(child, { bzId: $bzId, edgeField: urf, tempId: $tempId }),
-            )
-          : traverse(block[urf], { bzId: $bzId, edgeField: urf, tempId: $tempId });
+        if (isArray(block[urf])) {
+          for (const child of block[urf] as EnrichedBQLMutationBlock[]) {
+            traverse(child, { bzId: $bzId, edgeField: urf, tempId: $tempId });
+          }
+        } else {
+          traverse(block[urf], { bzId: $bzId, edgeField: urf, tempId: $tempId });
+        }
 
         //2 fill the arrays. We need this with refFields as well because in surrealdb we need to apply link operations at the end in case the order is incorrect
         const children = (isArray(block[urf]) ? block[urf] : [block[urf]]).filter(
@@ -194,15 +200,17 @@ export const flattenBQLMutation = (
           result.references.push({
             ...childMeta,
             [urf]: filteredChildren,
-            $op: 'replace' as BormOperation, //Probably add / replace/ remove byt lets do only replaces for now
+            $op: 'replace' as BormOperation, //Probably add / replace/ remove but lets do only replaces for now
           });
         }
-      });
+      }
     }
   };
 
   const treeItems = Array.isArray(tree) ? tree : [tree];
-  treeItems.forEach((item) => traverse(item));
+  for (const item of treeItems) {
+    traverse(item);
+  }
 
   //order by $Op, first unlink, then link
   const orderedEdges = [...result.edges].sort((a, b) => {

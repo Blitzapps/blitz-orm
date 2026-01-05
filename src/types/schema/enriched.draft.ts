@@ -2,7 +2,7 @@
  * These types are design for SurrealDB query in mind. For other DBs or for mutation, they may be missing some fields.
  */
 
-import type { DataField, DiscreteCardinality } from "./fields";
+import type { DataField, DiscreteCardinality } from './fields';
 
 export type DRAFT_EnrichedBormSchema = Record<string, DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation>;
 
@@ -21,7 +21,7 @@ interface EnrichedBormThing {
   idFields: [string, ...string[]];
   extends?: string;
   subTypes: string[];
-  indexes:  Index[];
+  indexes: Index[];
 }
 
 export type DRAFT_EnrichedBaseBormField =

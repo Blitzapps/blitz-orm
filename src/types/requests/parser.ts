@@ -34,7 +34,7 @@ export interface NestedBQLFilter extends BQLFilter {
   $containsAll?: BQLFilterValueList;
   $containsAny?: BQLFilterValueList;
   $containsNone?: BQLFilterValueList;
-};
+}
 
 export const StrictBQLValueFilterParser = z.strictObject({
   $exists: z.boolean().optional(),
@@ -54,50 +54,54 @@ export const StrictBQLValueFilterParser = z.strictObject({
 });
 
 export const BQLFilterParser: z.ZodType<BQLFilter> = z.lazy(() =>
-  z.object({
-    // Recursive Operators
-    $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
-    $not: z.lazy(() => BQLFilterParser).optional(),
-  }).catchall(
-    // "Everything else" (Custom fields)
-    z.union([
-      BQLFilterValueParser,
-      BQLFilterValueListParser,
-      z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
-    ])
-  )
+  z
+    .object({
+      // Recursive Operators
+      $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
+      $not: z.lazy(() => BQLFilterParser).optional(),
+    })
+    .catchall(
+      // "Everything else" (Custom fields)
+      z.union([
+        BQLFilterValueParser,
+        BQLFilterValueListParser,
+        z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
+      ]),
+    ),
 );
 
 export const NestedBQLFilterParser: z.ZodType<NestedBQLFilter> = z.lazy(() =>
-  z.object({
-    // Recursive Operators
-    $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
-    $not: z.lazy(() => BQLFilterParser).optional(),
-    // Exists Operators
-    $exists: z.boolean().optional(),
-    // Scalar Value Operators
-    $eq: BQLFilterValueParser.optional(),
-    $neq: BQLFilterValueParser.optional(),
-    $gt: BQLFilterValueParser.optional(),
-    $lt: BQLFilterValueParser.optional(),
-    $gte: BQLFilterValueParser.optional(),
-    $lte: BQLFilterValueParser.optional(),
-    $contains: BQLFilterValueParser.optional(),
-    $containsNot: BQLFilterValueParser.optional(),
-    // List Value Operators
-    $in: BQLFilterValueListParser.optional(),
-    $nin: BQLFilterValueListParser.optional(),
-    $containsAll: BQLFilterValueListParser.optional(),
-    $containsAny: BQLFilterValueListParser.optional(),
-    $containsNone: BQLFilterValueListParser.optional(),
-  }).catchall(
-    // "Everything else" (Custom fields)
-    z.union([
-      BQLFilterValueParser,
-      BQLFilterValueListParser,
-      z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
-    ])
-  )
+  z
+    .object({
+      // Recursive Operators
+      $or: z.array(z.lazy(() => BQLFilterParser)).optional(),
+      $not: z.lazy(() => BQLFilterParser).optional(),
+      // Exists Operators
+      $exists: z.boolean().optional(),
+      // Scalar Value Operators
+      $eq: BQLFilterValueParser.optional(),
+      $neq: BQLFilterValueParser.optional(),
+      $gt: BQLFilterValueParser.optional(),
+      $lt: BQLFilterValueParser.optional(),
+      $gte: BQLFilterValueParser.optional(),
+      $lte: BQLFilterValueParser.optional(),
+      $contains: BQLFilterValueParser.optional(),
+      $containsNot: BQLFilterValueParser.optional(),
+      // List Value Operators
+      $in: BQLFilterValueListParser.optional(),
+      $nin: BQLFilterValueListParser.optional(),
+      $containsAll: BQLFilterValueListParser.optional(),
+      $containsAny: BQLFilterValueListParser.optional(),
+      $containsNone: BQLFilterValueListParser.optional(),
+    })
+    .catchall(
+      // "Everything else" (Custom fields)
+      z.union([
+        BQLFilterValueParser,
+        BQLFilterValueListParser,
+        z.lazy(() => z.union([NestedBQLFilterParser, z.array(NestedBQLFilterParser)])),
+      ]),
+    ),
 );
 
 const BaseBQLParser = z.object({
@@ -107,15 +111,17 @@ const BaseBQLParser = z.object({
   $excludedFields: z.array(z.string()).optional(),
   $limit: z.number().optional(),
   $offset: z.number().optional(),
-  $sort: z.array(
-    z.union([
-      z.object({
-        field: z.string(),
-        desc: z.boolean().optional(),
-      }),
-      z.string()
-    ])
-  ).optional(),
+  $sort: z
+    .array(
+      z.union([
+        z.object({
+          field: z.string(),
+          desc: z.boolean().optional(),
+        }),
+        z.string(),
+      ]),
+    )
+    .optional(),
 });
 
 interface BaseBQL {
@@ -149,8 +155,8 @@ export const BQLQueryParser = BaseBQLParser.extend({
     if (!data.$thing && !data.$entity && !data.$relation) {
       ctx.addIssue({
         code: 'custom',
-        message: "Query must contain at least one of: $thing, $entity, or $relation",
-        path: ["$thing"],
+        message: 'Query must contain at least one of: $thing, $entity, or $relation',
+        path: ['$thing'],
       });
     }
   })
@@ -159,7 +165,7 @@ export const BQLQueryParser = BaseBQLParser.extend({
 
     return {
       ...rest,
-      $thing: $thing ?? $entity ?? $relation as string, // Guaranteed to exist by superRefine
+      $thing: $thing ?? $entity ?? ($relation as string), // Guaranteed to exist by superRefine
     };
   });
 
