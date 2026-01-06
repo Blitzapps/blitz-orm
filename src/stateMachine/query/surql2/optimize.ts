@@ -234,10 +234,22 @@ const optimizeProjectionField = (
     return field;
   }
 
+  const fieldSchema = thing.fields[field.path];
+  if (!fieldSchema) {
+    throw new Error(`Field ${field.path} not found in ${thing.name}`);
+  }
+  if (fieldSchema.type !== 'link' && fieldSchema.type !== 'role') {
+    throw new Error(`Field ${field.path} is not a link or role field and can't be projected as nested reference`);
+  }
+  const oppositeThing = schema[fieldSchema.opposite.thing];
+  if (!oppositeThing) {
+    throw new Error(`Thing ${fieldSchema.opposite.thing} not found in schema`);
+  }
+
   return {
     type: 'nested_reference',
     path: field.path,
-    projection: optimizeProjection(field.projection, schema, thing),
+    projection: optimizeProjection(field.projection, schema, oppositeThing),
     ids: field.ids,
     filter: field.filter ? optimizeLocalFilter(field.filter) : undefined,
     alias: field.alias,
