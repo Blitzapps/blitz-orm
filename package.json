@@ -24,6 +24,8 @@
     "pub": "pnpm build && pnpm publish",
     "knip": "knip",
     "bench:surrealdb": "./benches/bench.v2.sh",
+    "bench:tests:surrealdb": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/benchTests.sh",
+    "bench:tests:surrealdb:legacy": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs LEGACY_SURREALDB_ADAPTER=true ./tests/benchTests.sh",
     "bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
     "bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/bench.sh tests/unit/bench",
     "bench:typedb": "vitest bench typedb/bench",
@@ -71,6 +73,7 @@
     "radash": "^12.1.1",
     "robot3": "^1.1.1",
     "surrealdb": "^1.3.2",
+    "tinybench": "^6.0.0",
     "typedb-driver": "^2.29.2",
     "uuid": "^11.1.0",
     "zod": "^4.2.1"
