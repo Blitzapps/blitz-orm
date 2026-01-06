@@ -205,18 +205,18 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
           }),
         );
         if (right.length === 1) {
-          const key = insertParam(mutParams, right[0]);
+          const r = right[0];
           if (filter.op === 'IN') {
-            return `${path} = $${key}`;
+            return `${path} = ${r}`;
           }
           if (filter.op === 'NOT IN') {
-            return `${path} != $${key}`;
+            return `${path} != ${r}`;
           }
           if (filter.op === 'CONTAINSANY') {
-            return `$${key} IN ${path}`;
+            return `${r} IN ${path}`;
           }
           if (filter.op === 'CONTAINSNONE') {
-            return `$${key} NOT IN ${path}`;
+            return `${r} NOT IN ${path}`;
           }
         }
         return `${path} ${filter.op} [${right.join(', ')}]`;
