@@ -39,34 +39,6 @@ const connect = async () => {
   return db;
 };
 
-// const createSurql = (data: { a: A[]; b: B[]; }): string => {
-//   const lines = ['BEGIN TRANSACTION;'];
-
-//   for (const b of data.b) {
-//     lines.push(`CREATE t_b:${b.id} SET ${createSurqlBaseSet(b)};`);
-//   }
-
-//   for (const a of data.a) {
-//     const refFew = `[${a.few.map((i) => `t_b:${i}`).join(', ')}]`;
-//     const refMany = `[${a.many.map((i) => `t_b:${i}`).join(', ')}]`;
-//     lines.push(`CREATE t_a:${a.id} SET ${createSurqlBaseSet(a)}, ref_one = t_b:${a.one}, ref_few = ${refFew}, ref_many = ${refMany};`);
-//     lines.push(`UPDATE t_b:${a.one} SET ref_one = t_a:${a.id};`);
-//     lines.push(`RELATE t_a:${a.id}->t_a_b_one->t_b:${a.one};`);
-//     for (const i of a.few) {
-//       lines.push(`UPDATE t_b:${i} SET ref_few += t_a:${a.id};`);
-//       lines.push(`RELATE t_a:${a.id}->t_a_b_few->t_b:${i};`);
-//     }
-//     for (const i of a.many) {
-//       lines.push(`UPDATE t_b:${i} SET ref_many += t_a:${a.id};`);
-//       lines.push(`RELATE t_a:${a.id}->t_a_b_many->t_b:${i};`);
-//     }
-//   }
-
-//   lines.push('COMMIT TRANSACTION;');
-
-//   return lines.join('\n');
-// };
-
 const createSurql = (data: { a: A[]; b: B[] }): string => {
   const lines = ['BEGIN TRANSACTION;'];
 
