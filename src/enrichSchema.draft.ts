@@ -292,8 +292,6 @@ const assertNoDuplicateField = (
   if (isEqual(newField, existing)) {
     return;
   }
-  console.log('\n> assertNoDuplicateField/newField\n', JSON.stringify(newField, null, 2));
-  console.log('\n> assertNoDuplicateField/existing\n', JSON.stringify(existing, null, 2));
   throw new Error(`Duplicate field name "${newField.name}" in "${thing}"`);
 };
 
