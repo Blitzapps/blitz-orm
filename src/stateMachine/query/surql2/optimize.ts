@@ -29,7 +29,7 @@ export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_Enriched
 
   return {
     source,
-    projection: query.projection,
+    projection: optimizeProjection(query.projection, schema, thing),
     filter: optimizedFilter,
     cardinality: query.cardinality,
     limit: query.limit,
@@ -233,11 +233,14 @@ const optimizeProjectionField = (
   if (field.type === 'metadata' || field.type === 'data' || field.type === 'flex' || field.type === 'reference') {
     return field;
   }
+
   return {
     type: 'nested_reference',
     path: field.path,
     projection: optimizeProjection(field.projection, schema, thing),
+    ids: field.ids,
     filter: field.filter ? optimizeLocalFilter(field.filter) : undefined,
+    alias: field.alias,
     cardinality: field.cardinality,
     limit: field.limit,
     offset: field.offset,
