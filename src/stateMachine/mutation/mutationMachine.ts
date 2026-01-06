@@ -8,6 +8,7 @@ import type {
   EnrichedBormSchema,
   EnrichedBQLMutationBlock,
 } from '../../types';
+import type { DRAFT_EnrichedBormSchema } from '../../types/schema/enriched.draft';
 import { VERSION } from '../../version';
 import { enrichBQLMutation } from './bql/enrich';
 import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
@@ -34,6 +35,7 @@ export type bqlMutationContext = {
 type MachineContext = {
   bql: bqlMutationContext;
   schema: EnrichedBormSchema;
+  draftSchema: DRAFT_EnrichedBormSchema;
   config: BormConfig;
   handles: DBHandles;
   depthLevel: number;
@@ -101,12 +103,12 @@ const enrich = async (ctx: MachineContext) => {
 
 const preQuery = async (ctx: MachineContext) => {
   logDebug(`>>> mutationMachine/preQuery[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-  return mutationPreQuery(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
+  return mutationPreQuery(ctx.bql.enriched, ctx.schema, ctx.draftSchema, ctx.config, ctx.handles);
 };
 
 const preQueryDependencies = async (ctx: MachineContext) => {
   logDebug(`>>> mutationMachine/preQueryDependencies[${VERSION}]`, JSON.stringify(ctx.bql.enriched));
-  return preHookDependencies(ctx.bql.enriched, ctx.schema, ctx.config, ctx.handles);
+  return preHookDependencies(ctx.bql.enriched, ctx.schema, ctx.draftSchema, ctx.config, ctx.handles);
 };
 
 const parseBQL = async (ctx: MachineContext) => {
@@ -252,6 +254,7 @@ export const awaitMachine = async (context: MachineContext) => {
 export const runMutationMachine = async (
   mutation: BQLMutation,
   schema: EnrichedBormSchema,
+  draftSchema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
   handles: DBHandles,
 ) => {
@@ -270,6 +273,7 @@ export const runMutationMachine = async (
       res: [],
     },
     schema: schema as EnrichedBormSchema,
+    draftSchema: draftSchema,
     config: config,
     handles: handles,
     depthLevel: 0,

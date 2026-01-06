@@ -8,7 +8,6 @@ import { enrichSchema } from './enrichSchema';
 import { enrichSchemaDraft } from './enrichSchema.draft';
 import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
-import { runSurrealDbQueryMachine2 } from './stateMachine/query/surql2/run';
 import type {
   AllDbHandles,
   BormConfig,
@@ -210,15 +209,10 @@ class BormClient {
     const isBatched = Array.isArray(query);
     const queries = isBatched ? query : [query];
 
-    const surrealDBClient = initialized.dbHandles.surrealDB?.get('default')?.client;
-    if (surrealDBClient) {
-      const result = await runSurrealDbQueryMachine2(queries, initialized.draftSchema, qConfig, surrealDBClient);
-      return isBatched ? result : result[0];
-    }
-
     const [errorRes, res] = await tryit(runQueryMachine)(
       queries,
       initialized.enrichedSchema,
+      initialized.draftSchema,
       qConfig,
       initialized.dbHandles,
     );
@@ -249,6 +243,7 @@ class BormClient {
     const [errorRes, res] = await tryit(runMutationMachine)(
       mutation,
       initialized.enrichedSchema,
+      initialized.draftSchema,
       mConfig,
       initialized.dbHandles,
     );

@@ -1,23 +1,23 @@
 import type { TypeDBDriver } from 'typedb-driver';
 import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
-import { assertDefined, getSchemaByThing } from '../../helpers';
+import { getSchemaByThing } from '../../helpers';
 import { logDebug } from '../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
-import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../types';
+import type { BormConfig, DBHandles, EnrichedBormSchema, RawBQLQuery } from '../../types';
+import type { DRAFT_EnrichedBormSchema } from '../../types/schema/enriched.draft';
 import { VERSION } from '../../version';
-import { cleanQueryRes } from './bql/clean';
 import { enrichBQLQuery } from './bql/enrich';
-import { postHooks } from './postHook';
 import { runSurrealDbQueryMachine } from './surql/machine';
+import { runSurrealDbQueryMachine2 } from './surql2/run';
 import { runTypeDbQueryMachine } from './tql/machine';
 
 type MachineContext = {
   bql: {
     raw: RawBQLQuery[];
-    queries?: EnrichedBQLQuery[];
     res?: any[]; // TODO
   };
   schema: EnrichedBormSchema;
+  draftSchema: DRAFT_EnrichedBormSchema;
   config: BormConfig;
   handles: DBHandles;
   error: string | null;
@@ -58,7 +58,6 @@ type TypeDBAdapter = {
   db: 'typeDB';
   client: TypeDBDriver;
   rawBql: RawBQLQuery[];
-  bqlQueries: EnrichedBQLQuery[];
   indices: number[];
 };
 
@@ -66,7 +65,6 @@ type SurrealDBAdapter = {
   db: 'surrealDB';
   client: SimpleSurrealClient;
   rawBql: RawBQLQuery[];
-  bqlQueries: EnrichedBQLQuery[];
   indices: number[];
 };
 
@@ -87,9 +85,14 @@ export const queryMachine = createMachine(
       async (ctx: MachineContext) => {
         const adapters: Record<string, Adapter> = {};
 
-        ctx.bql.queries?.forEach((q, i) => {
+        ctx.bql.raw?.forEach((q, i) => {
           const raw = ctx.bql.raw[i];
-          const thing = getSchemaByThing(ctx.schema, q.$thing);
+          const $thing =
+            '$thing' in q ? q.$thing : '$entity' in q ? q.$entity : '$relation' in q ? q.$relation : undefined;
+          if (!$thing) {
+            throw new Error(`No $thing found in query ${JSON.stringify(q, null, 2)}`);
+          }
+          const thing = getSchemaByThing(ctx.schema, $thing);
           const { id } = thing.defaultDBConnector;
 
           if (thing.db === 'typeDB') {
@@ -102,7 +105,6 @@ export const queryMachine = createMachine(
                 db: 'typeDB',
                 client,
                 rawBql: [],
-                bqlQueries: [],
                 indices: [],
               };
             }
@@ -116,7 +118,6 @@ export const queryMachine = createMachine(
                 db: 'surrealDB',
                 client,
                 rawBql: [],
-                bqlQueries: [],
                 indices: [],
               };
             }
@@ -125,18 +126,20 @@ export const queryMachine = createMachine(
           }
           const adapter = adapters[id];
           adapter.rawBql.push(raw);
-          adapter.bqlQueries.push(q);
           adapter.indices.push(i);
         });
         const adapterList = Object.values(adapters);
         const proms = adapterList.map((a) => {
           if (a.db === 'typeDB') {
             // TODO: Replace DBHandles with TypeDBAdapter
-            return runTypeDbQueryMachine(a.rawBql, a.bqlQueries, ctx.schema, ctx.config, ctx.handles);
+            return runTypeDbQueryMachine(a.rawBql, ctx.schema, ctx.config, ctx.handles);
           }
 
           if (a.db === 'surrealDB') {
-            return runSurrealDbQueryMachine(a.bqlQueries, ctx.schema, ctx.config, a.client);
+            if (ctx.config.query?.legacySurrealDBAdapter) {
+              return runSurrealDbQueryMachine(a.rawBql, ctx.schema, ctx.config, a.client);
+            }
+            return runSurrealDbQueryMachine2(a.rawBql, ctx.draftSchema, ctx.config, a.client);
           }
 
           throw new Error(`Unsupported DB "${JSON.stringify(a, null, 2)}"`);
@@ -150,16 +153,6 @@ export const queryMachine = createMachine(
         const result = orderedResults.map(({ result }) => result);
         return result;
       },
-      transition('done', 'postHooks', reduce(updateBqlRes)),
-      errorTransition,
-    ),
-    postHooks: invoke(
-      async (ctx: MachineContext) => postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
-      transition('done', 'clean', reduce(updateBqlRes)),
-      errorTransition,
-    ),
-    clean: invoke(
-      async (ctx: MachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
       transition('done', 'success', reduce(updateBqlRes)),
       errorTransition,
     ),
@@ -189,6 +182,7 @@ export const awaitQueryMachine = async (context: MachineContext) => {
 export const runQueryMachine = async (
   bql: RawBQLQuery[],
   schema: EnrichedBormSchema,
+  draftSchema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
   handles: DBHandles,
 ) => {
@@ -197,6 +191,7 @@ export const runQueryMachine = async (
       raw: bql,
     },
     schema: schema,
+    draftSchema,
     config: config,
     handles: handles,
     error: null,
