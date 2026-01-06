@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 CONTAINER_NAME=borm_bench_v2
 USER=borm_bench
