@@ -535,7 +535,7 @@ const buildLinkFieldFilter = (
     }
     filters.push({
       type: 'ref',
-      op: op === '$eq' ? 'IN' : 'NOT IN',
+      op: op === '$eq' || op === '$contains' ? 'IN' : 'NOT IN',
       left: field.name,
       right: [value],
       thing: oppositeThings,
