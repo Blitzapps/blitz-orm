@@ -117,7 +117,7 @@ const format = (summary: Summary[]): string => {
   const headers = ['name', 'iter', 'first', 'min', 'max', 'mean', 'median'] as const;
 
   const rows = summary.map((s) => ({
-    name: s.name.slice(0, 50),
+    name: s.name.length > 48 ? `${s.name.slice(0, 40)}...${s.name.slice(-5)}` : s.name,
     iter: s.iter.toString(),
     first: s.first.toFixed(4),
     min: s.min.toFixed(4),

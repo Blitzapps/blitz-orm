@@ -1,4 +1,13 @@
-import type { BormSchema } from '../src';
+import type { BormSchema, DataField } from '../src';
+import { genId } from '../src/helpers';
+
+const id: DataField = {
+  path: 'id',
+  default: { type: 'fn', fn: () => genId() },
+  validations: { required: true, unique: true },
+  contentType: 'ID',
+  rights: ['CREATE'],
+};
 
 export const schema: BormSchema = {
   entities: {},
@@ -7,6 +16,7 @@ export const schema: BormSchema = {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 't_a' },
       dataFields: [
+        id,
         { contentType: 'BOOLEAN', path: 'boolean_1' },
         { contentType: 'NUMBER', path: 'number_1' },
         { contentType: 'TEXT', path: 'string_1' },
@@ -86,6 +96,7 @@ export const schema: BormSchema = {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 't_b' },
       dataFields: [
+        id,
         { contentType: 'BOOLEAN', path: 'boolean_1' },
         { contentType: 'NUMBER', path: 'number_1' },
         { contentType: 'TEXT', path: 'string_1' },
@@ -153,7 +164,7 @@ export const schema: BormSchema = {
     tunnel_one: {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'tunnel_one' },
-      dataFields: [],
+      dataFields: [id],
       roles: {
         a: {
           cardinality: 'ONE',
@@ -167,7 +178,7 @@ export const schema: BormSchema = {
     tunnel_few: {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'tunnel_few' },
-      dataFields: [],
+      dataFields: [id],
       roles: {
         a: {
           cardinality: 'ONE',
@@ -181,7 +192,7 @@ export const schema: BormSchema = {
     tunnel_many: {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'tunnel_many' },
-      dataFields: [],
+      dataFields: [id],
       roles: {
         a: {
           cardinality: 'ONE',

@@ -81,7 +81,7 @@ docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespac
 
 # Always stop container, but exit with 1 when tests are failing
 # if CONTAINER_NAME=${CONTAINER_NAME} npx vitest bench "${VITEST_ARGS[@]}"; then
-if CONTAINER_NAME=${CONTAINER_NAME} tsx benches/v2-2.bench.ts; then
+if CONTAINER_NAME=${CONTAINER_NAME} tsx benches/v2.bench.ts; then
   echo "Bench passed. Container ${CONTAINER_NAME} is still running."
   EXIT_CODE=0
 else

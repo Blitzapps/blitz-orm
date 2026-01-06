@@ -1,7 +1,7 @@
 import Surreal from 'surrealdb';
-import { afterAll, beforeAll, bench, describe } from 'vitest';
 import type BormClient from '../src';
 import { setup } from '../tests/helpers/setup';
+import { bench } from './bench';
 import { type A, type B, type Base, generateData } from './generateData';
 import { schema } from './schema.v2';
 
@@ -15,71 +15,193 @@ let client: BormClient;
 let cleanup: () => Promise<void>;
 let data: { a: A[]; b: B[] };
 
-beforeAll(async () => {
-  console.log('beforeAll');
-  const result = await setup({
-    config: {
-      server: {
-        provider: 'blitz-orm-js',
-      },
-      dbConnectors: [
-        {
-          id: 'default',
-          provider: 'surrealDB',
-          providerConfig: { linkMode: 'refs' },
-          url: URL,
-          namespace: NAMESPACE,
-          dbName: DATABASE,
-          username: USERNAME,
-          password: PASSWORD,
+bench(async ({ beforeAll, afterAll, time }) => {
+  beforeAll(async () => {
+    const result = await setup({
+      config: {
+        server: {
+          provider: 'blitz-orm-js',
         },
-      ],
-    },
-    schema,
+        dbConnectors: [
+          {
+            id: 'default',
+            provider: 'surrealDB',
+            providerConfig: { linkMode: 'refs' },
+            url: URL,
+            namespace: NAMESPACE,
+            dbName: DATABASE,
+            username: USERNAME,
+            password: PASSWORD,
+          },
+        ],
+      },
+      schema,
+    });
+    client = result.client;
+    cleanup = result.cleanup;
+    console.log('Generating data');
+    data = generateData({
+      records: 1000,
+      few: { min: 5, max: 5 },
+      many: { min: 20, max: 20 },
+    });
+    console.log('Connecting to database');
+    const surrealDB = await connect();
+    console.log('Creating surql');
+    const surql = createSurql(data);
+    console.log('Inserting data');
+    await surrealDB.query(surql);
   });
-  client = result.client;
-  cleanup = result.cleanup;
-  console.log('Generating data');
-  data = generateData({
-    records: 1000,
-    few: { min: 5, max: 5 },
-    many: { min: 10, max: 10 },
+
+  afterAll(async () => {
+    console.log('Cleaning up');
+    await cleanup();
   });
-  console.log('Connecting to database');
-  const surrealDB = await connect();
-  console.log('Creating surql');
-  const surql = createSurql(data);
-  console.log('Inserting data');
-  await surrealDB.query(surql);
-  // console.log('Result:', res);
-}, 300_000);
 
-afterAll(async () => {
-  console.log('afterAll');
-  await cleanup();
-});
-
-describe('v2', () => {
-  bench('Select all, sort by string_1, and limit 100', async () => {
-    const start = performance.now();
+  time('Select all, sort by string_1, and limit 100', async () => {
     await client.query({ $relation: 't_a', $limit: 100, $sort: [{ field: 'string_1', desc: true }] });
-    console.log(`Select all, sort by string_1, and limit 100: ${performance.now() - start}ms`);
   });
 
-  bench('Filter by ref_one', async () => {
-    const start = performance.now();
-    // Pick in the middle of the b array + 1
-    const b = data.b[Math.floor(data.b.length / 2) + 1];
+  time('Filter by id', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: a.id });
+  });
+
+  time('Filter by multiple ids', async () => {
+    const a1 = data.a[randIndex(data.a.length)];
+    const a2 = data.a[randIndex(data.a.length)];
+    const a3 = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: [a1.id, a2.id, a3.id] });
+  });
+
+  time('Filter by indexed field', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $filter: { string_1: a.string_1 } });
+  });
+
+  time('Filter by indexed field and non-indexed field', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    // string_1 is indexed, number_1 is not.
+    // Put number_1 first. Optimized surql should put string_1 first.
+    await client.query({ $relation: 't_a', $filter: { number_1: a.number_1, string_1: a.string_1 } });
+  });
+
+  time('Filter by ref_one', async () => {
+    const b = data.b[randIndex(data.b.length)];
     await client.query({ $relation: 't_a', $filter: { ref_one: b.id } });
-    console.log(`Filter by ref_one: ${performance.now() - start}ms`);
   });
 
-  bench('Filter by ref_one string_1', async () => {
-    const start = performance.now();
-    // Pick in the middle of the b array + 2
-    const b = data.b[Math.floor(data.b.length / 2) + 1];
+  time('Filter by ref_many', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { ref_many: b.id } });
+  });
+
+  time('Filter by ref_one string_1', async () => {
+    const b = data.b[randIndex(data.b.length)];
     await client.query({ $relation: 't_a', $filter: { ref_one: { string_1: b.string_1 } } });
-    console.log(`Filter by ref_one string_1: ${performance.now() - start}ms`);
+  });
+
+  time('Filter by ref_many string_1', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { ref_many: { string_1: b.string_1 } } });
+  });
+
+  time('Filter by fut_one', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_one: b.id } });
+  });
+
+  time('Filter by fut_many', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_many: b.id } });
+  });
+
+  time('Filter by fut_one string_1', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_one: { string_1: b.string_1 } } });
+  });
+
+  time('Filter by fut_many string_1', async () => {
+    const b = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_many: { string_1: b.string_1 } } });
+  });
+
+  time('Filter by multiple ref_one', async () => {
+    const b1 = data.b[randIndex(data.b.length)];
+    const b2 = data.b[randIndex(data.b.length)];
+    const b3 = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { ref_one: [b1.id, b2.id, b3.id] } });
+  });
+
+  time('Filter by multiple ref_many', async () => {
+    const b1 = data.b[randIndex(data.b.length)];
+    const b2 = data.b[randIndex(data.b.length)];
+    const b3 = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { ref_many: [b1.id, b2.id, b3.id] } });
+  });
+
+  time('Filter by multiple fut_one', async () => {
+    const b1 = data.b[randIndex(data.b.length)];
+    const b2 = data.b[randIndex(data.b.length)];
+    const b3 = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_one: [b1.id, b2.id, b3.id] } });
+  });
+
+  time('Filter by multiple fut_many', async () => {
+    const b1 = data.b[randIndex(data.b.length)];
+    const b2 = data.b[randIndex(data.b.length)];
+    const b3 = data.b[randIndex(data.b.length)];
+    await client.query({ $relation: 't_a', $filter: { fut_many: [b1.id, b2.id, b3.id] } });
+  });
+
+  time('Filter by multiple values of an indexed field', async () => {
+    const a1 = data.a[randIndex(data.a.length)];
+    const a2 = data.a[randIndex(data.a.length)];
+    const a3 = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $filter: { string_1: [a1.string_1, a2.string_1, a3.string_1] } });
+  });
+
+  time('Filter by multiple values of an non-indexed field', async () => {
+    const a1 = data.a[randIndex(data.a.length)];
+    const a2 = data.a[randIndex(data.a.length)];
+    const a3 = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $filter: { number_1: [a1.number_1, a2.number_1, a3.number_1] } });
+  });
+
+  time('Filter by a single value of an indexed field and multiple ref_one', async () => {
+    const a1 = data.a[randIndex(data.a.length)];
+    const a2 = data.a[randIndex(data.a.length)];
+    const a3 = data.a[randIndex(data.a.length)];
+    // Optimized surql should convert ref_one into relationship traversal.
+    await client.query({ $relation: 't_a', $filter: { ref_one: [a1.one, a2.one, a3.one], string_1: a1.string_1 } });
+  });
+
+  time('Filter by a single value of an indexed field and multiple fut_one', async () => {
+    const a1 = data.a[randIndex(data.a.length)];
+    const a2 = data.a[randIndex(data.a.length)];
+    const a3 = data.a[randIndex(data.a.length)];
+    // Optimized surql should convert full_one into relationship traversal.
+    await client.query({ $relation: 't_a', $filter: { fut_one: [a1.one, a2.one, a3.one], string_1: a1.string_1 } });
+  });
+
+  time('Nested ref_one', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: a.id, $fields: [{ $path: 'ref_one' }] });
+  });
+
+  time('Nested ref_many', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: a.id, $fields: [{ $path: 'ref_many' }] });
+  });
+
+  time('Nested fut_one', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: a.id, $fields: [{ $path: 'fut_one' }] });
+  });
+
+  time('Nested fut_many', async () => {
+    const a = data.a[randIndex(data.a.length)];
+    await client.query({ $relation: 't_a', $id: a.id, $fields: [{ $path: 'fut_many' }] });
   });
 });
 
@@ -149,4 +271,8 @@ const createSurql = (data: { a: A[]; b: B[] }): string => {
 
 const createSurqlBaseSet = (data: Base): string => {
   return `string_1 = "${data.string_1}", number_1 = ${data.number_1}, boolean_1 = ${data.boolean_1}, datetime_1 = type::datetime("${data.datetime_1.toISOString()}")`;
+};
+
+const randIndex = (len: number) => {
+  return Math.floor(Math.random() * len);
 };
