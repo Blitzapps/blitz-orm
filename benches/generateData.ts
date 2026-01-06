@@ -57,11 +57,11 @@ export const generateData = (params: {
     const fewSet = new Set<string>();
     const manySet = new Set<string>();
 
-    while (fewSet.size < fewLength) {
+    while (fewSet.size < fewLength && fewSet.size < b.length) {
       fewSet.add(b[randomInt(0, b.length - 1)].id);
     }
 
-    while (manySet.size < manyLength) {
+    while (manySet.size < manyLength && manySet.size < b.length) {
       manySet.add(b[randomInt(0, b.length - 1)].id);
     }
 
