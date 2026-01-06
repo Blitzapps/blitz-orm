@@ -432,13 +432,9 @@ export const deepRemoveMetaData = (obj: object) => {
   const removeMeta = ({ value }: TraversalCallbackContext) => {
     if (value && typeof value === 'object' && '$id' in value) {
       const metas = Object.keys(value).filter((k) => k.startsWith('$'));
-      metas.forEach((k) => {
+      for (const k of metas) {
         delete value[k];
-      });
-      const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
-      symbols.forEach((s) => {
-        delete value[s];
-      });
+      }
     }
     return value;
   };
