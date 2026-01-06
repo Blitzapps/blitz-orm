@@ -257,9 +257,8 @@ const enrichRoleFields = (
   rolePlayerMap: RolePlayerMap,
 ) => {
   for (const [roleName, role] of Object.entries(roles)) {
-    // TODO: This is WRONG.
-    // It should not fallback to targetingRole if targetingRelation is not found
-    // because in the SurrealDB schema the value of the targetingRelation.thing[targetingRelation.path] is not thingName.
+    // NOTE: It should not fallback to a player with target "role" if a player with target "relation" is not found
+    // because in the SurrealDB schema for a player with target "role", the value of the role.opposite.thing[targetingRelation.path] is not thingName.
     // This becomes problematic when we transform filter into sub-query:
     // SELECT * FROM <thingName> WHERE <roleName> = xyz
     // Is not the same as:
