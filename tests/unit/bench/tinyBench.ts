@@ -1,4 +1,4 @@
-import { Bench } from 'tinybench'
+import { Bench } from 'tinybench';
 import type { QueryConfig, RawBQLQuery } from '../../../src';
 import { init } from '../../helpers/init';
 
@@ -38,9 +38,12 @@ const tasks: Record<string, (query: QueryFn) => Promise<void>> = {
     await query({ $entity: 'User', $fields: ['id', { $path: 'user-tags' }] });
   },
   'opt1[options, noMetadata': async (query) => {
-    await query({ $entity: 'User', $id: 'user1' }, {
-      noMetadata: true,
-    });
+    await query(
+      { $entity: 'User', $id: 'user1' },
+      {
+        noMetadata: true,
+      },
+    );
   },
   // 'TODO{TS}:opt2[options, debugger': async (query) => {
   //   await query({ $entity: 'User', $id: 'user1' }, {
@@ -48,18 +51,24 @@ const tasks: Record<string, (query: QueryFn) => Promise<void>> = {
   //   });
   // },
   'opt3a[options, returnNull] - empty fields option in entity': async (query) => {
-    await query({
-      $entity: 'User',
-      $id: 'user4',
-      $fields: ['spaces', 'email', 'user-tags'],
-    }, { returnNulls: true });
+    await query(
+      {
+        $entity: 'User',
+        $id: 'user4',
+        $fields: ['spaces', 'email', 'user-tags'],
+      },
+      { returnNulls: true },
+    );
   },
   'opt3b[options, returnNull] - empty fields option in entity, dont return explicit': async (query) => {
-    await query({
-      $entity: 'User',
-      $id: 'user4',
-      $fields: ['spaces', 'email'],
-    }, { returnNulls: true });
+    await query(
+      {
+        $entity: 'User',
+        $id: 'user4',
+        $fields: ['spaces', 'email'],
+      },
+      { returnNulls: true },
+    );
   },
   'r1[relation] - basic': async (query) => {
     const q = { $relation: 'User-Accounts' };
@@ -475,10 +484,7 @@ const tasks: Record<string, (query: QueryFn) => Promise<void>> = {
     await query({ $entity: 'Hook' }, { noMetadata: true });
   },
   'co1[computed] Virtual computed field': async (query) => {
-    await query(
-      { $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] },
-      { noMetadata: true },
-    );
+    await query({ $entity: 'Color', $id: ['blue', 'yellow'], $fields: ['id', 'isBlue'] }, { noMetadata: true });
   },
   'co2[computed] Computed virtual field depending on edge id': async (query) => {
     await query(
@@ -683,7 +689,7 @@ const main = async () => {
       concurrency: null,
       retainSamples: false,
       time: 1,
-      iterations: 10
+      iterations: 10,
     });
     bench.add(name, async () => {
       await task(query);
@@ -699,11 +705,13 @@ const main = async () => {
   await cleanup();
 
   console.table(result);
-}
+};
 
-main().then(() => {
-  process.exit(0);
-}).catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

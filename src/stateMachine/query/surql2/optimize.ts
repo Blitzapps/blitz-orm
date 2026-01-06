@@ -3,6 +3,7 @@ import type {
   DRAFT_EnrichedBormEntity,
   DRAFT_EnrichedBormField,
   DRAFT_EnrichedBormRelation,
+  DRAFT_EnrichedBormRoleField,
   DRAFT_EnrichedBormSchema,
   Index,
 } from '../../../types/schema/enriched.draft';
@@ -141,21 +142,11 @@ const convertRefFilterToRelationshipTraversal = (
   if (!field) {
     throw new Error(`Field ${filter.left} not found in ${thing.name}`);
   }
-  if ((field.type !== 'role' && field.type !== 'link') || (filter.op !== 'IN' && filter.op !== 'CONTAINSANY')) {
+  const player = getRolePlayer(field, schema, thing);
+  if (!player) {
     return undefined;
   }
-  if (field.type === 'role') {
-    // We can't do this optimization for role fields that has no player with target 'relation'.
-    // This relation is only used as intermediary relation.
-    const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
-    if (oppositeLinkField?.type !== 'link') {
-      throw new Error(`Role field ${field.name} in relation ${thing.name} is not played by a link field`);
-    }
-    if (oppositeLinkField.target !== 'relation') {
-      return undefined;
-    }
-  }
-  const { thing: oppositeThing, path: oppositePath, cardinality } = field.opposite;
+  const { thing: oppositeThing, path: oppositePath, cardinality } = player;
   const oppositeThingSchema = getThingSchema(oppositeThing, schema);
   const source: RecordPointer = {
     type: 'record_pointer',
@@ -180,21 +171,11 @@ const convertNestedFilterToRelationshipTraversal = (
   if (!field) {
     throw new Error(`Field ${filter.path} not found in ${thing.name}`);
   }
-  if (field.type !== 'link' && field.type !== 'role') {
+  const player = getRolePlayer(field, schema, thing);
+  if (!player) {
     return undefined;
   }
-  if (field.type === 'role') {
-    // We can't do this optimization for role fields that are not played by a link field with target 'relation'.
-    // This relation is only used as intermediary relation.
-    const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
-    if (oppositeLinkField?.type !== 'link') {
-      throw new Error(`Role field ${field.name} in relation ${thing.name} is not played by a link field`);
-    }
-    if (oppositeLinkField.target !== 'relation') {
-      return undefined;
-    }
-  }
-  const { thing: oppositeThing, path: oppositePath, cardinality } = field.opposite;
+  const { thing: oppositeThing, path: oppositePath, cardinality } = player;
   const oppositeThingSchema = getThingSchema(oppositeThing, schema);
   const source: TableScan = { type: 'table_scan', thing: [oppositeThing, ...oppositeThingSchema.subTypes] };
   const optimized = optimizeSource({ source, filter: filter.filter, schema, thing: oppositeThingSchema });
@@ -206,6 +187,32 @@ const convertNestedFilterToRelationshipTraversal = (
     filter: optimized.filter,
   };
   return traversal;
+};
+
+/**
+ * Return the opposite role player that target the relation.
+ * Return undefined if `field` is not a role field or it doesn't have a player that target the relation.
+ */
+const getRolePlayer = (
+  field: DRAFT_EnrichedBormField,
+  schema: DRAFT_EnrichedBormSchema,
+  thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
+): DRAFT_EnrichedBormRoleField['opposite'] | undefined => {
+  if (field.type !== 'link' && field.type !== 'role') {
+    return undefined;
+  }
+  if (field.type === 'role') {
+    // We can't convert filter to relationship traversal for role fields that are not played by a link field with target 'relation'.
+    // This relation is only used as intermediary relation.
+    const oppositeLinkField = schema[field.opposite.thing]?.fields?.[field.opposite.path];
+    if (oppositeLinkField?.type !== 'link') {
+      throw new Error(`Role field ${field.name} in relation ${thing.name} is not played by a link field`);
+    }
+    if (oppositeLinkField.target !== 'relation') {
+      return undefined;
+    }
+  }
+  return field.opposite;
 };
 
 const optimizeProjection = (
