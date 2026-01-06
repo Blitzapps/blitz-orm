@@ -38,7 +38,8 @@ export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_Enriched
 };
 
 /**
- * If the source is a table scan and the filter is a nested filter, convert the filter to a relationship traversal.
+ * If the source is a table scan, convert a filter to a pointer or a relationship traversal.
+ * Return the optimized source and the other filters that are not converted.
  */
 const optimizeSource = (params: {
   source: DataSource;
@@ -54,27 +55,48 @@ const optimizeSource = (params: {
 
   // TODO: If we use SurrealDB(v3) REFERENCE, convert computed reference filter into relationship traversal.
 
-  const [firstFilter, ...restFilters] = filter?.type === 'and' ? filter.filters : filter ? [filter] : [];
+  const filters = filter?.type === 'and' ? filter.filters : filter ? [filter] : [];
 
-  const traversal =
-    firstFilter?.type === 'scalar' || firstFilter?.type === 'list'
-      ? convertIdFilterToRecordPointer(firstFilter, source)
-      : firstFilter?.type === 'nested'
-        ? convertNestedFilterToRelationshipTraversal(firstFilter, schema, thing)
-        : firstFilter?.type === 'ref'
-          ? convertRefFilterToRelationshipTraversal(firstFilter, schema, thing)
-          : undefined;
+  for (let i = 0; i < filters.length; i++) {
+    const f = filters[i];
+    if (f?.type !== 'scalar' && f?.type !== 'list') {
+      continue;
+    }
+    const recordPointer = convertIdFilterToRecordPointer(f, source);
+    if (recordPointer) {
+      return {
+        source: recordPointer,
+        filter: mergeFilters(filters.filter((_, j) => j !== i)),
+      };
+    }
+  }
 
-  if (traversal) {
-    return {
-      source: traversal,
-      filter:
-        restFilters.length === 0
-          ? undefined
-          : restFilters.length === 1
-            ? restFilters[0]
-            : { type: 'and', filters: restFilters },
-    };
+  for (let i = 0; i < filters.length; i++) {
+    const f = filters[i];
+    if (f?.type !== 'ref') {
+      continue;
+    }
+    const subQuery = convertRefFilterToRelationshipTraversal(f, schema, thing);
+    if (subQuery) {
+      return {
+        source: subQuery,
+        filter: mergeFilters(filters.filter((_, j) => j !== i)),
+      };
+    }
+  }
+
+  for (let i = 0; i < filters.length; i++) {
+    const f = filters[i];
+    if (f?.type !== 'nested') {
+      continue;
+    }
+    const subQuery = convertNestedFilterToRelationshipTraversal(f, schema, thing);
+    if (subQuery) {
+      return {
+        source: subQuery,
+        filter: mergeFilters(filters.filter((_, j) => j !== i)),
+      };
+    }
   }
 
   return {
@@ -475,6 +497,16 @@ const pushDownIndexedFilter = (
   }
 
   return filter;
+};
+
+const mergeFilters = (filters: Filter[]): Filter | undefined => {
+  if (filters.length === 0) {
+    return undefined;
+  }
+  if (filters.length === 1) {
+    return filters[0];
+  }
+  return { type: 'and', filters };
 };
 
 const isIndexed = (field: DRAFT_EnrichedBormField, indexes: Index[]): boolean => {
