@@ -225,15 +225,15 @@ const enrichLinkFields = (
       continue;
     }
 
-    // NOTE: If the opposite role path is not defined, the opposite role path is the same as the link field path.
-    // This is an implicit rule and it's not standardized yet.
     const oppositeRole = rolePlayerMap[lf.relation]?.[lf.targetRole];
     if (!oppositeRole) {
-      throw new Error(`Role ${lf.path} in relation ${lf.relation} does not exist`);
+      throw new Error(`Role ${lf.targetRole} in relation ${lf.relation} does not exist`);
     }
     const rolePlayer = oppositeRole.targetingRole;
     if (!rolePlayer) {
-      throw new Error(`Role ${oppositeRole} in relation ${lf.relation} is not played by any other thing`);
+      throw new Error(
+        `Role "${lf.targetRole}" in relation "${lf.relation}" is not played by any other thing that targets role "${lf.plays}"`,
+      );
     }
     const enriched: DRAFT_EnrichedBormLinkField = {
       type: 'link',
