@@ -277,7 +277,11 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       return conditions.length > 0 ? conditions.join(' OR ') : undefined;
     }
     case 'not': {
-      return `NOT(${buildFilter(filter.filter, mutParams, prefix)})`;
+      const subFilter = buildFilter(filter.filter, mutParams, prefix);
+      if (!subFilter) {
+        return undefined;
+      }
+      return `NOT(${subFilter})`;
     }
     case 'nested': {
       const path = `${_prefix}${esc(filter.path)}`;
