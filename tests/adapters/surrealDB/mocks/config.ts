@@ -19,7 +19,7 @@ export const surrealDBTestConfig: BormConfig = {
       providerConfig: { linkMode: linkMode },
       namespace: 'test',
       dbName: 'test',
-      url: 'ws://127.0.0.1:8000',
+      url: 'ws://127.0.0.1:8100',
       username: 'test',
       password: 'test',
     },

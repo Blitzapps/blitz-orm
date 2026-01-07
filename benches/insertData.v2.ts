@@ -1,7 +1,7 @@
 import Surreal from 'surrealdb';
 import { type A, type B, type Base, generateData } from './generateData';
 
-const URL = 'ws://127.0.0.1:8002';
+const URL = 'ws://127.0.0.1:8101';
 const NAMESPACE = 'borm_bench';
 const DATABASE = 'borm_bench';
 const USERNAME = 'borm_bench';
