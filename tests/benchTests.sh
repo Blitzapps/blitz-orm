@@ -17,7 +17,7 @@ cleanup() {
 # Set up trap to call cleanup function on script exit
 trap cleanup EXIT INT TERM
 
-# Function to parse command line argumentsppa
+# Function to parse command line arguments
 parse_args() {
     VITEST_ARGS=()
     for arg in "$@"
