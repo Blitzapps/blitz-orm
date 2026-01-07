@@ -267,7 +267,7 @@ const optimizeProjectionField = (
 const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
   if (filter.type === 'list') {
     if (filter.right.length === 0) {
-      if (filter.op === 'IN' || filter.op === 'CONTAINSALL' || filter.op === 'CONTAINSANY') {
+      if (filter.op === 'IN' || filter.op === 'CONTAINSANY') {
         return { type: 'falsy' };
       }
       return undefined;
