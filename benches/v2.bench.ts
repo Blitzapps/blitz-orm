@@ -34,6 +34,9 @@ bench(async ({ beforeAll, afterAll, time }) => {
             password: PASSWORD,
           },
         ],
+        query: {
+          legacySurrealDBAdapter: process.env.BORM_TEST_LEGACY_SURREALDB_ADAPTER?.toLowerCase() === 'true',
+        },
       },
       schema,
     });
