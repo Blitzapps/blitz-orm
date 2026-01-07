@@ -113,7 +113,7 @@ export const typeDbQueryMachine = createMachine(
           config: ctx.config,
           rawTqlRes: assertDefined(ctx.tql.res),
         }),
-      transition('done', 'success', reduce(updateBqlRes)),
+      transition('done', 'postHooks', reduce(updateBqlRes)),
       errorTransition,
     ),
     postHooks: invoke(
