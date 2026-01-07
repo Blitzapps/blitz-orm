@@ -60,7 +60,7 @@ NAMESPACE="test_${LINK}"
 # Start the container
 docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:latest start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000 || { echo "Failed to start SurrealDB container"; exit 1; }
 
-until [ "`docker inspect -f {{.State.Running}} $CONTAINER_NAME`"=="true" ]; do
+until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
     sleep 0.1;
 done;
 
