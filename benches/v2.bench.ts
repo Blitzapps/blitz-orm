@@ -183,7 +183,7 @@ bench(async ({ beforeAll, afterAll, time }) => {
     const a1 = data.a[randIndex(data.a.length)];
     const a2 = data.a[randIndex(data.a.length)];
     const a3 = data.a[randIndex(data.a.length)];
-    // Optimized surql should convert full_one into relationship traversal.
+    // Optimized surql should convert fut_one into relationship traversal.
     await client.query({ $relation: 't_a', $filter: { fut_one: [a1.one, a2.one, a3.one], string_1: a1.string_1 } });
   });
 
