@@ -324,7 +324,8 @@ const insertParam = (mutParams: Record<string, unknown>, value: unknown): string
  * Escape identifier.  Only escapes when identifier contains non-alphanumeric and non-underscore characters or starts with non-alphabetic character.
  */
 const esc = (identifier: string): string => {
+  const escaped = identifier.replace(/⟩/g, '\\⟩');
   // Check if identifier starts with a non-alphabetic character or contains non-alphanumeric characters (excluding underscore)
-  const needsEscaping = /^[^a-zA-Z]/.test(identifier) || /[^a-zA-Z0-9_]/.test(identifier);
+  const needsEscaping = /^[^a-zA-Z]/.test(escaped) || /[^a-zA-Z0-9_]/.test(identifier);
   return needsEscaping ? `⟨${identifier}⟩` : identifier;
 };
