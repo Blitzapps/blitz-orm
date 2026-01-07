@@ -19,7 +19,6 @@ docker run \
   --pull always \
   surrealdb/surrealdb:v3.0.0-alpha.16 \
   start \
-  --allow-all \
   -u $USER \
   -p $PASSWORD \
   --bind 0.0.0.0:8001 \

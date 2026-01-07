@@ -20,7 +20,6 @@ docker run \
   --pull always \
   surrealdb/surrealdb:v2 \
   start \
-  --allow-all \
   -u $USER \
   -p $PASSWORD \
   --bind 0.0.0.0:8002 \
