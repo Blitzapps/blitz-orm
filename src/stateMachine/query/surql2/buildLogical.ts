@@ -207,49 +207,41 @@ const buildFilters = (
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
   schema: DRAFT_EnrichedBormSchema,
 ): Filter[] => {
-  const filters: Filter[] = [];
-
-  for (const [key, value] of Object.entries(filter)) {
-    if (key === '$not' && filter.$not) {
-      pushIfDefined(filters, buildNotFilter(filter.$not, thing, schema));
-      continue;
-    }
-
-    if (key === '$or' && filter.$or) {
-      pushIfDefined(filters, buildOrFilter(filter.$or, thing, schema));
-      continue;
-    }
-
-    const fieldSchema = thing.fields[key];
-
-    if (!fieldSchema) {
-      throw new Error(`Field ${key} not found in ${thing.name}`);
-    }
-
-    if (fieldSchema.type === 'constant' || fieldSchema.type === 'computed') {
-      throw new Error(`Filtering on constant or computed field ${key} is not supported`);
-    }
-
-    if (fieldSchema.type === 'data') {
-      if (value !== undefined) {
-        filters.push(buildDataFieldFilter(fieldSchema, value as BQLFilterValue | BQLFilterValueList | NestedBQLFilter));
+  return Object.entries(filter)
+    .map(([key, value]): Filter | undefined => {
+      if (key === '$not' && filter.$not) {
+        return buildNotFilter(filter.$not, thing, schema);
       }
-      continue;
-    }
 
-    if (fieldSchema.type === 'ref') {
-      if (value !== undefined) {
-        pushIfDefined(filters, buildRefFieldFilter(fieldSchema, value));
+      if (key === '$or' && filter.$or) {
+        return buildOrFilter(filter.$or, thing, schema);
       }
-      continue;
-    }
 
-    if (value !== undefined) {
-      filters.push(buildLinkFieldFilter(fieldSchema, value, schema));
-    }
-  }
+      const fieldSchema = thing.fields[key];
 
-  return filters;
+      if (!fieldSchema) {
+        throw new Error(`Field ${key} not found in ${thing.name}`);
+      }
+
+      if (fieldSchema.type === 'constant' || fieldSchema.type === 'computed') {
+        throw new Error(`Filtering on constant or computed field ${key} is not supported`);
+      }
+
+      if (value === undefined) {
+        return undefined;
+      }
+
+      if (fieldSchema.type === 'data') {
+        return buildDataFieldFilter(fieldSchema, value as BQLFilterValue | BQLFilterValueList | NestedBQLFilter);
+      }
+
+      if (fieldSchema.type === 'ref') {
+        return buildRefFieldFilter(fieldSchema, value);
+      }
+
+      return buildLinkFieldFilter(fieldSchema, value, schema);
+    })
+    .filter((f): f is Filter => f !== undefined);
 };
 
 const buildNotFilter = (
@@ -479,7 +471,7 @@ const buildLinkFieldFilter = (
   const oppositeThings: [string, ...string[]] = [field.opposite.thing, ...oppositeThingSchema.subTypes];
 
   if (Array.isArray(nestedFilter.data)) {
-    const filters = nestedFilter.data.map((f) => buildLinkFieldFilter(field, f, schema)).filter((f) => !!f);
+    const filters: Filter[] = nestedFilter.data.map((f: NestedBQLFilter) => buildLinkFieldFilter(field, f, schema));
     return {
       type: 'or',
       filters,
@@ -649,15 +641,6 @@ const listOpMap: Record<string, ListFilter['op']> = {
 };
 
 const StringArrayParser = z.array(z.string());
-
-/**
- * Push the item to the array if it is defined.
- */
-const pushIfDefined = <T>(array: T[], item: T | undefined) => {
-  if (item !== undefined) {
-    array.push(item);
-  }
-};
 
 const validateAlias = (alias?: string): string | undefined => {
   if (alias !== undefined && !/^[a-zA-Z0-9_-]+$/.test(alias)) {

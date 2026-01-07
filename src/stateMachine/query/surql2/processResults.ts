@@ -5,6 +5,20 @@ import type {
   DRAFT_EnrichedBormSchema,
 } from '../../../types/schema/enriched.draft';
 
+type ResultObject = Record<string, unknown>;
+
+const isResultObject = (value: unknown): value is ResultObject => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+const isNullish = (value: unknown): value is null | undefined => {
+  return value === null || value === undefined;
+};
+
+const isEmptyArray = (value: unknown): boolean => {
+  return Array.isArray(value) && value.length === 0;
+};
+
 export const processResults = (params: {
   batch: BQLQuery[];
   results: unknown[];
@@ -62,31 +76,32 @@ const transformResultObject = (params: {
   schema: DRAFT_EnrichedBormSchema;
   metadata: boolean;
   returnNulls: boolean;
-}) => {
+}): ResultObject | null => {
   const { query, result, thing, schema, metadata, returnNulls } = params;
-  if (!result || typeof result !== 'object') {
-    return result ?? null;
+  if (!isResultObject(result)) {
+    return null;
   }
 
-  const obj = result as Record<string, unknown>;
-  const newResult: Record<string, unknown> = {};
+  const newResult: ResultObject = {};
 
   if (metadata) {
-    newResult.$thing = obj.$thing;
-    newResult.$id = obj.$id;
+    newResult.$thing = result.$thing ?? null;
+    newResult.$id = result.$id ?? null;
     newResult.$thingType = thing.type;
   }
 
-  for (const fieldQuery of query.$fields ?? Object.keys(thing.fields)) {
+  const fieldsToProcess = query.$fields ?? Object.keys(thing.fields);
+
+  for (const fieldQuery of fieldsToProcess) {
     const path = typeof fieldQuery === 'string' ? fieldQuery : fieldQuery.$path;
     const alias = typeof fieldQuery === 'string' ? fieldQuery : (fieldQuery.$as ?? path);
-    // Skip excluded fields.
+
     if (query.$excludedFields?.includes(path)) {
       continue;
     }
 
     if (path === '$id' || path === '$thing') {
-      newResult[alias] = obj[alias] ?? null;
+      newResult[alias] = result[alias] ?? null;
       continue;
     }
 
@@ -102,26 +117,26 @@ const transformResultObject = (params: {
     }
 
     if (field.type === 'computed') {
-      newResult[alias] = field.fn(obj);
+      newResult[alias] = field.fn(result);
       continue;
     }
 
-    const value = obj[alias] ?? null;
+    const value = result[alias];
 
     if (field.type === 'data') {
-      if (!returnNulls && (value === null || value === undefined)) {
+      if (!returnNulls && isNullish(value)) {
         continue;
       }
       newResult[alias] = value ?? null;
       continue;
     }
 
-    if (!returnNulls && (value === null || value === undefined || (Array.isArray(value) && value.length === 0))) {
+    if (!returnNulls && (isNullish(value) || isEmptyArray(value))) {
       continue;
     }
 
     if (typeof fieldQuery === 'string' || field.type === 'ref') {
-      newResult[alias] = Array.isArray(value) && value.length === 0 ? null : (value ?? null);
+      newResult[alias] = isEmptyArray(value) ? null : (value ?? null);
       continue;
     }
 
