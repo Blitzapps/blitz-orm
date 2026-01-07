@@ -471,7 +471,7 @@ const buildLinkFieldFilter = (
   const oppositeThings: [string, ...string[]] = [field.opposite.thing, ...oppositeThingSchema.subTypes];
 
   if (Array.isArray(nestedFilter.data)) {
-    const filters: Filter[] = nestedFilter.data.map((f: NestedBQLFilter) => buildLinkFieldFilter(field, f, schema));
+    const filters = nestedFilter.data.map((f) => buildLinkFieldFilter(field, f, schema));
     return {
       type: 'or',
       filters,
