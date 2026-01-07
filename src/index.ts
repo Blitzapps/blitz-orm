@@ -156,7 +156,6 @@ class BormClient {
         s();
       }
     } catch (e) {
-      console.error('error initializing', e);
       const subscribers = this.subscribers;
       this.subscribers = [];
       for (const s of subscribers) {
