@@ -41,7 +41,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceMember',
           plays: 'member',
           target: 'role',
-          targetRole: 'spaces',
+          targetRole: 'space',
         },
         {
           path: 'projects',
