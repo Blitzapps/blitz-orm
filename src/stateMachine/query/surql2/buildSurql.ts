@@ -1,3 +1,4 @@
+import { genAlphaId } from '../../../helpers';
 import type {
   DataField,
   DataSource,
@@ -311,21 +312,12 @@ const indent = (text: string, level: number) => {
  * Insert `value` into `params` and return the param key.
  */
 const insertParam = (mutParams: Record<string, unknown>, value: unknown): string => {
-  let key = generateAlphaKey(5);
+  let key = genAlphaId();
   while (mutParams[key] !== undefined) {
-    key = generateAlphaKey(5);
+    key = genAlphaId();
   }
   mutParams[key] = value;
   return key;
-};
-
-const generateAlphaKey = (length: number): string => {
-  const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += letters[Math.floor(Math.random() * letters.length)];
-  }
-  return result;
 };
 
 /**

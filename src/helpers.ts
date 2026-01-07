@@ -428,6 +428,12 @@ export const genId = (n?: number) => {
   return nanoid();
 };
 
+export const genAlphaId = (length = 5): string => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+  const nanoid = customAlphabet(alphabet, length);
+  return nanoid();
+};
+
 export const deepRemoveMetaData = (obj: object) => {
   const removeMeta = ({ value }: TraversalCallbackContext) => {
     if (value && typeof value === 'object' && '$id' in value) {

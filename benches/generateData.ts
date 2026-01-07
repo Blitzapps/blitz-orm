@@ -1,3 +1,5 @@
+import { genAlphaId } from '../src/helpers';
+
 export interface Base {
   id: string;
   string_1: string;
@@ -40,7 +42,7 @@ export const generateData = (params: {
   };
 
   const generateBase = (): Base => ({
-    id: uid(),
+    id: genAlphaId(16),
     string_1: randomString(10, 20),
     number_1: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
     boolean_1: randomBoolean(),
@@ -74,14 +76,4 @@ export const generateData = (params: {
   }
 
   return { a, b };
-};
-
-const uid = () => {
-  const firstChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = firstChar.charAt(Math.floor(Math.random() * firstChar.length));
-  for (let i = 0; i < 15; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
 };
