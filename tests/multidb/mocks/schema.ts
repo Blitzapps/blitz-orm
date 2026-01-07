@@ -33,6 +33,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceOwner',
           plays: 'owner',
           target: 'role',
+          targetRole: 'space',
         },
         {
           path: 'spaces',
@@ -40,6 +41,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceMember',
           plays: 'member',
           target: 'role',
+          targetRole: 'space',
         },
         {
           path: 'projects',
@@ -47,6 +49,7 @@ const typeDBSchema: BormSchema = {
           relation: 'ProjectExecutor',
           plays: 'executor',
           target: 'role',
+          targetRole: 'project',
         },
       ],
     },
@@ -67,6 +70,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceOwner',
           plays: 'space',
           target: 'role',
+          targetRole: 'owner',
         },
         {
           path: 'members',
@@ -74,6 +78,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceMember',
           plays: 'space',
           target: 'role',
+          targetRole: 'member',
         },
         {
           path: 'projects',
@@ -81,6 +86,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceProject',
           plays: 'space',
           target: 'role',
+          targetRole: 'projects',
         },
       ],
     },
@@ -101,6 +107,7 @@ const typeDBSchema: BormSchema = {
           relation: 'SpaceProject',
           plays: 'project',
           target: 'role',
+          targetRole: 'space',
         },
         {
           path: 'executors',
@@ -108,6 +115,7 @@ const typeDBSchema: BormSchema = {
           relation: 'ProjectExecutor',
           plays: 'project',
           target: 'role',
+          targetRole: 'executor',
         },
       ],
     },

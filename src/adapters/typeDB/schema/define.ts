@@ -44,6 +44,7 @@ export const convertTQLSchema = (connectorId: any, schema: EnrichedBormSchema) =
     // Adding data fields
     if (dataFields && dataFields.length > 0) {
       for (const field of dataFields) {
+        // @ts-expect-error TODO: fix type error
         if (field.contentType === 'REF') {
           continue;
         } //ignore ref types

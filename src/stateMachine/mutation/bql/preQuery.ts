@@ -12,6 +12,7 @@ import type {
   EnrichedBQLMutationBlock,
   FilledBQLMutationBlock,
 } from '../../../types';
+import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
 import { runQueryMachine } from '../../query/queryMachine';
 
 export const preQueryPathSeparator = '___';
@@ -22,6 +23,7 @@ const grandChildOfCreateSymbol = Symbol.for('grandChildOfCreate');
 export const mutationPreQuery = async (
   blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
   schema: EnrichedBormSchema,
+  draftSchema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
   dbHandles: DBHandles,
 ) => {
@@ -152,6 +154,7 @@ export const mutationPreQuery = async (
     // @ts-expect-error todo
     preQueryReq,
     schema,
+    draftSchema,
     { ...config, query: { ...config.query, returnNulls: true } },
     dbHandles,
   );

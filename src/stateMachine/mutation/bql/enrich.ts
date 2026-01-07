@@ -99,15 +99,15 @@ export const enrichBQLMutation = (
           node.$filter = enrichFilter(node.$filter, node.$thing, schema);
         }
 
-        Object.keys(node).forEach((field) => {
+        for (const field of Object.keys(node)) {
           ///1. Clean step
           cleanStep(node, field);
           if (field !== '$root' && isFilter) {
-            return;
+            continue;
           }
 
           if (field !== '$root' && (field.startsWith('$') || field.startsWith('%'))) {
-            return;
+            continue;
           }
 
           const fieldSchema =
@@ -128,7 +128,8 @@ export const enrichBQLMutation = (
           //console.log('field2', field, fieldType);
           ///2.DATAFIELD STEP
           if (fieldType === 'dataField') {
-            return dataFieldStep(node, field);
+            dataFieldStep(node, field);
+            continue;
           }
 
           ///3.NESTED OBJECTS: RoleFields and linkFields
@@ -185,7 +186,7 @@ export const enrichBQLMutation = (
             //Ideally, in updates we could not demand the $thing, but then we need to check that the field belongs to all the potential $things
             const toValidate = isArray(node[field]) ? node[field] : [node[field]];
 
-            toValidate.forEach((subNode: BQLMutationBlock) => {
+            for (const subNode of toValidate as BQLMutationBlock[]) {
               const subNodeSchema = getCurrentSchema(schema, subNode);
               const { unidentifiedFields, usedLinkFields, usedFields, fields } = getCurrentFields(
                 subNodeSchema,
@@ -193,11 +194,11 @@ export const enrichBQLMutation = (
               );
 
               //Check that every used field is in the fields array
-              usedFields.forEach((uf) => {
+              for (const uf of usedFields) {
                 if (!fields.includes(uf)) {
                   throw new Error(`[Schema] Field ${uf} not found in the schema`);
                 }
-              });
+              }
 
               if (unidentifiedFields.length > 0) {
                 throw new Error(`Unknown fields: [${unidentifiedFields.join(',')}] in ${JSON.stringify(value)}`);
@@ -208,17 +209,21 @@ export const enrichBQLMutation = (
                   usedLinkFields.includes(lf.path),
                 );
                 /// Check if at least two of the usedLinkFields schemas, share same relation and have different targets
-                usedLinkFieldsSchemas?.some((lf1, i) => {
-                  return usedLinkFieldsSchemas.some((lf2, j) => {
-                    if (i !== j && lf1.target !== lf2.target && lf1.relation === lf2.relation) {
-                      throw new Error(
-                        "[Wrong format]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
-                      );
+                if (usedLinkFieldsSchemas) {
+                  for (let i = 0; i < usedLinkFieldsSchemas.length; i++) {
+                    const lf1 = usedLinkFieldsSchemas[i];
+                    for (let j = 0; j < usedLinkFieldsSchemas.length; j++) {
+                      const lf2 = usedLinkFieldsSchemas[j];
+                      if (i !== j && lf1.target !== lf2.target && lf1.relation === lf2.relation) {
+                        throw new Error(
+                          "[Wrong format]: Can't use a link field with target === 'role' and another with target === 'relation' in the same mutation.",
+                        );
+                      }
                     }
-                  });
-                });
+                  }
+                }
               }
-            });
+            }
 
             if (!has$Fields) {
               //if it has $field, it has dependencies so its still not ready for transformation
@@ -235,7 +240,7 @@ export const enrichBQLMutation = (
               //#endregion pre-hook validations
             }
           }
-        });
+        }
       }
     }),
   );

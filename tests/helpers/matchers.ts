@@ -1,8 +1,5 @@
 /* eslint-disable no-param-reassign */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { produce } from 'immer';
-import type { TraversalCallbackContext } from 'object-traversal';
-import { traverse } from 'object-traversal';
 import { expect } from 'vitest';
 
 export const deepSort = <T>(obj: T, key = '$id'): T => {
@@ -46,19 +43,6 @@ export const deepSort = <T>(obj: T, key = '$id'): T => {
   }
 
   return obj;
-};
-
-export const deepRemoveMetaData = (obj: object) => {
-  const removeMeta = ({ value }: TraversalCallbackContext) => {
-    if (value && typeof value === 'object' && '$id' in value) {
-      const metas = Object.keys(value).filter((k) => k.startsWith('$'));
-      metas.forEach((k) => delete value[k]);
-      const symbols = Object.keys(value).filter((s) => typeof s === 'symbol');
-      symbols.forEach((s) => delete value[s]);
-    }
-    return value;
-  };
-  return produce(obj, (draft) => traverse(draft, removeMeta));
 };
 
 const checkRecursive = <T>(obj: T): T => {

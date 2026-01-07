@@ -1,8 +1,13 @@
 import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
 import { assertDefined } from '../../../helpers';
+import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
-import type { BormConfig, EnrichedBormSchema, EnrichedBQLQuery } from '../../../types';
+import type { BormConfig, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
 import type { SurrealDBProviderObject } from '../../../types/config/surrealdb';
+import { VERSION } from '../../../version';
+import { cleanQueryRes } from '../bql/clean';
+import { enrichBQLQuery } from '../bql/enrich';
+import { postHooks } from '../postHook';
 import { build } from './build';
 import { buildRefs } from './buildRefs';
 import { parse } from './parse';
@@ -10,7 +15,8 @@ import { run } from './run';
 
 export type SurrealDbMachineContext = {
   bql: {
-    queries: EnrichedBQLQuery[];
+    raw: RawBQLQuery[];
+    queries?: EnrichedBQLQuery[];
     res?: any[];
   };
   surql: {
@@ -21,6 +27,26 @@ export type SurrealDbMachineContext = {
   config: BormConfig;
   client: SimpleSurrealClient;
   error?: string | null;
+};
+
+const updateBqlReq = (ctx: SurrealDbMachineContext, event: any) => {
+  if (!event.data) {
+    return ctx;
+  }
+  return {
+    ...ctx,
+    bql: { ...ctx.bql, queries: event.data },
+  };
+};
+
+const updateBqlRes = (ctx: SurrealDbMachineContext, event: any) => {
+  if (!event.data) {
+    return ctx;
+  }
+  return {
+    ...ctx,
+    bql: { ...ctx.bql, res: event.data },
+  };
 };
 
 const errorTransition = transition(
@@ -35,8 +61,16 @@ const errorTransition = transition(
 );
 
 const surrealDbQueryMachine = createMachine(
-  'build',
+  'enrich',
   {
+    enrich: invoke(
+      async (ctx: SurrealDbMachineContext) => {
+        logDebug(`originalBQLQuery[${VERSION}]`, JSON.stringify(ctx.bql.raw));
+        return enrichBQLQuery(ctx.bql.raw, ctx.schema);
+      },
+      transition('done', 'build', reduce(updateBqlReq)),
+      errorTransition,
+    ),
     build: invoke(
       async (ctx: SurrealDbMachineContext) => {
         // todo: This works only if there is a single surrealDB connector
@@ -44,10 +78,10 @@ const surrealDbQueryMachine = createMachine(
           ctx.config.dbConnectors.find((c) => c.provider === 'surrealDB') as SurrealDBProviderObject
         ).providerConfig;
         if (linkMode === 'edges') {
-          return build({ queries: ctx.bql.queries, schema: ctx.schema });
+          return build({ queries: ctx.bql.queries ?? [], schema: ctx.schema });
         }
         if (linkMode === 'refs') {
-          return buildRefs({ queries: ctx.bql.queries, schema: ctx.schema });
+          return buildRefs({ queries: ctx.bql.queries ?? [], schema: ctx.schema });
         }
       },
       transition(
@@ -88,14 +122,14 @@ const surrealDbQueryMachine = createMachine(
       async (ctx: SurrealDbMachineContext) => {
         return parse({
           res: assertDefined(ctx.surql.res),
-          queries: ctx.bql.queries,
+          queries: ctx.bql.queries ?? [],
           schema: ctx.schema,
           config: ctx.config,
         });
       },
       transition(
         'done',
-        'success',
+        'postHooks',
         reduce(
           (ctx: SurrealDbMachineContext, event: any): SurrealDbMachineContext => ({
             ...ctx,
@@ -106,6 +140,17 @@ const surrealDbQueryMachine = createMachine(
           }),
         ),
       ),
+      errorTransition,
+    ),
+    postHooks: invoke(
+      async (ctx: SurrealDbMachineContext) =>
+        postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
+      transition('done', 'clean', reduce(updateBqlRes)),
+      errorTransition,
+    ),
+    clean: invoke(
+      async (ctx: SurrealDbMachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
+      transition('done', 'success', reduce(updateBqlRes)),
       errorTransition,
     ),
     success: state(),
@@ -133,15 +178,13 @@ const awaitQueryMachine = async (context: SurrealDbMachineContext) => {
 };
 
 export const runSurrealDbQueryMachine = async (
-  enrichedBql: EnrichedBQLQuery[],
+  bql: RawBQLQuery[],
   schema: EnrichedBormSchema,
   config: BormConfig,
   client: SimpleSurrealClient,
 ) => {
   return awaitQueryMachine({
-    bql: {
-      queries: enrichedBql,
-    },
+    bql: { raw: bql },
     surql: {},
     schema: schema,
     config: config,

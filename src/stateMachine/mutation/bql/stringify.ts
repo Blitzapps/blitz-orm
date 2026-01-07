@@ -34,16 +34,18 @@ const tObject = (
     return;
   }
   if (Array.isArray(tree)) {
-    tree.forEach((i) => tObject(schema, i, $thing));
+    for (const i of tree) {
+      tObject(schema, i, $thing);
+    }
     return;
   }
   const thing = getSchemaByThing(schema, $thing || tree.$entity || tree.$relation || tree.$thing);
-  Object.entries(tree).forEach(([k]) => {
+  for (const [k] of Object.entries(tree)) {
     if (k.startsWith('$') || k.startsWith('%')) {
-      return;
+      continue;
     }
     tField(schema, tree, k, thing);
-  });
+  }
 };
 
 const tField = (

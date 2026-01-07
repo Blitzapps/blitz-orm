@@ -94,12 +94,12 @@ const parseFields = (obj: any, schema: EnrichedBormSchema) => {
 
   //if there are multiValKeys, we replace it in the Object
   if (multiValKeys?.length > 0) {
-    multiValKeys.forEach((multiValKey) => {
+    for (const multiValKey of multiValKeys) {
       const multiValKeyWithout$multiVal = multiValKey.replace(/\.\$multiVal$/, '');
       const realValue = obj[multiValKey][0][multiValKeyWithout$multiVal].attribute; //there is an easier way for sure
       // eslint-disable-next-line no-param-reassign
       obj[dataFieldsKey][multiValKeyWithout$multiVal] = realValue;
-    });
+    }
   }
   const dataFields = obj[dataFieldsKey];
 
@@ -228,12 +228,12 @@ const parseRoleFields = (
 ) => {
   const roleFieldsRes: Record<string, any> = {};
 
-  roleFields.forEach((roleField) => {
+  for (const roleField of roleFields) {
     const { $roleFields, $metaData, $cardinality } = roleField;
     const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
 
     if (as === null) {
-      return;
+      continue;
     }
 
     const items = $roleFields.map((item) => {
@@ -247,7 +247,11 @@ const parseRoleFields = (
       const parsedRoleFields = parseRoleFields(roleFields, schema, config);
       const resDataFields = { ...parsedDataFields };
       if (idNotIncluded === 'true') {
-        currentSchema?.idFields?.forEach((field) => delete resDataFields[field]);
+        if (currentSchema?.idFields) {
+          for (const field of currentSchema.idFields) {
+            delete resDataFields[field];
+          }
+        }
       }
       return {
         ...resDataFields,
@@ -262,7 +266,7 @@ const parseRoleFields = (
     } else if (config.query?.returnNulls) {
       roleFieldsRes[as] = null;
     }
-  });
+  }
 
   return roleFieldsRes;
 };
@@ -274,12 +278,12 @@ const parseLinkFields = (
 ) => {
   const linkFieldsRes: Record<string, any> = {};
 
-  linkFields.forEach((linkField) => {
+  for (const linkField of linkFields) {
     const { $linkFields, $metaData, $cardinality } = linkField;
     const { as, justId, idNotIncluded, filterByUnique } = parseMetaData($metaData);
 
     if (as === null) {
-      return;
+      continue;
     }
 
     const items = $linkFields.map((item) => {
@@ -294,7 +298,9 @@ const parseLinkFields = (
       const resDataFields = { ...parsedDataFields };
 
       if (idNotIncluded === 'true') {
-        currentSchema.idFields?.forEach((field) => delete resDataFields[field]);
+        for (const field of currentSchema.idFields ?? []) {
+          delete resDataFields[field];
+        }
       }
 
       return {
@@ -314,7 +320,7 @@ const parseLinkFields = (
         : config.query?.returnNulls
           ? null
           : undefined;
-  });
+  }
 
   return linkFieldsRes;
 };

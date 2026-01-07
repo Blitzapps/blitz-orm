@@ -1,9 +1,9 @@
 /* eslint-disable no-param-reassign */
 import type { Draft } from 'immer';
-import { current, isDraft } from 'immer';
+import { current, isDraft, produce } from 'immer';
 import { customAlphabet } from 'nanoid';
-import type { TraversalMeta } from 'object-traversal';
-import { getNodeByPath } from 'object-traversal';
+import type { TraversalCallbackContext, TraversalMeta } from 'object-traversal';
+import { getNodeByPath, traverse } from 'object-traversal';
 import { isArray, isObject, listify, tryit } from 'radash';
 
 // todo: split helpers between common helpers, typeDBhelpers, dgraphelpers...
@@ -380,11 +380,8 @@ export const isBQLBlock = (block: unknown): block is FilledBQLMutationBlock => {
 type Drafted<T> = T | Draft<T>;
 
 // Recursively define the type to handle nested structures
-type DeepCurrent<T> = T extends Array<infer U>
-  ? Array<DeepCurrent<U>>
-  : T extends object
-    ? { [K in keyof T]: DeepCurrent<T[K]> }
-    : T;
+type DeepCurrent<T> =
+  T extends Array<infer U> ? Array<DeepCurrent<U>> : T extends object ? { [K in keyof T]: DeepCurrent<T[K]> } : T;
 
 export const deepCurrent = <T>(obj: Drafted<T>): any => {
   if (Array.isArray(obj)) {
@@ -429,4 +426,23 @@ export const genId = (n?: number) => {
   const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
   const nanoid = customAlphabet(alphabet, idLength);
   return nanoid();
+};
+
+export const genAlphaId = (length = 5): string => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+  const nanoid = customAlphabet(alphabet, length);
+  return nanoid();
+};
+
+export const deepRemoveMetaData = (obj: object) => {
+  const removeMeta = ({ value }: TraversalCallbackContext) => {
+    if (value && typeof value === 'object' && '$id' in value) {
+      const metas = Object.keys(value).filter((k) => k.startsWith('$'));
+      for (const k of metas) {
+        delete value[k];
+      }
+    }
+    return value;
+  };
+  return produce(obj, (draft) => traverse(draft, removeMeta));
 };

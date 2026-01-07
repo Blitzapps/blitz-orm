@@ -13,12 +13,14 @@ import type {
   EnrichedRoleField,
   FilledBQLMutationBlock,
 } from '../../../../types';
+import type { DRAFT_EnrichedBormSchema } from '../../../../types/schema/enriched.draft';
 import { DBNode } from '../../../../types/symbols';
 import { runQueryMachine } from '../../../query/queryMachine';
 
 export const preHookDependencies = async (
   blocks: EnrichedBQLMutationBlock | EnrichedBQLMutationBlock[],
   schema: EnrichedBormSchema,
+  draftSchema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
   dbHandles: DBHandles,
 ) => {
@@ -28,6 +30,7 @@ export const preHookDependencies = async (
     // @ts-expect-error todo
     transformationPreQueryReq,
     schema,
+    draftSchema,
     config,
     dbHandles,
   );

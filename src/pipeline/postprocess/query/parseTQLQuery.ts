@@ -161,7 +161,9 @@ export const parseTQLQuery: PipelineOperation<TypeDbResponse> = async (req, res)
         const parsedRoleFields = parseRoleFields(roleFields);
         const resDataFields = { ...parsedDataFields };
         if (idNotIncluded === 'true') {
-          currentSchema?.idFields?.forEach((field) => delete resDataFields[field]);
+          for (const field of currentSchema.idFields ?? []) {
+            delete resDataFields[field];
+          }
         }
         return {
           ...resDataFields,
@@ -206,7 +208,9 @@ export const parseTQLQuery: PipelineOperation<TypeDbResponse> = async (req, res)
         const resDataFields = { ...parsedDataFields };
 
         if (idNotIncluded === 'true') {
-          currentSchema.idFields?.forEach((field) => delete resDataFields[field]);
+          for (const field of currentSchema.idFields ?? []) {
+            delete resDataFields[field];
+          }
         }
 
         return {

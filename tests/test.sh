@@ -56,9 +56,9 @@ DATA_FILE="./tests/adapters/surrealDB/mocks/${LINK}Data.surql"
 NAMESPACE="test_${LINK}"
 
 # Start the container
-docker run --detach --rm --pull always -v $(pwd)/tests:/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v2.3.7 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
+docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8000:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v2.3.7 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
 
-until [ "`docker inspect -f {{.State.Running}} $CONTAINER_NAME`"=="true" ]; do
+until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
     sleep 0.1;
 done;
 

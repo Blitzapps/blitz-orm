@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { expect, it } from 'vitest';
+import { deepRemoveMetaData } from '../../../src/helpers';
 import type { WithBormMetadata } from '../../../src/index';
 import type { TypeGen } from '../../../src/types/typeGen';
 import { createTest } from '../../helpers/createTest';
-import { deepRemoveMetaData, deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
+import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 import type { typesSchema } from '../../mocks/generatedSchema';
 import type { UserType } from '../../types/testTypes';
 
@@ -1479,8 +1480,9 @@ export const testQuery = createTest('Query', (ctx) => {
     const res = await ctx.query(
       {
         $entity: 'User',
-        //@ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
+        // @ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
         $filter: [{ spaces: ['space-1'] }, { email: 'ann@test.com' }],
+        // $filter: { $or: { spaces: ['space-1'],  email: 'ann@test.com' } },
         $fields: ['id'],
       },
       { noMetadata: true },
@@ -2827,6 +2829,22 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref1n[ref, ONE, nested] Get also nested data', async () => {
+    // SELECT
+    //     "0" AS `$$queryPath`,
+    //     (id && record::id(id)) || null AS `$id`,
+    //     (id && record::tb(id)) || null AS `$thing`,
+    //     record::id(id) AS id,
+    //     (
+    //         SELECT
+    //             "0.$fields.1" AS `$$queryPath`,
+    //             (id && record::id(id)) || null AS `$id`,
+    //             (id && record::tb(id)) || null AS `$thing`,
+    //             (id && null) || $this AS `$value`,
+    //             *
+    //         FROM $parent.reference
+    //     ) AS reference
+    // FROM FlexRef
+    // WHERE id AND record::id(id) IN ['fr1'];
     const res = await ctx.query(
       {
         $entity: 'FlexRef',
@@ -2852,6 +2870,25 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref1nf[ref, ONE, nested, someFields] Get also nested data but only some fields', async () => {
+    // SELECT
+    //     "0" AS `$$queryPath`,
+    //     id && record::id(id) || null AS `$id`,
+    //     id && record::tb(id) || null AS `$thing`,
+    //     record::id(id) AS id,
+    //     (
+    //         SELECT
+    //             "0.$fields.1" AS `$$queryPath`,
+    //             id && record::id(id) || null AS `$id`,
+    //             id && record::tb(id) || null AS `$thing`,
+    //             id && null || $this AS `$value`,
+    //             <id>,
+    //             <accounts>,
+    //             <email>
+    //         FROM $parent.reference
+    //     ) AS reference
+    // FROM FlexRef
+    // WHERE id
+    //   AND (record::id(id) IN ['fr1']);
     const res = await ctx.query(
       {
         $entity: 'FlexRef',
@@ -2901,6 +2938,22 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref4nf[ref, flex, MANY, nested] Get flexReferences with nested data', async () => {
+    // SELECT
+    //     "0" AS `$$queryPath`,
+    //     id && record::id(id) || null AS `$id`,
+    //     id && record::tb(id) || null AS `$thing`,
+    //     record::id(id) AS id,
+    //     (
+    //         SELECT
+    //             "0.$fields.1" AS `$$queryPath`,
+    //             id && record::id(id) || null AS `$id`,
+    //             id && record::tb(id) || null AS `$thing`,
+    //             id && null || $this AS `$value`,
+    //             *
+    //         FROM $parent.flexReferences
+    //     ) AS flexReferences
+    // FROM FlexRef
+    // WHERE id AND (record::id(id) IN ['fr5']);
     const res = await ctx.query(
       { $entity: 'FlexRef', $id: 'fr5', $fields: ['id', { $path: 'flexReferences' }] },
       { noMetadata: true },
@@ -2926,6 +2979,25 @@ export const testQuery = createTest('Query', (ctx) => {
   });
 
   it('TODO{T}:ref4n[ref, flex, MANY, nested, $fields] Get flexReferences with nested data but only some fields', async () => {
+    // SELECT
+    //     "0" AS `$$queryPath`,
+    //     (id && record::id(id)) || null AS `$id`,
+    //     (id && record::tb(id)) || null AS `$thing`,
+    //     record::id(id) AS id,
+    //     (
+    //         SELECT
+    //             "0.$fields.1" AS `$$queryPath`,
+    //             (id && record::id(id)) || null AS `$id`,
+    //             (id && record::tb(id)) || null AS `$thing`,
+    //             (id && null) || $this AS `$value`,
+    //             ⟨id⟩,
+    //             ⟨name⟩,
+    //             ⟨user-tags⟩
+    //         FROM $parent.`flexReferences`
+    //     ) AS `flexReferences`
+    // FROM FlexRef
+    // WHERE id
+    //   AND record::id(id) IN ['fr5'];
     const res = await ctx.query(
       {
         $entity: 'FlexRef',

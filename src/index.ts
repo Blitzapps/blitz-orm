@@ -5,6 +5,7 @@ import { SimpleSurrealClient } from './adapters/surrealDB/client';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './enrichSchema';
+import { enrichSchemaDraft } from './enrichSchema.draft';
 import { runMutationMachine } from './stateMachine/mutation/mutationMachine';
 import { runQueryMachine } from './stateMachine/query/queryMachine';
 import type {
@@ -20,6 +21,7 @@ import type {
   QueryConfig,
   RawBQLQuery,
 } from './types';
+import type { DRAFT_EnrichedBormSchema } from './types/schema/enriched.draft';
 
 export * from './types';
 
@@ -37,7 +39,11 @@ class BormClient {
   private config: BormConfig;
   private initializing = false;
   private subscribers: ((err?: unknown) => void)[] = [];
-  private initialized: { enrichedSchema: EnrichedBormSchema; dbHandles: DBHandles } | null = null;
+  private initialized: {
+    enrichedSchema: EnrichedBormSchema;
+    draftSchema: DRAFT_EnrichedBormSchema;
+    dbHandles: DBHandles;
+  } | null = null;
 
   constructor({ schema, config }: BormProps) {
     this.schema = schema;
@@ -140,6 +146,7 @@ class BormClient {
       );
 
       this.initialized = {
+        draftSchema: enrichSchemaDraft(this.schema),
         enrichedSchema: enrichSchema(this.schema, dbHandles),
         dbHandles,
       };
@@ -204,6 +211,7 @@ class BormClient {
     const [errorRes, res] = await tryit(runQueryMachine)(
       queries,
       initialized.enrichedSchema,
+      initialized.draftSchema,
       qConfig,
       initialized.dbHandles,
     );
@@ -234,6 +242,7 @@ class BormClient {
     const [errorRes, res] = await tryit(runMutationMachine)(
       mutation,
       initialized.enrichedSchema,
+      initialized.draftSchema,
       mConfig,
       initialized.dbHandles,
     );

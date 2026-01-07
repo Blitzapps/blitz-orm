@@ -1,6 +1,11 @@
 import { assertDefined } from '../../../helpers';
+import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
+import { VERSION } from '../../../version';
+import { cleanQueryRes } from '../bql/clean';
+import { enrichBQLQuery } from '../bql/enrich';
+import { postHooks } from '../postHook';
 import { buildTQLQuery } from './build';
 import { parseTQLQuery } from './parse';
 import { runTQLQuery } from './run';
@@ -8,7 +13,7 @@ import { runTQLQuery } from './run';
 export type TypeDbMachineContext = {
   bql: {
     raw: RawBQLQuery[];
-    queries: EnrichedBQLQuery[];
+    queries?: EnrichedBQLQuery[];
     res?: any[];
   };
   tql: {
@@ -19,6 +24,16 @@ export type TypeDbMachineContext = {
   config: BormConfig;
   handles: DBHandles;
   error?: string | null;
+};
+
+const updateBqlReq = (ctx: TypeDbMachineContext, event: any) => {
+  if (!event.data) {
+    return ctx;
+  }
+  return {
+    ...ctx,
+    bql: { ...ctx.bql, queries: event.data },
+  };
 };
 
 const updateBqlRes = (ctx: TypeDbMachineContext, event: any): TypeDbMachineContext => {
@@ -63,10 +78,18 @@ const errorTransition = transition(
 );
 
 export const typeDbQueryMachine = createMachine(
-  'build',
+  'enrich',
   {
+    enrich: invoke(
+      async (ctx: TypeDbMachineContext) => {
+        logDebug(`originalBQLQuery[${VERSION}]`, JSON.stringify(ctx.bql.raw));
+        return enrichBQLQuery(ctx.bql.raw, ctx.schema);
+      },
+      transition('done', 'build', reduce(updateBqlReq)),
+      errorTransition,
+    ),
     build: invoke(
-      async (ctx: TypeDbMachineContext) => buildTQLQuery({ queries: ctx.bql.queries, schema: ctx.schema }),
+      async (ctx: TypeDbMachineContext) => buildTQLQuery({ queries: ctx.bql.queries ?? [], schema: ctx.schema }),
       transition('done', 'run', reduce(updateTqlReq)),
       errorTransition,
     ),
@@ -85,11 +108,22 @@ export const typeDbQueryMachine = createMachine(
       async (ctx: TypeDbMachineContext) =>
         parseTQLQuery({
           rawBqlRequest: ctx.bql.raw,
-          enrichedBqlQuery: ctx.bql.queries,
+          enrichedBqlQuery: ctx.bql.queries ?? [],
           schema: ctx.schema,
           config: ctx.config,
           rawTqlRes: assertDefined(ctx.tql.res),
         }),
+      transition('done', 'postHooks', reduce(updateBqlRes)),
+      errorTransition,
+    ),
+    postHooks: invoke(
+      async (ctx: TypeDbMachineContext) =>
+        postHooks(ctx.schema, assertDefined(ctx.bql.queries), assertDefined(ctx.bql.res)),
+      transition('done', 'clean', reduce(updateBqlRes)),
+      errorTransition,
+    ),
+    clean: invoke(
+      async (ctx: TypeDbMachineContext) => cleanQueryRes(ctx.config, assertDefined(ctx.bql.res)),
       transition('done', 'success', reduce(updateBqlRes)),
       errorTransition,
     ),
@@ -119,16 +153,12 @@ const awaitQueryMachine = async (context: TypeDbMachineContext) => {
 
 export const runTypeDbQueryMachine = async (
   bql: RawBQLQuery[],
-  enrichedBql: EnrichedBQLQuery[],
   schema: EnrichedBormSchema,
   config: BormConfig,
   handles: DBHandles,
 ) => {
   return awaitQueryMachine({
-    bql: {
-      raw: bql,
-      queries: enrichedBql,
-    },
+    bql: { raw: bql },
     tql: {},
     schema: schema,
     config: config,

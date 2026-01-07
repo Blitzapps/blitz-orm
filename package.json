@@ -23,6 +23,9 @@
     "prepare": "husky",
     "pub": "pnpm build && pnpm publish",
     "knip": "knip",
+    "bench:surrealdb": "./benches/bench.v2.sh",
+    "bench:tests:surrealdb": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/benchTests.sh",
+    "bench:tests:surrealdb:legacy": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs LEGACY_SURREALDB_ADAPTER=true ./tests/benchTests.sh",
     "bench:surrealdb:edges": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=edges ./tests/bench.sh tests/unit/bench",
     "bench:surrealdb:refs": "cross-env BORM_TEST_ADAPTER=surrealDB BORM_TEST_SURREALDB_LINK_MODE=refs ./tests/bench.sh tests/unit/bench",
     "bench:typedb": "vitest bench typedb/bench",
@@ -71,7 +74,8 @@
     "robot3": "^1.1.1",
     "surrealdb": "^1.3.2",
     "typedb-driver": "^2.29.2",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
@@ -85,6 +89,7 @@
     "lint-staged": "^16.1.2",
     "only-allow": "^1.2.1",
     "prettier": "^3.6.2",
+    "tinybench": "^6.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
@@ -100,5 +105,6 @@
   "homepage": "https://github.com/Blitzapps/blitz-orm#readme",
   "directories": {
     "test": "tests"
-  }
+  },
+  "packageManager": "pnpm@8.10.2+sha512.0782093d5ba6c7ad9462081bc1ef0775016a4b4109eca1e1fedcea6f110143af5f50993db36c427d4fa8c62be3920a3224db12da719d246ca19dd9f18048c33c"
 }

@@ -11,14 +11,13 @@ PASSWORD=test
 cleanup() {
     echo "Stopping and removing container..."
     docker stop ${CONTAINER_NAME} >/dev/null 2>&1
-    docker rm ${CONTAINER_NAME} >/dev/null 2>&1
-    exit $((TEST_FAILED ? 1 : 0))
+    exit ${EXIT_CODE:-1}
 }
 
 # Set up trap to call cleanup function on script exit
 trap cleanup EXIT INT TERM
 
-# Function to parse command line argumentsppa
+# Function to parse command line arguments
 parse_args() {
     VITEST_ARGS=()
     for arg in "$@"
@@ -83,15 +82,10 @@ docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespac
 docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 $DATA_FILE
 
 # Always stop container, but exit with 1 when tests are failing
-if CONTAINER_NAME=${CONTAINER_NAME} npx vitest bench "${VITEST_ARGS[@]}"; then
+if CONTAINER_NAME=${CONTAINER_NAME} tsx "$(dirname "${BASH_SOURCE[0]}")/unit/bench/testsBench.ts" "${VITEST_ARGS[@]}"; then
     echo "Bench passed. Container ${CONTAINER_NAME} is still running."
-    TEST_FAILED=false
+    EXIT_CODE=0
 else
     echo "Bench failed. Container ${CONTAINER_NAME} is still running."
-    TEST_FAILED=true
+    EXIT_CODE=1
 fi
-
-# Keep the script running, which keeps the container alive
-while true; do
-    sleep 1
-done
