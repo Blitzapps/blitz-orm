@@ -26,7 +26,7 @@ export const config: BormConfig = {
       providerConfig: { linkMode: 'edges' },
       namespace: 'multi_db_test',
       dbName: 'test',
-      url: 'ws://127.0.0.1:8000',
+      url: 'ws://127.0.0.1:8100',
       username: 'tester',
       password: 'tester',
     },

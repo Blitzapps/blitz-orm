@@ -5,7 +5,7 @@ import { bench } from './bench';
 import { type A, type B, type Base, generateData } from './generateData';
 import { schema } from './schema.v2';
 
-const URL = 'ws://127.0.0.1:8002';
+const URL = 'ws://127.0.0.1:8101';
 const NAMESPACE = 'borm_bench';
 const DATABASE = 'borm_bench';
 const USERNAME = 'borm_bench';
@@ -206,7 +206,14 @@ bench(async ({ beforeAll, afterAll, time }) => {
     const a = data.a[randIndex(data.a.length)];
     await client.query({ $relation: 't_a', $id: a.id, $fields: [{ $path: 'fut_many' }] });
   });
-});
+})
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 
 const connect = async () => {
   const db = new Surreal();

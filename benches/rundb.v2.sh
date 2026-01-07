@@ -16,13 +16,13 @@ docker run \
   -v borm_bench_data_v2:/data \
   -e SURREAL_CAPS_ALLOW_EXPERIMENTAL=graphql \
   --user root \
-  -p 8002:8002 \
+  -p 8101:8101 \
   --pull always \
   surrealdb/surrealdb:v2 \
   start \
   -u $USER \
   -p $PASSWORD \
-  --bind 0.0.0.0:8002 \
+  --bind 0.0.0.0:8101 \
   rocksdb:///data/blitz.db
   # surrealkv:///data/blitz.db
 
@@ -32,13 +32,13 @@ done;
 
 # Wait for SurrealDB to be ready
 echo "Waiting for SurrealDB to be ready..."
-until docker exec $CONTAINER_NAME ./surreal is-ready --endpoint http://localhost:8002 2>/dev/null; do
+until docker exec $CONTAINER_NAME ./surreal is-ready --endpoint http://localhost:8101 2>/dev/null; do
     sleep 0.5;
 done;
 echo "SurrealDB is ready!"
 
 # Setup surrealdb database: create the namespace, database, and user dynamically
-docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --endpoint http://localhost:8002 <<EOF
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --endpoint http://localhost:8101 <<EOF
 DEFINE NAMESPACE $NAMESPACE;
 USE NS $NAMESPACE;
 DEFINE DATABASE $DATABASE;
@@ -47,4 +47,4 @@ EOF
 
 # Create the schema
 docker cp $SCHEMA_FILE $CONTAINER_NAME:/tmp/schema.surql
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database $DATABASE --endpoint http://localhost:8002 /tmp/schema.surql
+docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database $DATABASE --endpoint http://localhost:8101 /tmp/schema.surql
