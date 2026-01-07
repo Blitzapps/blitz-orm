@@ -679,7 +679,7 @@ const main = async () => {
   const { client, cleanup } = await init();
 
   const query: QueryFn = async (query, config) => {
-    client.query(query, { ...config, legacySurrealDBAdapter: LEGACY_SURREALDB_ADAPTER });
+    return client.query(query, { ...config, legacySurrealDBAdapter: LEGACY_SURREALDB_ADAPTER });
   };
 
   const result: (Record<string, string | number | undefined> | null)[] = [];

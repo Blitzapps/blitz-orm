@@ -82,7 +82,7 @@ docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespac
 docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 $DATA_FILE
 
 # Always stop container, but exit with 1 when tests are failing
-if CONTAINER_NAME=${CONTAINER_NAME} tsx "$(dirname "${BASH_SOURCE[0]}")/unit/bench/tinyBench.ts" "${VITEST_ARGS[@]}"; then
+if CONTAINER_NAME=${CONTAINER_NAME} tsx "$(dirname "${BASH_SOURCE[0]}")/unit/bench/testsBench.ts" "${VITEST_ARGS[@]}"; then
     echo "Bench passed. Container ${CONTAINER_NAME} is still running."
     EXIT_CODE=0
 else
