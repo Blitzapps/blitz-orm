@@ -1,4 +1,4 @@
-import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
+import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
 import { assertDefined } from '../../../helpers';
 import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
@@ -25,7 +25,7 @@ export type SurrealDbMachineContext = {
   };
   schema: EnrichedBormSchema;
   config: BormConfig;
-  client: SimpleSurrealClient;
+  client: AnySurrealClient;
   error?: string | null;
 };
 
@@ -181,7 +181,7 @@ export const runSurrealDbQueryMachine = async (
   bql: RawBQLQuery[],
   schema: EnrichedBormSchema,
   config: BormConfig,
-  client: SimpleSurrealClient,
+  client: AnySurrealClient,
 ) => {
   return awaitQueryMachine({
     bql: { raw: bql },

@@ -1,7 +1,7 @@
 import { enableMapSet } from 'immer';
 import { tryit } from 'radash';
 import { SessionType, TypeDB, TypeDBCredential } from 'typedb-driver';
-import { SimpleSurrealClient } from './adapters/surrealDB/client';
+import { SurrealPool } from './adapters/surrealDB/client';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './enrichSchema';
@@ -83,22 +83,22 @@ class BormClient {
       await Promise.all(
         this.config.dbConnectors.map(async (dbc) => {
           if (dbc.provider === 'surrealDB') {
-            const client = new SimpleSurrealClient({
-              url: dbc.url,
-              username: dbc.username,
-              password: dbc.password,
-              namespace: dbc.namespace,
-              database: dbc.dbName,
-            });
-            // const pool = new SurrealPool({
-            // 	url: dbc.url,
-            // 	username: dbc.username,
-            // 	password: dbc.password,
-            // 	namespace: dbc.namespace,
-            // 	database: dbc.dbName,
-            // 	totalConnections: 8,
+            // const client = new SimpleSurrealClient({
+            //   url: dbc.url,
+            //   username: dbc.username,
+            //   password: dbc.password,
+            //   namespace: dbc.namespace,
+            //   database: dbc.dbName,
             // });
-            dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
+            const pool = new SurrealPool({
+            	url: dbc.url,
+            	username: dbc.username,
+            	password: dbc.password,
+            	namespace: dbc.namespace,
+            	database: dbc.dbName,
+            	totalConnections: dbc.totalConnections ?? 64,
+            });
+            dbHandles.surrealDB.set(dbc.id, { client: pool, providerConfig: dbc.providerConfig });
           } else if (dbc.provider === 'typeDB' && dbc.dbName) {
             // const client = await TypeDB.coreClient(dbc.url);
             // const clientErr = undefined;

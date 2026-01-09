@@ -1,5 +1,5 @@
 import type { TypeDBDriver } from 'typedb-driver';
-import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
+import type { AnySurrealClient } from '../../adapters/surrealDB/client';
 import { getSchemaByThing } from '../../helpers';
 import { logDebug } from '../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../robot3';
@@ -63,7 +63,7 @@ type TypeDBAdapter = {
 
 type SurrealDBAdapter = {
   db: 'surrealDB';
-  client: SimpleSurrealClient;
+  client: AnySurrealClient;
   rawBql: RawBQLQuery[];
   indices: number[];
 };
