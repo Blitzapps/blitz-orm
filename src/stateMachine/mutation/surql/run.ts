@@ -1,8 +1,8 @@
-import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
+import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
 import { logDebug } from '../../../logger';
 import { VERSION } from '../../../version';
 
-export const runSURQLMutation = async (client: SimpleSurrealClient, mutations: string[]): Promise<any[]> => {
+export const runSURQLMutation = async (client: AnySurrealClient, mutations: string[]): Promise<any[]> => {
   const batchedMutation = `
 	BEGIN TRANSACTION;
 	${mutations.join(';')};
@@ -22,7 +22,7 @@ export const runSURQLMutation = async (client: SimpleSurrealClient, mutations: s
     const result = await client.query(batchedMutation);
     return result.filter(Boolean);
   } catch (error) {
-    const errorRes = await client.query_raw(batchedMutation);
+    const errorRes = await client.queryRaw(batchedMutation);
     //console.log('errorRes!', JSON.stringify(errorRes, null, 2));
     const filteredErrorRes = errorRes.filter(
       (r) =>

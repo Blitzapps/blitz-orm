@@ -1,15 +1,14 @@
-const LOG_LEVEL = new Set(
+const LOG_TAGS = new Set(
   // eslint-disable-next-line turbo/no-undeclared-env-vars
-  (process.env.BORM_LOG_LEVEL || '')
+  (process.env.BORM_LOG_TAGS || '')
     .split(',')
     .map((i) => i.trim())
     .filter((i) => !!i),
 );
 
-type LogLevel = 'debug' | 'info' | 'warning' | 'error';
-
-export const log = (level: LogLevel | LogLevel[], ...args: unknown[]) => {
-  const shouldLog = Array.isArray(level) ? level.some((l) => LOG_LEVEL.has(l)) : LOG_LEVEL.has(level);
+export const log = (tags: string | string[], ...args: unknown[]) => {
+  const shouldLog =
+    LOG_TAGS.has('*') || (Array.isArray(tags) ? tags.some((l) => LOG_TAGS.has(l)) : LOG_TAGS.has(tags) || tags === '*');
   if (shouldLog) {
     console.log(...args);
   }

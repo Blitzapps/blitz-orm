@@ -1,4 +1,4 @@
-import type { SimpleSurrealClient } from '../../adapters/surrealDB/client';
+import type { AnySurrealClient } from '../../adapters/surrealDB/client';
 import type { CommonProvider } from './base';
 
 type SurrealDBProviderConfig = {
@@ -11,6 +11,13 @@ export interface SurrealDBProviderObject extends CommonProvider {
   namespace: string;
   username: string;
   password: string;
+  /**
+   * The total number of connections to the SurrealDB server.
+   * Setting this to a higher number will increase the concurrency of the queries.
+   * totalConnections that is too high will cause the connections to drop.
+   * The default is 64.
+   */
+  totalConnections?: number;
 }
 
-export type SurrealDBHandles = Map<string, { client: SimpleSurrealClient; providerConfig: SurrealDBProviderConfig }>;
+export type SurrealDBHandles = Map<string, { client: AnySurrealClient; providerConfig: SurrealDBProviderConfig }>;

@@ -109,13 +109,11 @@ const buildProjection = (params: {
       continue;
     }
 
-    const alias = validateAlias(field.$as);
-
     if (field.$path === '$id' || field.$path === '$thing') {
       projectionFields.push({
         type: 'metadata',
         path: field.$path,
-        alias,
+        alias: field.$as,
       });
       continue;
     }
@@ -130,7 +128,7 @@ const buildProjection = (params: {
     }
 
     if (fieldSchema.type === 'data' || fieldSchema.type === 'ref') {
-      projectionFields.push(buildSimpleFieldProjection(fieldSchema, alias));
+      projectionFields.push(buildSimpleFieldProjection(fieldSchema, field.$as));
       continue;
     }
 
@@ -144,7 +142,7 @@ const buildProjection = (params: {
       projection: oppositeProjection,
       cardinality:
         typeof field.$id === 'string' || isUniqueFilter(oppositeThingSchema, filter) ? 'ONE' : fieldSchema.cardinality,
-      alias,
+      alias: field.$as,
       ids: typeof field.$id === 'string' ? [field.$id] : field.$id,
       filter,
       limit: validateLimit(field.$limit),
@@ -641,13 +639,6 @@ const listOpMap: Record<string, ListFilter['op']> = {
 };
 
 const StringArrayParser = z.array(z.string());
-
-const validateAlias = (alias?: string): string | undefined => {
-  if (alias !== undefined && !/^[a-zA-Z0-9_-]+$/.test(alias)) {
-    throw new Error(`Invalid alias: ${alias}`);
-  }
-  return alias;
-};
 
 const validateLimit = (limit?: number): number | undefined => {
   if (limit !== undefined && (typeof limit !== 'number' || limit < 0)) {
