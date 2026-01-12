@@ -63,44 +63,31 @@ class SurrealClient {
     return this.closed;
   }
 
+  /**
+   * Connect to SurrealDB if not connected and run the callback.
+   */
   private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
-    if (this.isClosed) {
-      throw new Error('SurrealClient is closed');
-    }
-    let retryCount = 0;
-    const maxRetries = 2;
-    while (true) {
-      try {
-        return await new Promise((resolve, reject) => {
-          let settled = false;
-          const cancelQueryTimer = schedule(async () => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            reject(new Error('Timeout'));
-          }, QUERY_TIMEOUT);
-          // Cancel any scheduled retry sleep to reconnect immediately
-          this.cancelRetrySleep?.();
-          this.connect()
-            .then(() => {
-              cb(this.db)
-                .then((res) => {
-                  if (settled) {
-                    return;
-                  }
-                  settled = true;
-                  cancelQueryTimer();
-                  resolve(res);
-                })
-                .catch((err) => {
-                  if (settled) {
-                    return;
-                  }
-                  settled = true;
-                  cancelQueryTimer();
-                  reject(err);
-                });
+    return await new Promise((resolve, reject) => {
+      let settled = false;
+      const cancelQueryTimer = schedule(async () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        reject(new Error('Timeout'));
+      }, QUERY_TIMEOUT);
+      // Cancel any scheduled retry sleep to reconnect immediately
+      this.cancelRetrySleep?.();
+      this.connect()
+        .then(() => {
+          cb(this.db)
+            .then((res) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              cancelQueryTimer();
+              resolve(res);
             })
             .catch((err) => {
               if (settled) {
@@ -110,7 +97,31 @@ class SurrealClient {
               cancelQueryTimer();
               reject(err);
             });
+        })
+        .catch((err) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cancelQueryTimer();
+          reject(err);
         });
+    });
+  }
+
+  /**
+   * Try to run the callback until it succeeds or the maximum number of retries is reached.
+   * Retry only on engine disconnected errors.
+   */
+  private async tryRun<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
+    if (this.isClosed) {
+      throw new Error('SurrealClient is closed');
+    }
+    let retryCount = 0;
+    const maxRetries = 2;
+    while (true) {
+      try {
+        return await this.run(cb);
       } catch (e) {
         // TODO: Handle other connection errors.
         const isEngineDisconnected = e instanceof Error && e.name === 'EngineDisconnected';
@@ -192,11 +203,11 @@ class SurrealClient {
   }
 
   async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
-    return this.run((db) =>  db.query(...args));
+    return this.tryRun((db) =>  db.query(...args));
   }
 
   async queryRaw<T = unknown>(...args: QueryParameters): Promise<QueryResult<T>[]> {
-    return this.run((db) =>  db.queryRaw(...args));
+    return this.tryRun((db) =>  db.queryRaw(...args));
   }
 }
 

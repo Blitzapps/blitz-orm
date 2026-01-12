@@ -8,7 +8,7 @@ const LOG_TAGS = new Set(
 
 export const log = (tags: string | string[], ...args: unknown[]) => {
   const shouldLog =
-    LOG_TAGS.has('*') || (Array.isArray(tags) ? tags.some((l) => LOG_TAGS.has(l)) : LOG_TAGS.has(tags) || tags === '*');
+    LOG_TAGS.has('*') || (Array.isArray(tags) ? tags.some((l) => LOG_TAGS.has(l) || l === '*') : LOG_TAGS.has(tags) || tags === '*');
   if (shouldLog) {
     console.log(...args);
   }

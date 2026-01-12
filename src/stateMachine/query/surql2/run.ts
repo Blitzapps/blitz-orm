@@ -55,7 +55,7 @@ export const runSurrealDbQueryMachine2 = async (
   log(
     ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/result'],
     `> runSurrealDbQueryMachine2/result ${id}\n`,
-    JSON.stringify(surqlQueries),
+    JSON.stringify(result),
   );
   const finalResult = processResults({
     batch: bqlQueries,
@@ -64,11 +64,6 @@ export const runSurrealDbQueryMachine2 = async (
     metadata: !config.query?.noMetadata,
     returnNulls: !!config.query?.returnNulls,
   });
-  log(
-    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/finalResult'],
-    `> runSurrealDbQueryMachine2/finalResult ${id}\n`,
-    JSON.stringify(finalResult),
-  );
   log(
     ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/finalResult'],
     `> runSurrealDbQueryMachine2/finalResult ${id}\n`,
