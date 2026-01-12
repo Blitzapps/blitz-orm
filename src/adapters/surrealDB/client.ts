@@ -4,6 +4,7 @@ import Surreal, { ConnectionStatus } from 'surrealdb';
 import { log } from '../../logger';
 
 const QUEUE_TIMEOUT = 5000; // The max duration a query is queued before "Timeout" error is thrown.
+const QUEUE_BATCH_SIZE = 128;
 const QUERY_TIMEOUT = 180000; // The max duration a query is run before "Timeout" error is thrown.
 const RECONNECT_INTERVAL = 2000; // Check the connection every `RECONNECT_INTERVAL` and reconnect it if it's not connected.
 const INITIAL_RECONNECT_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
@@ -18,7 +19,7 @@ class SurrealClient {
   private password: string;
   private namespace: string;
   private database: string;
-  private connectionPromise: Promise<void> | null;
+  private connectionPromise: Promise<void> | null = null;
   private cancelScheduledConnectionCheck: (() => void) | null = null;
   private cancelRetrySleep: (() => void) | null = null;
   private closed: boolean = false;
@@ -30,7 +31,6 @@ class SurrealClient {
     this.password = params.password;
     this.namespace = params.namespace;
     this.database = params.database;
-    this.connectionPromise = this.tryConnectingUntilSucceed();
   }
 
   async close() {
@@ -48,10 +48,15 @@ class SurrealClient {
   }
 
   async connect() {
+    this.closed = false;
     if (!this.connectionPromise) {
       this.connectionPromise = this.tryConnectingUntilSucceed();
     }
-    await this.connectionPromise;
+    try {
+      await this.connectionPromise;
+    } catch (e) {
+      log('error', 'Failed to connect to SurrealDB', { error: e });
+    }
   }
 
   get isClosed() {
@@ -59,8 +64,11 @@ class SurrealClient {
   }
 
   private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
+    if (this.isClosed) {
+      throw new Error('SurrealClient is closed');
+    }
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2;
     while (true) {
       try {
         return await new Promise((resolve, reject) => {
@@ -103,21 +111,24 @@ class SurrealClient {
               reject(err);
             });
         });
-      } catch (e: any) {
+      } catch (e) {
         // TODO: Handle other connection errors.
-        const isEngineDisconnected = e.name === 'EngineDisconnected';
+        const isEngineDisconnected = e instanceof Error && e.name === 'EngineDisconnected';
         if (retryCount < maxRetries && isEngineDisconnected) {
-          retryCount++;
+          retryCount += 1;
           continue;
         }
-        throw e;
+        throw e as Error;
       }
     }
   }
 
   private async scheduleConnectionCheck() {
     if (!this.isClosed && this.cancelScheduledConnectionCheck === null) {
-      const cancel = schedule(() => this.tryConnectingUntilSucceed(), RECONNECT_INTERVAL);
+      const cancel = schedule(() => {
+        this.cancelScheduledConnectionCheck = null;
+        this.connect();
+      }, RECONNECT_INTERVAL);
       this.cancelScheduledConnectionCheck = () => {
         cancel();
         this.cancelScheduledConnectionCheck = null;
@@ -160,6 +171,7 @@ class SurrealClient {
           break;
         }
       }
+      // If the connection failed, wait with exponential backoff and try to reconnect again.
       if (failed) {
         await new Promise<void>((resolve) => {
           const cancel = schedule(() => {
@@ -175,8 +187,8 @@ class SurrealClient {
         retryTimeout = expBackoff(retryTimeout, MAX_RECONNECT_RETRY_INTERVAL);
       }
     }
-    this.scheduleConnectionCheck();
     this.connectionPromise = null;
+    this.scheduleConnectionCheck();
   }
 
   async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
@@ -194,7 +206,7 @@ interface QueueItem {
 }
 
 export class SurrealPool {
-  private queue: QueueItem[]; // TODO: Make this more sophisticated. Create a queue class that has method push, pop, length.
+  private queue: Queue<QueueItem>;
   private clients: SurrealClient[];
   private freeClients: SurrealClient[];
 
@@ -207,7 +219,7 @@ export class SurrealPool {
     totalConnections: number;
   }) {
     const { totalConnections, ...clientParams } = params;
-    this.queue = [];
+    this.queue = new Queue<QueueItem>(QUEUE_BATCH_SIZE);
     this.clients = new Array(totalConnections).fill(0).map(() => {
       const client = new SurrealClient(clientParams);
       client.connect();
@@ -220,27 +232,21 @@ export class SurrealPool {
     await Promise.all(this.clients.map((con) => con.close()));
   }
 
-  // TODO: Avoid recursive calls. Deep recursion may cause "RangeError: Maximum call stack size exceeded" error.
   private async dequeue() {
-    if (this.queue.length === 0 || this.freeClients.length === 0) {
-      return;
-    }
+    while (this.queue.size() > 0 && this.freeClients.length > 0) {
+      const q = this.queue.dequeue();
+      if (!q) {
+        return;
+      }
 
-    const q = this.queue[0] as QueueItem;
-    this.queue = this.queue.slice(1);
-    if (q.timeout()) {
-      this.dequeue();
-      return;
-    }
+      if (q.timeout()) {
+        continue;
+      }
 
-    try {
       await this.useClient(async (client) => q.cb(client));
-    } finally {
-      this.dequeue();
     }
   }
 
-  // TODO: Remove item from queue immediately if the timeout is reached.
   private async run<T>(cb: (client: SurrealClient) => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       let isTimeout = false;
@@ -248,7 +254,7 @@ export class SurrealPool {
         isTimeout = true;
         reject(new Error('Failed to acquire DB connection in time'));
       }, QUEUE_TIMEOUT);
-      this.queue.push({
+      this.queue.enqueue({
         cb: async (client) => {
           cancelQueueTimeout();
           try {
@@ -282,6 +288,68 @@ export class SurrealPool {
     } finally {
       this.freeClients.push(client);
     }
+  }
+}
+
+class Queue<T> {
+  private batchSize: number;
+  private totalLength = 0;
+  private batches: { items: Array<T | undefined>; offset: number; length: number }[] = [];
+
+  /**
+   * Optimizes performance by balancing batch count against batch size.
+   * Sets `batchSize` to the smallest possible value where: Total batches < `batchSize`.
+   * Use `batchSize` 2^n for better performance.
+   */
+  constructor(batchSize: number) {
+    this.batchSize = batchSize > 0 ? batchSize : 1;
+  }
+
+  dequeue(): T | undefined {
+    const batch = this.batches[0];
+    if (!batch || batch.length === 0) {
+      return undefined;
+    }
+
+    const item = batch.items[batch.offset];
+
+    batch.items[batch.offset] = undefined;
+    batch.offset += 1;
+    batch.length -= 1;
+    this.totalLength -= 1;
+
+    if (batch.length === 0) {
+      if (this.batches.length > 1) {
+        this.batches.shift();
+      } else {
+        batch.offset = 0;
+        batch.length = 0;
+      }
+    }
+
+    return item;
+  }
+
+  enqueue(item: T) {
+    const lastBatch = this.batches.at(-1);
+
+    // Create a new batch if the last batch is full.
+    if (!lastBatch || lastBatch.offset + lastBatch.length >= this.batchSize) {
+      const items = new Array<T | undefined>(this.batchSize);
+      items[0] = item;
+      this.batches.push({ items, offset: 0, length: 1 });
+      this.totalLength += 1;
+      return;
+    }
+
+    const idx = lastBatch.offset + lastBatch.length;
+    lastBatch.items[idx] = item;
+    lastBatch.length += 1;
+    this.totalLength += 1;
+  }
+
+  size() {
+    return this.totalLength;
   }
 }
 
