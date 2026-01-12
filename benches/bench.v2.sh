@@ -12,7 +12,6 @@ SCHEMA_FILE="./benches/schema.v2.surql"
 cleanup() {
   echo "Stopping and removing container..."
   docker stop ${CONTAINER_NAME} >/dev/null 2>&1
-  docker rm ${CONTAINER_NAME} >/dev/null 2>&1
   exit ${EXIT_CODE:-1} # Default to 1 if EXIT_CODE is unset (e.g. early crash)
 }
 

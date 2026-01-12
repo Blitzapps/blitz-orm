@@ -11,12 +11,11 @@ const insertData = async () => {
   const db = await connect();
   console.log('generating data');
   const data = generateData({
-    records: 10,
-    few: { min: 2, max: 2 },
-    many: { min: 3, max: 3 },
+    records: 1000,
+    few: { min: 5, max: 5 },
+    many: { min: 20, max: 20 },
   });
   const surql = createSurql(data);
-  console.log('\n> surql\n', surql);
   console.log('inserting data');
   const start = performance.now();
   const result = await db.query(surql);
@@ -96,7 +95,9 @@ const createSurqlBaseSet = (data: Base): string => {
 insertData()
   .then(() => {
     console.log('Data inserted successfully');
+    process.exit(0);
   })
   .catch((error) => {
     console.error('Error inserting data:', error);
+    process.exit(1);
   });

@@ -141,12 +141,12 @@ const buildFlexFieldProjection = (field: FlexField, level: number) => {
   const escapedAlias = esc(alias || path);
   if (cardinality === 'ONE') {
     return indent(
-      `${escapedPath} && IF type::is::record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } AS ${escapedAlias}`,
+      `(IF ${escapedPath} THEN IF type::is::record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } END) AS ${escapedAlias}`,
       level,
     );
   }
   return indent(
-    `${escapedPath} && ${escapedPath}.map(|$i| IF type::is::record($i) { record::id($i)} ELSE { $i }) AS ${escapedAlias}`,
+    `(IF ${escapedPath} THEN ${escapedPath}.map(|$i| IF type::is::record($i) { record::id($i)} ELSE { $i }) END) AS ${escapedAlias}`,
     level,
   );
 };

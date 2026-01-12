@@ -1,4 +1,6 @@
-import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
+import { nanoid } from 'nanoid';
+import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
+import { log } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { BQLQueryParser } from '../../../types/requests/parser';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
@@ -12,17 +14,49 @@ export const runSurrealDbQueryMachine2 = async (
   bql: unknown[],
   schema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
-  client: SimpleSurrealClient,
+  client: AnySurrealClient,
 ) => {
+  const id = nanoid(3);
   if (bql.length === 0) {
     return [];
   }
+  const start = performance.now();
   const bqlQueries = bql.map((q) => BQLQueryParser.parse(q));
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/bqlQueries'],
+    `> runSurrealDbQueryMachine2/bqlQueries ${id}\n`,
+    JSON.stringify(bqlQueries),
+  );
   const logicalQueries = bqlQueries.map((q) => buildLogicalQuery(q, schema, !config.query?.noMetadata));
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/logicalQueries'],
+    `> runSurrealDbQueryMachine2/logicalQueries ${id}\n`,
+    JSON.stringify(logicalQueries),
+  );
   const optimizedQueries = logicalQueries.map((q) => optimizeLogicalQuery(q, schema));
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/optimizedQueries'],
+    `> runSurrealDbQueryMachine2/optimizedQueries ${id}\n`,
+    JSON.stringify(optimizedQueries),
+  );
   const params: SurqlParams = {};
   const surqlQueries = optimizedQueries.map((q) => buildSurql(q, params));
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/params'],
+    `> runSurrealDbQueryMachine2/params ${id}\n`,
+    JSON.stringify(params),
+  );
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/surqlQueries'],
+    `> runSurrealDbQueryMachine2/surqlQueries ${id}\n`,
+    JSON.stringify(surqlQueries),
+  );
   const result = await query({ client, queries: surqlQueries, config, params });
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/result'],
+    `> runSurrealDbQueryMachine2/result ${id}\n`,
+    JSON.stringify(result),
+  );
   const finalResult = processResults({
     batch: bqlQueries,
     results: result,
@@ -30,5 +64,16 @@ export const runSurrealDbQueryMachine2 = async (
     metadata: !config.query?.noMetadata,
     returnNulls: !!config.query?.returnNulls,
   });
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/finalResult'],
+    `> runSurrealDbQueryMachine2/finalResult ${id}\n`,
+    JSON.stringify(finalResult),
+  );
+  const end = performance.now();
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/duration'],
+    `> runSurrealDbQueryMachine2/duration ${id}\n`,
+    `${end - start}ms`,
+  );
   return finalResult;
 };
