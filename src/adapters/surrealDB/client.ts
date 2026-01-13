@@ -6,6 +6,7 @@ import { log } from '../../logger';
 const QUEUE_TIMEOUT = 5000; // The max duration a query is queued before "Timeout" error is thrown.
 const QUEUE_BATCH_SIZE = 128;
 const QUERY_TIMEOUT = 180_000; // The max duration a query is run before "Timeout" error is thrown.
+const PING_TIMEOUT = 2000; // The max duration a ping is run before "Timeout" error is thrown.
 const CONNECTION_CHECK_INTERVAL = 3000; // Check the connection every `CONNECTION_CHECK_INTERVAL` and reconnect it if it's not connected.
 const INITIAL_RECONNECT_RETRY_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
 const MAX_RECONNECT_RETRY_INTERVAL = 60_000; // If the reconnection failed wait with exponential backoff with this max interval and then try to reconnect again.
@@ -13,6 +14,7 @@ const MAX_RECONNECT_RETRY_INTERVAL = 60_000; // If the reconnection failed wait 
 export type AnySurrealClient = SimpleSurrealClient | SurrealPool;
 
 class SurrealClient {
+  private id = nanoid(3);
   private db: Surreal;
   private url: string;
   private username: string;
@@ -66,9 +68,41 @@ class SurrealClient {
   }
 
   /**
+   * Ping the database to ensure the connection is still alive.
+   * If the ping fails, close the connection and return false.
+   * If the ping succeeds, return true.
+   */
+  private async ping(): Promise<boolean> {
+    if (this.db.status === ConnectionStatus.Connected) {
+      try {
+        const start = performance.now();
+        log(['info', 'SurrealClient', 'SurrealClient/ping'], `SurrealClient/ping`, this.id, this.db.status);
+        await promiseTimeout(this.db.ping(), PING_TIMEOUT);
+        const end = performance.now();
+        log(['info', 'SurrealClient', 'SurrealClient/ping'], `SurrealClient/ping/success`, this.id, this.db.status, end - start);
+        return true;
+      } catch (err) {
+        log(['error', 'SurrealClient', 'SurrealClient/ping'], `SurrealClient/ping/error`, this.id, this.db.status, err);
+        try {
+          // After the server wakes up from sleep, the DB status is "connected" but the underlying connection may be broken.
+          // Close the connection to force a reconnection.
+          await this.db.close();
+        } catch (err) {
+          log(['error', 'SurrealClient', 'SurrealClient/ping'], `SurrealClient/ping/close/error`, this.id, this.db.status, err);
+        }
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Connect to SurrealDB if not connected and run the callback.
    */
   private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
+    // Ping the database to ensure the connection is still alive.
+    // Do this concurrently to avoid adding latency to the query on normal circumstances.
+    this.ping();
     return await new Promise((resolve, reject) => {
       let settled = false;
       const cancelQueryTimer = schedule(async () => {
@@ -76,7 +110,12 @@ class SurrealClient {
           return;
         }
         settled = true;
-        reject(new Error('Timeout'));
+        reject(new Error('Query timed out'));
+        log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/timeout/db.status`, this.id, this.db.status);
+        log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/timeout/connectionPromise`, this.id, !!this.connectionPromise);
+        log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/timeout/cancelScheduledConnectionCheck`, this.id, !!this.cancelScheduledConnectionCheck);
+        log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/timeout/cancelRetrySleep`, this.id, !!this.cancelRetrySleep);
+        log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/timeout/closed`, this.id, this.closed);
       }, QUERY_TIMEOUT);
       // Cancel any scheduled retry sleep to reconnect immediately
       this.cancelRetrySleep?.();
@@ -92,7 +131,7 @@ class SurrealClient {
               resolve(res);
             })
             .catch((err) => {
-              log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/cb/error`, err);
+              log(['error', 'SurrealClient', 'SurrealClient/run'], `SurrealClient/run/cb/error`, this.id, err);
               if (settled) {
                 return;
               }
@@ -102,7 +141,7 @@ class SurrealClient {
             });
         })
         .catch((err) => {
-          log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/error`, err);
+          log(['error', 'SurrealClient', 'SurrealClient/run'], `SurrealClient/run/error`, this.id, err);
           if (settled) {
             return;
           }
@@ -115,9 +154,14 @@ class SurrealClient {
 
   private async scheduleConnectionCheck() {
     if (!this.isClosed && this.cancelScheduledConnectionCheck === null) {
-      const cancel = schedule(() => {
+      const cancel = schedule(async () => {
         this.cancelScheduledConnectionCheck = null;
-        this.connect();
+        const connected = await this.ping();
+        if (connected) {
+          this.scheduleConnectionCheck();
+        } else {
+          this.connect();
+        }
       }, CONNECTION_CHECK_INTERVAL);
       this.cancelScheduledConnectionCheck = () => {
         cancel();
@@ -135,18 +179,37 @@ class SurrealClient {
       throw new Error('SurrealClient is closed');
     }
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 1;
     while (true) {
       try {
         return await this.run(cb);
       } catch (e) {
-        log(['SurrealClient', 'SurrealClient/tryRun'], `SurrealClient/tryRun/error ${retryCount}`, e);
-        // TODO: Handle other connection errors.
-        const isEngineDisconnected = e instanceof Error && e.name === 'EngineDisconnected';
-        if (retryCount < maxRetries && isEngineDisconnected) {
-          retryCount += 1;
-          continue;
+        log(['error', 'SurrealClient', 'SurrealClient/tryRun'], `SurrealClient/tryRun/error ${retryCount}`, this.id, this.db.status, e);
+        const connectionErrors = [
+          'NoActiveSocket',
+          'NoConnectionDetails',
+          'EngineDisconnected',
+          'ReconnectFailed',
+          'ReconnectIterationError',
+          'UnexpectedConnectionError',
+          'ConnectionUnavailable',
+          'HttpConnectionError',
+        ];
+        const isDisconnected = e instanceof Error && connectionErrors.includes(e.name);
+        const isTimeout = e instanceof Error && e.message === 'Timeout';
+
+        if (retryCount < maxRetries && (isDisconnected || isTimeout)) {
+          // When the server sleeps, the DB status may still be "connected" but the underlying connection on the DB side is broken.
+          // So we need to ping it. Maybe force a reconnection.
+          // Rerun the query only if it fails because the underlying connection is broken.
+          // Rerunning the query on a normal timeout may end up running a mutation twice, which should be avoided.
+          const connected = await this.ping();
+          if (!connected) {
+            retryCount += 1;
+            continue;
+          }
         }
+
         throw e;
       }
     }
@@ -156,7 +219,6 @@ class SurrealClient {
    * This method should not throw any exception.
    */
   private async tryConnectingUntilSucceed() {
-    const id = nanoid(3);
     if (this.db.status === ConnectionStatus.Connected) {
       this.scheduleConnectionCheck();
       return;
@@ -172,6 +234,8 @@ class SurrealClient {
       }
       let failed = false;
       try {
+        const start = performance.now();
+        log(['info', 'SurrealClient', 'SurrealClient/tryConnectingUntilSucceed'], `SurrealClient/tryConnectingUntilSucceed/connect/start ${this.id}`, this.db.status);
         await this.db.connect(this.url, {
           namespace: this.namespace,
           database: this.database,
@@ -181,9 +245,11 @@ class SurrealClient {
           },
           versionCheck: false,
         });
+        const end = performance.now();
+        log(['info', 'SurrealClient', 'SurrealClient/tryConnectingUntilSucceed'], `SurrealClient/tryConnectingUntilSucceed/connect/success`, this.id, this.db.status, end - start);
         break;
       } catch (e) {
-        log(['SurrealClient', 'SurrealClient/tryConnectingUntilSucceed'], `SurrealClient/tryConnectingUntilSucceed/connect/failed ${id}`, e);
+        log(['error', 'SurrealClient', 'SurrealClient/tryConnectingUntilSucceed'], `SurrealClient/tryConnectingUntilSucceed/connect/error ${this.id}`, this.db.status, e);
         failed = true;
         if (this.isClosed) {
           break;
@@ -271,6 +337,8 @@ export class SurrealPool {
         isTimeout = true;
         reject(new Error('Failed to acquire DB connection in time'));
       }, QUEUE_TIMEOUT);
+      log(['info', 'SurrealPool', 'SurrealPool/run'], `SurrealPool/run/queueLength`, this.queue.size());
+      log(['info', 'SurrealPool', 'SurrealPool/run'], `SurrealPool/run/freeClientsLength`, this.freeClients.length);
       this.queue.enqueue({
         cb: async (client) => {
           cancelQueueTimeout();
@@ -414,6 +482,24 @@ export class SimpleSurrealClient {
     return this.run<QueryResult<T>[]>((db) => db.queryRaw(...args));
   }
 }
+
+const promiseTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timeout'));
+    }, ms);
+
+    promise
+      .then((res) => {
+        clearTimeout(timeout);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+  });
+};
 
 const schedule = (cb: () => void, delay: number) => {
   const timeout = setTimeout(cb, delay);
