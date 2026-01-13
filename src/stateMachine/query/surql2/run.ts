@@ -51,7 +51,14 @@ export const runSurrealDbQueryMachine2 = async (
     `> runSurrealDbQueryMachine2/surqlQueries ${id}\n`,
     JSON.stringify(surqlQueries),
   );
+  const queryStart = performance.now();
   const result = await query({ client, queries: surqlQueries, config, params });
+  const queryEnd = performance.now();
+  log(
+    ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/queryDuration'],
+    `> runSurrealDbQueryMachine2/queryDuration ${id}\n`,
+    `${(queryEnd - queryStart).toFixed(2)}ms`,
+  );
   log(
     ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/result'],
     `> runSurrealDbQueryMachine2/result ${id}\n`,
@@ -73,7 +80,7 @@ export const runSurrealDbQueryMachine2 = async (
   log(
     ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/duration'],
     `> runSurrealDbQueryMachine2/duration ${id}\n`,
-    `${end - start}ms`,
+    `${(end - start).toFixed(2)}ms`,
   );
   return finalResult;
 };

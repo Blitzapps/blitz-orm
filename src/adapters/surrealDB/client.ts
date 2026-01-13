@@ -5,10 +5,10 @@ import { log } from '../../logger';
 
 const QUEUE_TIMEOUT = 5000; // The max duration a query is queued before "Timeout" error is thrown.
 const QUEUE_BATCH_SIZE = 128;
-const QUERY_TIMEOUT = 180000; // The max duration a query is run before "Timeout" error is thrown.
-const RECONNECT_INTERVAL = 2000; // Check the connection every `RECONNECT_INTERVAL` and reconnect it if it's not connected.
-const INITIAL_RECONNECT_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
-const MAX_RECONNECT_RETRY_INTERVAL = 60000; // If the reconnection failed wait with exponential backoff with this max interval and then try to reconnect again.
+const QUERY_TIMEOUT = 180_000; // The max duration a query is run before "Timeout" error is thrown.
+const CONNECTION_CHECK_INTERVAL = 3000; // Check the connection every `CONNECTION_CHECK_INTERVAL` and reconnect it if it's not connected.
+const INITIAL_RECONNECT_RETRY_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
+const MAX_RECONNECT_RETRY_INTERVAL = 60_000; // If the reconnection failed wait with exponential backoff with this max interval and then try to reconnect again.
 
 export type AnySurrealClient = SimpleSurrealClient | SurrealPool;
 
@@ -56,6 +56,8 @@ class SurrealClient {
       await this.connectionPromise;
     } catch (e) {
       log('error', 'Failed to connect to SurrealDB', { error: e });
+    } finally {
+      this.connectionPromise = null;
     }
   }
 
@@ -90,6 +92,7 @@ class SurrealClient {
               resolve(res);
             })
             .catch((err) => {
+              log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/cb/error`, err);
               if (settled) {
                 return;
               }
@@ -99,6 +102,7 @@ class SurrealClient {
             });
         })
         .catch((err) => {
+          log(['SurrealClient', 'SurrealClient/run'], `SurrealClient/run/error`, err);
           if (settled) {
             return;
           }
@@ -107,6 +111,19 @@ class SurrealClient {
           reject(err);
         });
     });
+  }
+
+  private async scheduleConnectionCheck() {
+    if (!this.isClosed && this.cancelScheduledConnectionCheck === null) {
+      const cancel = schedule(() => {
+        this.cancelScheduledConnectionCheck = null;
+        this.connect();
+      }, CONNECTION_CHECK_INTERVAL);
+      this.cancelScheduledConnectionCheck = () => {
+        cancel();
+        this.cancelScheduledConnectionCheck = null;
+      };
+    }
   }
 
   /**
@@ -123,27 +140,15 @@ class SurrealClient {
       try {
         return await this.run(cb);
       } catch (e) {
+        log(['SurrealClient', 'SurrealClient/tryRun'], `SurrealClient/tryRun/error ${retryCount}`, e);
         // TODO: Handle other connection errors.
         const isEngineDisconnected = e instanceof Error && e.name === 'EngineDisconnected';
         if (retryCount < maxRetries && isEngineDisconnected) {
           retryCount += 1;
           continue;
         }
-        throw e as Error;
+        throw e;
       }
-    }
-  }
-
-  private async scheduleConnectionCheck() {
-    if (!this.isClosed && this.cancelScheduledConnectionCheck === null) {
-      const cancel = schedule(() => {
-        this.cancelScheduledConnectionCheck = null;
-        this.connect();
-      }, RECONNECT_INTERVAL);
-      this.cancelScheduledConnectionCheck = () => {
-        cancel();
-        this.cancelScheduledConnectionCheck = null;
-      };
     }
   }
 
@@ -151,6 +156,7 @@ class SurrealClient {
    * This method should not throw any exception.
    */
   private async tryConnectingUntilSucceed() {
+    const id = nanoid(3);
     if (this.db.status === ConnectionStatus.Connected) {
       this.scheduleConnectionCheck();
       return;
@@ -158,7 +164,7 @@ class SurrealClient {
 
     this.cancelScheduledConnectionCheck?.();
 
-    let retryTimeout = Math.max(INITIAL_RECONNECT_INTERVAL, 1);
+    let retryTimeout = INITIAL_RECONNECT_RETRY_INTERVAL;
     // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this.isClosed) {
@@ -176,7 +182,8 @@ class SurrealClient {
           versionCheck: false,
         });
         break;
-      } catch {
+      } catch (e) {
+        log(['SurrealClient', 'SurrealClient/tryConnectingUntilSucceed'], `SurrealClient/tryConnectingUntilSucceed/connect/failed ${id}`, e);
         failed = true;
         if (this.isClosed) {
           break;
@@ -198,7 +205,6 @@ class SurrealClient {
         retryTimeout = expBackoff(retryTimeout, MAX_RECONNECT_RETRY_INTERVAL);
       }
     }
-    this.connectionPromise = null;
     this.scheduleConnectionCheck();
   }
 
@@ -259,7 +265,7 @@ export class SurrealPool {
   }
 
   private async run<T>(cb: (client: SurrealClient) => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
+    const res = await new Promise<T>((resolve, reject) => {
       let isTimeout = false;
       const cancelQueueTimeout = schedule(() => {
         isTimeout = true;
@@ -279,6 +285,7 @@ export class SurrealPool {
       });
       this.dequeue();
     });
+    return res;
   }
 
   async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
@@ -308,9 +315,10 @@ class Queue<T> {
   private batches: { items: Array<T | undefined>; offset: number; length: number }[] = [];
 
   /**
-   * Optimizes performance by balancing batch count against batch size.
-   * Sets `batchSize` to the smallest possible value where: Total batches < `batchSize`.
-   * Use `batchSize` 2^n for better performance.
+   * Optimize the performance by balancing the batch count against the batch size.
+   * - If the number of items is small, set `batchSize` to the smallest possible value, while keeping `totalLength < batchSize`.
+   * - If the number of items is big, set `batchSize` to the smallest possible value where: `batches.length < batchSize`.
+   * - Use `batchSize = 2^n`.
    */
   constructor(batchSize: number) {
     this.batchSize = batchSize > 0 ? batchSize : 1;
@@ -381,8 +389,6 @@ export class SimpleSurrealClient {
 
   private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
     const db = new Surreal();
-    const id = nanoid(3);
-    const connect = performance.now();
     try {
       await db.connect(this.url, {
         namespace: this.namespace,
@@ -393,16 +399,10 @@ export class SimpleSurrealClient {
         },
         versionCheck: false,
       });
-      log(['SimpleSurrealClient', 'SimpleSurrealClient/run'], `> SimpleSurrealClient/run/connect ${id} ${performance.now() - connect}ms`);
-      const query = performance.now();
       const res =  await cb(db);
-      log(['SimpleSurrealClient', 'SimpleSurrealClient/run'], `> SimpleSurrealClient/run/query ${id} ${performance.now() - query}ms`);
       return res;
     } finally {
-      const close = performance.now();
       await db.close();
-      log(['SimpleSurrealClient', 'SimpleSurrealClient/run'], `> SimpleSurrealClient/run/close ${id} ${performance.now() - close}ms`);
-      log(['SimpleSurrealClient', 'SimpleSurrealClient/run'], `> SimpleSurrealClient/run/total ${id} ${performance.now() - connect}ms`);
     }
   }
 
