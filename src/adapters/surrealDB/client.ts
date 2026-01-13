@@ -6,7 +6,7 @@ import { log } from '../../logger';
 const QUEUE_TIMEOUT = 5000; // The max duration a query is queued before "Timeout" error is thrown.
 const QUEUE_BATCH_SIZE = 128;
 const QUERY_TIMEOUT = 180_000; // The max duration a query is run before "Timeout" error is thrown.
-const CONNECTION_CHECK_INTERVAL = 3000; // Check the connection every `RECONNECT_INTERVAL` and reconnect it if it's not connected.
+const CONNECTION_CHECK_INTERVAL = 3000; // Check the connection every `CONNECTION_CHECK_INTERVAL` and reconnect it if it's not connected.
 const INITIAL_RECONNECT_RETRY_INTERVAL = 1000; // If it's failed to reconnect wait with exponential backoff with this initial interval and then try to reconnect again.
 const MAX_RECONNECT_RETRY_INTERVAL = 60_000; // If the reconnection failed wait with exponential backoff with this max interval and then try to reconnect again.
 
