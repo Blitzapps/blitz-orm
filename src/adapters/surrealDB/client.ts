@@ -100,9 +100,6 @@ class SurrealClient {
    * Connect to SurrealDB if not connected and run the callback.
    */
   private async run<T>(cb: (db: Surreal) => Promise<T>): Promise<T> {
-    // Ping the database to ensure the connection is still alive.
-    // Do this concurrently to avoid adding latency to the query on normal circumstances.
-    this.ping();
     return await new Promise((resolve, reject) => {
       let settled = false;
       const cancelQueryTimer = schedule(async () => {
