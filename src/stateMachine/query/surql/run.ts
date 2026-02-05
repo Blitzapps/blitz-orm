@@ -1,10 +1,10 @@
-import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { logDebug } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { VERSION } from '../../../version';
 
 export const run = async (props: {
-  client: AnySurrealClient;
+  client: SurrealClient;
   queries: string[];
   config: BormConfig;
 }): Promise<any[][]> => {

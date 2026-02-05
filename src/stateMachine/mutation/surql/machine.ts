@@ -1,5 +1,5 @@
 import { isArray } from 'radash';
-import type { SimpleSurrealClient } from '../../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
 import type {
@@ -73,6 +73,14 @@ const errorTransition = transition(
   }),
 );
 
+const getClient = (handles: DBHandles): SurrealClient => {
+  const entry = handles.surrealDB?.values().next().value;
+  if (!entry?.client) {
+    throw new Error('No SurrealDB client available');
+  }
+  return entry.client;
+};
+
 const surrealDbMutationMachine = createMachine(
   'buildMutation',
   {
@@ -87,11 +95,7 @@ const surrealDbMutationMachine = createMachine(
     runMutation: invoke(
       async (ctx: SurrealDbMachineContext) => {
         logDebug(`>>> surqlMachine/runMutation[${VERSION}]`, JSON.stringify(ctx.surql.mutations));
-        return runSURQLMutation(
-          ctx.handles.surrealDB?.get(ctx.handles.surrealDB?.keys().next().value as string)
-            ?.client as SimpleSurrealClient,
-          ctx.surql.mutations,
-        );
+        return runSURQLMutation(getClient(ctx.handles), ctx.surql.mutations);
       },
       transition('done', 'parseMutation', reduce(updateSURQLRes)),
       errorTransition,
