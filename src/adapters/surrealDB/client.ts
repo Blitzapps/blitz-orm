@@ -9,9 +9,21 @@ type ConnectionConfig = {
   password: string;
 };
 
+/** Errors that indicate a broken connection (status may still show "Connected") */
+const CONNECTION_ERRORS = [
+  'NoActiveSocket',
+  'EngineDisconnected',
+  'ConnectionUnavailable',
+  'HttpConnectionError',
+];
+
+const isConnectionError = (error: unknown): boolean =>
+  error instanceof Error && CONNECTION_ERRORS.includes(error.name);
+
 /**
  * Thin wrapper over the official SurrealDB SDK.
  * Delegates connection management, multiplexing, and reconnection to the SDK.
+ * Handles stale connections (e.g., after wifi disconnect or laptop sleep).
  */
 export class SurrealClient {
   readonly #db = new Surreal();
@@ -43,18 +55,44 @@ export class SurrealClient {
     });
   }
 
+  async #reconnect(): Promise<void> {
+    try {
+      await this.#db.close();
+    } catch {
+      // Ignore close errors on stale connection
+    }
+    this.#connecting = null;
+    await this.connect();
+  }
+
   async close(): Promise<void> {
     await this.#db.close();
   }
 
   async query<T>(...args: QueryParameters): Promise<T[]> {
     if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
-    return this.#db.query<T[]>(...args);
+    try {
+      return await this.#db.query<T[]>(...args);
+    } catch (error) {
+      if (isConnectionError(error)) {
+        await this.#reconnect();
+        return this.#db.query<T[]>(...args);
+      }
+      throw error;
+    }
   }
 
   async queryRaw(...args: QueryParameters) {
     if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
-    return this.#db.queryRaw(...args);
+    try {
+      return await this.#db.queryRaw(...args);
+    } catch (error) {
+      if (isConnectionError(error)) {
+        await this.#reconnect();
+        return this.#db.queryRaw(...args);
+      }
+      throw error;
+    }
   }
 
   get status(): ConnectionStatus {
