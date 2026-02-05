@@ -9,21 +9,13 @@ type ConnectionConfig = {
   password: string;
 };
 
-/** Errors that indicate a broken connection (status may still show "Connected") */
-const CONNECTION_ERRORS = [
-  'NoActiveSocket',
-  'EngineDisconnected',
-  'ConnectionUnavailable',
-  'HttpConnectionError',
-];
+const CONNECTION_ERRORS = ['NoActiveSocket', 'EngineDisconnected', 'ConnectionUnavailable', 'HttpConnectionError'];
 
-const isConnectionError = (error: unknown): boolean =>
-  error instanceof Error && CONNECTION_ERRORS.includes(error.name);
+const isConnectionError = (error: unknown): boolean => error instanceof Error && CONNECTION_ERRORS.includes(error.name);
 
 /**
  * Thin wrapper over the official SurrealDB SDK.
- * Delegates connection management, multiplexing, and reconnection to the SDK.
- * Handles stale connections (e.g., after wifi disconnect or laptop sleep).
+ * Handles auto-connect and stale connection recovery.
  */
 export class SurrealClient {
   readonly #db = new Surreal();
@@ -35,10 +27,22 @@ export class SurrealClient {
   }
 
   async connect(): Promise<void> {
-    if (this.#db.status === ConnectionStatus.Connected) return;
-    if (this.#connecting) return this.#connecting;
+    if (this.#db.status === ConnectionStatus.Connected) {
+      return;
+    }
+    if (this.#connecting) {
+      return this.#connecting;
+    }
 
-    this.#connecting = this.#doConnect();
+    this.#connecting = this.#db
+      .connect(this.#config.url, {
+        namespace: this.#config.namespace,
+        database: this.#config.database,
+        auth: { username: this.#config.username, password: this.#config.password },
+        versionCheck: false,
+      })
+      .then(() => {});
+
     try {
       await this.#connecting;
     } finally {
@@ -46,53 +50,33 @@ export class SurrealClient {
     }
   }
 
-  async #doConnect(): Promise<void> {
-    await this.#db.connect(this.#config.url, {
-      namespace: this.#config.namespace,
-      database: this.#config.database,
-      auth: { username: this.#config.username, password: this.#config.password },
-      versionCheck: false,
-    });
-  }
-
-  async #reconnect(): Promise<void> {
-    try {
-      await this.#db.close();
-    } catch {
-      // Ignore close errors on stale connection
-    }
-    this.#connecting = null;
-    await this.connect();
-  }
-
   async close(): Promise<void> {
     await this.#db.close();
   }
 
-  async query<T>(...args: QueryParameters): Promise<T[]> {
-    if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
+  async #withReconnect<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.#db.status !== ConnectionStatus.Connected) {
+      await this.connect();
+    }
     try {
-      return await this.#db.query<T[]>(...args);
+      return await fn();
     } catch (error) {
-      if (isConnectionError(error)) {
-        await this.#reconnect();
-        return this.#db.query<T[]>(...args);
+      if (!isConnectionError(error)) {
+        throw error;
       }
-      throw error;
+      await this.#db.close().catch(() => {});
+      this.#connecting = null;
+      await this.connect();
+      return fn();
     }
   }
 
+  async query<T>(...args: QueryParameters): Promise<T[]> {
+    return this.#withReconnect(() => this.#db.query<T[]>(...args));
+  }
+
   async queryRaw(...args: QueryParameters) {
-    if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
-    try {
-      return await this.#db.queryRaw(...args);
-    } catch (error) {
-      if (isConnectionError(error)) {
-        await this.#reconnect();
-        return this.#db.queryRaw(...args);
-      }
-      throw error;
-    }
+    return this.#withReconnect(() => this.#db.queryRaw(...args));
   }
 
   get status(): ConnectionStatus {
