@@ -1,4 +1,4 @@
-import type { MapQueryResult, QueryParameters } from 'surrealdb';
+import type { QueryParameters } from 'surrealdb';
 import Surreal, { ConnectionStatus } from 'surrealdb';
 
 type ConnectionConfig = {
@@ -23,15 +23,10 @@ export class SurrealClient {
   }
 
   async connect(): Promise<void> {
-    if (this.#db.status === ConnectionStatus.Connected) {
-      return;
-    }
-    if (this.#connecting) {
-      return this.#connecting;
-    }
+    if (this.#db.status === ConnectionStatus.Connected) return;
+    if (this.#connecting) return this.#connecting;
 
     this.#connecting = this.#doConnect();
-
     try {
       await this.#connecting;
     } finally {
@@ -52,18 +47,14 @@ export class SurrealClient {
     await this.#db.close();
   }
 
-  async query<T = unknown>(...args: QueryParameters): Promise<T[]> {
-    if (this.#db.status !== ConnectionStatus.Connected) {
-      await this.connect();
-    }
+  async query<T>(...args: QueryParameters): Promise<T[]> {
+    if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
     return this.#db.query<T[]>(...args);
   }
 
-  async queryRaw<T extends unknown[] = unknown[]>(...args: QueryParameters): Promise<MapQueryResult<T>> {
-    if (this.#db.status !== ConnectionStatus.Connected) {
-      await this.connect();
-    }
-    return this.#db.queryRaw<T>(...args);
+  async queryRaw(...args: QueryParameters) {
+    if (this.#db.status !== ConnectionStatus.Connected) await this.connect();
+    return this.#db.queryRaw(...args);
   }
 
   get status(): ConnectionStatus {
