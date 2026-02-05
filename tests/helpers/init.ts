@@ -1,5 +1,3 @@
-import { surrealDBTestConfig } from '../adapters/surrealDB/mocks/config';
-import { typeDBTestConfig } from '../adapters/typeDB/mocks/config';
 import { schema } from '../mocks/schema';
 import { setup } from './setup';
 
@@ -13,12 +11,19 @@ if (!adapter) {
 if (['surrealDB', 'typeDB'].includes(adapter) === false) {
   throw new Error(`Unsupported adapter "${adapter}"`);
 }
-//console.log('adapter', adapter);
 
-const config = adapter === 'surrealDB' ? surrealDBTestConfig : typeDBTestConfig;
+const getConfig = async () => {
+  if (adapter === 'surrealDB') {
+    const { surrealDBTestConfig } = await import('../adapters/surrealDB/mocks/config');
+    return surrealDBTestConfig;
+  }
+  const { typeDBTestConfig } = await import('../adapters/typeDB/mocks/config');
+  return typeDBTestConfig;
+};
 
-export const init = async () =>
-  setup({
+export const init = async () => {
+  const config = await getConfig();
+  return setup({
     config,
     schema,
     tqlPathMap: {
@@ -28,4 +33,4 @@ export const init = async () =>
       },
     },
   });
-[];
+};
