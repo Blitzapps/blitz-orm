@@ -2,7 +2,7 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.14.10(2026-02-05)
+## 0.15.0(2026-02-05)
 
 - Refactor: Simplify SurrealDB client to thin SDK wrapper
 - Fix: Replace custom SurrealPool (64 connections, 3s ping) with single SurrealClient
