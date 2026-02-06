@@ -9,7 +9,7 @@ type ConnectionConfig = {
   password: string;
 };
 
-const CONNECTION_ERRORS = [
+const CONNECTION_ERROR_NAMES = new Set([
   'NoActiveSocket',
   'NoConnectionDetails',
   'EngineDisconnected',
@@ -18,13 +18,20 @@ const CONNECTION_ERRORS = [
   'UnexpectedConnectionError',
   'ConnectionUnavailable',
   'HttpConnectionError',
-] as const;
+]);
 
 const QUERY_TIMEOUT_MS = 180_000;
-const CLIENT_CLOSED_ERROR = 'Client has been closed';
+const PING_TIMEOUT_MS = 3_000;
+const ERR_CLIENT_CLOSED = 'Client has been closed';
+const ERR_QUERY_TIMEOUT = 'Query timeout';
 
-const isConnectionError = (error: unknown): boolean =>
-  error instanceof Error && CONNECTION_ERRORS.includes(error.name as (typeof CONNECTION_ERRORS)[number]);
+const hasErrorName = (error: unknown, names: Set<string>): boolean => error instanceof Error && names.has(error.name);
+
+const hasErrorMessage = (error: unknown, message: string): boolean =>
+  error instanceof Error && error.message === message;
+
+const withTimeout = <T>(promise: Promise<T>, ms: number, message = ERR_QUERY_TIMEOUT): Promise<T> =>
+  Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error(message)), ms))]);
 
 /**
  * Thin wrapper over the official SurrealDB SDK.
@@ -40,14 +47,10 @@ export class SurrealClient {
     this.#config = config;
   }
 
-  #assertOpen(): void {
-    if (this.#closed) {
-      throw new Error(CLIENT_CLOSED_ERROR);
-    }
-  }
-
   async connect(): Promise<void> {
-    this.#assertOpen();
+    if (this.#closed) {
+      throw new Error(ERR_CLIENT_CLOSED);
+    }
     if (this.#db.status === ConnectionStatus.Connected) {
       return;
     }
@@ -62,7 +65,7 @@ export class SurrealClient {
         auth: { username: this.#config.username, password: this.#config.password },
         versionCheck: false,
       })
-      .then(() => {})
+      .then(() => undefined)
       .finally(() => {
         this.#connecting = null;
       });
@@ -76,33 +79,38 @@ export class SurrealClient {
   }
 
   async #reconnect(): Promise<void> {
-    await this.#db.close().catch(() => {});
+    await this.#db.close().catch(() => undefined);
     await this.connect();
   }
 
-  async #withTimeout<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Query timeout')), QUERY_TIMEOUT_MS);
-      fn()
-        .then(resolve)
-        .catch(reject)
-        .finally(() => clearTimeout(timer));
-    });
+  async #isAlive(): Promise<boolean> {
+    if (this.#db.status !== ConnectionStatus.Connected) {
+      return false;
+    }
+    return withTimeout(this.#db.ping(), PING_TIMEOUT_MS)
+      .then(() => true)
+      .catch(() => false);
   }
 
   async #withReconnect<T>(fn: () => Promise<T>): Promise<T> {
-    this.#assertOpen();
+    if (this.#closed) {
+      throw new Error(ERR_CLIENT_CLOSED);
+    }
     if (this.#db.status !== ConnectionStatus.Connected) {
       await this.connect();
     }
+
     try {
-      return await this.#withTimeout(fn);
+      return await withTimeout(fn(), QUERY_TIMEOUT_MS);
     } catch (error) {
-      if (!isConnectionError(error)) {
-        throw error;
+      if (hasErrorName(error, CONNECTION_ERROR_NAMES)) {
+        await this.#reconnect();
+        return withTimeout(fn(), QUERY_TIMEOUT_MS);
       }
-      await this.#reconnect();
-      return this.#withTimeout(fn);
+      if (hasErrorMessage(error, ERR_QUERY_TIMEOUT) && !(await this.#isAlive())) {
+        await this.#reconnect();
+      }
+      throw error;
     }
   }
 

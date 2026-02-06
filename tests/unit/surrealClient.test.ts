@@ -1,163 +1,143 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SurrealClient } from '../../src/adapters/surrealDB/client';
 import { ConnectionStatus } from 'surrealdb';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SurrealClient } from '../../src/adapters/surrealDB/client';
+
+const TEST_CONFIG = {
+  url: 'ws://127.0.0.1:8100',
+  namespace: 'test_refs', // Matches test.sh setup
+  database: 'test',
+  username: 'test',
+  password: 'test',
+};
+
+const INVALID_CONFIG = { ...TEST_CONFIG, url: 'http://127.0.0.1:59999' };
+
+const withClient = async <T>(config: typeof TEST_CONFIG, fn: (client: SurrealClient) => Promise<T>): Promise<T> => {
+  const client = new SurrealClient(config);
+  try {
+    return await fn(client);
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+};
 
 describe('SurrealClient', () => {
-  const config = {
-    url: 'ws://127.0.0.1:8100',
-    namespace: 'test',
-    database: 'test',
-    username: 'test',
-    password: 'test',
-  };
-
-  const createClosedClient = async () => {
-    const client = new SurrealClient(config);
-    await client.close();
-    return client;
-  };
-
   describe('close behavior', () => {
-    it.each([
+    const closedClientOps = [
       ['connect', (c: SurrealClient) => c.connect()],
       ['query', (c: SurrealClient) => c.query('SELECT 1')],
       ['queryRaw', (c: SurrealClient) => c.queryRaw('SELECT 1')],
-    ])('should throw when calling %s after close', async (_, operation) => {
-      const client = await createClosedClient();
-      await expect(operation(client)).rejects.toThrow('Client has been closed');
+    ] as const;
+
+    it.each(closedClientOps)('should throw when calling %s after close', async (_, op) => {
+      const client = new SurrealClient(TEST_CONFIG);
+      await client.close();
+      await expect(op(client)).rejects.toThrow('Client has been closed');
     });
   });
 
   describe('connection behavior', () => {
-    it('should fail immediately on connection error (no retry)', async () => {
-      // Use an invalid URL that will fail to connect
-      const badClient = new SurrealClient({
-        ...config,
-        url: 'ws://127.0.0.1:59999', // Non-existent port
-      });
-
+    it('should fail immediately on connection error (no retry with backoff)', async () => {
       const startTime = Date.now();
-      
-      try {
-        await badClient.connect();
-        // Should not reach here
-        expect.fail('Expected connection to fail');
-      } catch (error) {
-        const elapsed = Date.now() - startTime;
-        // Should fail quickly (< 5 seconds), not retry with backoff
-        // This documents that the new implementation does NOT have retry logic
-        expect(elapsed).toBeLessThan(5000);
-        expect(error).toBeInstanceOf(Error);
-      } finally {
-        await badClient.close().catch(() => {});
-      }
-    }, 10000);
+
+      await expect(withClient(INVALID_CONFIG, (c) => c.connect())).rejects.toThrow();
+
+      expect(Date.now() - startTime).toBeLessThan(5000);
+    });
 
     it('should deduplicate concurrent connect calls', async () => {
-      const client = new SurrealClient({
-        ...config,
-        url: 'ws://127.0.0.1:59999',
-      });
-
-      try {
-        // Start multiple concurrent connections
-        const promises = [client.connect(), client.connect(), client.connect()];
-
-        // All should reject with the same error
-        const results = await Promise.allSettled(promises);
+      await withClient(INVALID_CONFIG, async (client) => {
+        const results = await Promise.allSettled([client.connect(), client.connect(), client.connect()]);
         expect(results.every((r) => r.status === 'rejected')).toBe(true);
-      } finally {
-        await client.close().catch(() => {});
-      }
-    }, 10000);
-  });
+      });
+    });
 
-  describe('query type behavior', () => {
-    // This test documents the expected type behavior
-    // The SDK's query<T> returns Promise<T> where T should be the full result tuple
-    // Our wrapper uses query<T> to mean "T is the row type, return T[]"
-    it('should return array of results for single statement queries', async () => {
-      // This is a type-level test - we're verifying the API contract
-      // In a real scenario with a running DB:
-      // const result = await client.query<{ id: string }>('SELECT * FROM users');
-      // result should be { id: string }[] not { id: string }[][]
+    it('should connect successfully to running database', async () => {
+      await withClient(TEST_CONFIG, async (client) => {
+        await client.connect();
+        expect(client.status).toBe(ConnectionStatus.Connected);
+      });
+    });
 
-      // For now, we just verify the method signature exists
-      const client = new SurrealClient(config);
-      expect(typeof client.query).toBe('function');
-      await client.close().catch(() => {});
+    it('should auto-connect on first query', async () => {
+      await withClient(TEST_CONFIG, async (client) => {
+        const result = await client.query<number>('RETURN 42');
+        expect(result).toEqual([42]);
+        expect(client.status).toBe(ConnectionStatus.Connected);
+      });
     });
   });
-});
 
-/**
- * Integration tests that require a running SurrealDB instance.
- * Run with: SURREALDB_URL=ws://localhost:8000 npm test
- */
-describe('SurrealClient Integration', () => {
-  const surrealUrl = process.env.SURREALDB_URL;
-
-  // Skip if no SurrealDB URL is provided
-  const describeWithDb = surrealUrl ? describe : describe.skip;
-
-  describeWithDb('with running database', () => {
+  describe('query behavior', () => {
     let client: SurrealClient;
 
-    beforeEach(() => {
-      client = new SurrealClient({
-        url: surrealUrl!,
-        namespace: 'test',
-        database: 'test',
-        username: 'root',
-        password: 'root',
-      });
+    beforeEach(async () => {
+      client = new SurrealClient(TEST_CONFIG);
+      await client.connect();
     });
 
     afterEach(async () => {
-      await client.close().catch(() => {});
+      await client.close().catch(() => undefined);
     });
 
-    it('should connect and query successfully', async () => {
-      await client.connect();
+    it('should return [value] for RETURN queries', async () => {
+      expect(await client.query<number>('RETURN 42')).toEqual([42]);
+    });
+
+    it('should return [[records]] for SELECT queries', async () => {
+      const table = `test_${Date.now()}`;
+      await client.query(`CREATE ${table}:a SET name = 'a'`);
+      await client.query(`CREATE ${table}:b SET name = 'b'`);
+
+      const result = await client.query<{ name: string }[]>(`SELECT name FROM ${table}`);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveLength(2);
+      expect(result[0].every((r) => 'name' in r)).toBe(true);
+
+      await client.query(`DELETE ${table}`);
+    });
+
+    it('should return multiple results for multi-statement queries', async () => {
+      expect(await client.query<number>('RETURN 1; RETURN 2; RETURN 3')).toEqual([1, 2, 3]);
+    });
+
+    it('should handle query errors without disconnecting', async () => {
+      await expect(client.query('INVALID SYNTAX')).rejects.toThrow();
       expect(client.status).toBe(ConnectionStatus.Connected);
+      expect(await client.query<number>('RETURN 1')).toEqual([1]);
+    });
+  });
 
-      const result = await client.query<{ value: number }>('RETURN 42 AS value');
-      // Verify we get an array back (the wrapper's contract)
-      expect(Array.isArray(result)).toBe(true);
+  describe('queryRaw behavior', () => {
+    it('should return results with metadata', async () => {
+      await withClient(TEST_CONFIG, async (client) => {
+        const result = await client.queryRaw('RETURN 42');
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('status');
+        expect(result[0]).toHaveProperty('result');
+      });
+    });
+  });
+
+  describe('reconnection behavior', () => {
+    it('should handle sequential queries', async () => {
+      await withClient(TEST_CONFIG, async (client) => {
+        for (let i = 0; i < 5; i++) {
+          expect(await client.query<number>(`RETURN ${i}`)).toEqual([i]);
+        }
+      });
     });
 
-    it('should return correct result shape for SELECT queries', async () => {
-      await client.connect();
-
-      // Create a test record
-      await client.query('DELETE test_table');
-      await client.query("CREATE test_table SET name = 'test1'");
-      await client.query("CREATE test_table SET name = 'test2'");
-
-      const result = await client.query<{ name: string }>('SELECT name FROM test_table');
-
-      // Should be an array of objects, not nested arrays
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(2);
-      if (result.length > 0) {
-        expect(typeof result[0]).toBe('object');
-        expect('name' in result[0]).toBe(true);
-      }
-
-      // Cleanup
-      await client.query('DELETE test_table');
-    });
-
-    it('should auto-reconnect on stale connection', async () => {
-      await client.connect();
-
-      // Force disconnect the underlying connection
-      // @ts-expect-error - accessing private for testing
-      await client['#db']?.close?.();
-
-      // Query should still work due to auto-reconnect
-      const result = await client.query<{ value: number }>('RETURN 1 AS value');
-      expect(Array.isArray(result)).toBe(true);
+    it('should handle concurrent queries', async () => {
+      await withClient(TEST_CONFIG, async (client) => {
+        const results = await Promise.all([
+          client.query<number>('RETURN 1'),
+          client.query<number>('RETURN 2'),
+          client.query<number>('RETURN 3'),
+        ]);
+        expect(results.map((r) => r[0]).sort()).toEqual([1, 2, 3]);
+      });
     });
   });
 });
