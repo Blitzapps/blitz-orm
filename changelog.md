@@ -2,6 +2,13 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.15.0(2026-02-05)
+
+- Refactor: Simplify SurrealDB client to thin SDK wrapper
+- Fix: Replace custom SurrealPool (64 connections, 3s ping) with single SurrealClient
+- Fix: Implement proper close() for SurrealDB connections
+- Perf: Reduce connection overhead and ping traffic in production
+
 ## 0.14.9(2025-07-30)
 
 - Chore: biome 2 and fixed some warnings

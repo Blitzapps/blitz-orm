@@ -1,8 +1,8 @@
-import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { logDebug } from '../../../logger';
 import { VERSION } from '../../../version';
 
-export const runSURQLMutation = async (client: AnySurrealClient, mutations: string[]): Promise<any[]> => {
+export const runSURQLMutation = async (client: SurrealClient, mutations: string[]): Promise<any[]> => {
   const batchedMutation = `
 	BEGIN TRANSACTION;
 	${mutations.join(';')};

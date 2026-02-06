@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import type { AnySurrealClient } from '../../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { log } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { BQLQueryParser } from '../../../types/requests/parser';
@@ -14,7 +14,7 @@ export const runSurrealDbQueryMachine2 = async (
   bql: unknown[],
   schema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
-  client: AnySurrealClient,
+  client: SurrealClient,
 ) => {
   const id = nanoid(3);
   if (bql.length === 0) {

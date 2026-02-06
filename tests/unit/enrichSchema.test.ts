@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DBHandles } from '../../src';
-import { SimpleSurrealClient } from '../../src/adapters/surrealDB/client';
+import { SurrealClient } from '../../src/adapters/surrealDB/client';
 import { enrichSchema } from '../../src/enrichSchema';
 import { schema } from '../mocks/schema';
 
@@ -10,7 +10,7 @@ describe('enrichSchema', () => {
       [
         'default',
         {
-          client: new SimpleSurrealClient({ url: '', username: '', password: '', namespace: '', database: '' }),
+          client: new SurrealClient({ url: '', username: '', password: '', namespace: '', database: '' }),
           providerConfig: { linkMode: 'refs' as const },
         },
       ],

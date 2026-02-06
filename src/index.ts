@@ -1,7 +1,7 @@
 import { enableMapSet } from 'immer';
 import { tryit } from 'radash';
 import { SessionType, TypeDB, TypeDBCredential } from 'typedb-driver';
-import { SurrealPool } from './adapters/surrealDB/client';
+import { SurrealClient } from './adapters/surrealDB/client';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './enrichSchema';
@@ -83,22 +83,15 @@ class BormClient {
       await Promise.all(
         this.config.dbConnectors.map(async (dbc) => {
           if (dbc.provider === 'surrealDB') {
-            // const client = new SimpleSurrealClient({
-            //   url: dbc.url,
-            //   username: dbc.username,
-            //   password: dbc.password,
-            //   namespace: dbc.namespace,
-            //   database: dbc.dbName,
-            // });
-            const pool = new SurrealPool({
-            	url: dbc.url,
-            	username: dbc.username,
-            	password: dbc.password,
-            	namespace: dbc.namespace,
-            	database: dbc.dbName,
-            	totalConnections: dbc.totalConnections ?? 64,
+            const client = new SurrealClient({
+              url: dbc.url,
+              username: dbc.username,
+              password: dbc.password,
+              namespace: dbc.namespace,
+              database: dbc.dbName,
             });
-            dbHandles.surrealDB.set(dbc.id, { client: pool, providerConfig: dbc.providerConfig });
+            await client.connect();
+            dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
           } else if (dbc.provider === 'typeDB' && dbc.dbName) {
             // const client = await TypeDB.coreClient(dbc.url);
             // const clientErr = undefined;
@@ -263,8 +256,8 @@ class BormClient {
     if (!this.initialized) {
       return;
     }
-    //todo: probably migrate dbHandles to be an array, where each handle has .type="typeDB" for instance
     try {
+      // Close TypeDB connections
       await Promise.all(
         [...(this.initialized.dbHandles.typeDB?.values() ?? [])].map(async ({ client, session }) => {
           if (session.isOpen()) {
@@ -273,12 +266,15 @@ class BormClient {
           await client.close();
         }),
       );
-      // TODO: Close SurrealDB clients.
+      // Close SurrealDB connections
+      await Promise.all(
+        [...(this.initialized.dbHandles.surrealDB?.values() ?? [])].map(async ({ client }) => {
+          await client.close();
+        }),
+      );
     } finally {
       this.initialized = null;
     }
-    // Currently there's no `close()` method in the client.
-    // See https://github.com/surrealdb/surrealdb.node/issues/36
   };
 }
 
