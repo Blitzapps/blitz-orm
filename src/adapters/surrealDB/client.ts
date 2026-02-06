@@ -79,8 +79,11 @@ export class SurrealClient {
   }
 
   async close(): Promise<void> {
+    if (this.#closed) {
+      return;
+    }
     this.#closed = true;
-    await this.#db.close();
+    await this.#db.close().catch(() => undefined);
   }
 
   async #reconnect(): Promise<void> {
