@@ -21,6 +21,7 @@ const CONNECTION_ERRORS = [
 ] as const;
 
 const QUERY_TIMEOUT_MS = 180_000;
+const CLIENT_CLOSED_ERROR = 'Client has been closed';
 
 const isConnectionError = (error: unknown): boolean =>
   error instanceof Error && CONNECTION_ERRORS.includes(error.name as (typeof CONNECTION_ERRORS)[number]);
@@ -33,12 +34,20 @@ export class SurrealClient {
   readonly #db = new Surreal();
   readonly #config: ConnectionConfig;
   #connecting: Promise<void> | null = null;
+  #closed = false;
 
   constructor(config: ConnectionConfig) {
     this.#config = config;
   }
 
+  #assertOpen(): void {
+    if (this.#closed) {
+      throw new Error(CLIENT_CLOSED_ERROR);
+    }
+  }
+
   async connect(): Promise<void> {
+    this.#assertOpen();
     if (this.#db.status === ConnectionStatus.Connected) {
       return;
     }
@@ -62,6 +71,7 @@ export class SurrealClient {
   }
 
   async close(): Promise<void> {
+    this.#closed = true;
     await this.#db.close();
   }
 
@@ -81,6 +91,7 @@ export class SurrealClient {
   }
 
   async #withReconnect<T>(fn: () => Promise<T>): Promise<T> {
+    this.#assertOpen();
     if (this.#db.status !== ConnectionStatus.Connected) {
       await this.connect();
     }
