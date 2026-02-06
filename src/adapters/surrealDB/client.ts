@@ -30,8 +30,13 @@ const hasErrorName = (error: unknown, names: Set<string>): boolean => error inst
 const hasErrorMessage = (error: unknown, message: string): boolean =>
   error instanceof Error && error.message === message;
 
-const withTimeout = <T>(promise: Promise<T>, ms: number, message = ERR_QUERY_TIMEOUT): Promise<T> =>
-  Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error(message)), ms))]);
+const withTimeout = <T>(promise: Promise<T>, ms: number, message = ERR_QUERY_TIMEOUT): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+};
 
 /**
  * Thin wrapper over the official SurrealDB SDK.
