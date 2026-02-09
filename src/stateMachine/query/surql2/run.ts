@@ -74,7 +74,7 @@ export const runSurrealDbQueryMachine2 = async (
   log(
     ['runSurrealDbQueryMachine2', 'runSurrealDbQueryMachine2/finalResult'],
     `> runSurrealDbQueryMachine2/finalResult ${id}\n`,
-    JSON.stringify(finalResult),
+    finalResult,
   );
   const end = performance.now();
   log(

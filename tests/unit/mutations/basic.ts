@@ -116,14 +116,17 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       { noMetadata: true },
     );
 
-    const res3 = (await ctx.query([
-      { $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3'] },
-      {
-        $relation: 'UserTag',
-        $id: 'bo-ut1',
-        $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
-      },
-    ])) as BQLResponseMulti;
+    const res3 = (await ctx.query(
+      [
+        { $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3'] },
+        {
+          $relation: 'UserTag',
+          $id: 'bo-ut1',
+          $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+        },
+      ],
+      { returnNulls: true },
+    )) as BQLResponseMulti;
 
     expect(res3[0]).toBeNull();
     expect(res3[1]).toMatchObject({
@@ -141,13 +144,16 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       { noMetadata: true },
     );
 
-    const res4 = (await ctx.query([
-      { $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3', 'bo-u4'] },
-      {
-        $relation: 'UserTag',
-        $id: 'bo-ut1',
-      },
-    ])) as BQLResponseMulti;
+    const res4 = (await ctx.query(
+      [
+        { $entity: 'User', $id: ['bo-u1', 'bo-u2', 'bo-u3', 'bo-u4'] },
+        {
+          $relation: 'UserTag',
+          $id: 'bo-ut1',
+        },
+      ],
+      { returnNulls: true },
+    )) as BQLResponseMulti;
 
     expect(res4[0]).toBeNull();
     expect(res4[1]).toBeNull();
@@ -395,10 +401,13 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       },
     ]);
 
-    const isCleanRes = (await ctx.query([
-      { $entity: 'User', $id: 'l1-u1' },
-      { $relation: 'UserTag', $id: ['l1-utg1', 'l1-utg2', 'l1-utg3'] },
-    ])) as BQLResponseMulti;
+    const isCleanRes = (await ctx.query(
+      [
+        { $entity: 'User', $id: 'l1-u1' },
+        { $relation: 'UserTag', $id: ['l1-utg1', 'l1-utg2', 'l1-utg3'] },
+      ],
+      { returnNulls: true },
+    )) as BQLResponseMulti;
 
     expect(isCleanRes[0]).toBeNull();
     expect(isCleanRes[1]).toBeNull();
@@ -1381,7 +1390,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
     expect(sessions).toEqual([
       {
-        expires: '2023-06-10T14:58:09.066Z',
+        expires: new Date('2023-06-10T14:58:09.066Z'),
         id: expect.any(String),
         sessionToken: '8ac4c6d7-e8ba-4e63-9e30-1d662b626ad4',
         user: 'user1',
@@ -1425,7 +1434,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       expect(deepSort(colors, 'id')).toEqual([
         {
           id: 'dateColor',
-          freeForAll: '2023-06-10T14:58:09.066Z',
+          freeForAll: new Date('2023-06-10T14:58:09.066Z'),
         },
         {
           id: 'numberColor',
@@ -1485,7 +1494,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
     expect(deepSort(colors, 'id')).toEqual([
       {
         id: 'blue',
-        freeForAll: '2023-06-10T14:58:09.066Z',
+        freeForAll: new Date('2023-06-10T14:58:09.066Z'),
       },
       {
         id: 'red',
@@ -2321,7 +2330,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
 
     expect(sessions).toEqual([
       {
-        expires: '2023-06-10T14:58:09.066Z',
+        expires: new Date('2023-06-10T14:58:09.066Z'),
         id: expect.any(String),
         user: 'god1',
       },
@@ -2358,7 +2367,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
     );
 
     expect(sessions).toEqual({
-      expires: '2023-06-10T14:58:09.066Z',
+      expires: new Date('2023-06-10T14:58:09.066Z'),
       id: expect.any(String),
       user: undefined,
     });

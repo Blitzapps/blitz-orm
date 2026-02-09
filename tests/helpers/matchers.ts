@@ -38,6 +38,10 @@ export const deepSort = <T>(obj: T, key = '$id'): T => {
     return newObj.sort(sorter) as T;
   }
 
+  if (obj instanceof Date) {
+    return obj;
+  }
+
   if (typeof obj === 'object' && obj !== null) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepSort(v, key)])) as T;
   }
