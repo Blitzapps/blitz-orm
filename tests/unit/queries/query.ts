@@ -2828,7 +2828,7 @@ export const testQuery = createTest('Query', (ctx) => {
     });
   });
 
-  it('TODO{T}:ref1n[ref, ONE, nested] Get also nested data', async () => {
+  it('TODO{TS}:ref1n[ref, ONE, nested] Get also nested data', async () => {
     // SELECT
     //     "0" AS `$$queryPath`,
     //     (id && record::id(id)) || null AS `$id`,
@@ -2869,7 +2869,7 @@ export const testQuery = createTest('Query', (ctx) => {
     });
   });
 
-  it('TODO{T}:ref1nf[ref, ONE, nested, someFields] Get also nested data but only some fields', async () => {
+  it('TODO{TS}:ref1nf[ref, ONE, nested, someFields] Get also nested data but only some fields', async () => {
     // SELECT
     //     "0" AS `$$queryPath`,
     //     id && record::id(id) || null AS `$id`,
@@ -2937,7 +2937,7 @@ export const testQuery = createTest('Query', (ctx) => {
     });
   });
 
-  it('TODO{T}:ref4nf[ref, flex, MANY, nested] Get flexReferences with nested data', async () => {
+  it('TODO{TS}:ref4nf[ref, flex, MANY, nested] Get flexReferences with nested data', async () => {
     // SELECT
     //     "0" AS `$$queryPath`,
     //     id && record::id(id) || null AS `$id`,
@@ -2978,7 +2978,7 @@ export const testQuery = createTest('Query', (ctx) => {
     });
   });
 
-  it('TODO{T}:ref4n[ref, flex, MANY, nested, $fields] Get flexReferences with nested data but only some fields', async () => {
+  it('TODO{TS}:ref4n[ref, flex, MANY, nested, $fields] Get flexReferences with nested data but only some fields', async () => {
     // SELECT
     //     "0" AS `$$queryPath`,
     //     (id && record::id(id)) || null AS `$id`,
