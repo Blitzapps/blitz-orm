@@ -2406,7 +2406,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
             'id',
             {
               $path: 'dataFields',
-              $fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+              $fields: ['id', { $path: 'values', $fields: ['id'] }, 'expression'],
             },
           ],
         },
@@ -2415,11 +2415,11 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
 
     const expressions = await ctx.query({
       $relation: 'Expression',
-    });
+    }, { returnNulls: true });
 
     const values = await ctx.query({
       $relation: 'DataValue',
-    });
+    }, { returnNulls: true });
 
     // cleaning
     await ctx.mutate({
@@ -2517,7 +2517,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
             'id',
             {
               $path: 'dataFields',
-              $fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+              $fields: ['id', { $path: 'values', $fields: ['id'] }, 'expression'],
             },
           ],
         },
@@ -2609,7 +2609,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
             'id',
             {
               $path: 'dataFields',
-              $fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+              $fields: ['id', { $path: 'values', $fields: ['id'] }, 'expression'],
             },
           ],
         },
@@ -2723,7 +2723,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
             'id',
             {
               $path: 'dataFields',
-              $fields: ['id', { $path: 'values', $fields: ['id', 'dataFields'] }, 'expression'],
+              $fields: ['id', { $path: 'values', $fields: ['id'] }, 'expression'],
             },
           ],
         },
@@ -2839,7 +2839,7 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
               $fields: [
                 'id',
                 'type',
-                { $path: 'values', $fields: ['id', 'dataFields', 'type'] },
+                { $path: 'values', $fields: ['id', 'type'] },
                 { $path: 'expression', $fields: ['id', 'value'] },
               ],
             },
