@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.15.1(2026-02-10)
+
+- Fix: SurrealDB client now uses SDK's native reconnection instead of custom logic
+- Fix: Pending queries no longer killed when connection drops (SDK retries via RetryMessage)
+- Fix: Long mutations no longer block concurrent queries
+
 ## 0.15.0(2026-02-05)
 
 - Refactor: Simplify SurrealDB client to thin SDK wrapper
