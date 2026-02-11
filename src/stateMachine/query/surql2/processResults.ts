@@ -46,6 +46,9 @@ const processQueryResult = (params: {
     throw new Error(`Thing ${query.$thing} not found in schema`);
   }
   if (Array.isArray(result)) {
+    if (returnNulls && result.length === 0) {
+      return null;
+    }
     return result.map((r) => transformResultObject({ query, result: r, thing, schema, metadata, returnNulls }));
   }
   return transformResultObject({ query, result, thing, schema, metadata, returnNulls });

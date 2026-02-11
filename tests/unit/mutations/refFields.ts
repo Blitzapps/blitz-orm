@@ -480,7 +480,7 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
     //Run the test
     expect(res).toEqual({
       id: 'fl4-ref1',
-      flexReferences: ['hey', 'fl4-u1', 8, 'fl4-u2', new Date('2024-01-01').toISOString()],
+      flexReferences: ['hey', 'fl4-u1', 8, 'fl4-u2', new Date('2024-01-01')],
     });
   });
 
@@ -990,7 +990,7 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
 
     expect(res).toEqual({
       id: 'flr4-ref1',
-      flexReferences: ['hey', 'flr4-u1', 8, 'flr4-u2', new Date('2024-01-01').toISOString()],
+      flexReferences: ['hey', 'flr4-u1', 8, 'flr4-u2', new Date('2024-01-01')],
     });
   });
 
@@ -1048,7 +1048,7 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
 
     expect(res).toEqual({
       id: 'flr5-ref1',
-      flexReferences: ['1990-10-10T00:00:00.000Z', 9, 'hello', 'flr5-u2'],
+      flexReferences: [new Date('1990-10-10T00:00:00.000Z'), 9, 'hello', 'flr5-u2'],
     });
   });
 
