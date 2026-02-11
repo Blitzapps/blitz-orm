@@ -123,7 +123,7 @@ export class SurrealClient {
       if (!isTokenError(error)) {
         throw error;
       }
-      log([TAG, 'error'], 'Token expired, refreshing via signin()', {
+      log([TAG, 'info'], 'Token expired, refreshing via signin()', {
         status: this.#db.status,
         error: error instanceof Error ? error.message : error,
       });
@@ -135,7 +135,7 @@ export class SurrealClient {
         );
         log([TAG, 'info'], 'Token refreshed successfully');
       } catch (signinError) {
-        log([TAG, 'error'], 'Token refresh failed', {
+        log([TAG, 'info'], 'Token refresh failed', {
           status: this.#db.status,
           error: signinError instanceof Error ? signinError.message : signinError,
         });
