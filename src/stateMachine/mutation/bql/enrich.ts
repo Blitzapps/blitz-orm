@@ -146,7 +146,7 @@ export const enrichBQLMutation = (
               relField ? unlinkAll(node, field, fieldSchema) : undefined;
             } else {
               //todo: replaceObj in refFields, as we are just doing some validation
-              relField ? replaceToObj(node, field) : replaceToObjRef(node, field, fieldSchema);
+              relField ? replaceToObj(node, field, fieldSchema) : replaceToObjRef(node, field, fieldSchema);
             }
           }
 
