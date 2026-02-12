@@ -1135,4 +1135,39 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
       flexReferences: ['hello ? yes : no', 'User:abc:xyz', 'things it can do: jumping', 'User: hey', 'User:hey '],
     });
   });
+
+  it('fl8:[flex, object] Should accept objects in flexReferences', async () => {
+    const flexWithObject = {
+      id: 'fl8-flex-with-object',
+      flexReferences: [{ msg: 'Hello, world!' }],
+    };
+    await ctx.mutate(
+      [
+        {
+          ...flexWithObject,
+          $thing: 'FlexRefRel',
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'FlexRefRel',
+        $id: 'fl8-flex-with-object',
+        $fields: ['id', 'flexReferences'],
+      },
+      { noMetadata: true },
+    );
+
+    //clean
+    await ctx.mutate({
+      $thing: 'FlexRefRel',
+      $op: 'delete',
+      $id: 'fl8-flex-with-object',
+      space: { $op: 'delete' },
+    });
+
+    expect(res).toEqual(flexWithObject);
+  });
 });
