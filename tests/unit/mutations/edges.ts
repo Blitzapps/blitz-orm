@@ -1270,6 +1270,344 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
     });
   });
 
+  it('TODO{T}:l17[link] Link ONE role to MANY link field in create operation', async () => {
+    await ctx.mutate({
+      $entity: 'Space',
+      $op: 'create',
+      id: 'l17-space-x',
+    });
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'create',
+        id: 'l17-utg-a',
+        space: 'l17-space-x',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'create',
+        id: 'l17-utg-b',
+        space: 'l17-space-x',
+      },
+    ]);
+
+    const spaceX = await ctx.query(
+      { $entity: 'Space', $id: 'l17-space-x', $fields: ['id', 'userTagGroups'] },
+      { noMetadata: true },
+    );
+
+    const groupA = await ctx.query(
+      { $relation: 'UserTagGroup', $id: 'l17-utg-a', $fields: ['id', 'space'] },
+      { noMetadata: true },
+    );
+
+    const groupB = await ctx.query(
+      { $relation: 'UserTagGroup', $id: 'l17-utg-b', $fields: ['id', 'space'] },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate({
+      $relation: 'UserTagGroup',
+      $id: ['l17-utg-a', 'l17-utg-b'],
+      $op: 'delete',
+    });
+
+    await ctx.mutate({
+      $entity: 'Space',
+      $id: 'l17-space-x',
+      $op: 'delete',
+    });
+
+    expect(spaceX).toEqual({
+      id: 'l17-space-x',
+      userTagGroups: ['l17-utg-a', 'l17-utg-b'],
+    });
+
+    expect(groupA).toEqual({
+      id: 'l17-utg-a',
+      space: 'l17-space-x',
+    });
+
+    expect(groupB).toEqual({
+      id: 'l17-utg-b',
+      space: 'l17-space-x',
+    });
+  });
+
+  it('TODO{T}:l18[link] Link ONE role to MANY link field with update operation', async () => {
+    // We can't create a relation that has no field or linked to anything.
+    // So we need to create the init space first to link it to the UserTagGroup.
+    await ctx.mutate({
+      $entity: 'Space',
+      $op: 'create',
+      id: 'l17-space-init',
+    });
+
+    await ctx.mutate({
+      $entity: 'Space',
+      $op: 'create',
+      id: 'l17-space-x',
+    });
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'create',
+        id: 'l17-utg-a',
+        space: 'l17-space-init',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'create',
+        id: 'l17-utg-b',
+        space: 'l17-space-init',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'update',
+        $id: 'l17-utg-a',
+        space: 'l17-space-x',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $relation: 'UserTagGroup',
+        $op: 'update',
+        $id: 'l17-utg-b',
+        space: 'l17-space-x',
+      },
+    ]);
+
+    const spaceX = await ctx.query(
+      { $entity: 'Space', $id: 'l17-space-x', $fields: ['id', 'userTagGroups'] },
+      { noMetadata: true },
+    );
+
+    const groupA = await ctx.query(
+      { $relation: 'UserTagGroup', $id: 'l17-utg-a', $fields: ['id', 'space'] },
+      { noMetadata: true },
+    );
+
+    const groupB = await ctx.query(
+      { $relation: 'UserTagGroup', $id: 'l17-utg-b', $fields: ['id', 'space'] },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate({
+      $relation: 'UserTagGroup',
+      $id: ['l17-utg-a', 'l17-utg-b'],
+      $op: 'delete',
+    });
+
+    await ctx.mutate({
+      $entity: 'Space',
+      $id: ['l17-space-init', 'l17-space-x'],
+      $op: 'delete',
+    });
+
+    expect(spaceX).toEqual({
+      id: 'l17-space-x',
+      userTagGroups: ['l17-utg-a', 'l17-utg-b'],
+    });
+
+    expect(groupA).toEqual({
+      id: 'l17-utg-a',
+      space: 'l17-space-x',
+    });
+
+    expect(groupB).toEqual({
+      id: 'l17-utg-b',
+      space: 'l17-space-x',
+    });
+  });
+
+  it('TODO{T}:l19[link] Link ONE link field to MANY role in create operation', async () => {
+    // We can't create a relation that has no field or linked to anything.
+    // So we need to create the main hook first to link it to the hook parent.
+    await ctx.mutate({
+      $entity: 'Hook',
+      $op: 'create',
+      id: 'l17-main-hook',
+      requiredOption: 'a',
+    });
+
+    await ctx.mutate({
+      $relation: 'HookParent',
+      $op: 'create',
+      id: 'l17-hook-parent-x',
+      mainHook: 'l17-main-hook',
+    });
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'create',
+        id: 'l17-hook-a',
+        requiredOption: 'a',
+        hookParent: 'l17-hook-parent-x',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'create',
+        id: 'l17-hook-b',
+        requiredOption: 'a',
+        hookParent: 'l17-hook-parent-x',
+      },
+    ]);
+
+    const hookParentX = await ctx.query(
+      { $relation: 'HookParent', $id: 'l17-hook-parent-x', $fields: ['id', 'hooks'] },
+      { noMetadata: true },
+    );
+
+    const hookA = await ctx.query(
+      { $entity: 'Hook', $id: 'l17-hook-a', $fields: ['id', 'hookParent'] },
+      { noMetadata: true },
+    );
+
+    const hookB = await ctx.query(
+      { $entity: 'Hook', $id: 'l17-hook-b', $fields: ['id', 'hookParent'] },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate({
+      $entity: 'Hook',
+      $id: ['l17-main-hook', 'l17-hook-a', 'l17-hook-b'],
+      $op: 'delete',
+    });
+
+    await ctx.mutate({
+      $relation: 'HookParent',
+      $id: 'l17-hook-parent-x',
+      $op: 'delete',
+    });
+
+    expect(hookParentX).toEqual({
+      id: 'l17-hook-parent-x',
+      hooks: ['l17-hook-a', 'l17-hook-b'],
+    });
+
+    expect(hookA).toEqual({
+      id: 'l17-hook-a',
+      hookParent: 'l17-hook-parent-x',
+    });
+
+    expect(hookB).toEqual({
+      id: 'l17-hook-b',
+      hookParent: 'l17-hook-parent-x',
+    });
+  });
+
+  it('TODO{T}:l20[link] Link ONE link field to MANY role in update operation', async () => {
+    // We can't create a relation that has no field or linked to anything.
+    // So we need to create the main hook first to link it to the hook parent.
+    await ctx.mutate({
+      $entity: 'Hook',
+      $op: 'create',
+      id: 'l17-main-hook',
+      requiredOption: 'a',
+    });
+
+    await ctx.mutate({
+      $relation: 'HookParent',
+      $op: 'create',
+      id: 'l17-hook-parent-x',
+      mainHook: 'l17-main-hook',
+    });
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'create',
+        id: 'l17-hook-a',
+        requiredOption: 'a',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'create',
+        id: 'l17-hook-b',
+        requiredOption: 'a',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'update',
+        $id: 'l17-hook-a',
+        hookParent: 'l17-hook-parent-x',
+      },
+    ]);
+
+    await ctx.mutate([
+      {
+        $entity: 'Hook',
+        $op: 'update',
+        $id: 'l17-hook-b',
+        hookParent: 'l17-hook-parent-x',
+      },
+    ]);
+
+    const hookParentX = await ctx.query(
+      { $relation: 'HookParent', $id: 'l17-hook-parent-x', $fields: ['id', 'hooks'] },
+      { noMetadata: true },
+    );
+
+    const hookA = await ctx.query(
+      { $entity: 'Hook', $id: 'l17-hook-a', $fields: ['id', 'hookParent'] },
+      { noMetadata: true },
+    );
+
+    const hookB = await ctx.query(
+      { $entity: 'Hook', $id: 'l17-hook-b', $fields: ['id', 'hookParent'] },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate({
+      $entity: 'Hook',
+      $id: ['l17-main-hook', 'l17-hook-a', 'l17-hook-b'],
+      $op: 'delete',
+    });
+
+    await ctx.mutate({
+      $relation: 'HookParent',
+      $id: 'l17-hook-parent-x',
+      $op: 'delete',
+    });
+
+    expect(hookParentX).toEqual({
+      id: 'l17-hook-parent-x',
+      hooks: ['l17-hook-a', 'l17-hook-b'],
+    });
+
+    expect(hookA).toEqual({
+      id: 'l17-hook-a',
+      hookParent: 'l17-hook-parent-x',
+    });
+
+    expect(hookB).toEqual({
+      id: 'l17-hook-b',
+      hookParent: 'l17-hook-parent-x',
+    });
+  });
+
   // Todo: ask loic why there's an all link
   it('TODO{TS}:rep2b[replace, unlink, link, many] Replace using unlink + link , all link', async () => {
     /// create
@@ -2413,13 +2751,19 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
       ],
     });
 
-    const expressions = await ctx.query({
-      $relation: 'Expression',
-    }, { returnNulls: true });
+    const expressions = await ctx.query(
+      {
+        $relation: 'Expression',
+      },
+      { returnNulls: true },
+    );
 
-    const values = await ctx.query({
-      $relation: 'DataValue',
-    }, { returnNulls: true });
+    const values = await ctx.query(
+      {
+        $relation: 'DataValue',
+      },
+      { returnNulls: true },
+    );
 
     // cleaning
     await ctx.mutate({

@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { isArray, isObject } from 'radash';
-import type { BQLMutationBlock, EnrichedRefField } from '../../../../types';
+import type { BQLMutationBlock, EnrichedLinkField, EnrichedRefField, EnrichedRoleField } from '../../../../types';
+import { SharedMetadata } from '../../../../types/symbols';
 
 type PrefixedResult =
   | { isPrefixed: true; obj: { $thing: string; $id: string } | { $thing: string; $tempId: string } }
@@ -29,7 +30,11 @@ const prefixedToObj = (value: unknown): PrefixedResult => {
 
   return { isPrefixed: false, obj: value };
 };
-export const replaceToObj = (node: BQLMutationBlock, field: string) => {
+export const replaceToObj = (
+  node: BQLMutationBlock,
+  field: string,
+  fieldSchema?: EnrichedLinkField | EnrichedRoleField,
+) => {
   ///Simplified so the only purpose of this function is to change strings to obj, but not assign BzIds or $things
   const subNodes = isArray(node[field]) ? node[field] : [node[field]];
 
@@ -49,7 +54,12 @@ export const replaceToObj = (node: BQLMutationBlock, field: string) => {
     );
   }
 
-  const $op = node.$op === 'create' ? 'link' : 'replace';
+  const isImplicitLinkOnCardOneLinkField =
+    node.$op === 'update' &&
+    fieldSchema?.[SharedMetadata].fieldType === 'linkField' &&
+    fieldSchema.cardinality === 'ONE';
+
+  const $op = node.$op === 'create' || isImplicitLinkOnCardOneLinkField ? 'link' : 'replace';
 
   node[field] = subNodes.map((child) => {
     if (typeof child === 'string') {

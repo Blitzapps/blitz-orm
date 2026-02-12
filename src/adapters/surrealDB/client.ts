@@ -40,8 +40,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, message: string): Promi
 };
 
 const isTokenError = (error: unknown): boolean =>
-  error instanceof Error &&
-  (error.message.includes('token has expired') || error.message.includes('token is invalid'));
+  error instanceof Error && (error.message.includes('token has expired') || error.message.includes('token is invalid'));
 
 export class SurrealClient {
   readonly #db = new Surreal();
