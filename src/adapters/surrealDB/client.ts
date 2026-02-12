@@ -96,7 +96,16 @@ export class SurrealClient {
         log([TAG, 'info'], 'Connection established');
       })
       .catch((err) => {
-        this.#handleConnectionError(err);
+        this.#latestError = err.message;
+
+        if (err instanceof UnsupportedVersionError) {
+          log([TAG, 'error'], 'Unsupported SurrealDB version', {
+            version: err.version,
+            minimum: err.minimum,
+            maximum: err.maximum,
+          });
+        }
+
         throw err;
       })
       .finally(() => {
@@ -151,6 +160,11 @@ export class SurrealClient {
     this.#db.subscribe('reconnecting', () => {
       this.#state = 'retrying';
     });
+    this.#db.subscribe('connected', () => {
+      this.#state = 'connected';
+      this.#latestError = '';
+      log([TAG, 'info'], 'Connection re-established');
+    });
     this.#db.subscribe('disconnected', () => {
       this.#state = 'disconnected';
       this.#version = null;
@@ -168,18 +182,6 @@ export class SurrealClient {
       log([TAG, 'info'], `Database version ${this.#version}`);
     } catch {
       log([TAG, 'info'], 'Database version unknown');
-    }
-  }
-
-  #handleConnectionError(err: Error): void {
-    this.#latestError = err.message;
-
-    if (err instanceof UnsupportedVersionError) {
-      log([TAG, 'error'], 'Unsupported SurrealDB version', {
-        version: err.version,
-        minimum: err.minimum,
-        maximum: err.maximum,
-      });
     }
   }
 }
