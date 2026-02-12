@@ -1,10 +1,9 @@
-import { ConnectionStatus } from 'surrealdb';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SurrealClient } from '../../src/adapters/surrealDB/client';
 
 const TEST_CONFIG = {
   url: 'ws://127.0.0.1:8100',
-  namespace: 'test_refs', // Matches test.sh setup
+  namespace: 'test_refs',
   database: 'test',
   username: 'test',
   password: 'test',
@@ -17,19 +16,18 @@ const withClient = async <T>(config: typeof TEST_CONFIG, fn: (client: SurrealCli
   try {
     return await fn(client);
   } finally {
-    await client.close().catch(() => undefined);
+    await client.close().catch(() => {});
   }
 };
 
 describe('SurrealClient', () => {
   describe('close behavior', () => {
-    const closedClientOps = [
+    const operations = [
       ['connect', (c: SurrealClient) => c.connect()],
       ['query', (c: SurrealClient) => c.query('SELECT 1')],
-      ['queryRaw', (c: SurrealClient) => c.queryRaw('SELECT 1')],
     ] as const;
 
-    it.each(closedClientOps)('should throw when calling %s after close', async (_, op) => {
+    it.each(operations)('throws when calling %s after close', async (_, op) => {
       const client = new SurrealClient(TEST_CONFIG);
       await client.close();
       await expect(op(client)).rejects.toThrow('Client has been closed');
@@ -37,33 +35,38 @@ describe('SurrealClient', () => {
   });
 
   describe('connection behavior', () => {
-    it('should fail immediately on connection error (no retry with backoff)', async () => {
-      const startTime = Date.now();
-
+    it('fails immediately on connection error', async () => {
+      const start = Date.now();
       await expect(withClient(INVALID_CONFIG, (c) => c.connect())).rejects.toThrow();
-
-      expect(Date.now() - startTime).toBeLessThan(5000);
+      expect(Date.now() - start).toBeLessThan(5000);
     });
 
-    it('should deduplicate concurrent connect calls', async () => {
+    it('deduplicates concurrent connect calls', async () => {
       await withClient(INVALID_CONFIG, async (client) => {
         const results = await Promise.allSettled([client.connect(), client.connect(), client.connect()]);
         expect(results.every((r) => r.status === 'rejected')).toBe(true);
       });
     });
 
-    it('should connect successfully to running database', async () => {
+    it('connects successfully to running database', async () => {
       await withClient(TEST_CONFIG, async (client) => {
+        expect(client.state).toBe('disconnected');
         await client.connect();
-        expect(client.status).toBe(ConnectionStatus.Connected);
+        expect(client.state).toBe('connected');
+        expect(client.version).toBeTruthy();
       });
     });
 
-    it('should auto-connect on first query', async () => {
+    it('tracks latestError on connection failure', async () => {
+      await withClient(INVALID_CONFIG, async (client) => {
+        await client.connect().catch(() => {});
+        expect(client.latestError).toBeTruthy();
+      });
+    });
+
+    it('requires explicit connect before query (SDK 2.0)', async () => {
       await withClient(TEST_CONFIG, async (client) => {
-        const result = await client.query<number>('RETURN 42');
-        expect(result).toEqual([42]);
-        expect(client.status).toBe(ConnectionStatus.Connected);
+        await expect(client.query('RETURN 42')).rejects.toThrow();
       });
     });
   });
@@ -77,14 +80,14 @@ describe('SurrealClient', () => {
     });
 
     afterEach(async () => {
-      await client.close().catch(() => undefined);
+      await client.close().catch(() => {});
     });
 
-    it('should return [value] for RETURN queries', async () => {
+    it('returns [value] for RETURN queries', async () => {
       expect(await client.query<number>('RETURN 42')).toEqual([42]);
     });
 
-    it('should return [[records]] for SELECT queries', async () => {
+    it('returns [[records]] for SELECT queries', async () => {
       const table = `test_${Date.now()}`;
       await client.query(`CREATE ${table}:a SET name = 'a'`);
       await client.query(`CREATE ${table}:b SET name = 'b'`);
@@ -98,39 +101,30 @@ describe('SurrealClient', () => {
       await client.query(`DELETE ${table}`);
     });
 
-    it('should return multiple results for multi-statement queries', async () => {
+    it('returns multiple results for multi-statement queries', async () => {
       expect(await client.query<number>('RETURN 1; RETURN 2; RETURN 3')).toEqual([1, 2, 3]);
     });
 
-    it('should handle query errors without disconnecting', async () => {
+    it('handles query errors without disconnecting', async () => {
       await expect(client.query('INVALID SYNTAX')).rejects.toThrow();
-      expect(client.status).toBe(ConnectionStatus.Connected);
+      expect(client.state).toBe('connected');
       expect(await client.query<number>('RETURN 1')).toEqual([1]);
     });
   });
 
-  describe('queryRaw behavior', () => {
-    it('should return results with metadata', async () => {
+  describe('multiple queries', () => {
+    it('handles sequential queries', async () => {
       await withClient(TEST_CONFIG, async (client) => {
-        const result = await client.queryRaw('RETURN 42');
-        expect(result).toHaveLength(1);
-        expect(result[0]).toHaveProperty('status');
-        expect(result[0]).toHaveProperty('result');
-      });
-    });
-  });
-
-  describe('reconnection behavior', () => {
-    it('should handle sequential queries', async () => {
-      await withClient(TEST_CONFIG, async (client) => {
+        await client.connect();
         for (let i = 0; i < 5; i++) {
           expect(await client.query<number>(`RETURN ${i}`)).toEqual([i]);
         }
       });
     });
 
-    it('should handle concurrent queries', async () => {
+    it('handles concurrent queries', async () => {
       await withClient(TEST_CONFIG, async (client) => {
+        await client.connect();
         const results = await Promise.all([
           client.query<number>('RETURN 1'),
           client.query<number>('RETURN 2'),
