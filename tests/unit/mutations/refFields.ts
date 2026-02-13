@@ -1172,4 +1172,41 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
 
     expect(res).toEqual(flexWithObject);
   });
+
+  it('fl9:[flex, object] Should accept an array of objects in flexReferences', async () => {
+    const flexWithObject = {
+      id: 'fl8-flex-with-object',
+      flexReferences: [[{ msg: 'Hello, world!' }]],
+    };
+    await ctx.mutate(
+      [
+        {
+          ...flexWithObject,
+          $thing: 'FlexRefRel',
+          // We need to link something when creating a relation to avoid "[Wrong format] Can't create a relation without any player".
+          space: { id: 'fl8-space', name: 'fl8-space' },
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'FlexRefRel',
+        $id: 'fl8-flex-with-object',
+        $fields: ['id', 'flexReferences'],
+      },
+      { noMetadata: true },
+    );
+
+    //clean
+    await ctx.mutate({
+      $thing: 'FlexRefRel',
+      $op: 'delete',
+      $id: 'fl8-flex-with-object',
+      space: { $op: 'delete' },
+    });
+
+    expect(res).toEqual(flexWithObject);
+  });
 });

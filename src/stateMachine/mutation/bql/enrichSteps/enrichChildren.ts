@@ -13,6 +13,16 @@ import { get$bzId } from '../shared/get$bzId';
 import { getOp } from '../shared/getOp';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
 
+const markFlexDataValues = (value: unknown): unknown => {
+  if (isArray(value)) {
+    return value.map(markFlexDataValues);
+  }
+  if (isObject(value)) {
+    return { ...(value as Record<string, unknown>), [FlexDataValue]: true };
+  }
+  return value;
+};
+
 export const enrichChildren = (
   node: BQLMutationBlock,
   field: string,
@@ -32,6 +42,12 @@ export const enrichChildren = (
 
       if (!isObject(subNode)) {
         if (refSchema.contentType === 'FLEX') {
+          if (isArray(subNode)) {
+            // Wrap in array to prevent flatMap from flattening the inner array,
+            // and recursively mark nested objects with FlexDataValue so the
+            // traverser in enrich.ts skips them.
+            return [markFlexDataValues(subNode)];
+          }
           return subNode;
         }
         throw new Error(`[Wrong format] The refField ${field} must receive an object`);
