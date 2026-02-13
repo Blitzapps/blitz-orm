@@ -317,7 +317,19 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       if (contentType === 'FLEX') {
         //todo: card one check len 1
         //todo: add/remove etc
-        return `${rf} = ${cardinality === 'ONE' ? `array::flatten([${block[rf]}])[0]` : `array::flatten([${block[rf]}])`}`;
+        if (cardinality === 'ONE') {
+          return `${rf} = array::flatten([${block[rf]}])[0]`;
+        }
+        // For MANY: flatten only variable references (entity matches) individually,
+        // keeping data values (including nested arrays/objects) as-is.
+        const elements = isArray(block[rf]) ? block[rf] : [block[rf]];
+        const processedElements = elements.map((el: unknown) => {
+          if (typeof el === 'string' && (el as string).startsWith('$')) {
+            return `array::flatten([${el}])[0]`;
+          }
+          return el;
+        });
+        return `${rf} = [${processedElements.join(', ')}]`;
       }
 
       throw new Error(`Unsupported contentType ${contentType}`);

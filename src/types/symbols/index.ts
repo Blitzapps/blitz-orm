@@ -21,6 +21,9 @@ export const FieldSchema = Symbol.for('fieldSchema');
 /// Shared schema metadata
 export const SharedMetadata = Symbol.for('sharedMetadata');
 
+/// Marks plain objects stored as data values in FLEX ref fields
+export const FlexDataValue = Symbol.for('flexDataValue');
+
 /// SurrealDB schema metadata
 export const SuqlMetadata = Symbol.for('suqlMetadata');
 
