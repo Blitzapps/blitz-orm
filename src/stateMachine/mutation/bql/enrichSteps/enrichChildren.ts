@@ -8,7 +8,7 @@ import type {
   EnrichedRefField,
   EnrichedRoleField,
 } from '../../../../types';
-import { EdgeSchema, SharedMetadata } from '../../../../types/symbols';
+import { EdgeSchema, FlexDataValue, SharedMetadata } from '../../../../types/symbols';
 import { get$bzId } from '../shared/get$bzId';
 import { getOp } from '../shared/getOp';
 import { getOppositePlayers } from '../shared/getOppositePlayers';
@@ -38,6 +38,9 @@ export const enrichChildren = (
       }
 
       if (!subNode.$thing) {
+        if (refSchema.contentType === 'FLEX') {
+          return { ...subNode, [FlexDataValue]: true };
+        }
         throw new Error('[Wrong format] The field $thing is required in refFields');
       }
       return { ...subNode, $op, $bzId };

@@ -1146,6 +1146,8 @@ export const testRefFieldsMutations = createTest('Mutation: RefFields', (ctx) =>
         {
           ...flexWithObject,
           $thing: 'FlexRefRel',
+          // We need to link something when creating a relation to avoid "[Wrong format] Can't create a relation without any player".
+          space: { id: 'fl8-space', name: 'fl8-space' },
         },
       ],
       { noMetadata: true },

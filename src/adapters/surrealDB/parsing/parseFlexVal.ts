@@ -18,5 +18,8 @@ export const parseFlexValSurrealDB = (v: unknown) => {
   if (['number', 'boolean'].includes(typeof v)) {
     return v;
   }
+  if (typeof v === 'object' && v !== null) {
+    return JSON.stringify(v);
+  }
   throw new Error(`Unsupported type ${typeof v}`);
 };
