@@ -16,23 +16,20 @@ export const runSURQLMutation = async (client: SurrealClient, mutations: string[
 	`;
 
   logDebug(`>>> batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
-  //console.log('mutations', mutations);
-  //console.log('batchedMutation', batchedMutation);
+
   try {
     const result = await client.query(batchedMutation);
     return result.filter(Boolean);
-  } catch (error) {
-    const errorRes = await client.queryRaw(batchedMutation);
-    //console.log('errorRes!', JSON.stringify(errorRes, null, 2));
-    const filteredErrorRes = errorRes.filter(
-      (r) =>
-        r.result !== 'The query was not executed due to a failed transaction' &&
-        r.result !== 'There was an error when starting a new datastore transaction' &&
-        r.status === 'ERR',
-    );
-    if (filteredErrorRes.length > 0) {
-      throw new Error(`Error running SURQL mutation: ${JSON.stringify(filteredErrorRes)}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    const isTransactionNoise =
+      message === 'The query was not executed due to a failed transaction' ||
+      message === 'There was an error when starting a new datastore transaction';
+
+    if (!isTransactionNoise) {
+      throw new Error(`Error running SURQL mutation: ${message}`);
     }
-    throw error;
+    throw err;
   }
 };

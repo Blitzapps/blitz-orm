@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.15.3(2026-02-12)
+
+- Fix: Upgrade SurrealDB SDK to 2.0.0-alpha.18
+- Fix: Token expiry errors on first query after deploy
+- Refactor: Clean up client, fix duplicate event subscriptions
+
 ## 0.15.1(2026-02-10)
 
 - Fix: SurrealDB client now uses SDK's native reconnection instead of custom logic
