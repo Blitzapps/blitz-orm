@@ -44,25 +44,46 @@ export const bench = async (
 
   await cb({ beforeAll, afterAll, time });
 
-  await Promise.all(beforePromises.map(async (cb) => cb()));
+  let errorBeforeAll = false;
 
-  for (const variant of variants) {
-    console.log(`Running "${variant.name}"...`);
-    while (variant.durations.length < variant.maxIter && variant.totalDuration < variant.maxDuration) {
-      try {
-        const start = performance.now();
-        await variant.cb();
-        const duration = performance.now() - start;
-        variant.durations.push(duration);
-        variant.totalDuration += duration;
-      } catch (error) {
-        console.error(`Error running "${variant.name}":`, error);
-        break;
+  for (const before of beforePromises) {
+    try {
+      await before();
+    } catch (error) {
+      errorBeforeAll = true;
+      console.error('Error running beforeAll:', error);
+    }
+  }
+
+  if (!errorBeforeAll) {
+    for (const variant of variants) {
+      console.log(`Running "${variant.name}"...`);
+      while (variant.durations.length < variant.maxIter && variant.totalDuration < variant.maxDuration) {
+        try {
+          const start = performance.now();
+          await variant.cb();
+          const duration = performance.now() - start;
+          variant.durations.push(duration);
+          variant.totalDuration += duration;
+        } catch (error) {
+          console.error(`Error running "${variant.name}":`, error);
+          break;
+        }
       }
     }
   }
 
-  await Promise.all(afterPromises.map((cb) => cb()));
+  try {
+    for (const after of afterPromises) {
+      try {
+        await after();
+      } catch (error) {
+        console.error('Error running afterAll:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error running afterAll:', error);
+  }
 
   const summary = summarize(variants);
   console.log(format(summary));

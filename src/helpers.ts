@@ -348,9 +348,7 @@ export const getParentNode = (blocks: Record<any, any>, parent: any, meta: Trave
   const currentPath = meta.nodePath || '';
   const pathParts = currentPath.split('.');
   const parentPath = isArray(parent)
-    ? pathParts
-        .slice(0, -2)
-        .join('.') // Remove last two parts for an array parent
+    ? pathParts.slice(0, -2).join('.') // Remove last two parts for an array parent
     : pathParts.slice(0, -1).join('.'); // Remove only the last part for a non-array parent
   return parent ? getNodeByPath(blocks, parentPath) : {}; //undefined parent for root
 };
