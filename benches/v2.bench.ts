@@ -1,4 +1,4 @@
-import Surreal from 'surrealdb';
+import { Surreal } from 'surrealdb';
 import type BormClient from '../src';
 import { setup } from '../tests/helpers/setup';
 import { bench } from './bench';
@@ -220,7 +220,7 @@ const connect = async () => {
   await db.connect(URL, {
     namespace: NAMESPACE,
     database: DATABASE,
-    auth: {
+    authentication: {
       username: USERNAME,
       password: PASSWORD,
     },

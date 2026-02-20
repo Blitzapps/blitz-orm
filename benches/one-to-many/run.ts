@@ -48,19 +48,17 @@ const runContainer = async () => {
 
   await runCommand('docker', [
     'run',
-    '--rm',
+    // '--rm',
     '--detach',
     '--name',
     CONTAINER_NAME,
-    '-e',
-    'SURREAL_CAPS_ALLOW_EXPERIMENTAL=graphql',
     '--user',
     'root',
     '-p',
     '8101:8101',
     '--pull',
     'always',
-    'surrealdb/surrealdb:v2',
+    'surrealdb/surrealdb:v3',
     'start',
     '-u',
     USERNAME,
@@ -81,7 +79,7 @@ const runContainer = async () => {
       }
     },
     100,
-    5000,
+    120000,
     'Timed out waiting for container to be running',
   );
 
@@ -183,11 +181,15 @@ const runCommand = async (command: string, args: string[], stdin?: string): Prom
     let stderr = '';
 
     child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
+      const text = chunk.toString();
+      process.stdout.write(text);
+      stdout += text;
     });
 
     child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      process.stderr.write(text);
+      stderr += text;
     });
 
     child.on('error', (error) => {

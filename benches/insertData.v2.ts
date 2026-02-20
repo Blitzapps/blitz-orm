@@ -1,4 +1,4 @@
-import Surreal from 'surrealdb';
+import { Surreal } from 'surrealdb';
 import { type A, type B, type Base, generateData } from './generateData';
 
 const URL = 'ws://127.0.0.1:8101';
@@ -29,7 +29,7 @@ const connect = async () => {
   await db.connect(URL, {
     namespace: NAMESPACE,
     database: DATABASE,
-    auth: {
+    authentication: {
       username: USERNAME,
       password: PASSWORD,
     },

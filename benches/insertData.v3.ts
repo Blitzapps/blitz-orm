@@ -1,4 +1,4 @@
-import Surreal from 'surrealdb';
+import { Surreal } from 'surrealdb';
 import { type A, type B, type Base, generateData } from './generateData';
 
 const URL = 'ws://127.0.0.1:8001';
@@ -11,9 +11,9 @@ const insertData = async () => {
   const db = await connect();
   console.log('generating data');
   const data = generateData({
-    records: 10,
-    few: { min: 2, max: 2 },
-    many: { min: 2, max: 2 },
+    records: 10000,
+    few: { min: 5, max: 5 },
+    many: { min: 20, max: 20 },
   });
   const surql = createSurql(data);
   console.log('inserting data');
@@ -29,7 +29,7 @@ const connect = async () => {
   await db.connect(URL, {
     namespace: NAMESPACE,
     database: DATABASE,
-    auth: {
+    authentication: {
       username: USERNAME,
       password: PASSWORD,
     },
