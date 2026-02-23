@@ -17,10 +17,12 @@ const main = async (batchLength: number, batchSize: number) => {
 
   const data1 = generateData(batchLength * batchSize);
   const data2 = generateData(batchLength * batchSize);
+  const data3 = generateData(batchLength * batchSize);
   const client = await createClient();
 
   const parentSurql1 = createParentSurql(data1.parent);
   const parentSurql2 = createParentSurql(data2.parent);
+  const parentSurql3 = createParentSurql(data3.parent);
 
   const refBatches = Array.from({ length: batchLength }, (_, i) => {
     return createChildrenRefSurql(data1.parent, data1.children.slice(i * batchSize, (i + 1) * batchSize));
@@ -30,17 +32,25 @@ const main = async (batchLength: number, batchSize: number) => {
     return createChildrenEdgeSurql(data2.parent, data2.children.slice(i * batchSize, (i + 1) * batchSize));
   });
 
+  const fosterRefBatches = Array.from({ length: batchLength }, (_, i) => {
+    return createFosterChildrenSurql(data3.parent, data3.children.slice(i * batchSize, (i + 1) * batchSize));
+  });
+
   await client.query(parentSurql1);
   await client.query(parentSurql2);
+  await client.query(parentSurql3);
 
   const refDurations = await time(refBatches, async (query) => await client.query(query));
   const edgeDurations = await time(edgeBatches, async (query) => await client.query(query));
+  const fosterRefDurations = await time(fosterRefBatches, async (query) => await client.query(query));
 
   console.log(`\n> Ref durations:\n${JSON.stringify(refDurations)}`);
   console.log(`\n> Edge durations:\n${JSON.stringify(edgeDurations)}`);
+  console.log(`\n> Foster durations:\n${JSON.stringify(fosterRefDurations)}`);
 
   console.log(`> Ref total duration: ${refDurations.reduce((a, b) => a + b, 0)}ms`);
   console.log(`> Edge total duration: ${edgeDurations.reduce((a, b) => a + b, 0)}ms`);
+  console.log(`> Foster total duration: ${fosterRefDurations.reduce((a, b) => a + b, 0)}ms`);
 };
 
 const runContainer = async () => {
@@ -58,7 +68,7 @@ const runContainer = async () => {
     '8101:8101',
     '--pull',
     'always',
-    'surrealdb/surrealdb:v3',
+    'surrealdb/surrealdb:v2',
     'start',
     '-u',
     USERNAME,
@@ -282,6 +292,13 @@ const createChildrenEdgeSurql = (parent: Parent, children: Child[]): string => {
     .map((child) => `RELATE parent:${parent.id}->parent_child->child:${child.id};`)
     .join('\n');
   return `BEGIN TRANSACTION;\n${childrenCreateQuery}\n${edgesCreateQuery}\nCOMMIT TRANSACTION;`;
+};
+
+const createFosterChildrenSurql = (parent: Parent, children: Child[]): string => {
+  const childrenCreateQuery = children
+    .map((child) => `CREATE child:${child.id} CONTENT { name: '${child.name}', foster_parent: parent:${parent.id} };`)
+    .join('\n');
+  return `BEGIN TRANSACTION;\n${childrenCreateQuery}\nCOMMIT TRANSACTION;`;
 };
 
 main(10, 100)
