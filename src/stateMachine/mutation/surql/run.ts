@@ -1,5 +1,5 @@
 import type { SurrealClient } from '../../../adapters/surrealDB/client';
-import { logDebug } from '../../../logger';
+import { log, logDebug } from '../../../logger';
 import { VERSION } from '../../../version';
 
 export const runSURQLMutation = async (client: SurrealClient, mutations: string[]): Promise<any[]> => {
@@ -22,6 +22,8 @@ export const runSURQLMutation = async (client: SurrealClient, mutations: string[
     return result.filter(Boolean);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    log('runSURQLMutation', 'runSURQLMutation/batchedMutation\n', batchedMutation);
+    log('runSURQLMutation', 'runSURQLMutation/error\n', err);
 
     const isTransactionNoise =
       message === 'The query was not executed due to a failed transaction' ||

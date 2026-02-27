@@ -8,15 +8,17 @@ import type {
   Index,
 } from '../../../types/schema/enriched.draft';
 import type {
+  BiRefFilter,
   DataSource,
   Filter,
+  FutureBiRefFilter,
   ListFilter,
   LogicalQuery,
   NestedFilter,
+  NestedFutureFilter,
   Projection,
   ProjectionField,
   RecordPointer,
-  RefFilter,
   ScalarFilter,
   SubQuery,
   TableScan,
@@ -72,30 +74,38 @@ const optimizeSource = (params: {
     }
   }
 
-  for (let i = 0; i < filters.length; i++) {
-    const f = filters[i];
-    if (f?.type !== 'ref') {
-      continue;
-    }
-    const subQuery = convertRefFilterToRelationshipTraversal(f, schema, thing);
+  // Priority order for bidirectional ref filters:
+  //   future_bi_ref (ONE) > future_bi_ref (MANY) > bi_ref (ONE) > bi_ref (MANY)
+  // future_bi_ref takes precedence because it converts to a sub-query that traverses a normal ref,
+  // which is faster than traversing a future ref directly.
+  // The same logic applies to nested filters.
+
+  const biRefFilter =
+    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref' && f.oppositeCardinality === 'ONE')
+    ?? findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref')
+    ?? findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE')
+    ?? findFilter(filters, (f): f is BiRefFilter => f.type === 'biref');
+  if (biRefFilter) {
+    const subQuery = convertRefFilterToRelationshipTraversal(biRefFilter, schema, thing);
     if (subQuery) {
       return {
         source: subQuery,
-        filter: mergeFilters(filters.filter((_, j) => j !== i)),
+        filter: mergeFilters(filters.filter((f) => f !== biRefFilter)),
       };
     }
   }
 
-  for (let i = 0; i < filters.length; i++) {
-    const f = filters[i];
-    if (f?.type !== 'nested') {
-      continue;
-    }
-    const subQuery = convertNestedFilterToRelationshipTraversal(f, schema, thing);
+  const nestedRefFilter =
+    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'ONE')
+    ?? findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'MANY')
+    ?? findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref')
+    ?? findFilter(filters, (f): f is NestedFutureFilter => f.type === 'nested_future_ref');
+  if (nestedRefFilter) {
+    const subQuery = convertNestedFilterToRelationshipTraversal(nestedRefFilter, schema, thing);
     if (subQuery) {
       return {
         source: subQuery,
-        filter: mergeFilters(filters.filter((_, j) => j !== i)),
+        filter: mergeFilters(filters.filter((f) => f !== nestedRefFilter)),
       };
     }
   }
@@ -134,7 +144,7 @@ const convertIdFilterToRecordPointer = (
  * Return sub query if the filter can be converted to a relationship traversal.
  */
 const convertRefFilterToRelationshipTraversal = (
-  filter: RefFilter,
+  filter: BiRefFilter | FutureBiRefFilter,
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
@@ -163,7 +173,7 @@ const convertRefFilterToRelationshipTraversal = (
 };
 
 const convertNestedFilterToRelationshipTraversal = (
-  filter: NestedFilter,
+  filter: NestedFilter | NestedFutureFilter,
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
@@ -230,7 +240,13 @@ const optimizeProjectionField = (
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): ProjectionField => {
-  if (field.type === 'metadata' || field.type === 'data' || field.type === 'flex' || field.type === 'reference') {
+  if (
+    field.type === 'metadata' ||
+    field.type === 'data' ||
+    field.type === 'flex' ||
+    field.type === 'ref' ||
+    field.type === 'future_ref'
+  ) {
     return field;
   }
 
@@ -247,13 +263,14 @@ const optimizeProjectionField = (
   }
 
   return {
-    type: 'nested_reference',
+    type: field.type,
     path: field.path,
     projection: optimizeProjection(field.projection, schema, oppositeThing),
     ids: field.ids,
     filter: field.filter ? optimizeLocalFilter(field.filter) : undefined,
     alias: field.alias,
-    cardinality: field.cardinality,
+    resultCardinality: field.resultCardinality,
+    fieldCardinality: field.fieldCardinality,
     limit: field.limit,
     offset: field.offset,
     sort: field.sort,
@@ -348,10 +365,11 @@ const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
         const baseScore = filterOpScoreMap[i.op] ?? 0;
         return { filter: i, score: baseScore ** i.right.length };
       }
-      if (i.type === 'ref') {
+      if (i.type === 'biref') {
         const baseScore = filterOpScoreMap[i.op] ?? 0;
+        const cardinalityFactor = i.cardinality === 'ONE' ? 1 : 0.5;
         if (i.thing) {
-          return { filter: i, score: baseScore ** (i.right.length * i.thing.length) };
+          return { filter: i, score: baseScore ** (i.right.length * i.thing.length) * cardinalityFactor };
         }
         // Without thing the filter is a bit slower because we need to call record::id(<left>)
         return { filter: i, score: baseScore ** i.right.length * 0.9 };
@@ -397,16 +415,17 @@ const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
     };
   }
 
-  if (filter.type === 'nested') {
+  if (filter.type === 'nested_ref' || filter.type === 'nested_future_ref') {
     const optimizedSubFilter = optimizeLocalFilter(filter.filter);
     if (!optimizedSubFilter) {
       return undefined;
     }
     return {
-      type: 'nested',
+      type: filter.type,
       filter: optimizedSubFilter,
       path: filter.path,
       cardinality: filter.cardinality,
+      oppositeCardinality: filter.oppositeCardinality,
     };
   }
 
@@ -577,3 +596,9 @@ const getSourceThing = (
   }
   return thing;
 };
+
+function findFilter<T extends Filter>(filters: Filter[], cb: (f: Filter) => f is T): T | undefined;
+function findFilter(filters: Filter[], cb: (f: Filter) => boolean): Filter | undefined;
+function findFilter<T extends Filter>(filters: Filter[], cb: (f: Filter) => boolean): T | undefined {
+  return filters.find(cb) as T | undefined;
+}

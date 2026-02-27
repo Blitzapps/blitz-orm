@@ -86,7 +86,10 @@ const buildProjection = (params: {
   // No fields specified. Project all fields.
   if (!fields) {
     for (const field of Object.values(thing.fields)) {
-      projectionFields.push(buildSimpleFieldProjection(field));
+      const projectionField = buildSimpleFieldProjection(field);
+      if (projectionField) {
+        projectionFields.push(projectionField);
+      }
     }
     return { fields: projectionFields };
   }
@@ -105,7 +108,10 @@ const buildProjection = (params: {
       if (!fieldSchema) {
         throw new Error(`Field ${field} not found in ${thing.name}`);
       }
-      projectionFields.push(buildSimpleFieldProjection(fieldSchema));
+      const projectionField = buildSimpleFieldProjection(fieldSchema);
+      if (projectionField) {
+        projectionFields.push(projectionField);
+      }
       continue;
     }
 
@@ -128,7 +134,10 @@ const buildProjection = (params: {
     }
 
     if (fieldSchema.type === 'data' || fieldSchema.type === 'ref') {
-      projectionFields.push(buildSimpleFieldProjection(fieldSchema, field.$as));
+      const projectionField = buildSimpleFieldProjection(fieldSchema, field.$as);
+      if (projectionField) {
+        projectionFields.push(projectionField);
+      }
       continue;
     }
 
@@ -137,11 +146,12 @@ const buildProjection = (params: {
     const filter =
       '$filter' in field && field.$filter ? buildFilter(field.$filter, oppositeThingSchema, schema) : undefined;
     projectionFields.push({
-      type: 'nested_reference',
+      type: fieldSchema.type === 'role' ? 'nested_ref' : 'nested_future_ref',
       path: field.$path,
       projection: oppositeProjection,
-      cardinality:
+      resultCardinality:
         typeof field.$id === 'string' || isUniqueFilter(oppositeThingSchema, filter) ? 'ONE' : fieldSchema.cardinality,
+      fieldCardinality: fieldSchema.cardinality,
       alias: field.$as,
       ids: typeof field.$id === 'string' ? [field.$id] : field.$id,
       filter,
@@ -156,13 +166,9 @@ const buildProjection = (params: {
   };
 };
 
-const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: string): ProjectionField => {
-  if (field.type === 'data') {
-    return {
-      type: 'data',
-      path: field.name,
-      alias,
-    };
+const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: string): ProjectionField | undefined => {
+  if (field.type === 'constant' || field.type === 'computed') {
+    return undefined;
   }
   if (field.type === 'ref' && field.contentType === 'FLEX') {
     return {
@@ -172,10 +178,27 @@ const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: stri
       alias,
     };
   }
+  if (field.type === 'data') {
+    return {
+      type: 'data',
+      path: field.name,
+      alias,
+    };
+  }
+  if (field.type === 'role' || field.type === 'ref') {
+    return {
+      type: 'ref',
+      path: field.name,
+      resultCardinality: field.cardinality,
+      fieldCardinality: field.cardinality,
+      alias,
+    };
+  }
   return {
-    type: 'reference',
+    type: 'future_ref',
     path: field.name,
-    cardinality: field.cardinality,
+    resultCardinality: field.cardinality,
+    fieldCardinality: field.cardinality,
     alias,
   };
 };
@@ -381,6 +404,7 @@ const buildRefFieldFilter = (
           left: field.name,
           right: [filter],
           tunnel: false,
+          cardinality: field.cardinality,
         };
       }
       if (StringArrayParser.safeParse(filter).success) {
@@ -390,6 +414,7 @@ const buildRefFieldFilter = (
           left: field.name,
           right: filter as string[],
           tunnel: false,
+          cardinality: field.cardinality,
         };
       }
       throw new Error(`Invalid filter value for ref field ${field.name}: ${JSON.stringify(filter)}`);
@@ -401,6 +426,7 @@ const buildRefFieldFilter = (
         left: field.name,
         right: [filter],
         tunnel: false,
+        cardinality: field.cardinality,
       };
     }
     if (StringArrayParser.safeParse(filter).success) {
@@ -410,6 +436,7 @@ const buildRefFieldFilter = (
         left: field.name,
         right: filter as string[],
         tunnel: false,
+        cardinality: field.cardinality,
       };
     }
     throw new Error(`Invalid filter value for ref field ${field.name}: ${JSON.stringify(filter)}`);
@@ -424,6 +451,10 @@ const buildLinkFieldFilter = (
   schema: DRAFT_EnrichedBormSchema,
 ): Filter => {
   const tunnel = field.type === 'link' && field.target === 'role';
+  const filterType = field.type === 'role' ? 'biref' : 'future_biref';
+  const nestedFilterType = field.type === 'role' ? 'nested_ref' : 'nested_future_ref';
+  const cardinality = field.cardinality;
+  const oppositeCardinality = field.opposite.cardinality;
 
   if (filter === null) {
     return {
@@ -436,21 +467,25 @@ const buildLinkFieldFilter = (
 
   if (typeof filter === 'string') {
     return {
-      type: 'ref',
+      type: filterType,
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: [filter],
       tunnel,
+      cardinality,
+      oppositeCardinality,
     };
   }
 
   if (StringArrayParser.safeParse(filter).success) {
     return {
-      type: 'ref',
+      type: field.type === 'role' ? 'biref' : 'future_biref',
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: filter as string[],
       tunnel,
+      cardinality,
+      oppositeCardinality,
     };
   }
 
@@ -524,12 +559,14 @@ const buildLinkFieldFilter = (
       throw new Error(`Filter value for ${field.type} field with operator ${op} must be a string`);
     }
     filters.push({
-      type: 'ref',
+      type: filterType,
       op: op === '$eq' || op === '$contains' ? 'IN' : 'NOT IN',
       left: field.name,
       right: [value],
       thing: oppositeThings,
       tunnel,
+      cardinality,
+      oppositeCardinality,
     });
   }
 
@@ -547,12 +584,14 @@ const buildLinkFieldFilter = (
       throw new Error(`Invalid list operator: ${op}`);
     }
     filters.push({
-      type: 'ref',
+      type: filterType,
       op: listOp,
       left: field.name,
       right: stringArray.data,
       thing: oppositeThings,
       tunnel,
+      cardinality,
+      oppositeCardinality,
     });
   }
 
@@ -564,10 +603,11 @@ const buildLinkFieldFilter = (
   const nestedLogicalFilter = buildFilter(rest, oppositeSchema, schema);
   if (nestedLogicalFilter) {
     filters.push({
-      type: 'nested',
+      type: nestedFilterType,
       path: field.name,
       filter: nestedLogicalFilter,
-      cardinality: field.cardinality,
+      cardinality,
+      oppositeCardinality,
     });
   }
 

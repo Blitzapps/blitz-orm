@@ -4,11 +4,13 @@ import type {
   DataSource,
   Filter,
   FlexField,
+  FutureRefField,
   LogicalQuery,
   MetadataField,
-  NestedReferenceField,
+  NestedFutureRefField,
+  NestedRefField,
   Projection,
-  ReferenceField,
+  RefField,
   Sort,
 } from './logical';
 
@@ -51,9 +53,9 @@ const buildProjection = (projection: Projection, level: number, mutParams: Surql
       fieldLines.push(buildMetadataFieldProjection(field, fieldLevel));
     } else if (field.type === 'data') {
       fieldLines.push(buildDataFieldProjection(field, fieldLevel));
-    } else if (field.type === 'reference') {
-      fieldLines.push(buildReferenceFieldProjection(field, fieldLevel));
-    } else if (field.type === 'nested_reference') {
+    } else if (field.type === 'ref' || field.type === 'future_ref') {
+      fieldLines.push(buildRefFieldProjection(field, fieldLevel));
+    } else if (field.type === 'nested_ref' || field.type === 'nested_future_ref') {
       fieldLines.push(buildNestedFieldProjection(field, fieldLevel, mutParams));
     } else if (field.type === 'flex') {
       fieldLines.push(buildFlexFieldProjection(field, fieldLevel));
@@ -87,26 +89,33 @@ const buildDataFieldProjection = (field: DataField, level: number) => {
   return indent(escapedPath, level);
 };
 
-const buildReferenceFieldProjection = (field: ReferenceField, level: number) => {
-  const { path, alias, cardinality } = field;
+const buildRefFieldProjection = (field: RefField | FutureRefField, level: number) => {
+  const { path, alias } = field;
   const escapedPath = esc(path);
   const escapedAlias = esc(alias || path);
-  if (cardinality === 'ONE') {
-    return indent(`array::first(SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]) AS ${escapedAlias}`, level);
+  const subQuery = field.fieldCardinality === 'ONE' && field.type === 'ref'
+    ? `SELECT VALUE record::id(id) FROM $this.${escapedPath}`
+    : `SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]`;
+  if (field.resultCardinality === 'ONE') {
+    return indent(`array::first(${subQuery}) AS ${escapedAlias}`, level);
   }
-  return indent(`(SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]) AS ${escapedAlias}`, level);
+  return indent(`(${subQuery}) AS ${escapedAlias}`, level);
 };
 
-const buildNestedFieldProjection = (field: NestedReferenceField, level: number, mutParams: SurqlParams) => {
+const buildNestedFieldProjection = (field: NestedRefField | NestedFutureRefField, level: number, mutParams: SurqlParams) => {
   const lines: string[] = [];
-  if (field.cardinality === 'MANY') {
+  if (field.resultCardinality === 'MANY') {
     lines.push(indent('(', level));
   } else {
     lines.push(indent('array::first(', level));
   }
   lines.push(buildProjection(field.projection, level + 1, mutParams));
   const filter = field.filter ? buildFilter(field.filter, mutParams) : undefined;
-  lines.push(indent(`FROM $this.${esc(field.path)}[*]`, level + 1));
+  if (field.fieldCardinality === 'ONE' && field.type === 'nested_ref') {
+    lines.push(indent(`FROM $this.${esc(field.path)}`, level + 1));
+  } else {
+    lines.push(indent(`FROM $this.${esc(field.path)}[*]`, level + 1));
+  }
   const conditions: string[] = [];
   if (field.ids && field.ids.length > 0) {
     const ids = field.ids.map((i) => `$${insertParam(mutParams, i)}`);
@@ -195,7 +204,9 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       const path = `${_prefix}${esc(filter.left)}`;
       return `${path} ${filter.op} [${items}]`;
     }
-    case 'ref': {
+    case 'ref':
+    case 'biref':
+    case 'future_biref': {
       const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${esc(filter.left)}`;
       if (filter.thing) {
         const right = filter.thing.flatMap((t) =>
@@ -284,7 +295,9 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       }
       return `NOT(${subFilter})`;
     }
-    case 'nested': {
+    case 'nested_ref':
+    case 'nested_future_ref':
+      {
       const path = `${_prefix}${esc(filter.path)}`;
       if (filter.cardinality === 'ONE') {
         return buildFilter(filter.filter, mutParams, `${path}.`);

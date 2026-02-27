@@ -1,5 +1,5 @@
 import type { SurrealClient } from '../../../adapters/surrealDB/client';
-import { logDebug } from '../../../logger';
+import { log, logDebug } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { VERSION } from '../../../version';
 import type { SurqlParams } from './buildSurql';
@@ -15,6 +15,7 @@ export const query = async (props: {
 ${queries.join(';\n')};
 COMMIT TRANSACTION;`;
 
+  log('query', 'query/batchedQuery\n', batchedQuery);
   if (config.query?.debugger) {
     logDebug(`batchedQuery[${VERSION}]`, JSON.stringify({ batchedQuery }));
   }
