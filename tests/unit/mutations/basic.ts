@@ -2556,7 +2556,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
     } catch (err) {
       if (err instanceof Error) {
         expect(
-          err.message.startsWith('Error running SURQL mutation: [{"result":"Found NONE for field `requiredOption`'),
+          err.message.startsWith('Error running SURQL mutation: Found NONE for field `requiredOption`'),
         ).toBe(true);
       }
     }

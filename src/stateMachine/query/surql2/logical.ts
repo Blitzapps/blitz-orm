@@ -32,7 +32,7 @@ export interface SubQuery {
   oppositePath: string;
   filter?: Filter;
   /**
-   * The cardinality of the reference in DB. If the surql sub-query returns an array the cardinality is 'MANY'. Otherwise it is 'ONE'.
+   * The cardinality of the sub-query result. If the surql sub-query returns an array the cardinality is 'MANY'. Otherwise it is 'ONE'.
    * For COMPUTED REFERENCE it is always 'MANY'.
    */
   cardinality: 'MANY' | 'ONE';
@@ -42,7 +42,14 @@ export interface Projection {
   fields: ProjectionField[];
 }
 
-export type ProjectionField = MetadataField | DataField | ReferenceField | NestedReferenceField | FlexField;
+export type ProjectionField =
+  | MetadataField
+  | DataField
+  | RefField
+  | FutureRefField
+  | NestedRefField
+  | NestedFutureRefField
+  | FlexField;
 
 export interface MetadataField {
   type: 'metadata';
@@ -56,24 +63,40 @@ export interface DataField {
   alias?: string;
 }
 
-export interface ReferenceField {
-  type: 'reference';
+interface BaseRefField {
   path: string;
   alias?: string;
-  cardinality: 'MANY' | 'ONE';
+  resultCardinality: 'MANY' | 'ONE';
+  fieldCardinality: 'MANY' | 'ONE';
 }
 
-export interface NestedReferenceField {
-  type: 'nested_reference';
+export interface RefField extends BaseRefField {
+  type: 'ref';
+}
+
+export interface FutureRefField extends BaseRefField {
+  type: 'future_ref';
+}
+
+interface BaseNestedRefField {
   path: string;
   projection: Projection;
   ids?: string[];
   filter?: Filter;
   alias?: string;
-  cardinality: 'MANY' | 'ONE';
+  resultCardinality: 'MANY' | 'ONE';
+  fieldCardinality: 'MANY' | 'ONE';
   limit?: number;
   offset?: number;
   sort?: Sort[];
+}
+
+export interface NestedRefField extends BaseNestedRefField {
+  type: 'nested_ref';
+}
+
+export interface NestedFutureRefField extends BaseNestedRefField {
+  type: 'nested_future_ref';
 }
 
 export interface FlexField {
@@ -87,9 +110,12 @@ export type Filter =
   | ScalarFilter
   | ListFilter
   | RefFilter
+  | BiRefFilter
+  | FutureBiRefFilter
   | LogicalOp
   | NotOp
   | NestedFilter
+  | NestedFutureFilter
   | NullFilter
   | FalsyFilter;
 
@@ -107,8 +133,7 @@ export interface ListFilter {
   right: BQLFilterValueList;
 }
 
-export interface RefFilter {
-  type: 'ref';
+interface BaseRefFilter {
   op: 'IN' | 'NOT IN' | 'CONTAINSALL' | 'CONTAINSANY' | 'CONTAINSNONE';
   left: string;
   right: string[];
@@ -122,6 +147,21 @@ export interface RefFilter {
    * True if it's a link field with target "role".
    */
   tunnel: boolean;
+  cardinality: 'MANY' | 'ONE';
+}
+
+export interface RefFilter extends BaseRefFilter {
+  type: 'ref';
+}
+
+export interface BiRefFilter extends BaseRefFilter {
+  type: 'biref'; // TODO: Rename to something better
+  oppositeCardinality: 'MANY' | 'ONE';
+}
+
+export interface FutureBiRefFilter extends BaseRefFilter {
+  type: 'future_biref'; // TODO: Rename to something better
+  oppositeCardinality: 'MANY' | 'ONE';
 }
 
 export interface NullFilter {
@@ -147,11 +187,19 @@ export interface NotOp {
   filter: Filter;
 }
 
-export interface NestedFilter {
-  type: 'nested';
+export interface BaseNestedFilter {
   filter: Filter;
   path: string;
   cardinality: 'MANY' | 'ONE';
+  oppositeCardinality: 'MANY' | 'ONE';
+}
+
+export interface NestedFilter extends BaseNestedFilter {
+  type: 'nested_ref';
+}
+
+export interface NestedFutureFilter extends BaseNestedFilter {
+  type: 'nested_future_ref';
 }
 
 export type ScalarList = Scalar[];
