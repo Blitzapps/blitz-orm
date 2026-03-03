@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.15.4(2026-02-17)
+
+- Fix: Plain object in flex field mutation threw an error
+- Fix: Array in flex field mutation threw an error
+- Tests: Added tests for flex fields with object values
+
 ## 0.15.3(2026-02-12)
 
 - Fix: Upgrade SurrealDB SDK to 2.0.0-alpha.18

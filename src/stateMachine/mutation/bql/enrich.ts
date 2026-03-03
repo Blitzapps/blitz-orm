@@ -5,7 +5,7 @@ import { traverse } from 'object-traversal';
 import { isArray, isObject } from 'radash';
 import { getCurrentFields, getCurrentSchema, getFieldSchema } from '../../../helpers';
 import type { BormConfig, BQLMutationBlock, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
-import { SharedMetadata } from '../../../types/symbols';
+import { FlexDataValue, SharedMetadata } from '../../../types/symbols';
 import { enrichFilter } from '../../query/bql/enrich';
 import { computeFields } from './enrichSteps/computeFields';
 import { enrichChildren } from './enrichSteps/enrichChildren';
@@ -68,6 +68,11 @@ export const enrichBQLMutation = (
         const paths = meta.nodePath?.split('.') || [];
         if (paths.some((p) => p.startsWith('%'))) {
           //we don't go inside %vars even if they are objects
+          return;
+        }
+
+        if (FlexDataValue in value) {
+          //plain data objects in FLEX ref fields, not mutation nodes
           return;
         }
 

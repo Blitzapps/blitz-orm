@@ -1,4 +1,4 @@
-import { isArray, isDate } from 'radash';
+import { isDate } from 'radash';
 import { parseFlexValSurrealDB } from './parseFlexVal';
 
 export const surrealDBtypeMap: Record<string, string> = {
@@ -54,9 +54,7 @@ export const parseValueSurrealDB = (value: unknown, ct?: string): any => {
         }
         return `<datetime>"${value}"`; //let surrealDB try to do the conversion
       case 'FLEX': {
-        // array elements go throw the parsing
-        const parsedVal = isArray(value) ? value.map((v) => parseFlexValSurrealDB(v)) : parseFlexValSurrealDB(value);
-        return `${isArray(parsedVal) ? parsedVal.map((v) => v) : parsedVal}`;
+        return parseFlexValSurrealDB(value);
       }
       default:
         throw new Error(`Unsupported data field type ${ct}.`);
