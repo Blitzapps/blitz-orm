@@ -2,6 +2,14 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.15.6(2026-03-05)
+
+- Feat: Allow using references in JSON data fields
+- Perf: Optimize surql builder
+- Fix: Fix issues reported by the bots
+- Tests: Add test for query with nested filter
+- Chore: fix package pnpm
+
 ## 0.15.4(2026-02-17)
 
 - Fix: Plain object in flex field mutation threw an error
