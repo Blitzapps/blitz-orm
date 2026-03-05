@@ -81,10 +81,10 @@ const optimizeSource = (params: {
   // The same logic applies to nested filters.
 
   const biRefFilter =
-    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref' && f.oppositeCardinality === 'ONE')
-    ?? findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref')
-    ?? findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE')
-    ?? findFilter(filters, (f): f is BiRefFilter => f.type === 'biref');
+    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref' && f.oppositeCardinality === 'ONE') ??
+    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref') ??
+    findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE') ??
+    findFilter(filters, (f): f is BiRefFilter => f.type === 'biref');
   if (biRefFilter) {
     const subQuery = convertRefFilterToRelationshipTraversal(biRefFilter, schema, thing);
     if (subQuery) {
@@ -96,10 +96,10 @@ const optimizeSource = (params: {
   }
 
   const nestedRefFilter =
-    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'ONE')
-    ?? findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'MANY')
-    ?? findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref')
-    ?? findFilter(filters, (f): f is NestedFutureFilter => f.type === 'nested_future_ref');
+    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'ONE') ??
+    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'MANY') ??
+    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref') ??
+    findFilter(filters, (f): f is NestedFutureFilter => f.type === 'nested_future_ref');
   if (nestedRefFilter) {
     const subQuery = convertNestedFilterToRelationshipTraversal(nestedRefFilter, schema, thing);
     if (subQuery) {

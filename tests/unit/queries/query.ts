@@ -2817,6 +2817,47 @@ export const testQuery = createTest('Query', (ctx) => {
     ]);
   });
 
+  it('fk3[filter, nested] Filter by nested property', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'User',
+        $fields: ['id', 'name', { $path: 'spaces', $fields: ['id', 'name'] }],
+        $filter: {
+          spaces: {
+            name: 'Production',
+          },
+        },
+      },
+      { noMetadata: true },
+    );
+    expect(res).toEqual([
+      {
+        id: 'user1',
+        name: 'Antoine',
+        spaces: [
+          {
+            id: 'space-1',
+            name: 'Production',
+          },
+          {
+            id: 'space-2',
+            name: 'Dev',
+          },
+        ],
+      },
+      {
+        id: 'user5',
+        name: 'Charlize',
+        spaces: [
+          {
+            id: 'space-1',
+            name: 'Production',
+          },
+        ],
+      },
+    ]);
+  });
+
   //Ref and FlexRef tests
 
   it('TODO{T}:ref1[ref, ONE] Get reference, id only', async () => {

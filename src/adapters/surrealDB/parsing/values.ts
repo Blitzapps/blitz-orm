@@ -1,4 +1,6 @@
 import { isDate } from 'radash';
+import { serializeJson } from '../../../stateMachine/mutation/bql/jsonRefs';
+import type { EnrichedBormSchema } from '../../../types';
 import { parseFlexValSurrealDB } from './parseFlexVal';
 
 export const surrealDBtypeMap: Record<string, string> = {
@@ -18,7 +20,7 @@ export const surrealDBtypeMap: Record<string, string> = {
   FLEX: 'bool|bytes|datetime|duration|geometry|number|object|string',
 };
 
-export const parseValueSurrealDB = (value: unknown, ct?: string): any => {
+export const parseValueSurrealDB = (value: unknown, ct?: string, schema?: EnrichedBormSchema): any => {
   if (value === null) {
     return 'NONE';
   }
@@ -39,7 +41,16 @@ export const parseValueSurrealDB = (value: unknown, ct?: string): any => {
       case 'NUMBER':
       case 'NUMBER_DECIMAL':
       case 'BOOLEAN':
+        return value;
       case 'JSON':
+        if (schema && typeof value === 'string') {
+          try {
+            const parsed = JSON.parse(value);
+            return serializeJson(parsed, schema);
+          } catch {
+            return value;
+          }
+        }
         return value;
       case 'DATE':
         if (
