@@ -516,7 +516,8 @@ export const testMutationErrors = createTest('Mutation: Errors', (ctx) => {
           error.message === '[BQLE-Q-M-2] Cannot link on:"root.account3-1___user" because it is already occupied.' ||
             error.message.startsWith(
               'Error running SURQL mutation: [{"result":"An error occurred: [Validation] Cardinality constraint: user is',
-            ) || error.message.startsWith('The query was not executed due to a failed transaction'), // The new SurrealDB client returns a generic error message, may it just pick the first error coming from the DB
+            ) ||
+            error.message.startsWith('The query was not executed due to a failed transaction'), // The new SurrealDB client returns a generic error message, may it just pick the first error coming from the DB
         ).toBe(true);
       } else {
         expect(true).toBe(false);

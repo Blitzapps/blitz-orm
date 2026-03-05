@@ -5,6 +5,7 @@ import type {
   DRAFT_EnrichedBormRelation,
   DRAFT_EnrichedBormSchema,
 } from '../../../types/schema/enriched.draft';
+import { resolveJsonRecordLinks } from '../../mutation/bql/jsonRefs';
 
 type ResultObject = Record<string, unknown>;
 
@@ -131,6 +132,10 @@ const transformResultObject = (params: {
       if (!returnNulls && isNullish(value)) {
         continue;
       }
+      if (field.contentType === 'JSON') {
+        newResult[alias] = resolveJsonRecordLinks(value) ?? null;
+        continue;
+      }
       newResult[alias] = tryConvertDate(value) ?? null;
       continue;
     }
@@ -160,10 +165,10 @@ const transformResultObject = (params: {
 
 const tryConvertDate = (value: unknown) => {
   if (Array.isArray(value)) {
-    return value.map((i) => i instanceof DateTime ? i.toDate() : i);
+    return value.map((i) => (i instanceof DateTime ? i.toDate() : i));
   }
   if (value instanceof DateTime) {
     return value.toDate();
   }
   return value;
-}
+};

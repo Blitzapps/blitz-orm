@@ -93,16 +93,21 @@ const buildRefFieldProjection = (field: RefField | FutureRefField, level: number
   const { path, alias } = field;
   const escapedPath = esc(path);
   const escapedAlias = esc(alias || path);
-  const subQuery = field.fieldCardinality === 'ONE' && field.type === 'ref'
-    ? `SELECT VALUE record::id(id) FROM $this.${escapedPath}`
-    : `SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]`;
+  const subQuery =
+    field.fieldCardinality === 'ONE' && field.type === 'ref'
+      ? `SELECT VALUE record::id(id) FROM $this.${escapedPath}`
+      : `SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]`;
   if (field.resultCardinality === 'ONE') {
     return indent(`array::first(${subQuery}) AS ${escapedAlias}`, level);
   }
   return indent(`(${subQuery}) AS ${escapedAlias}`, level);
 };
 
-const buildNestedFieldProjection = (field: NestedRefField | NestedFutureRefField, level: number, mutParams: SurqlParams) => {
+const buildNestedFieldProjection = (
+  field: NestedRefField | NestedFutureRefField,
+  level: number,
+  mutParams: SurqlParams,
+) => {
   const lines: string[] = [];
   if (field.resultCardinality === 'MANY') {
     lines.push(indent('(', level));
@@ -296,8 +301,7 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       return `NOT(${subFilter})`;
     }
     case 'nested_ref':
-    case 'nested_future_ref':
-      {
+    case 'nested_future_ref': {
       const path = `${_prefix}${esc(filter.path)}`;
       if (filter.cardinality === 'ONE') {
         return buildFilter(filter.filter, mutParams, `${path}.`);

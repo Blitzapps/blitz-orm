@@ -39,7 +39,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
         if (value === null) {
           return `${df} = NONE`;
         }
-        return `${df} = ${parseValueSurrealDB(value, dataFieldSchema.contentType)}`;
+        return `${df} = ${parseValueSurrealDB(value, dataFieldSchema.contentType, schema)}`;
       })
       .filter(Boolean);
 
