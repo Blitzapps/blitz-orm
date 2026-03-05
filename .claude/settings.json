@@ -1,5 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm test:surrealdb-ignoreTodo)"]
+    "allow": [
+      "Bash(pnpm test:surrealdb-ignoreTodo)",
+      "Bash(gh pr view 123 --repo Blitzapps/blitz-orm --json reviews,comments --jq '.reviews[] | {author: .author.login, state: .state, body: .body}')",
+      "Bash(gh api repos/Blitzapps/blitz-orm/pulls/123/comments --jq '.[] | {author: .user.login, body: .body, path: .path, line: .line, diff_hunk: .diff_hunk}')",
+      "Bash(gh pr view 123 --repo Blitzapps/blitz-orm --json comments --jq '.comments[] | {author: .author.login, body: .body}')",
+      "Bash(npx tsc --noEmit --pretty)"
+    ]
   }
 }

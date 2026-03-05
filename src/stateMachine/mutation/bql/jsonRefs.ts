@@ -1,4 +1,5 @@
 import { RecordId } from 'surrealdb';
+import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import type { EnrichedBormSchema } from '../../../types';
 
 /**
@@ -25,7 +26,7 @@ const serializeWithRefs = (value: unknown, schema: EnrichedBormSchema): string =
   if (typeof value === 'object') {
     const ref = isValidRef(value as Record<string, unknown>, schema);
     if (ref) {
-      return `${ref.thing}:⟨${ref.id}⟩`;
+      return `${sanitizeNameSurrealDB(ref.thing)}:⟨${ref.id.replaceAll('⟩', '\\⟩')}⟩`;
     }
     const entries = Object.entries(value as Record<string, unknown>);
     const pairs = entries.map(([k, v]) => `${JSON.stringify(k)}: ${serializeWithRefs(v, schema)}`);

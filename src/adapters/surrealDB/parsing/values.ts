@@ -44,8 +44,12 @@ export const parseValueSurrealDB = (value: unknown, ct?: string, schema?: Enrich
         return value;
       case 'JSON':
         if (schema && typeof value === 'string') {
-          const parsed = JSON.parse(value);
-          return serializeJson(parsed, schema);
+          try {
+            const parsed = JSON.parse(value);
+            return serializeJson(parsed, schema);
+          } catch {
+            return value;
+          }
         }
         return value;
       case 'DATE':
