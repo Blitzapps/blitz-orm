@@ -6,7 +6,7 @@ USER=borm_bench
 PASSWORD=borm_bench
 NAMESPACE=borm_bench
 DATABASE=borm_bench
-SCHEMA_FILE="./benches/schemav3.surql"
+SCHEMA_FILE="./benches/schema.v3.surql"
 
 # Start the container
 docker run \
@@ -17,7 +17,7 @@ docker run \
   --user root \
   -p 8001:8001 \
   --pull always \
-  surrealdb/surrealdb:v3.0.0-alpha.16 \
+  surrealdb/surrealdb:v3 \
   start \
   -u $USER \
   -p $PASSWORD \
