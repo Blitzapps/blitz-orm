@@ -444,7 +444,7 @@ DEFINE FIELD object-names ON Space COMPUTED <~(SpaceObj FIELD space, SpaceDef FI
 
 **Fix double-prefix bug in both link fields AND data fields:**
 
-The existing code has a bug at two locations where `VALUE` is prepended to `dbValue`, but `dbValue` already includes the clause keyword (e.g., `VALUE ...` or `COMPUTED ...`):
+The existing code adds `VALUE` before `${dbValue}`. This reduce the flexibility of how `dbValue` can be defined. Remove `VALUE` and if there's any virtual link field or data field with `dbValue` that needs to have `VALUE` in front of it, add `VALUE` to the `dbValue`.
 
 - **Link fields** (line 90): `${baseDefinition} VALUE ${dbValue}` → `${baseDefinition} ${dbValue}`
 - **Data fields** (line 66): `${baseDefinition} VALUE ${dbValue}` → `${baseDefinition} ${dbValue}`
