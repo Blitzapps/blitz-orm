@@ -202,6 +202,15 @@ const enrichLinkFields = (
   rolePlayerMap: RolePlayerMap,
 ) => {
   for (const lf of linkFields ?? []) {
+    // Validate link field name: only alphanumeric, underscores, dashes, and spaces are allowed.
+    // Other special chars would break SurrealDB COMPUTED field naming (SurrealDB v3 bug).
+    if (/[^a-zA-Z0-9_\-\s]/.test(lf.path)) {
+      throw new Error(
+        `Invalid link field name "${lf.path}" in "${thingName}": ` +
+          `only alphanumeric characters, underscores, dashes, and spaces are allowed`,
+      );
+    }
+
     const targetRel = schema.relations[lf.relation];
     if (!targetRel) {
       throw new Error(`Relation ${lf.relation} not found`);

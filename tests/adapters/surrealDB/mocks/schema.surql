@@ -11,7 +11,7 @@ BEGIN TRANSACTION;
       DEFINE FIELD accounts ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
       DEFINE FIELD sessions ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
       DEFINE FIELD spaces ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
-      DEFINE FIELD __user_tags ON TABLE User COMPUTED <~(UserTag FIELD users);
+      DEFINE FIELD user_tags ON TABLE User COMPUTED <~(UserTag FIELD users);
 
   DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL; //EXTENDS User;
     -- DATA FIELDS
@@ -22,7 +22,7 @@ BEGIN TRANSACTION;
       DEFINE FIELD accounts ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
       DEFINE FIELD sessions ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
       DEFINE FIELD spaces ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
-      DEFINE FIELD __user_tags ON TABLE SuperUser COMPUTED <~(UserTag FIELD users);
+      DEFINE FIELD user_tags ON TABLE SuperUser COMPUTED <~(UserTag FIELD users);
 
   DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL; //EXTENDS SuperUser;
     -- DATA FIELDS
@@ -34,7 +34,7 @@ BEGIN TRANSACTION;
       DEFINE FIELD accounts ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
       DEFINE FIELD sessions ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
       DEFINE FIELD spaces ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
-      DEFINE FIELD __user_tags ON TABLE God COMPUTED <~(UserTag FIELD users);
+      DEFINE FIELD user_tags ON TABLE God COMPUTED <~(UserTag FIELD users);
 
   DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
     -- DATA FIELDS
@@ -105,14 +105,14 @@ BEGIN TRANSACTION;
       DEFINE FIELD freeForAll ON TABLE Color TYPE any;
       DEFINE FIELD value ON TABLE Color TYPE option<string>;
     -- LINK FIELDS
-      DEFINE FIELD __user_tags ON TABLE Color COMPUTED array::distinct(array::flatten(<~(UserTagGroup FIELD color).tags ?? []));
+      DEFINE FIELD user_tags ON TABLE Color COMPUTED array::distinct(array::flatten(<~(UserTagGroup FIELD color).tags ?? []));
       DEFINE FIELD group ON TABLE Color COMPUTED array::first(<~(UserTagGroup FIELD color) ?? []);
 
   DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
     -- DATA FIELDS
       DEFINE FIELD description ON TABLE Power TYPE option<string>;
     -- LINK FIELDS
-      DEFINE FIELD __space_user ON TABLE Power COMPUTED array::first(<~(⟨Space-User⟩ FIELD power) ?? []);
+      DEFINE FIELD space_user ON TABLE Power COMPUTED array::first(<~(⟨Space-User⟩ FIELD power) ?? []);
 
   DEFINE TABLE FlexRef SCHEMAFULL PERMISSIONS FULL;
     -- REF FIELDS
