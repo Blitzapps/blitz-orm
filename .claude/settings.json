@@ -22,7 +22,6 @@
       "Bash(gh api repos/surrealdb/surrealdb.js/releases/tags/v2.0.0 --jq '.body')",
       "Bash(pnpm install)",
       "Bash(npx tsc --noEmit)",
-      "Bash(docker exec:*)",
       "Bash(docker ps --format '{{.Names}}')",
       "Bash(BORM_TEST_ADAPTER=surrealDB npx vitest run tests/unit/allTests.test.ts)",
       "Bash(BORM_TEST_ADAPTER=surrealDB npx vitest run tests/unit/allTests.test.ts -t \"e1\\\\[entity\\\\]\")"
