@@ -8,9 +8,9 @@ BEGIN TRANSACTION;
 			DEFINE FIELD name ON TABLE User TYPE option<string>;
 			DEFINE FIELD email ON TABLE User TYPE option<string>;
 		-- LINK FIELDS
-			DEFINE FIELD accounts ON TABLE User COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Accounts⟩ FIELD user).accounts])));
-			DEFINE FIELD sessions ON TABLE User COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Sessions⟩ FIELD user).sessions])));
-			DEFINE FIELD spaces ON TABLE User COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨Space-User⟩ FIELD users).spaces])));
+			DEFINE FIELD accounts ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
+			DEFINE FIELD sessions ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
+			DEFINE FIELD spaces ON TABLE User COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
 			DEFINE FIELD __user_tags ON TABLE User COMPUTED <~(UserTag FIELD users);
 
 	DEFINE TABLE SuperUser SCHEMAFULL PERMISSIONS FULL; //EXTENDS User;
@@ -19,9 +19,9 @@ BEGIN TRANSACTION;
 			DEFINE FIELD email ON TABLE SuperUser TYPE option<string>;
 			DEFINE FIELD power ON TABLE SuperUser TYPE string;
 		-- LINK FIELDS
-			DEFINE FIELD accounts ON TABLE SuperUser COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Accounts⟩ FIELD user).accounts])));
-			DEFINE FIELD sessions ON TABLE SuperUser COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Sessions⟩ FIELD user).sessions])));
-			DEFINE FIELD spaces ON TABLE SuperUser COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨Space-User⟩ FIELD users).spaces])));
+			DEFINE FIELD accounts ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
+			DEFINE FIELD sessions ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
+			DEFINE FIELD spaces ON TABLE SuperUser COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
 			DEFINE FIELD __user_tags ON TABLE SuperUser COMPUTED <~(UserTag FIELD users);
 
 	DEFINE TABLE God SCHEMAFULL PERMISSIONS FULL; //EXTENDS SuperUser;
@@ -31,20 +31,20 @@ BEGIN TRANSACTION;
 			DEFINE FIELD power ON TABLE God TYPE string;
 			DEFINE FIELD isEvil ON TABLE God TYPE bool;
 		-- LINK FIELDS
-			DEFINE FIELD accounts ON TABLE God COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Accounts⟩ FIELD user).accounts])));
-			DEFINE FIELD sessions ON TABLE God COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨User-Sessions⟩ FIELD user).sessions])));
-			DEFINE FIELD spaces ON TABLE God COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨Space-User⟩ FIELD users).spaces])));
+			DEFINE FIELD accounts ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨User-Accounts⟩ FIELD user).accounts ?? []));
+			DEFINE FIELD sessions ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨User-Sessions⟩ FIELD user).sessions ?? []));
+			DEFINE FIELD spaces ON TABLE God COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD users).spaces ?? []));
 			DEFINE FIELD __user_tags ON TABLE God COMPUTED <~(UserTag FIELD users);
 
 	DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
 		-- DATA FIELDS
 			DEFINE FIELD name ON TABLE Space TYPE option<string>;
 		-- LINK FIELDS
-			DEFINE FIELD users ON TABLE Space COMPUTED array::distinct(array::flatten(array::flatten([<~(⟨Space-User⟩ FIELD spaces).users])));
-			DEFINE FIELD objects ON TABLE Space COMPUTED array::distinct(array::flatten([<~(SpaceObj FIELD space) ?? [], <~(SpaceDef FIELD space) ?? [], <~(Kind FIELD space) ?? [], <~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? [], <~(Self FIELD space) ?? []]));
-			DEFINE FIELD definitions ON TABLE Space COMPUTED array::distinct(array::flatten([<~(SpaceDef FIELD space) ?? [], <~(Kind FIELD space) ?? [], <~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? []]));
+			DEFINE FIELD users ON TABLE Space COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD spaces).users ?? []));
+			DEFINE FIELD objects ON TABLE Space COMPUTED array::distinct(array::concat(<~(SpaceObj FIELD space) ?? [], <~(SpaceDef FIELD space) ?? [], <~(Kind FIELD space) ?? [], <~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? [], <~(Self FIELD space) ?? []));
+			DEFINE FIELD definitions ON TABLE Space COMPUTED array::distinct(array::concat(<~(SpaceDef FIELD space) ?? [], <~(Kind FIELD space) ?? [], <~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? []));
 			DEFINE FIELD kinds ON TABLE Space COMPUTED <~(Kind FIELD space);
-			DEFINE FIELD fields ON TABLE Space COMPUTED array::distinct(array::flatten([<~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? []]));
+			DEFINE FIELD fields ON TABLE Space COMPUTED array::distinct(array::concat(<~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? []));
 
 			DEFINE FIELD dataFields ON TABLE Space COMPUTED <~(DataField FIELD space);
 			DEFINE FIELD selfs ON TABLE Space COMPUTED <~(Self FIELD space);
@@ -109,7 +109,7 @@ BEGIN TRANSACTION;
 			DEFINE FIELD freeForAll ON TABLE Color TYPE option<bool|bytes|datetime|duration|geometry|number|object|string> FLEXIBLE;
 			DEFINE FIELD value ON TABLE Color TYPE option<string>;
 		-- LINK FIELDS
-			DEFINE FIELD __user_tags ON TABLE Color COMPUTED array::distinct(array::flatten(array::flatten([<~(UserTagGroup FIELD color).tags])));
+			DEFINE FIELD __user_tags ON TABLE Color COMPUTED array::distinct(array::flatten(<~(UserTagGroup FIELD color).tags ?? []));
 			DEFINE FIELD group ON TABLE Color COMPUTED array::first(<~(UserTagGroup FIELD color) ?? []);
 
 	DEFINE TABLE Power SCHEMAFULL PERMISSIONS FULL;
@@ -216,7 +216,7 @@ BEGIN TRANSACTION;
 			DEFINE FIELD description ON TABLE Kind TYPE option<string>;
 			DEFINE FIELD name ON TABLE Kind TYPE option<string>;
 		-- LINK FIELDS
-			DEFINE FIELD fields ON TABLE Kind COMPUTED array::distinct(array::flatten([<~(Field FIELD kinds) ?? [], <~(DataField FIELD kinds) ?? []]));
+			DEFINE FIELD fields ON TABLE Kind COMPUTED array::distinct(array::concat(<~(Field FIELD kinds) ?? [], <~(DataField FIELD kinds) ?? []));
 
 			DEFINE FIELD dataFields ON TABLE Kind COMPUTED <~(DataField FIELD kinds);
 		-- ROLES
