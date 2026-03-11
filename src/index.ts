@@ -91,7 +91,7 @@ class BormClient {
               database: dbc.dbName,
             });
             await client.connect();
-            dbHandles.surrealDB.set(dbc.id, { client, providerConfig: dbc.providerConfig });
+            dbHandles.surrealDB.set(dbc.id, { client });
           } else if (dbc.provider === 'typeDB' && dbc.dbName) {
             // const client = await TypeDB.coreClient(dbc.url);
             // const clientErr = undefined;
@@ -165,7 +165,12 @@ class BormClient {
 
   define = async () => {
     const initialized = await this.getInitialized();
-    const schemas = await bormDefine(this.config, initialized.enrichedSchema, initialized.dbHandles);
+    const schemas = await bormDefine(
+      this.config,
+      initialized.enrichedSchema,
+      initialized.draftSchema,
+      initialized.dbHandles,
+    );
     return schemas;
   };
 

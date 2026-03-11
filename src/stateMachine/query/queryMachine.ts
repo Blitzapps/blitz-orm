@@ -7,7 +7,6 @@ import type { BormConfig, DBHandles, EnrichedBormSchema, RawBQLQuery } from '../
 import type { DRAFT_EnrichedBormSchema } from '../../types/schema/enriched.draft';
 import { VERSION } from '../../version';
 import { enrichBQLQuery } from './bql/enrich';
-import { runSurrealDbQueryMachine } from './surql/machine';
 import { runSurrealDbQueryMachine2 } from './surql2/run';
 import { runTypeDbQueryMachine } from './tql/machine';
 
@@ -136,9 +135,6 @@ export const queryMachine = createMachine(
           }
 
           if (a.db === 'surrealDB') {
-            if (ctx.config.query?.legacySurrealDBAdapter) {
-              return runSurrealDbQueryMachine(a.rawBql, ctx.schema, ctx.config, a.client);
-            }
             return runSurrealDbQueryMachine2(a.rawBql, ctx.draftSchema, ctx.config, a.client);
           }
 

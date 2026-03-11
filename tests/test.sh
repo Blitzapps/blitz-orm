@@ -20,43 +20,20 @@ parse_args() {
     VITEST_ARGS=()
     for arg in "$@"
     do
-        case $arg in
-            -link=*)
-            # We'll ignore this parameter now
-            ;;
-            *)
-            VITEST_ARGS+=("$arg")
-            ;;
-        esac
+        VITEST_ARGS+=("$arg")
     done
 }
 
 # Parse the command line arguments
 parse_args "$@"
 
-# Check if BORM_TEST_SURREALDB_LINK_MODE is set and valid
-if [ -z "$BORM_TEST_SURREALDB_LINK_MODE" ]; then
-    echo "Error: BORM_TEST_SURREALDB_LINK_MODE environment variable is not set"
-    exit 1
-elif [ "$BORM_TEST_SURREALDB_LINK_MODE" != "edges" ] && [ "$BORM_TEST_SURREALDB_LINK_MODE" != "refs" ]; then
-    echo "Error: BORM_TEST_SURREALDB_LINK_MODE must be either 'edges' or 'refs'"
-    exit 1
-fi
-
-# Set LINK based on BORM_TEST_SURREALDB_LINK_MODE
-if [ "$BORM_TEST_SURREALDB_LINK_MODE" == "edges" ]; then
-    LINK="edges"
-else
-    LINK="refs"
-fi
-
-# Set variables based on LINK
-SCHEMA_FILE="./tests/adapters/surrealDB/mocks/${LINK}Schema.surql"
-DATA_FILE="./tests/adapters/surrealDB/mocks/${LINK}Data.surql"
-NAMESPACE="test_${LINK}"
+# Set variables
+SCHEMA_FILE="./tests/adapters/surrealDB/mocks/schema.surql"
+DATA_FILE="./tests/adapters/surrealDB/mocks/data.surql"
+NAMESPACE="test"
 
 # Start the container
-docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v2.3.7 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
+docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
 
 until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
     sleep 0.1;

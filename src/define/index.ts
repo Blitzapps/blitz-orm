@@ -1,8 +1,14 @@
 import { defineSURQLSchema } from '../adapters/surrealDB/schema/define';
 import { defineTQLSchema } from '../adapters/typeDB/schema/define';
 import type { BormConfig, DBHandles, EnrichedBormSchema } from '../types';
+import type { DRAFT_EnrichedBormSchema } from '../types/schema/enriched.draft';
 
-export const bormDefine = async (config: BormConfig, schema: EnrichedBormSchema, dbHandles: DBHandles) => {
+export const bormDefine = async (
+  config: BormConfig,
+  schema: EnrichedBormSchema,
+  draftSchema: DRAFT_EnrichedBormSchema,
+  dbHandles: DBHandles,
+) => {
   const schemas = async () => {
     const typeDBEntries = await Promise.all(
       [...(dbHandles.typeDB || [])].map(async ([key]) => [key, await defineTQLSchema(key, config, schema, dbHandles)]),
@@ -11,7 +17,7 @@ export const bormDefine = async (config: BormConfig, schema: EnrichedBormSchema,
     const typeDBEntriesFixed = typeDBEntries.map((entry) => [entry[0], entry[1]] as const);
 
     const surrealDBEntries = await Promise.all(
-      [...(dbHandles.surrealDB || [])].map(async ([key]) => [key, defineSURQLSchema(schema)]),
+      [...(dbHandles.surrealDB || [])].map(async ([key]) => [key, defineSURQLSchema(draftSchema)]),
     );
 
     const surrealDBEntriesFixed = surrealDBEntries.map((entry) => [entry[0], entry[1]] as const);

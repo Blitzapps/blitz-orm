@@ -55,13 +55,6 @@ INSERT INTO ⟨Account⟩ [
 ];
 
 
-INSERT INTO ⟨Post⟩ [
-  { id: "post1", "mentions": [ "@Antoine" ]},
-  { id: "post2", "mentions": [ "@Antoine", "@Loic" ]},
-  { id: "post3", "mentions": [ "@Loic" ] },
-  { id: "post4", "mentions": [ "@Ann" ] }
-];
-
 INSERT INTO ⟨User-Accounts⟩ [
   { id: "ua1-1", user: User:user1, accounts: [Account:⟨account1-1⟩] },
 	{ id: "ua1-2", user: User:user1, accounts: [Account:⟨account1-2⟩] },
@@ -121,6 +114,8 @@ INSERT INTO ⟨Hook⟩ [
   { id: "hook4", requiredOption: "a" },
   { id: "hook5", requiredOption: "b" }
 ];
+-- Trigger VALUE field recomputation now that all hooks exist
+UPDATE Hook SET requiredOption = requiredOption;
 
 
 INSERT INTO ⟨ThingRelation⟩ [
@@ -136,7 +131,7 @@ INSERT INTO ⟨ThingRelation⟩ [
 	{ id: "tr11", root: Thing:thing4, extra: Thing:thing5 }
 ];
 
-## FlexRef
+-- FlexRef
 
 INSERT INTO ⟨FlexRef⟩ [
 	{ id: "fr1", reference: User:user1 },
@@ -146,25 +141,19 @@ INSERT INTO ⟨FlexRef⟩ [
 	{ id: 'fr5', flexReferences: [7, User:user1,'hey']},
 ];
 	
-## big numbers
+-- big numbers
 
-LET $companies = (
-    function() {
-        return Array.from({length: 1000}, (_, i) => i + 1);
-    }
-);
-
- FOR $company IN $companies {
-   LET $compId = CREATE ONLY type::thing('Company',type::string($company) ) CONTENT {
-        name: string::concat('Company ', type::string($company)),
-        industry: rand::enum(['Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'])
+FOR $company IN 1..=1000 {
+   LET $compId = CREATE ONLY type::record('Company', string::concat(type::string($company), 'f')) CONTENT {
+        name: string::concat('Company ', type::string($company), 'f'),
+        industry: rand::enum('Tech', 'Finance', 'Healthcare', 'Retail', 'Manufacturing')
     };
     FOR $employee IN [0,1,2,3,4,5,6,7,8,9] {
-        CREATE type::thing('Employee',type::string(($company * 10) + $employee))  CONTENT {
-            name: string::concat('Employee ',  type::string(($company * 10) + $employee)),
+        CREATE type::record('Employee', string::concat(type::string(($company * 10) + $employee), 'f')) CONTENT {
+            name: string::concat('Employee ', type::string(($company * 10) + $employee), 'f'),
             company: $compId.id
-        }
-    }
+        };
+    };
 };
 
 COMMIT TRANSACTION;

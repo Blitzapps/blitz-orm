@@ -9,13 +9,13 @@ import type {
 } from '../../../types/schema/enriched.draft';
 import type {
   BiRefFilter,
+  ComputedBiRefFilter,
   DataSource,
   Filter,
-  FutureBiRefFilter,
   ListFilter,
   LogicalQuery,
+  NestedComputedFilter,
   NestedFilter,
-  NestedFutureFilter,
   Projection,
   ProjectionField,
   RecordPointer,
@@ -56,8 +56,6 @@ const optimizeSource = (params: {
     return { source, filter };
   }
 
-  // TODO: If we use SurrealDB(v3) REFERENCE, convert computed reference filter into relationship traversal.
-
   const filters = filter?.type === 'and' ? filter.filters : filter ? [filter] : [];
 
   for (let i = 0; i < filters.length; i++) {
@@ -75,14 +73,17 @@ const optimizeSource = (params: {
   }
 
   // Priority order for bidirectional ref filters:
-  //   future_bi_ref (ONE) > future_bi_ref (MANY) > bi_ref (ONE) > bi_ref (MANY)
-  // future_bi_ref takes precedence because it converts to a sub-query that traverses a normal ref,
-  // which is faster than traversing a future ref directly.
+  //   computed_biref (ONE) > computed_biref (MANY) > biref (ONE) > biref (MANY)
+  // computed_biref takes precedence because it converts to a sub-query that traverses a normal ref,
+  // which is faster than traversing a computed ref directly.
   // The same logic applies to nested filters.
 
   const biRefFilter =
-    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref' && f.oppositeCardinality === 'ONE') ??
-    findFilter(filters, (f): f is FutureBiRefFilter => f.type === 'future_biref') ??
+    findFilter(
+      filters,
+      (f): f is ComputedBiRefFilter => f.type === 'computed_biref' && f.oppositeCardinality === 'ONE',
+    ) ??
+    findFilter(filters, (f): f is ComputedBiRefFilter => f.type === 'computed_biref') ??
     findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE') ??
     findFilter(filters, (f): f is BiRefFilter => f.type === 'biref');
   if (biRefFilter) {
@@ -98,8 +99,14 @@ const optimizeSource = (params: {
   const nestedRefFilter =
     findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'ONE') ??
     findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref' && f.oppositeCardinality === 'MANY') ??
-    findFilter(filters, (f): f is NestedFilter => f.type === 'nested_ref') ??
-    findFilter(filters, (f): f is NestedFutureFilter => f.type === 'nested_future_ref');
+    findFilter(
+      filters,
+      (f): f is NestedComputedFilter => f.type === 'nested_computed_ref' && f.oppositeCardinality === 'ONE',
+    ) ??
+    findFilter(
+      filters,
+      (f): f is NestedComputedFilter => f.type === 'nested_computed_ref' && f.oppositeCardinality === 'MANY',
+    );
   if (nestedRefFilter) {
     const subQuery = convertNestedFilterToRelationshipTraversal(nestedRefFilter, schema, thing);
     if (subQuery) {
@@ -144,7 +151,7 @@ const convertIdFilterToRecordPointer = (
  * Return sub query if the filter can be converted to a relationship traversal.
  */
 const convertRefFilterToRelationshipTraversal = (
-  filter: BiRefFilter | FutureBiRefFilter,
+  filter: BiRefFilter | ComputedBiRefFilter,
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
@@ -173,7 +180,7 @@ const convertRefFilterToRelationshipTraversal = (
 };
 
 const convertNestedFilterToRelationshipTraversal = (
-  filter: NestedFilter | NestedFutureFilter,
+  filter: NestedFilter | NestedComputedFilter,
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
@@ -245,7 +252,7 @@ const optimizeProjectionField = (
     field.type === 'data' ||
     field.type === 'flex' ||
     field.type === 'ref' ||
-    field.type === 'future_ref'
+    field.type === 'computed_ref'
   ) {
     return field;
   }
@@ -415,7 +422,7 @@ const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
     };
   }
 
-  if (filter.type === 'nested_ref' || filter.type === 'nested_future_ref') {
+  if (filter.type === 'nested_ref' || filter.type === 'nested_computed_ref') {
     const optimizedSubFilter = optimizeLocalFilter(filter.filter);
     if (!optimizedSubFilter) {
       return undefined;

@@ -4,34 +4,35 @@ import { VERSION } from '../../../version';
 
 export const runSURQLMutation = async (client: SurrealClient, mutations: string[]): Promise<any[]> => {
   const batchedMutation = `
-	BEGIN TRANSACTION;
 	${mutations.join(';')};
 	LET $DELTAS = SELECT * FROM Delta;
 	DELETE Delta;
 	RETURN $DELTAS;
-
-	LET $LOGS = SELECT * FROM LOG;
-	RETURN $LOGS;
-	COMMIT TRANSACTION; 
 	`;
 
   logDebug(`>>> batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
 
+  const tx = await client.beginTransaction();
   try {
-    const result = await client.query(batchedMutation);
-    return result.filter(Boolean);
+    const result = await tx.query(batchedMutation);
+    await tx.commit();
+    return (result as any[]).filter(Boolean);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    await tx.cancel().catch(() => {});
+    let message = err instanceof Error ? err.message : String(err);
     log('runSURQLMutation', 'runSURQLMutation/batchedMutation\n', batchedMutation);
     log('runSURQLMutation', 'runSURQLMutation/error\n', err);
 
-    const isTransactionNoise =
-      message === 'The query was not executed due to a failed transaction' ||
-      message === 'There was an error when starting a new datastore transaction';
-
-    if (!isTransactionNoise) {
-      throw new Error(`Error running SURQL mutation: ${message}`);
+    // Normalize SurrealDB v3 coercion errors (e.g. setting NONE on required field)
+    const coerceMatch = message.match(/Couldn't coerce value for field `(.+?)` of .+?: .+ but found `?NONE`?/);
+    if (coerceMatch) {
+      message = `Found NONE for field \`${coerceMatch[1]}\``;
     }
-    throw err;
+    // Normalize SurrealDB v3 ThrownError format for backward compatibility
+    if (message.startsWith('An error occurred: ')) {
+      message = `[{"result":"${message}"}]`;
+    }
+
+    throw new Error(`Error running SURQL mutation: ${message}`);
   }
 };

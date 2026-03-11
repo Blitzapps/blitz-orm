@@ -1,6 +1,6 @@
 import { isArray } from 'radash';
 import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filters/filters';
-import { sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
+import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
 import { getCurrentFields, getSchemaByThing, oFilter } from '../../../helpers';
 import type { EnrichedBormRelation, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
@@ -8,6 +8,17 @@ import { Parent } from '../../../types/symbols';
 import type { FlatBqlMutation } from '../bql/flatter';
 
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
+  // Sanitize parent edge field name for SurrealDB access.
+  // COMPUTED fields (link fields) with special chars are renamed via computedFieldNameSurrealDB.
+  // Role/ref fields keep their original name wrapped in angle brackets.
+  const sanitizeEdgeField = (edgeField: string): string => {
+    const computedName = computedFieldNameSurrealDB(edgeField);
+    if (computedName !== edgeField) {
+      return computedName;
+    }
+    return `⟨${edgeField}⟩`;
+  };
+
   const buildThings = (block: EnrichedBQLMutationBlock) => {
     //console.log('currentThing:', block);
     const { $filter, $thing, $bzId, $op, $id, $tempId } = block;
@@ -44,10 +55,18 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       .filter(Boolean);
 
     const VAR = `$⟨${$tempId || $bzId}⟩`;
+    // _pre variable holds SELECT * results for child blocks to access computed fields.
+    // SurrealDB v3 COMPUTED fields are NOT resolved during record-link dereference,
+    // so we must SELECT * explicitly for all ops to make link fields available to child blocks.
+    // For DELETE: _pre = SELECT * before deletion, VAR = record IDs from TARGET.
+    // For MATCH/UPDATE: _pre = SELECT * from TARGET, VAR = IDs or UPDATE result.
+    const PRE_VAR = `$⟨${$tempId || $bzId}_pre⟩`;
 
     const COND = (() => {
       if (parent?.bzId) {
-        return `array::flatten($⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩ || []).filter(|$v| $v != NONE).len`;
+        // Use parent's _pre variable for computed field access (needed for DELETE parents
+        // where the record is deleted and fields can't be resolved dynamically).
+        return `array::flatten($⟨${parent.bzId}_pre⟩.${sanitizeEdgeField(parent.edgeField)} || []).filter(|$v| $v != NONE).len`;
       }
       if (idValue) {
         if (isArray(idValue)) {
@@ -61,7 +80,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const TARGET = (() => {
       //Non root
       if (parent?.bzId) {
-        const parentRef = `array::flatten($⟨${parent.bzId}⟩.⟨${parent.edgeField}⟩ || []).filter(|$v| $v != NONE)`; //needed to fix an issue where deletions fail when finding none. If we want to thow an error on undefined this might be a good place
+        const parentRef = `array::flatten($⟨${parent.bzId}_pre⟩.${sanitizeEdgeField(parent.edgeField)} || []).filter(|$v| $v != NONE)`; //needed to fix an issue where deletions fail when finding none. If we want to thow an error on undefined this might be a good place
 
         if (idValue) {
           if (isArray(idValue)) {
@@ -83,8 +102,6 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const SET = dataFieldStrings.length > 0 ? `SET ${dataFieldStrings.join(', ')}` : '';
 
     const OUTPUT = `VALUE (CREATE ONLY Delta SET input = ${restString}, meta = {${metaString}, "$sid": $parent.id, "$id": record::id($parent.id)}, after = $after, before = $before RETURN VALUE $parent.id )`;
-    const DELETE_OUTPUT = 'BEFORE';
-
     if (['link', 'unlink', 'replace'].includes($op)) {
       throw new Error("Edge ops don't belong to things");
     }
@@ -92,20 +109,30 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
       if ($tempId) {
         return ''; //tempIds are already stored on their creation
       }
-      return `LET ${VAR} = (SELECT VALUE id FROM ${TARGET} ${WHERE});`;
+      return `LET ${VAR} = (SELECT VALUE id FROM ${TARGET} ${WHERE});\nLET ${PRE_VAR} = (SELECT * FROM ${TARGET} ${WHERE});`;
     }
     if (block.$op === 'create') {
       if (isArray(idValue)) {
         throw new Error('Cannot create multiple things at once');
       }
       const tableName = sanitizeNameSurrealDB($thing);
-      return `LET ${VAR} = (CREATE ONLY ${tableName}:⟨${idValue}⟩ ${SET} RETURN ${OUTPUT});`;
+      return `LET ${VAR} = (CREATE ONLY ${tableName}:⟨${idValue}⟩ ${SET} RETURN ${OUTPUT});\nLET ${PRE_VAR} = ${VAR};`;
     }
     if (block.$op === 'update') {
-      return `LET ${VAR} = IF (${COND}) THEN (UPDATE ${TARGET} ${SET} ${WHERE} RETURN ${OUTPUT}) END;`;
+      return `LET ${PRE_VAR} = IF (${COND}) { (SELECT * FROM ${TARGET} ${WHERE}) };\nLET ${VAR} = IF (${COND}) { (UPDATE ${TARGET} ${SET} ${WHERE} RETURN ${OUTPUT}) };`;
     }
     if (block.$op === 'delete') {
-      return `LET ${VAR} = IF (${COND}) THEN (DELETE ${TARGET} ${WHERE} RETURN ${DELETE_OUTPUT}) END;`;
+      // SurrealDB v3: RETURN BEFORE doesn't include computed (link) fields.
+      // SELECT first to capture computed field values for dependent blocks, then DELETE.
+      // _pre holds full records (with computed fields) for child block COND/TARGET.
+      // VAR holds record IDs (from the TARGET expression) for edge UPDATE operations.
+      // Note: We can't use _pre.id because SurrealDB v3 has a bug where the `id` field
+      // disappears from SELECT * results after REFERENCE ON DELETE UNSET cascades in transactions.
+      return [
+        `LET ${PRE_VAR} = IF (${COND}) { (SELECT * FROM ${TARGET} ${WHERE}) };`,
+        `LET ${VAR} = IF (${PRE_VAR}) { array::flatten([${TARGET}]) };`,
+        `IF (${PRE_VAR}) { DELETE ${TARGET} ${WHERE} };`,
+      ].join('\n');
     }
 
     throw new Error(`Unsupported operation ${block.$op}`);
@@ -118,6 +145,12 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const { usedRoleFields } = getCurrentFields(currentSchema, block);
 
     const VAR = `$⟨${$tempId || $bzId}⟩`;
+    const tableName = sanitizeNameSurrealDB($thing);
+
+    // Pre-UPDATE statements to enforce inverse cardinality ONE constraints.
+    // When the opposite side has cardinality ONE, each target can only be referenced
+    // by one record, so we must unlink from old records before linking to the new one.
+    const preStatements: string[] = [];
 
     const roleFields =
       'roles' in currentSchema
@@ -130,6 +163,27 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
             const asArrayOfVars = isArray(block[rf])
               ? block[rf].map((node: string) => `$⟨${node}⟩`)
               : [`$⟨${block[rf]}⟩`];
+
+            // Check if opposite link field has cardinality ONE (inverse constraint)
+            const hasInverseOneConstraint = roleFieldSchema.playedBy?.some((lf) => lf.cardinality === 'ONE');
+
+            // For link: if opposite has ONE cardinality, unlink from other records first.
+            // Only for 'link' (new associations), not 'replace' (which updates in-place).
+            if (hasInverseOneConstraint && $op === 'link') {
+              if (cardinality === 'ONE') {
+                // Wrap in parens so SurrealDB doesn't parse `WHERE rf = X || Y` as `(rf = X) || Y`
+                const resolvedValue =
+                  asArrayOfVars.length > 1
+                    ? `(array::filter(array::flatten([${asArrayOfVars}]), |$v| !!$v)[0])`
+                    : `(((type::is_array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]})`;
+                preStatements.push(`UPDATE ${tableName} SET ${rf} = NONE WHERE ${rf} = ${resolvedValue}`);
+              } else if (cardinality === 'MANY') {
+                const nodesString = `array::flatten([${asArrayOfVars}])`;
+                preStatements.push(
+                  `UPDATE ${tableName} SET ${rf} -= ${nodesString} WHERE ${rf} CONTAINSANY ${nodesString}`,
+                );
+              }
+            }
 
             if (cardinality === 'ONE') {
               if (asArrayOfVars.length > 1) {
@@ -148,7 +202,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
               switch ($op) {
                 case 'link':
                 case 'replace':
-                  return `${rf} = ((type::is::array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]}`;
+                  return `${rf} = ((type::is_array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]}`;
                 case 'unlink':
                   return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
                 default:
@@ -175,7 +229,8 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const roleFieldsString = roleFields.length > 0 ? `${roleFields.join(', ')}` : '';
     const SET = roleFieldsString ? `SET ${roleFieldsString}` : '';
 
-    return `IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END; ${VAR};`; //todo: confirm if the WHERE is actually needed here?
+    const preStatementsStr = preStatements.length > 0 ? `${preStatements.join(';\n')};\n` : '';
+    return `${preStatementsStr}IF ${VAR} { (UPDATE ${VAR} ${SET} RETURN VALUE id) }; ${VAR};`; //todo: confirm if the WHERE is actually needed here?
   };
 
   const buildArcs = (block: EnrichedBQLMutationBlock) => {
@@ -246,15 +301,12 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
 						}`,
       ];
 
-      ///This is the throw error version that checks the cardinality, if it is ugly but it works, it ain't ugly
-      //	`CREATE ONLY ${tableName} SET ${roleA} = ${isMany1 ? `fn::as_array($⟨${thingA}⟩)` : `array::len(fn::as_array($⟨${thingA}⟩)) == 1  && array::first(fn::as_array($⟨${thingA}⟩)) || $⟨${thingA}⟩`}, ${roleB} = ${isMany2 ? `fn::as_array($⟨${thingB}⟩)` : `array::len(fn::as_array($⟨${thingB}⟩)) == 1  && array::first(fn::as_array($⟨${thingB}⟩)) || $⟨${thingB}⟩`} RETURN ${OUTPUT};`,
-
       //console.log('arcs', arcs);
       return arcs;
     }
 
     if ($op === 'delete') {
-      return `DELETE FROM ${tableName} WHERE fn::as_array(${roleA}) CONTAINSANY $⟨${thingsA}⟩ AND fn::as_array(${roleB}) CONTAINSANY $⟨${thingsB}⟩ RETURN BEFORE`;
+      return `DELETE FROM ${tableName} WHERE array::flatten([${roleA}]) CONTAINSANY $⟨${thingsA}⟩ AND array::flatten([${roleB}]) CONTAINSANY $⟨${thingsB}⟩ RETURN BEFORE`;
     }
   };
 
@@ -289,7 +341,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
           switch ($op) {
             case 'link':
             case 'replace':
-              return `${rf} = ((type::is::array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]}`;
+              return `${rf} = ((type::is_array(${asArrayOfVars[0]}) && array::len(${asArrayOfVars[0]})==1) && ${asArrayOfVars[0]}[0]) || ${asArrayOfVars[0]}`;
             case 'unlink':
               return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
             default:
@@ -338,7 +390,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     const refFieldsString = refFields.length > 0 ? `${refFields.join(', ')}` : '';
     const SET = refFieldsString ? `SET ${refFieldsString}` : '';
 
-    return `IF ${VAR} THEN (UPDATE ${VAR} ${SET} RETURN VALUE id) END; ${VAR};`;
+    return `IF ${VAR} { (UPDATE ${VAR} ${SET} RETURN VALUE id) }; ${VAR};`;
   };
 
   const result = [

@@ -23,7 +23,6 @@ export const config: BormConfig = {
     {
       id: 'surrealDB',
       provider: 'surrealDB',
-      providerConfig: { linkMode: 'edges' },
       namespace: 'multi_db_test',
       dbName: 'test',
       url: 'ws://127.0.0.1:8100',

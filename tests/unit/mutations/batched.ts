@@ -108,7 +108,7 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
     expect(peter).toEqual([
       {
         id: expect.any(String),
-        accounts: [
+        accounts: expect.arrayContaining([
           {
             id: expect.any(String),
             provider: 'google',
@@ -117,9 +117,10 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
             id: expect.any(String),
             provider: 'MetaMask',
           },
-        ],
+        ]),
       },
     ]);
+    expect((peter as any)[0].accounts).toHaveLength(2);
 
     const acc1Id = (res as any[])?.find((r) => r.$tempId === '_:acc1')?.id;
 
@@ -217,8 +218,9 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
       id: beaId,
       name: 'Bea',
       email: 'bea@gmail.com',
-      accounts: [{ provider: 'Facebook' }, { provider: 'Google' }],
+      accounts: expect.arrayContaining([{ provider: 'Facebook' }, { provider: 'Google' }]),
     });
+    expect((res2 as any).accounts).toHaveLength(2);
     // delete all
     await ctx.mutate([
       {

@@ -11,7 +11,6 @@ describe('enrichSchema', () => {
         'default',
         {
           client: new SurrealClient({ url: '', username: '', password: '', namespace: '', database: '' }),
-          providerConfig: { linkMode: 'refs' as const },
         },
       ],
     ]),
@@ -165,7 +164,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
           subTypes: ['SuperUser', 'God'],
         },
@@ -323,7 +322,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['power', 'id'],
           allExtends: ['User'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
           subTypes: ['God'],
         },
@@ -490,7 +489,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['isEvil', 'power', 'id'],
           allExtends: ['SuperUser', 'User'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Space: {
@@ -657,7 +656,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Account: {
@@ -689,7 +688,7 @@ describe('enrichSchema', () => {
               path: 'isSecureProvider',
               contentType: 'BOOLEAN',
               isVirtual: true,
-              dbValue: { surrealDB: '{$this.provider = "google"} TYPE option<bool>' },
+              dbValue: { surrealDB: 'COMPUTED ($this.provider = "google")' },
               cardinality: 'ONE',
               dbPath: 'Account·isSecureProvider',
               isIdField: false,
@@ -739,7 +738,7 @@ describe('enrichSchema', () => {
           virtualFields: ['isSecureProvider'],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Session: {
@@ -811,7 +810,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         VerificationToken: {
@@ -867,7 +866,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Thing: {
@@ -941,7 +940,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
           subTypes: ['SubthingOne', 'SubthingTwo'],
         },
@@ -1018,7 +1017,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['Thing'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         SubthingTwo: {
@@ -1094,7 +1093,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['Thing'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         CascadeThing: {
@@ -1139,7 +1138,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Color: {
@@ -1241,7 +1240,7 @@ describe('enrichSchema', () => {
           virtualFields: ['isBlue', 'totalUserTags'],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Power: {
@@ -1293,7 +1292,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         FlexRef: {
@@ -1353,7 +1352,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Hook: {
@@ -1511,7 +1510,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id', 'timestamp'],
           requiredFields: ['id', 'requiredOption'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
         Company: {
@@ -1572,7 +1571,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id', 'name'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'entity',
         },
       },
@@ -1647,7 +1646,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         'User-Sessions': {
@@ -1720,7 +1719,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         'Space-User': {
@@ -1813,7 +1812,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         UserTag: {
@@ -1910,7 +1909,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         UserTagGroup: {
@@ -2023,7 +2022,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         SpaceObj: {
@@ -2076,7 +2075,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
           subTypes: ['SpaceDef', 'Kind', 'Field', 'DataField', 'Self'],
         },
@@ -2119,7 +2118,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['SpaceObj'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           roles: {
             space: {
               cardinality: 'ONE',
@@ -2247,7 +2246,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['SpaceDef', 'SpaceObj'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           roles: {
             space: {
               cardinality: 'ONE',
@@ -2411,7 +2410,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['SpaceDef', 'SpaceObj'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
           subTypes: ['DataField'],
         },
@@ -2523,7 +2522,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['Field', 'SpaceDef', 'SpaceObj'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           roles: {
             kinds: {
               cardinality: 'MANY',
@@ -2681,7 +2680,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         Expression: {
@@ -2764,7 +2763,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         Self: {
@@ -2862,7 +2861,7 @@ describe('enrichSchema', () => {
           computedFields: ['id'],
           requiredFields: ['id'],
           allExtends: ['SpaceObj'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         ThingRelation: {
@@ -2964,7 +2963,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         CascadeRelation: {
@@ -3017,7 +3016,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         HookParent: {
@@ -3090,7 +3089,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         HookATag: {
@@ -3175,7 +3174,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         FlexRefRel: {
@@ -3257,7 +3256,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
         Employee: {
@@ -3320,7 +3319,7 @@ describe('enrichSchema', () => {
           virtualFields: [],
           computedFields: ['id'],
           requiredFields: ['id', 'name'],
-          dbProviderConfig: { linkMode: 'refs' },
+
           thingType: 'relation',
         },
       },

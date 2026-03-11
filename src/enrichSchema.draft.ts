@@ -6,7 +6,8 @@ import type {
   DRAFT_EnrichedBormDataField,
   DRAFT_EnrichedBormEntity,
   DRAFT_EnrichedBormField,
-  DRAFT_EnrichedBormLinkField,
+  DRAFT_EnrichedBormLinkFieldTargetRelation,
+  DRAFT_EnrichedBormLinkFieldTargetRole,
   DRAFT_EnrichedBormRefField,
   DRAFT_EnrichedBormRelation,
   DRAFT_EnrichedBormRoleField,
@@ -160,6 +161,9 @@ const enrichDataFields = (
       contentType: df.contentType,
       cardinality: df.cardinality ?? 'ONE',
       unique: df.validations?.unique ?? false,
+      validations: df.validations,
+      isVirtual: df.isVirtual,
+      dbValue: df.dbValue,
     };
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[df.path] = enriched;
@@ -209,16 +213,20 @@ const enrichLinkFields = (
     const existing = mutEnrichedFields[lf.path];
 
     if (lf.target === 'relation') {
-      const enriched: DRAFT_EnrichedBormLinkField = {
+      const enriched: DRAFT_EnrichedBormLinkFieldTargetRelation = {
         type: 'link',
         name: lf.path,
         cardinality: lf.cardinality,
         target: 'relation',
+        relation: lf.relation,
+        plays: lf.plays,
         opposite: {
           thing: lf.relation,
           path: lf.plays,
           cardinality: targetRole.cardinality,
         },
+        isVirtual: lf.isVirtual,
+        dbValue: lf.dbValue,
       };
       assertNoDuplicateField(thingName, enriched, existing);
       mutEnrichedFields[lf.path] = enriched;
@@ -235,12 +243,34 @@ const enrichLinkFields = (
         `Role "${lf.targetRole}" in relation "${lf.relation}" is not played by any other thing that targets role "${lf.plays}"`,
       );
     }
-    const enriched: DRAFT_EnrichedBormLinkField = {
+
+    // Look up the target role's cardinality from the relation schema
+    const targetRoleField = targetRel.roles?.[lf.targetRole];
+    if (!targetRoleField) {
+      throw new Error(`Target role ${lf.targetRole} not found in relation ${lf.relation}`);
+    }
+    const targetRoleCardinality = targetRoleField.cardinality;
+
+    // Validate: link-to-role with ONE field cardinality and MANY target role cardinality is not allowed
+    if (lf.cardinality === 'ONE' && targetRoleCardinality === 'MANY') {
+      throw new Error(
+        `Invalid link field "${lf.path}": cardinality ONE with target role "${lf.targetRole}" ` +
+          `cardinality MANY is not allowed (relation: ${lf.relation})`,
+      );
+    }
+
+    const enriched: DRAFT_EnrichedBormLinkFieldTargetRole = {
       type: 'link',
       name: lf.path,
       cardinality: lf.cardinality,
       target: 'role',
+      relation: lf.relation,
+      plays: lf.plays,
+      targetRole: lf.targetRole,
+      targetRoleCardinality,
       opposite: rolePlayer,
+      isVirtual: lf.isVirtual,
+      dbValue: lf.dbValue,
     };
     assertNoDuplicateField(thingName, enriched, existing);
     mutEnrichedFields[lf.path] = enriched;
@@ -273,6 +303,7 @@ const enrichRoleFields = (
       type: 'role',
       name: roleName,
       cardinality: role.cardinality ?? 'ONE',
+      onDelete: role.onDelete,
       opposite: opposite,
     };
     assertNoDuplicateField(thingName, enriched, existing);

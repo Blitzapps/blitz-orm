@@ -1,4 +1,4 @@
-import Surreal from 'surrealdb';
+import { Surreal } from 'surrealdb';
 import type BormClient from '../src';
 import { setup } from '../tests/helpers/setup';
 import { bench } from './bench';
@@ -26,7 +26,6 @@ bench(async ({ beforeAll, afterAll, time }) => {
           {
             id: 'default',
             provider: 'surrealDB',
-            providerConfig: { linkMode: 'refs' },
             url: URL,
             namespace: NAMESPACE,
             dbName: DATABASE,
@@ -34,9 +33,6 @@ bench(async ({ beforeAll, afterAll, time }) => {
             password: PASSWORD,
           },
         ],
-        query: {
-          legacySurrealDBAdapter: process.env.BORM_TEST_LEGACY_SURREALDB_ADAPTER?.toLowerCase() === 'true',
-        },
       },
       schema,
     });
@@ -220,10 +216,7 @@ const connect = async () => {
   await db.connect(URL, {
     namespace: NAMESPACE,
     database: DATABASE,
-    auth: {
-      username: USERNAME,
-      password: PASSWORD,
-    },
+    authentication: async () => ({ username: USERNAME, password: PASSWORD }),
     versionCheck: false,
   });
   return db;

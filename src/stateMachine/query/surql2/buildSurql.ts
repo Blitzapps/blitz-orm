@@ -1,13 +1,14 @@
+import { computedFieldNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { genAlphaId } from '../../../helpers';
 import type {
+  ComputedRefField,
   DataField,
   DataSource,
   Filter,
   FlexField,
-  FutureRefField,
   LogicalQuery,
   MetadataField,
-  NestedFutureRefField,
+  NestedComputedRefField,
   NestedRefField,
   Projection,
   RefField,
@@ -53,9 +54,9 @@ const buildProjection = (projection: Projection, level: number, mutParams: Surql
       fieldLines.push(buildMetadataFieldProjection(field, fieldLevel));
     } else if (field.type === 'data') {
       fieldLines.push(buildDataFieldProjection(field, fieldLevel));
-    } else if (field.type === 'ref' || field.type === 'future_ref') {
+    } else if (field.type === 'ref' || field.type === 'computed_ref') {
       fieldLines.push(buildRefFieldProjection(field, fieldLevel));
-    } else if (field.type === 'nested_ref' || field.type === 'nested_future_ref') {
+    } else if (field.type === 'nested_ref' || field.type === 'nested_computed_ref') {
       fieldLines.push(buildNestedFieldProjection(field, fieldLevel, mutParams));
     } else if (field.type === 'flex') {
       fieldLines.push(buildFlexFieldProjection(field, fieldLevel));
@@ -89,14 +90,16 @@ const buildDataFieldProjection = (field: DataField, level: number) => {
   return indent(escapedPath, level);
 };
 
-const buildRefFieldProjection = (field: RefField | FutureRefField, level: number) => {
+const buildRefFieldProjection = (field: RefField | ComputedRefField, level: number) => {
   const { path, alias } = field;
-  const escapedPath = esc(path);
+  // For computed_ref fields, use safe internal name to work around SurrealDB v3 bug
+  // where COMPUTED fields with escaped names don't evaluate
+  const internalPath = field.type === 'computed_ref' ? computedFieldNameSurrealDB(path) : esc(path);
   const escapedAlias = esc(alias || path);
   const subQuery =
-    field.fieldCardinality === 'ONE' && field.type === 'ref'
-      ? `SELECT VALUE record::id(id) FROM $this.${escapedPath}`
-      : `SELECT VALUE record::id(id) FROM $this.${escapedPath}[*]`;
+    field.fieldCardinality === 'ONE'
+      ? `SELECT VALUE record::id(id) FROM $this.${internalPath}`
+      : `SELECT VALUE record::id(id) FROM $this.${internalPath}[*]`;
   if (field.resultCardinality === 'ONE') {
     return indent(`array::first(${subQuery}) AS ${escapedAlias}`, level);
   }
@@ -104,7 +107,7 @@ const buildRefFieldProjection = (field: RefField | FutureRefField, level: number
 };
 
 const buildNestedFieldProjection = (
-  field: NestedRefField | NestedFutureRefField,
+  field: NestedRefField | NestedComputedRefField,
   level: number,
   mutParams: SurqlParams,
 ) => {
@@ -116,10 +119,12 @@ const buildNestedFieldProjection = (
   }
   lines.push(buildProjection(field.projection, level + 1, mutParams));
   const filter = field.filter ? buildFilter(field.filter, mutParams) : undefined;
-  if (field.fieldCardinality === 'ONE' && field.type === 'nested_ref') {
-    lines.push(indent(`FROM $this.${esc(field.path)}`, level + 1));
+  // For nested_computed_ref fields, use safe internal name
+  const internalPath = field.type === 'nested_computed_ref' ? computedFieldNameSurrealDB(field.path) : esc(field.path);
+  if (field.fieldCardinality === 'ONE') {
+    lines.push(indent(`FROM $this.${internalPath}`, level + 1));
   } else {
-    lines.push(indent(`FROM $this.${esc(field.path)}[*]`, level + 1));
+    lines.push(indent(`FROM $this.${internalPath}[*]`, level + 1));
   }
   const conditions: string[] = [];
   if (field.ids && field.ids.length > 0) {
@@ -155,12 +160,12 @@ const buildFlexFieldProjection = (field: FlexField, level: number) => {
   const escapedAlias = esc(alias || path);
   if (cardinality === 'ONE') {
     return indent(
-      `(IF ${escapedPath} THEN IF type::is::record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } END) AS ${escapedAlias}`,
+      `(IF ${escapedPath} { IF type::is_record(${escapedPath}) { record::id(${escapedPath}) } ELSE { ${escapedPath} } }) AS ${escapedAlias}`,
       level,
     );
   }
   return indent(
-    `(IF ${escapedPath} THEN ${escapedPath}.map(|$i| IF type::is::record($i) { record::id($i)} ELSE { $i }) END) AS ${escapedAlias}`,
+    `(IF ${escapedPath} { ${escapedPath}.map(|$i| IF type::is_record($i) { record::id($i)} ELSE { $i }) }) AS ${escapedAlias}`,
     level,
   );
 };
@@ -174,15 +179,19 @@ const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): s
     }
     case 'record_pointer': {
       const pointers = source.thing
-        .flatMap((t) => source.ids.map((i) => `${esc(t)}:${esc(i)}`))
-        .map((p) => `type::record($${insertParam(mutParams, p)})`)
+        .flatMap((t) =>
+          source.ids.map((i) => {
+            const tableKey = insertParam(mutParams, t);
+            const idKey = insertParam(mutParams, i);
+            return `type::record($${tableKey}, $${idKey})`;
+          }),
+        )
         .join(', ');
       lines.push(indent(`FROM ${pointers}`, level));
       break;
     }
     case 'subquery': {
       lines.push(indent(source.cardinality === 'MANY' ? 'FROM array::distinct(array::flatten(' : 'FROM (', level));
-      source.oppositePath;
       lines.push(indent(`SELECT VALUE ${esc(source.oppositePath)}`, level + 1));
       lines.push(buildFrom(source.source, level + 1, mutParams));
       const filter = source.filter ? buildFilter(source.filter, mutParams) : undefined;
@@ -211,14 +220,15 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
     }
     case 'ref':
     case 'biref':
-    case 'future_biref': {
-      const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${esc(filter.left)}`;
+    case 'computed_biref': {
+      const escapedLeft = filter.type === 'computed_biref' ? computedFieldNameSurrealDB(filter.left) : esc(filter.left);
+      const path = filter.left === 'id' ? `record::id(${_prefix}id)` : `${_prefix}${escapedLeft}`;
       if (filter.thing) {
         const right = filter.thing.flatMap((t) =>
           filter.right.map((i) => {
-            const pointer = `${esc(t)}:${esc(i)}`;
-            const key = insertParam(mutParams, pointer);
-            return `type::record($${key})`;
+            const tableKey = insertParam(mutParams, t);
+            const idKey = insertParam(mutParams, i);
+            return `type::record($${tableKey}, $${idKey})`;
           }),
         );
         if (right.length === 1) {
@@ -240,38 +250,26 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       }
       if (filter.right.length === 1) {
         if (filter.op === 'IN') {
-          if (filter.tunnel) {
-            return `(array::first(${path}) && record::id(array::first(${path})) = $${insertParam(mutParams, filter.right[0])})`;
-          }
           return `${path} && record::id(${path}) = $${insertParam(mutParams, filter.right[0])}`;
         }
         if (filter.op === 'NOT IN') {
-          if (filter.tunnel) {
-            return `(!array::first(${path}) || record::id(array::first(${path})) != $${insertParam(mutParams, filter.right[0])})`;
-          }
           return `${path} && record::id(${path}) != $${insertParam(mutParams, filter.right[0])}`;
         }
         if (filter.op === 'CONTAINSANY') {
-          if (filter.tunnel) {
-            return `$${insertParam(mutParams, filter.right[0])} IN ${path}.map(|$i| record::id($i))`;
-          }
           return `$${insertParam(mutParams, filter.right[0])} IN (${path} ?: []).map(|$i| record::id($i))`;
         }
         if (filter.op === 'CONTAINSNONE') {
-          if (filter.tunnel) {
-            return `$${insertParam(mutParams, filter.right[0])} NOT IN ${path}.map(|$i| record::id($i))`;
-          }
           return `$${insertParam(mutParams, filter.right[0])} NOT IN (${path} ?: []).map(|$i| record::id($i))`;
         }
-      }
-      if (filter.tunnel) {
-        return `${path}.map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(mutParams, i)}`).join(', ')}]`;
       }
       return `(${path} ?: []).map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(mutParams, i)}`).join(', ')}]`;
     }
     case 'null': {
-      if (filter.tunnel) {
-        return `array::len(${_prefix}${esc(filter.left)}) = 0`;
+      if (filter.emptyIsArray) {
+        if (filter.op === 'IS') {
+          return `array::len(${_prefix}${esc(filter.left)}) = 0`;
+        }
+        return `array::len(${_prefix}${esc(filter.left)}) > 0`;
       }
       return `${_prefix}${esc(filter.left)} ${filter.op} NONE`;
     }
@@ -301,8 +299,10 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       return `NOT(${subFilter})`;
     }
     case 'nested_ref':
-    case 'nested_future_ref': {
-      const path = `${_prefix}${esc(filter.path)}`;
+    case 'nested_computed_ref': {
+      const filterPath =
+        filter.type === 'nested_computed_ref' ? computedFieldNameSurrealDB(filter.path) : esc(filter.path);
+      const path = `${_prefix}${filterPath}`;
       if (filter.cardinality === 'ONE') {
         return buildFilter(filter.filter, mutParams, `${path}.`);
       }

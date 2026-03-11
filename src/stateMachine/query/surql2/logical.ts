@@ -33,7 +33,6 @@ export interface SubQuery {
   filter?: Filter;
   /**
    * The cardinality of the sub-query result. If the surql sub-query returns an array the cardinality is 'MANY'. Otherwise it is 'ONE'.
-   * For COMPUTED REFERENCE it is always 'MANY'.
    */
   cardinality: 'MANY' | 'ONE';
 }
@@ -46,9 +45,9 @@ export type ProjectionField =
   | MetadataField
   | DataField
   | RefField
-  | FutureRefField
+  | ComputedRefField
   | NestedRefField
-  | NestedFutureRefField
+  | NestedComputedRefField
   | FlexField;
 
 export interface MetadataField {
@@ -74,8 +73,8 @@ export interface RefField extends BaseRefField {
   type: 'ref';
 }
 
-export interface FutureRefField extends BaseRefField {
-  type: 'future_ref';
+export interface ComputedRefField extends BaseRefField {
+  type: 'computed_ref';
 }
 
 interface BaseNestedRefField {
@@ -95,8 +94,8 @@ export interface NestedRefField extends BaseNestedRefField {
   type: 'nested_ref';
 }
 
-export interface NestedFutureRefField extends BaseNestedRefField {
-  type: 'nested_future_ref';
+export interface NestedComputedRefField extends BaseNestedRefField {
+  type: 'nested_computed_ref';
 }
 
 export interface FlexField {
@@ -111,11 +110,11 @@ export type Filter =
   | ListFilter
   | RefFilter
   | BiRefFilter
-  | FutureBiRefFilter
+  | ComputedBiRefFilter
   | LogicalOp
   | NotOp
   | NestedFilter
-  | NestedFutureFilter
+  | NestedComputedFilter
   | NullFilter
   | FalsyFilter;
 
@@ -143,10 +142,6 @@ interface BaseRefFilter {
    * which is a little bit slower than `<left> IN [type::record(<right>), ...]` when both are executed without indexes.
    */
   thing?: [string, ...string[]];
-  /**
-   * True if it's a link field with target "role".
-   */
-  tunnel: boolean;
   cardinality: 'MANY' | 'ONE';
 }
 
@@ -155,12 +150,12 @@ export interface RefFilter extends BaseRefFilter {
 }
 
 export interface BiRefFilter extends BaseRefFilter {
-  type: 'biref'; // TODO: Rename to something better
+  type: 'biref';
   oppositeCardinality: 'MANY' | 'ONE';
 }
 
-export interface FutureBiRefFilter extends BaseRefFilter {
-  type: 'future_biref'; // TODO: Rename to something better
+export interface ComputedBiRefFilter extends BaseRefFilter {
+  type: 'computed_biref';
   oppositeCardinality: 'MANY' | 'ONE';
 }
 
@@ -168,10 +163,9 @@ export interface NullFilter {
   type: 'null';
   op: 'IS' | 'IS NOT';
   left: string;
-  /**
-   * True if it's a link field with target "role".
-   */
-  tunnel: boolean;
+  /** True when the field's empty representation is `[]` instead of `NONE`.
+   *  Only true for MANY cardinality link fields (COMPUTED fields without array::first wrapper). */
+  emptyIsArray: boolean;
 }
 
 export interface FalsyFilter {
@@ -198,8 +192,8 @@ export interface NestedFilter extends BaseNestedFilter {
   type: 'nested_ref';
 }
 
-export interface NestedFutureFilter extends BaseNestedFilter {
-  type: 'nested_future_ref';
+export interface NestedComputedFilter extends BaseNestedFilter {
+  type: 'nested_computed_ref';
 }
 
 export type ScalarList = Scalar[];

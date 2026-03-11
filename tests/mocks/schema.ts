@@ -352,7 +352,7 @@ export const schema: BormSchema = {
           path: 'isSecureProvider',
           contentType: 'BOOLEAN',
           isVirtual: true,
-          dbValue: { surrealDB: '{$this.provider = "google"} TYPE option<bool>' },
+          dbValue: { surrealDB: 'COMPUTED ($this.provider = "google")' },
         },
         {
           path: 'profile',
@@ -649,7 +649,7 @@ export const schema: BormSchema = {
           isVirtual: true,
           dbValue: {
             surrealDB:
-              '<future> {RETURN IF (requiredOption = "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) ELSE RETURN [] END;}',
+              'VALUE IF (requiredOption = "a") { (SELECT VALUE id FROM Hook WHERE (requiredOption != "a")) } ELSE { [] }',
           },
         },
         {
@@ -662,7 +662,7 @@ export const schema: BormSchema = {
           isVirtual: true,
           dbValue: {
             surrealDB:
-              '<future> {RETURN IF (requiredOption != "a") THEN ( RETURN SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) ELSE RETURN [] END;}',
+              'VALUE IF (requiredOption != "a") { (SELECT VALUE id FROM Hook WHERE (requiredOption = "a")) } ELSE { [] }',
           },
         },
       ],

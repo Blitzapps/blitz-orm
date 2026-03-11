@@ -1,13 +1,14 @@
 import type {
-  EnrichedBormEntity,
-  EnrichedBormRelation,
-  EnrichedBormSchema,
-  EnrichedDataField,
-  EnrichedLinkField,
-  EnrichedRoleField,
-  Validations,
-} from '../../../types';
-import { sanitizeNameSurrealDB } from '../helpers';
+  DRAFT_EnrichedBormDataField,
+  DRAFT_EnrichedBormEntity,
+  DRAFT_EnrichedBormLinkField,
+  DRAFT_EnrichedBormRefField,
+  DRAFT_EnrichedBormRelation,
+  DRAFT_EnrichedBormRoleField,
+  DRAFT_EnrichedBormSchema,
+} from '../../../types/schema/enriched.draft';
+import type { Validations } from '../../../types/schema/fields';
+import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../helpers';
 import { parseValueSurrealDB, surrealDBtypeMap } from '../parsing/values';
 
 const INDENTATION = '\t' as const;
@@ -19,188 +20,215 @@ const indentPar = (str: string, level: number): string =>
     .map((line) => (line.trim() ? `${indent(level)}${line}` : line))
     .join('\n');
 
-type SchemaItem = EnrichedBormEntity | EnrichedBormRelation;
+type DraftSchemaItem = DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
 
-const convertBQLToSurQL = (schema: EnrichedBormSchema): string => {
+const convertBQLToSurQL = (schema: DRAFT_EnrichedBormSchema): string => {
   const header = `USE NS test;
 USE DB test;
 
 BEGIN TRANSACTION;
 `;
 
-  const entities = `-- ENTITIES\n${convertSchemaItems(schema.entities)}`;
-  const relations = `\n-- RELATIONS\n${convertSchemaItems(schema.relations)}`;
-  const utilityFunctions = addUtilityFunctions();
+  const entities = Object.entries(schema).filter(([, item]) => item.type === 'entity');
+  const relations = Object.entries(schema).filter(([, item]) => item.type === 'relation');
 
-  return `${header}${entities}${relations}${utilityFunctions}COMMIT TRANSACTION;`;
+  const entitiesStr = `-- ENTITIES\n${convertSchemaItems(entities, schema)}`;
+  const relationsStr = `\n-- RELATIONS\n${convertSchemaItems(relations, schema)}`;
+
+  const internalStr = `\n-- INTERNAL\n\tDEFINE TABLE Delta SCHEMALESS PERMISSIONS FULL;\n`;
+
+  return `${header}${entitiesStr}${relationsStr}${internalStr}COMMIT TRANSACTION;`;
 };
 
-const convertSchemaItems = (items: Record<string, SchemaItem>): string =>
-  Object.entries(items)
-    .map(([name, item]) => convertSchemaItem(sanitizeNameSurrealDB(name), item, 1))
-    .join('\n\n');
+const convertSchemaItems = (items: [string, DraftSchemaItem][], schema: DRAFT_EnrichedBormSchema): string =>
+  items.map(([name, item]) => convertSchemaItem(sanitizeNameSurrealDB(name), item, 1, schema)).join('\n\n');
 
-const convertSchemaItem = (name: string, item: SchemaItem, level: number): string => {
-  const baseDefinition = `${indent(level)}DEFINE TABLE ${name} SCHEMAFULL PERMISSIONS FULL;${'extends' in item && item.extends ? ` //EXTENDS ${item.extends};` : ''}`;
-  const dataFields = indentPar(`-- DATA FIELDS\n${convertDataFields(item.dataFields ?? [], name, level)}`, level + 1);
-  const linkFields = indentPar(`\n-- LINK FIELDS\n${convertLinkFields(item.linkFields ?? [], name, level)}`, level + 1);
-  const roles = 'roles' in item ? indentPar(`\n-- ROLES\n${convertRoles(item.roles, name, level)}`, level + 1) : '';
+const convertSchemaItem = (
+  sanitizedName: string,
+  item: DraftSchemaItem,
+  level: number,
+  schema: DRAFT_EnrichedBormSchema,
+): string => {
+  const baseDefinition = `${indent(level)}DEFINE TABLE ${sanitizedName} SCHEMAFULL PERMISSIONS FULL;${item.extends ? ` //EXTENDS ${item.extends};` : ''}`;
 
-  return `${baseDefinition}\n${dataFields}${linkFields}${roles}`;
+  // Data fields
+  const dataFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormDataField => f.type === 'data');
+  const dataFieldsStr = indentPar(`-- DATA FIELDS\n${convertDataFields(dataFields, sanitizedName, level)}`, level + 1);
+
+  // Link fields (COMPUTED)
+  const linkFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormLinkField => f.type === 'link');
+  const linkFieldsStr = indentPar(
+    `\n-- LINK FIELDS\n${convertLinkFields(linkFields, sanitizedName, level, schema)}`,
+    level + 1,
+  );
+
+  // Roles (REFERENCE)
+  let rolesStr = '';
+  if (item.type === 'relation') {
+    const roleFields = Object.entries(item.fields).filter(
+      (entry): entry is [string, DRAFT_EnrichedBormRoleField] => entry[1].type === 'role',
+    );
+    if (roleFields.length > 0) {
+      rolesStr = indentPar(`\n-- ROLES\n${convertRoles(roleFields, sanitizedName, level, schema)}`, level + 1);
+    }
+  }
+
+  // Ref fields
+  const refFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormRefField => f.type === 'ref');
+  const refFieldsStr =
+    refFields.length > 0 ? indentPar(`\n${convertRefFields(refFields, sanitizedName, level)}`, level + 1) : '';
+
+  return `${baseDefinition}\n${dataFieldsStr}${linkFieldsStr}${rolesStr}${refFieldsStr}`;
 };
 
-const convertDataFields = (dataFields: EnrichedDataField[], parentName: string, level: number): string =>
+const convertDataFields = (dataFields: DRAFT_EnrichedBormDataField[], parentName: string, level: number): string =>
   dataFields
     .map((field) => {
-      if (field.path === 'id') {
+      if (field.name === 'id') {
         return ''; //skip id fields for now, we will migrate it to a different name later like _id
       }
       const fieldType = mapContentTypeToSurQL(field.contentType, field.validations);
-      const baseDefinition = `${indent(level)}DEFINE FIELD ${field.path} ON TABLE ${parentName}${['FLEX', 'JSON'].includes(field.contentType) ? ' FLEXIBLE' : ''}`; //TTODO: Better type json
+      const baseDefinition = `${indent(level)}DEFINE FIELD ${field.name} ON TABLE ${parentName}`;
+      const flexible = ['FLEX', 'JSON'].includes(field.contentType) ? ' FLEXIBLE' : '';
 
       if (field.isVirtual) {
         const dbValue = field.dbValue?.surrealDB;
         if (!dbValue) {
           return ''; //it means is computed in BORM instead
         }
-        return `${baseDefinition} VALUE ${dbValue};`;
+        return `${baseDefinition} ${dbValue};`;
       }
-      return `${baseDefinition} TYPE ${fieldType};`;
+      return `${baseDefinition} TYPE ${fieldType}${flexible};`;
     })
     .filter(Boolean)
     .join('\n');
 
-const convertLinkFields = (linkFields: EnrichedLinkField[], parentName: string, level: number): string =>
+const convertLinkFields = (
+  linkFields: DRAFT_EnrichedBormLinkField[],
+  parentName: string,
+  level: number,
+  draftSchema: DRAFT_EnrichedBormSchema,
+): string =>
   linkFields
-    .map((linkField) => {
-      const fieldType =
-        //linkField.cardinality === 'MANY' ? `array<record<${linkField.relation}>>` : `record<${linkField.relation}>`; //todo: uncomment once surrealDB has smart transactions
-        linkField.cardinality === 'MANY'
-          ? `option<array<record<${linkField.$things.map(sanitizeNameSurrealDB).join('|')}>>>`
-          : `option<record<${linkField.$things.map(sanitizeNameSurrealDB).join('|')}>>`;
+    .map((field) => {
+      // Use safe internal name for COMPUTED fields (SurrealDB v3 bug with escaped names)
+      const computedPath = computedFieldNameSurrealDB(field.name);
+      const baseDefinition = `${indent(level)}DEFINE FIELD ${computedPath} ON TABLE ${parentName}`;
 
-      const baseDefinition = `${indent(level)}DEFINE FIELD ${sanitizeNameSurrealDB(linkField.path)} ON TABLE ${parentName}`;
-
-      if (linkField.isVirtual) {
-        const dbValue = linkField.dbValue?.surrealDB;
+      // Virtual link fields use custom dbValue expressions, not standard COMPUTED fields
+      if (field.isVirtual) {
+        const dbValue = field.dbValue?.surrealDB;
         if (!dbValue) {
-          return ''; //it means is computed in BORM instead
+          return ''; // computed in BORM instead
         }
-
-        return `${baseDefinition} VALUE ${dbValue};`;
+        return `${baseDefinition} ${dbValue};`;
       }
 
-      if (linkField.target === 'role') {
-        const relationLinkField = linkFields.find(
-          (lf) => lf.target === 'relation' && lf.relation === linkField.relation,
-        );
-        const targetRole = linkField.oppositeLinkFieldsPlayedBy?.[0];
-        const targetPath = targetRole.plays;
+      // Build the <~(...) reverse lookup expression
+      const selfRole = field.plays;
+      const relationName = field.target === 'relation' ? field.opposite.thing : field.relation;
+      const sources = collectPolymorphicSources(relationName, selfRole, draftSchema);
 
-        if (!targetPath || linkField.oppositeLinkFieldsPlayedBy?.length !== 1) {
-          throw new Error(`Invalid link field: ${linkField.path}`);
+      const targetSuffix = field.target === 'role' ? `.${sanitizeNameSurrealDB(field.targetRole)}` : '';
+
+      // Wrap with appropriate array function based on cardinality.
+      // Guard against NONE from <~(...) when no back-references exist:
+      // - array::first needs `?? []` to avoid "Expected array but found NONE"
+      // - array::flatten needs wrapping in [...] to ensure it's always an array
+      // Note: Multi-table <~(T1 FIELD f, T2 FIELD f) is broken in SurrealDB v3,
+      // so we split into individual <~(...) expressions and combine with array::flatten.
+      let computedExpr: string;
+      if (sources.length === 1) {
+        const rawExpr = `<~(${sources[0]})${targetSuffix}`;
+        if (field.target === 'relation') {
+          computedExpr = field.cardinality === 'ONE' ? `array::first(${rawExpr} ?? [])` : rawExpr;
+        } else {
+          if (field.cardinality === 'ONE') {
+            computedExpr = `array::first(${rawExpr} ?? [])`;
+          } else if (field.targetRoleCardinality === 'MANY') {
+            computedExpr = `array::distinct(array::flatten(array::flatten([${rawExpr}])))`;
+          } else {
+            computedExpr = `array::distinct(${rawExpr})`;
+          }
         }
-
-        const type =
-          linkField.cardinality === 'ONE'
-            ? `record<${sanitizeNameSurrealDB(linkField.relation)}>`
-            : `array<record<${sanitizeNameSurrealDB(linkField.relation)}>>`;
-
-        const pathToRelation = sanitizeNameSurrealDB(linkField.pathToRelation || '');
-        const relationPath = `${pathToRelation}.${targetPath}`;
-
-        const baseField =
-          linkField.cardinality === 'ONE'
-            ? `${baseDefinition} VALUE <future> {RETURN SELECT VALUE ${relationPath} FROM ONLY $this};`
-            : `${baseDefinition} VALUE <future> {array::distinct(SELECT VALUE array::flatten(${relationPath} || []) FROM ONLY $this)};`;
-        const supportField = relationLinkField?.path
-          ? ''
-          : `${indent(level + 1)}DEFINE FIELD ${pathToRelation} ON TABLE ${parentName} TYPE option<${type}>;`;
-
-        return [baseField, supportField].join('\n');
+      } else {
+        // Multiple sources: split to work around SurrealDB v3 multi-table <~() bug
+        if (field.target === 'relation') {
+          const exprs = sources.map((s) => `<~(${s}) ?? []`);
+          const combined = `array::flatten([${exprs.join(', ')}])`;
+          computedExpr =
+            field.cardinality === 'ONE' ? `array::first(${combined} ?? [])` : `array::distinct(${combined})`;
+        } else {
+          const exprs = sources.map((s) => `(<~(${s}) ?? [])${targetSuffix}`);
+          const combined = `array::flatten([${exprs.join(', ')}])`;
+          if (field.cardinality === 'ONE') {
+            computedExpr = `array::first(${combined} ?? [])`;
+          } else if (field.targetRoleCardinality === 'MANY') {
+            computedExpr = `array::distinct(array::flatten(${combined}))`;
+          } else {
+            computedExpr = `array::distinct(${combined})`;
+          }
+        }
       }
-      if (linkField.target === 'relation') {
-        const fieldDefinition = `${indent(level)}DEFINE FIELD ${sanitizeNameSurrealDB(linkField.path)} ON TABLE ${parentName} TYPE ${fieldType};`;
-        return `${fieldDefinition}`;
-      }
-      throw new Error(`Invalid link field: ${JSON.stringify(linkField)}`);
+
+      return `${baseDefinition} COMPUTED ${computedExpr};`;
     })
     .join('\n');
 
-const convertRoles = (roles: Record<string, EnrichedRoleField>, parentName: string, level: number): string =>
-  Object.entries(roles)
-    .map(([roleName, role]) => {
-      const fieldType =
-        role.cardinality === 'MANY'
-          ? `array<record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>>`
-          : `record<${role.$things.map(sanitizeNameSurrealDB).join('|')}>`;
-      const fieldDefinition = `${indent(level)}DEFINE FIELD ${roleName} ON TABLE ${parentName} TYPE option<${fieldType}>;`; //Todo: remove option when surrealDB transactions are smarter.
-      const roleEvent = generateRoleEvent(roleName, parentName, role, level);
-      return `${fieldDefinition}\n${roleEvent}`;
-    })
-    .join('\n');
-
-const generateRoleEvent = (roleName: string, parentName: string, role: EnrichedRoleField, level: number): string => {
-  const eventName = `update_${roleName}`;
-
-  const targetRelationLinkField = role.playedBy?.find((lf) => lf.target === 'relation');
-  const targetRelationPath = targetRelationLinkField?.pathToRelation;
-  const firstTargetRoleLinkField = role.playedBy?.find((lf) => lf.target === 'role');
-  const firstTargetRolePath = firstTargetRoleLinkField?.pathToRelation;
-
-  const usedLinkField = targetRelationLinkField ?? firstTargetRoleLinkField;
-
-  if (!usedLinkField) {
-    throw new Error(`Invalid link field: ${JSON.stringify(role)}`);
+/**
+ * Collect all tables in the inheritance chain for a polymorphic COMPUTED field.
+ * Returns entries like `["Table FIELD role", "SubType1 FIELD role", ...]`.
+ */
+const collectPolymorphicSources = (
+  thingName: string,
+  roleName: string,
+  draftSchema: DRAFT_EnrichedBormSchema,
+): string[] => {
+  const thing = draftSchema[thingName];
+  if (!thing) {
+    return [`${sanitizeNameSurrealDB(thingName)} FIELD ${sanitizeNameSurrealDB(roleName)}`];
   }
-
-  const pathToRelation = sanitizeNameSurrealDB((targetRelationPath ?? firstTargetRolePath) as string);
-
-  const generateSet = (fields: { path: string; cardinality: 'ONE' | 'MANY' }[], action: 'remove' | 'add'): string => {
-    return fields
-      .map(({ path, cardinality }) => {
-        const operator =
-          action === 'remove' ? (cardinality === 'ONE' ? '=' : '-=') : cardinality === 'ONE' ? '=' : '+=';
-        const value = action === 'remove' ? (cardinality === 'ONE' ? 'NONE' : '$before.id') : '$after.id';
-        return `${path} ${operator} ${value}`;
-      })
-      .join(', ');
-  };
-
-  const impactedLinkFields =
-    role.impactedLinkFields?.map((lf) => ({
-      path: lf.path,
-      cardinality: lf.cardinality,
-    })) || [];
-
-  const directField = { path: pathToRelation, cardinality: usedLinkField.cardinality };
-  const allFields = [directField, ...impactedLinkFields];
-
-  const removalsSet = generateSet(allFields, 'remove');
-  const additionsSet = generateSet(allFields, 'add');
-
-  const cardOneEvents = `
-	IF ($before.${roleName}) THEN {UPDATE $before.${roleName} SET ${removalsSet}} END;
-	IF ($after.${roleName}) THEN {UPDATE $after.${roleName} SET ${additionsSet}} END;`;
-
-  const cardManyEvents = `
-	LET $edges = fn::get_mutated_edges($before.${roleName}, $after.${roleName});
-	FOR $unlink IN $edges.deletions {UPDATE $unlink SET ${removalsSet};};
-	FOR $link IN $edges.additions {${
-    usedLinkField.cardinality === 'ONE'
-      ? `
-		IF ($link.${pathToRelation}) THEN {UPDATE $link.${pathToRelation} SET ${roleName} ${role.cardinality === 'ONE' ? '= NONE' : '-= $link.id'}} END;` //! This should probably be an independnt event on card one field, that it replaces old one by new one, instead of doing it from here
-      : ''
-  }
-		UPDATE $link SET ${additionsSet};
-	};`;
-
-  return indentPar(
-    `DEFINE EVENT ${eventName} ON TABLE ${parentName} WHEN $before.${roleName} != $after.${roleName} THEN {${role.cardinality === 'ONE' ? cardOneEvents : cardManyEvents}
-};`,
-    level + 1,
-  );
+  const allThings = [thingName, ...thing.subTypes];
+  return allThings.map((t) => `${sanitizeNameSurrealDB(t)} FIELD ${sanitizeNameSurrealDB(roleName)}`);
 };
+
+const convertRoles = (
+  roleFields: [string, DRAFT_EnrichedBormRoleField][],
+  parentName: string,
+  level: number,
+  draftSchema: DRAFT_EnrichedBormSchema,
+): string =>
+  roleFields
+    .map(([, role]) => {
+      const sanitizedPath = sanitizeNameSurrealDB(role.name);
+      const baseThing = role.opposite.thing;
+      const draftThing = draftSchema[baseThing];
+      const allThings = draftThing ? [baseThing, ...draftThing.subTypes] : [baseThing];
+      const thingNames = allThings.map(sanitizeNameSurrealDB).join('|');
+      const fieldType = role.cardinality === 'MANY' ? `array<record<${thingNames}>>` : `record<${thingNames}>`;
+      const onDelete = role.onDelete ?? 'UNSET';
+      return `${indent(level)}DEFINE FIELD ${sanitizedPath} ON TABLE ${parentName} TYPE option<${fieldType}> REFERENCE ON DELETE ${onDelete};`;
+    })
+    .join('\n');
+
+const convertRefFields = (refFields: DRAFT_EnrichedBormRefField[], parentName: string, level: number): string =>
+  refFields
+    .map((field) => {
+      const sanitizedPath = sanitizeNameSurrealDB(field.name);
+      let fieldType: string;
+      if (field.contentType === 'REF') {
+        fieldType = field.cardinality === 'MANY' ? 'option<array<record>>' : 'option<record>';
+      } else {
+        // FLEX: use TYPE any for MANY cardinality to allow arbitrary nested structures
+        // (arrays of arrays, objects with any keys, etc.) on SCHEMAFULL tables.
+        const flexTypes = 'record|array|bool|bytes|datetime|duration|geometry|number|object|string';
+        fieldType = field.cardinality === 'MANY' ? 'any' : `option<${flexTypes}>`;
+      }
+      const flexible = field.contentType === 'FLEX' && field.cardinality !== 'MANY' ? ' FLEXIBLE' : '';
+      const baseDef = `${indent(level)}DEFINE FIELD ${sanitizedPath} ON TABLE ${parentName} TYPE ${fieldType}${flexible};`;
+      return baseDef;
+    })
+    .join('\n');
 
 const mapContentTypeToSurQL = (contentType: string, validations?: Validations): string => {
   const type = validations?.enum
@@ -216,28 +244,4 @@ const mapContentTypeToSurQL = (contentType: string, validations?: Validations): 
   return `option<${type}>`;
 };
 
-const addUtilityFunctions = (): string => `
--- BORM TOOLS
-	DEFINE FUNCTION fn::get_mutated_edges(
-		$before_relation: option<array|record>,
-		$after_relation: option<array|record>,
-	) {
-		LET $notEmptyCurrent = $before_relation ?? [];
-		LET $current = array::flatten([$notEmptyCurrent]);
-		LET $notEmptyResult = $after_relation ?? [];
-		LET $result = array::flatten([$notEmptyResult]);
-		LET $links = array::complement($result, $current);
-		LET $unlinks = array::complement($current, $result);
-		
-		RETURN {
-			additions: $links,
-			deletions: $unlinks
-		};
-	};
-
-	DEFINE FUNCTION fn::as_array($var: option<array<record>|record>) {           
-		RETURN (type::is::array($var) AND $var) OR [$var]
-	};
-`;
-
-export const defineSURQLSchema = (schema: EnrichedBormSchema): string => convertBQLToSurQL(schema);
+export const defineSURQLSchema = (schema: DRAFT_EnrichedBormSchema): string => convertBQLToSurQL(schema);

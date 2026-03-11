@@ -819,7 +819,7 @@ export const typesSchema = {
           contentType: 'BOOLEAN',
           isVirtual: true,
           dbValue: {
-            surrealDB: '{$this.provider = "google"} TYPE option<bool>',
+            surrealDB: 'COMPUTED ($this.provider = "google")',
           },
           isIdField: false,
           cardinality: 'ONE',
