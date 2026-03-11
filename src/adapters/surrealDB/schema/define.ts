@@ -11,7 +11,7 @@ import type { Validations } from '../../../types/schema/fields';
 import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../helpers';
 import { parseValueSurrealDB, surrealDBtypeMap } from '../parsing/values';
 
-const INDENTATION = '\t' as const;
+const INDENTATION = '  ' as const;
 const indent = (n: number): string => INDENTATION.repeat(n);
 
 const indentPar = (str: string, level: number): string =>
@@ -33,11 +33,11 @@ BEGIN TRANSACTION;
   const relations = Object.entries(schema).filter(([, item]) => item.type === 'relation');
 
   const entitiesStr = `-- ENTITIES\n${convertSchemaItems(entities, schema)}`;
-  const relationsStr = `\n-- RELATIONS\n${convertSchemaItems(relations, schema)}`;
+  const relationsStr = `\n\n-- RELATIONS\n${convertSchemaItems(relations, schema)}`;
 
-  const internalStr = `\n-- INTERNAL\n\tDEFINE TABLE Delta SCHEMALESS PERMISSIONS FULL;\n`;
+  const internalStr = `\n\n-- INTERNAL\n${indent(1)}DEFINE TABLE Delta SCHEMALESS PERMISSIONS FULL;\n`;
 
-  return `${header}${entitiesStr}${relationsStr}${internalStr}COMMIT TRANSACTION;`;
+  return `${header}${entitiesStr}${relationsStr}${internalStr}COMMIT TRANSACTION;\n`;
 };
 
 const convertSchemaItems = (items: [string, DraftSchemaItem][], schema: DRAFT_EnrichedBormSchema): string =>
@@ -53,32 +53,51 @@ const convertSchemaItem = (
 
   // Data fields
   const dataFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormDataField => f.type === 'data');
-  const dataFieldsStr = indentPar(`-- DATA FIELDS\n${convertDataFields(dataFields, sanitizedName, level)}`, level + 1);
+  const dataFieldsOutput = convertDataFields(dataFields, sanitizedName, level);
 
   // Link fields (COMPUTED)
   const linkFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormLinkField => f.type === 'link');
-  const linkFieldsStr = indentPar(
-    `\n-- LINK FIELDS\n${convertLinkFields(linkFields, sanitizedName, level, schema)}`,
-    level + 1,
-  );
+  const linkFieldsOutput = convertLinkFields(linkFields, sanitizedName, level, schema);
 
   // Roles (REFERENCE)
-  let rolesStr = '';
+  let rolesOutput = '';
   if (item.type === 'relation') {
     const roleFields = Object.entries(item.fields).filter(
       (entry): entry is [string, DRAFT_EnrichedBormRoleField] => entry[1].type === 'role',
     );
     if (roleFields.length > 0) {
-      rolesStr = indentPar(`\n-- ROLES\n${convertRoles(roleFields, sanitizedName, level, schema)}`, level + 1);
+      rolesOutput = convertRoles(roleFields, sanitizedName, level, schema);
     }
   }
 
   // Ref fields
   const refFields = Object.values(item.fields).filter((f): f is DRAFT_EnrichedBormRefField => f.type === 'ref');
-  const refFieldsStr =
-    refFields.length > 0 ? indentPar(`\n${convertRefFields(refFields, sanitizedName, level)}`, level + 1) : '';
+  const refFieldsOutput = refFields.length > 0 ? convertRefFields(refFields, sanitizedName, level) : '';
 
-  return `${baseDefinition}\n${dataFieldsStr}${linkFieldsStr}${rolesStr}${refFieldsStr}`;
+  // Build sections conditionally
+  const sections: string[] = [];
+
+  if (dataFieldsOutput) {
+    sections.push(`-- DATA FIELDS\n${dataFieldsOutput}`);
+  }
+
+  if (linkFieldsOutput) {
+    sections.push(`-- LINK FIELDS\n${linkFieldsOutput}`);
+  } else if (dataFieldsOutput && !rolesOutput && !refFieldsOutput) {
+    // Empty LINK FIELDS acts as visual terminator when data fields is the only other section
+    sections.push('-- LINK FIELDS');
+  }
+
+  if (rolesOutput) {
+    sections.push(`-- ROLES\n${rolesOutput}`);
+  }
+
+  if (refFieldsOutput) {
+    sections.push(`-- REF FIELDS\n${refFieldsOutput}`);
+  }
+
+  const body = sections.map((s) => indentPar(s, level + 1)).join('\n');
+  return `${baseDefinition}\n${body}`;
 };
 
 const convertDataFields = (dataFields: DRAFT_EnrichedBormDataField[], parentName: string, level: number): string =>
@@ -87,9 +106,7 @@ const convertDataFields = (dataFields: DRAFT_EnrichedBormDataField[], parentName
       if (field.name === 'id') {
         return ''; //skip id fields for now, we will migrate it to a different name later like _id
       }
-      const fieldType = mapContentTypeToSurQL(field.contentType, field.validations);
       const baseDefinition = `${indent(level)}DEFINE FIELD ${field.name} ON TABLE ${parentName}`;
-      const flexible = ['FLEX', 'JSON'].includes(field.contentType) ? ' FLEXIBLE' : '';
 
       if (field.isVirtual) {
         const dbValue = field.dbValue?.surrealDB;
@@ -98,7 +115,11 @@ const convertDataFields = (dataFields: DRAFT_EnrichedBormDataField[], parentName
         }
         return `${baseDefinition} ${dbValue};`;
       }
-      return `${baseDefinition} TYPE ${fieldType}${flexible};`;
+      if (['FLEX', 'JSON'].includes(field.contentType)) {
+        return `${baseDefinition} TYPE any;`;
+      }
+      const fieldType = mapContentTypeToSurQL(field.contentType, field.validations, field.cardinality);
+      return `${baseDefinition} TYPE ${fieldType};`;
     })
     .filter(Boolean)
     .join('\n');
@@ -134,9 +155,9 @@ const convertLinkFields = (
       // Wrap with appropriate array function based on cardinality.
       // Guard against NONE from <~(...) when no back-references exist:
       // - array::first needs `?? []` to avoid "Expected array but found NONE"
-      // - array::flatten needs wrapping in [...] to ensure it's always an array
+      // - array::flatten needs `?? []` to ensure it receives an array
       // Note: Multi-table <~(T1 FIELD f, T2 FIELD f) is broken in SurrealDB v3,
-      // so we split into individual <~(...) expressions and combine with array::flatten.
+      // so we split into individual <~(...) expressions and combine with array::concat.
       let computedExpr: string;
       if (sources.length === 1) {
         const rawExpr = `<~(${sources[0]})${targetSuffix}`;
@@ -146,7 +167,7 @@ const convertLinkFields = (
           if (field.cardinality === 'ONE') {
             computedExpr = `array::first(${rawExpr} ?? [])`;
           } else if (field.targetRoleCardinality === 'MANY') {
-            computedExpr = `array::distinct(array::flatten(array::flatten([${rawExpr}])))`;
+            computedExpr = `array::distinct(array::flatten(${rawExpr} ?? []))`;
           } else {
             computedExpr = `array::distinct(${rawExpr})`;
           }
@@ -155,7 +176,7 @@ const convertLinkFields = (
         // Multiple sources: split to work around SurrealDB v3 multi-table <~() bug
         if (field.target === 'relation') {
           const exprs = sources.map((s) => `<~(${s}) ?? []`);
-          const combined = `array::flatten([${exprs.join(', ')}])`;
+          const combined = `array::concat(${exprs.join(', ')})`;
           computedExpr =
             field.cardinality === 'ONE' ? `array::first(${combined} ?? [])` : `array::distinct(${combined})`;
         } else {
@@ -219,27 +240,29 @@ const convertRefFields = (refFields: DRAFT_EnrichedBormRefField[], parentName: s
       if (field.contentType === 'REF') {
         fieldType = field.cardinality === 'MANY' ? 'option<array<record>>' : 'option<record>';
       } else {
-        // FLEX: use TYPE any for MANY cardinality to allow arbitrary nested structures
-        // (arrays of arrays, objects with any keys, etc.) on SCHEMAFULL tables.
-        const flexTypes = 'record|array|bool|bytes|datetime|duration|geometry|number|object|string';
-        fieldType = field.cardinality === 'MANY' ? 'any' : `option<${flexTypes}>`;
+        // FLEX: TYPE any covers all possible types for any cardinality
+        fieldType = 'any';
       }
-      const flexible = field.contentType === 'FLEX' && field.cardinality !== 'MANY' ? ' FLEXIBLE' : '';
-      const baseDef = `${indent(level)}DEFINE FIELD ${sanitizedPath} ON TABLE ${parentName} TYPE ${fieldType}${flexible};`;
-      return baseDef;
+      return `${indent(level)}DEFINE FIELD ${sanitizedPath} ON TABLE ${parentName} TYPE ${fieldType};`;
     })
     .join('\n');
 
-const mapContentTypeToSurQL = (contentType: string, validations?: Validations): string => {
-  const type = validations?.enum
+const mapContentTypeToSurQL = (
+  contentType: string,
+  validations?: Validations,
+  cardinality?: 'ONE' | 'MANY',
+): string => {
+  const baseType = validations?.enum
     ? `${validations.enum.map((value: unknown) => parseValueSurrealDB(value, contentType)).join('|')}`
     : surrealDBtypeMap[contentType];
-  if (!type) {
+  if (!baseType) {
     throw new Error(`Unknown content type: ${contentType}`);
   }
 
+  const type = cardinality === 'MANY' ? `array<${baseType}>` : baseType;
+
   if (validations?.required) {
-    return `${type}`;
+    return type;
   }
   return `option<${type}>`;
 };
