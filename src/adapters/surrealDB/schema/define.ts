@@ -106,7 +106,8 @@ const convertDataFields = (dataFields: DRAFT_EnrichedBormDataField[], parentName
       if (field.name === 'id') {
         return ''; //skip id fields for now, we will migrate it to a different name later like _id
       }
-      const baseDefinition = `${indent(level)}DEFINE FIELD ${field.name} ON TABLE ${parentName}`;
+      const sanitizedPath = sanitizeNameSurrealDB(field.name);
+      const baseDefinition = `${indent(level)}DEFINE FIELD ${sanitizedPath} ON TABLE ${parentName}`;
 
       if (field.isVirtual) {
         const dbValue = field.dbValue?.surrealDB;
