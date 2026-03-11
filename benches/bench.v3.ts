@@ -34,17 +34,19 @@ const startContainer = () => {
   );
 };
 
-const waitForReady = async () => {
+const waitForReady = async (timeoutMs = 30_000) => {
   console.log('Waiting for SurrealDB to be ready...');
-  while (true) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
     try {
       exec(`docker exec ${CONTAINER_NAME} ./surreal is-ready --endpoint http://localhost:${PORT}`);
-      break;
+      console.log('SurrealDB is ready!');
+      return;
     } catch {
       await sleep(500);
     }
   }
-  console.log('SurrealDB is ready!');
+  throw new Error(`SurrealDB did not become ready within ${timeoutMs / 1000}s`);
 };
 
 const setupDatabase = () => {
