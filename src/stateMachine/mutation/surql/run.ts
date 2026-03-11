@@ -12,13 +12,14 @@ export const runSURQLMutation = async (client: SurrealClient, mutations: string[
 
   logDebug(`>>> batchedMutation[${VERSION}]`, JSON.stringify({ batchedMutation }));
 
-  const tx = await client.beginTransaction();
+  let tx: Awaited<ReturnType<SurrealClient['beginTransaction']>> | undefined;
   try {
+    tx = await client.beginTransaction();
     const result = await tx.query(batchedMutation);
     await tx.commit();
     return (result as any[]).filter(Boolean);
   } catch (err) {
-    await tx.cancel().catch(() => {});
+    await tx?.cancel().catch(() => {});
     let message = err instanceof Error ? err.message : String(err);
     log('runSURQLMutation', 'runSURQLMutation/batchedMutation\n', batchedMutation);
     log('runSURQLMutation', 'runSURQLMutation/error\n', err);
