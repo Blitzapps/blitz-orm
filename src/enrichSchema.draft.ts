@@ -1,4 +1,5 @@
 import { isEqual } from 'radash';
+import { computedFieldNameSurrealDB } from './adapters/surrealDB/helpers';
 import type { BormEntity, BormRelation, BormSchema, DataField, LinkField, RefField, RoleField } from './types';
 import type {
   DRAFT_EnrichedBormComputedField,
@@ -70,6 +71,7 @@ const enrichThing = (
   enrichLinkFields(fields, thing.linkFields ?? [], thingName, schema, rolePlayerMap);
 
   if (type === 'entity') {
+    assertNoFieldNameConflicts(thingName, fields);
     const enriched: DRAFT_EnrichedBormEntity = {
       type: 'entity',
       name: thingName,
@@ -92,6 +94,7 @@ const enrichThing = (
     );
   }
 
+  assertNoFieldNameConflicts(thingName, fields);
   const enriched: DRAFT_EnrichedBormRelation = {
     type: 'relation',
     name: thingName,
@@ -332,6 +335,39 @@ const assertNoDuplicateField = (
     return;
   }
   throw new Error(`Duplicate field name "${newField.name}" in "${thing}"`);
+};
+
+/**
+ * Check that no two fields in a thing resolve to the same SurrealDB field name.
+ * Link fields are mapped via computedFieldNameSurrealDB (spaces/dashes → underscores),
+ * which can collide with data, role, or ref field names.
+ */
+const assertNoFieldNameConflicts = (thingName: string, fields: Record<string, DRAFT_EnrichedBormField>) => {
+  const seen = new Map<string, { originalName: string; fieldType: string }>();
+
+  const check = (effectiveName: string, originalName: string, fieldType: string) => {
+    const existing = seen.get(effectiveName);
+    if (existing && existing.originalName !== originalName) {
+      throw new Error(
+        `Field name conflict in "${thingName}": ${fieldType} field "${originalName}" resolves to "${effectiveName}" ` +
+          `which conflicts with ${existing.fieldType} field "${existing.originalName}"`,
+      );
+    }
+    seen.set(effectiveName, { originalName, fieldType });
+  };
+
+  for (const field of Object.values(fields)) {
+    if (field.type === 'link') {
+      // Check both original name and normalized computed name
+      check(field.name, field.name, field.type);
+      const computedName = computedFieldNameSurrealDB(field.name);
+      if (computedName !== field.name) {
+        check(computedName, field.name, field.type);
+      }
+    } else {
+      check(field.name, field.name, field.type);
+    }
+  }
 };
 
 type RolePlayerMap = Record<

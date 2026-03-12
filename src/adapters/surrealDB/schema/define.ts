@@ -43,12 +43,44 @@ BEGIN TRANSACTION;
 const convertSchemaItems = (items: [string, DraftSchemaItem][], schema: DRAFT_EnrichedBormSchema): string =>
   items.map(([name, item]) => convertSchemaItem(sanitizeNameSurrealDB(name), item, 1, schema)).join('\n\n');
 
+const assertNoFieldNameConflicts = (thingName: string, item: DraftSchemaItem) => {
+  const seen = new Map<string, { originalName: string; fieldType: string }>();
+
+  const check = (effectiveName: string, originalName: string, fieldType: string) => {
+    const existing = seen.get(effectiveName);
+    if (existing && existing.originalName !== originalName) {
+      throw new Error(
+        `Field name conflict in "${thingName}": ${fieldType} field "${originalName}" resolves to "${effectiveName}" ` +
+          `which conflicts with ${existing.fieldType} field "${existing.originalName}"`,
+      );
+    }
+    seen.set(effectiveName, { originalName, fieldType });
+  };
+
+  for (const field of Object.values(item.fields)) {
+    if (field.type === 'data') {
+      if (field.name === 'id') {
+        continue;
+      }
+      check(sanitizeNameSurrealDB(field.name), field.name, 'data');
+    } else if (field.type === 'link') {
+      check(computedFieldNameSurrealDB(field.name), field.name, 'link');
+    } else if (field.type === 'role') {
+      check(sanitizeNameSurrealDB(field.name), field.name, 'role');
+    } else if (field.type === 'ref') {
+      check(sanitizeNameSurrealDB(field.name), field.name, 'ref');
+    }
+  }
+};
+
 const convertSchemaItem = (
   sanitizedName: string,
   item: DraftSchemaItem,
   level: number,
   schema: DRAFT_EnrichedBormSchema,
 ): string => {
+  assertNoFieldNameConflicts(sanitizedName, item);
+
   const baseDefinition = `${indent(level)}DEFINE TABLE ${sanitizedName} SCHEMAFULL PERMISSIONS FULL;${item.extends ? ` //EXTENDS ${item.extends};` : ''}`;
 
   // Data fields
