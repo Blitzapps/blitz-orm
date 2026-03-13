@@ -26,7 +26,7 @@ export const testSchemaDefine = createTest('Schema', (client) => {
         expect(schema).toBeDefined();
         expect(schema).toBeTypeOf('string');
         //import tql schema from .tql file
-        const surqlSchema = fs.readFileSync('tests/adapters/surrealDB/mocks/refsSchema.surql', 'utf8');
+        const surqlSchema = fs.readFileSync('tests/adapters/surrealDB/mocks/schema.surql', 'utf8');
         expect(schema).toBe(surqlSchema);
       });
     }

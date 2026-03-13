@@ -2,8 +2,6 @@ import { Bench } from 'tinybench';
 import type { QueryConfig, RawBQLQuery } from '../../../src';
 import { init } from '../../helpers/init';
 
-const LEGACY_SURREALDB_ADAPTER = process.env.LEGACY_SURREALDB_ADAPTER?.toLocaleLowerCase() === 'true';
-
 type QueryFn = (query: RawBQLQuery | RawBQLQuery[], queryConfig?: QueryConfig) => Promise<unknown>;
 
 const tasks: Record<string, (query: QueryFn) => Promise<void>> = {
@@ -679,7 +677,7 @@ const main = async () => {
   const { client, cleanup } = await init();
 
   const query: QueryFn = async (query, config) => {
-    return client.query(query, { ...config, legacySurrealDBAdapter: LEGACY_SURREALDB_ADAPTER });
+    return client.query(query, config);
   };
 
   const result: (Record<string, string | number | undefined> | null)[] = [];

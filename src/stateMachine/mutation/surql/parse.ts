@@ -21,15 +21,11 @@ export const parseSURQLMutation = (props: {
     .filter(Boolean)
     .flatMap((b: object) => {
       if (isArray(b)) {
-        return b.map((r) => {
-          if (!isObject(r) || !('meta' in r)) {
-            throw new Error(`Internal error: Invalid response from DB: ${JSON.stringify(r)}`);
-          }
-          return parseRes(r as EnrichedSURQLMutationRes, config);
-        });
+        return b.filter((r) => isObject(r) && 'meta' in r).map((r) => parseRes(r as EnrichedSURQLMutationRes, config));
       }
       if (!isObject(b) || !('meta' in b)) {
-        throw new Error(`Internal error: Invalid response from DB: ${JSON.stringify(b)}`);
+        // Skip non-Delta results (e.g. intermediate record IDs from IF/UPDATE expressions)
+        return [];
       }
       return parseRes(b as EnrichedSURQLMutationRes, config);
     });

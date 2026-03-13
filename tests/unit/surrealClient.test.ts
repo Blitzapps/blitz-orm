@@ -3,7 +3,7 @@ import { SurrealClient } from '../../src/adapters/surrealDB/client';
 
 const TEST_CONFIG = {
   url: 'ws://127.0.0.1:8100',
-  namespace: 'test_refs',
+  namespace: 'test',
   database: 'test',
   username: 'test',
   password: 'test',

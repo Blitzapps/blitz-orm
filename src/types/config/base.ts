@@ -6,7 +6,6 @@ export type QueryConfig = {
   returnNulls?: boolean;
   simplifiedLinks?: boolean;
   debugger?: boolean;
-  legacySurrealDBAdapter?: boolean;
 };
 
 export type MutationConfig = {

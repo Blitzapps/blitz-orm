@@ -146,7 +146,7 @@ const buildProjection = (params: {
     const filter =
       '$filter' in field && field.$filter ? buildFilter(field.$filter, oppositeThingSchema, schema) : undefined;
     projectionFields.push({
-      type: fieldSchema.type === 'role' ? 'nested_ref' : 'nested_future_ref',
+      type: fieldSchema.type === 'role' ? 'nested_ref' : 'nested_computed_ref',
       path: field.$path,
       projection: oppositeProjection,
       resultCardinality:
@@ -195,7 +195,7 @@ const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: stri
     };
   }
   return {
-    type: 'future_ref',
+    type: 'computed_ref',
     path: field.name,
     resultCardinality: field.cardinality,
     fieldCardinality: field.cardinality,
@@ -305,7 +305,7 @@ const buildDataFieldFilter = (
           type: 'null',
           op: right ? 'IS NOT' : 'IS',
           left: field.name,
-          tunnel: false,
+          emptyIsArray: false,
         });
         continue;
       }
@@ -314,7 +314,7 @@ const buildDataFieldFilter = (
           type: 'null',
           op: op === '$eq' ? 'IS' : 'IS NOT',
           left: field.name,
-          tunnel: false,
+          emptyIsArray: false,
         });
         continue;
       }
@@ -372,7 +372,7 @@ const buildDataFieldFilter = (
         type: 'null',
         op: 'IS',
         left: field.name,
-        tunnel: false,
+        emptyIsArray: false,
       };
     }
     return {
@@ -403,7 +403,6 @@ const buildRefFieldFilter = (
           op: 'IN',
           left: field.name,
           right: [filter],
-          tunnel: false,
           cardinality: field.cardinality,
         };
       }
@@ -413,7 +412,6 @@ const buildRefFieldFilter = (
           op: 'IN',
           left: field.name,
           right: filter as string[],
-          tunnel: false,
           cardinality: field.cardinality,
         };
       }
@@ -425,7 +423,6 @@ const buildRefFieldFilter = (
         op: 'CONTAINSANY',
         left: field.name,
         right: [filter],
-        tunnel: false,
         cardinality: field.cardinality,
       };
     }
@@ -435,7 +432,6 @@ const buildRefFieldFilter = (
         op: 'CONTAINSANY',
         left: field.name,
         right: filter as string[],
-        tunnel: false,
         cardinality: field.cardinality,
       };
     }
@@ -450,9 +446,9 @@ const buildLinkFieldFilter = (
   filter: BQLFilterValue | BQLFilterValueList | NestedBQLFilter | BQLFilter[],
   schema: DRAFT_EnrichedBormSchema,
 ): Filter => {
-  const tunnel = field.type === 'link' && field.target === 'role';
-  const filterType = field.type === 'role' ? 'biref' : 'future_biref';
-  const nestedFilterType = field.type === 'role' ? 'nested_ref' : 'nested_future_ref';
+  const emptyIsArray = field.type === 'link' && field.cardinality === 'MANY';
+  const filterType = field.type === 'role' ? 'biref' : 'computed_biref';
+  const nestedFilterType = field.type === 'role' ? 'nested_ref' : 'nested_computed_ref';
   const cardinality = field.cardinality;
   const oppositeCardinality = field.opposite.cardinality;
 
@@ -461,7 +457,7 @@ const buildLinkFieldFilter = (
       type: 'null',
       op: 'IS',
       left: field.name,
-      tunnel,
+      emptyIsArray,
     };
   }
 
@@ -471,7 +467,6 @@ const buildLinkFieldFilter = (
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: [filter],
-      tunnel,
       cardinality,
       oppositeCardinality,
     };
@@ -479,11 +474,10 @@ const buildLinkFieldFilter = (
 
   if (StringArrayParser.safeParse(filter).success) {
     return {
-      type: field.type === 'role' ? 'biref' : 'future_biref',
+      type: filterType,
       op: field.cardinality === 'ONE' ? 'IN' : 'CONTAINSANY',
       left: field.name,
       right: filter as string[],
-      tunnel,
       cardinality,
       oppositeCardinality,
     };
@@ -542,7 +536,7 @@ const buildLinkFieldFilter = (
         type: 'null',
         op: value ? 'IS NOT' : 'IS',
         left: field.name,
-        tunnel,
+        emptyIsArray,
       });
       continue;
     }
@@ -551,7 +545,7 @@ const buildLinkFieldFilter = (
         type: 'null',
         op: op === '$eq' ? 'IS' : 'IS NOT',
         left: field.name,
-        tunnel,
+        emptyIsArray,
       });
       continue;
     }
@@ -564,7 +558,6 @@ const buildLinkFieldFilter = (
       left: field.name,
       right: [value],
       thing: oppositeThings,
-      tunnel,
       cardinality,
       oppositeCardinality,
     });
@@ -589,7 +582,6 @@ const buildLinkFieldFilter = (
       left: field.name,
       right: stringArray.data,
       thing: oppositeThings,
-      tunnel,
       cardinality,
       oppositeCardinality,
     });

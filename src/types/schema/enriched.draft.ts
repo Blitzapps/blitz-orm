@@ -2,7 +2,7 @@
  * These types are design for SurrealDB query in mind. For other DBs or for mutation, they may be missing some fields.
  */
 
-import type { DataField, DiscreteCardinality } from './fields';
+import type { DataField, DiscreteCardinality, Validations } from './fields';
 
 export type DRAFT_EnrichedBormSchema = Record<string, DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation>;
 
@@ -55,12 +55,16 @@ export interface DRAFT_EnrichedBormDataField {
   contentType: DataField['contentType'];
   cardinality: DiscreteCardinality;
   unique: boolean;
+  validations?: Validations;
+  isVirtual?: boolean;
+  dbValue?: { surrealDB?: string; typeDB?: string };
 }
 
 export interface DRAFT_EnrichedBormRoleField {
   type: 'role';
   name: string;
   cardinality: DiscreteCardinality;
+  onDelete?: 'CASCADE' | 'UNSET' | 'IGNORE';
   opposite: {
     thing: string;
     path: string;
@@ -68,16 +72,40 @@ export interface DRAFT_EnrichedBormRoleField {
   };
 }
 
-export interface DRAFT_EnrichedBormLinkField {
+export type DRAFT_EnrichedBormLinkField =
+  | DRAFT_EnrichedBormLinkFieldTargetRelation
+  | DRAFT_EnrichedBormLinkFieldTargetRole;
+
+interface DRAFT_BaseEnrichedBormLinkField {
   type: 'link';
   name: string;
   cardinality: DiscreteCardinality;
-  target: 'relation' | 'role';
+  /** The relation this link goes through. */
+  relation: string;
+  /** The role this entity plays in the relation. */
+  plays: string;
   opposite: {
     thing: string;
     path: string;
     cardinality: DiscreteCardinality;
   };
+  isVirtual?: boolean;
+  dbValue?: { surrealDB?: string; typeDB?: string };
+}
+
+export interface DRAFT_EnrichedBormLinkFieldTargetRelation extends DRAFT_BaseEnrichedBormLinkField {
+  target: 'relation';
+}
+
+export interface DRAFT_EnrichedBormLinkFieldTargetRole extends DRAFT_BaseEnrichedBormLinkField {
+  target: 'role';
+  /** The target role name on the relation. */
+  targetRole: string;
+  /** Cardinality of the target role field on the relation.
+   *  When MANY, the COMPUTED field result is nested arrays (array of arrays) requiring
+   *  array::flatten() in the schema COMPUTED definition.
+   *  When ONE, the COMPUTED field result is a flat array. */
+  targetRoleCardinality: DiscreteCardinality;
 }
 
 /**

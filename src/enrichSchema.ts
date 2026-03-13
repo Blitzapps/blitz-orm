@@ -275,8 +275,6 @@ const enrichThing = <T extends BormEntity | BormRelation>(params: {
     computedFields: dataFields?.filter((df) => df.default && !df.isVirtual).map((df) => df.path) ?? [],
     requiredFields: dataFields?.filter((df) => df.validations?.required).map((df) => df.path) ?? [],
     allExtends: 'extends' in thing ? getAllExtended(enrichedSchema, thing.extends) : undefined,
-    // @ts-expect-error TODO: Define it in the type
-    dbProviderConfig: db === 'surrealDB' ? dbHandles[db]?.get(thing.defaultDBConnector.id)?.providerConfig : undefined,
   };
 };
 
@@ -515,7 +513,6 @@ const expandSubThings = (enrichedSchema: EnrichedBormSchema, things: string[]) =
 // } from './types';
 // import type { AdapterContext } from './adapters';
 // import { adapterContext } from './adapters';
-// import { getSurrealLinkFieldQueryPath } from './adapters/surrealDB/enrichSchema/helpers';
 // import { getSchemaByThing } from './helpers';
 
 // const getDbPath = (thing: string, attribute: string, shared?: boolean) =>
@@ -798,9 +795,6 @@ const expandSubThings = (enrichedSchema: EnrichedBormSchema, things: string[]) =
 // 				value.db = thingDB as DBHandleKey; //todo
 // 				value.dbContext = adapterContext[thingDB] as AdapterContext; //todo
 
-// 				value.dbProviderConfig =
-// 					thingDB === 'surrealDB' ? dbHandles[thingDB]?.get(value.defaultDBConnector.id)?.providerConfig : undefined;
-
 // 				// init the arrays
 // 				value.computedFields = [];
 // 				value.virtualFields = [];
@@ -902,16 +896,6 @@ const expandSubThings = (enrichedSchema: EnrichedBormSchema, things: string[]) =
 // 							const originalRelation =
 // 								linkFieldRelation?.roles?.[linkField.plays][SharedMetadata]?.inheritanceOrigin ?? linkField.relation;
 
-// 							const queryPath = getSurrealLinkFieldQueryPath({
-// 								linkField,
-// 								originalRelation,
-// 								withExtensionsSchema,
-// 								linkMode: value.dbProviderConfig.linkMode,
-// 							});
-
-// 							linkField[SuqlMetadata] = {
-// 								queryPath,
-// 							};
 // 						}
 
 // 						// We take the original relation as its the one that holds the name of the relation in surrealDB
@@ -990,23 +974,7 @@ const expandSubThings = (enrichedSchema: EnrichedBormSchema, things: string[]) =
 // 							return [playerThing, ...subTypes];
 // 						});
 
-// 						const getQueryPath = () => {
-// 							if (value.dbProviderConfig.linkMode === 'edges') {
-// 								return `->\`${originalRelation}_${roleKey}\`->(\`${playerThingsWithSubTypes.join('`,`')}\`)`;
-// 							}
-// 							if (value.dbProviderConfig.linkMode === 'refs') {
-// 								if (role.cardinality === 'MANY') {
-// 									return `$parent.[\`${roleKey}\`]`;
-// 								}
-// 								if (role.cardinality === 'ONE') {
-// 									return `$parent.\`${roleKey}\``;
-// 								}
-// 							}
-// 							throw new Error('Unsupported linkMode');
-// 						};
-
 // 						if (value.db === 'surrealDB') {
-// 							const queryPath = getQueryPath();
 
 // 							role[SuqlMetadata] = {
 // 								queryPath,

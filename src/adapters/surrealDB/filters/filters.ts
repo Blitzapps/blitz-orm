@@ -142,12 +142,12 @@ export const buildSuqlFilter = (filter: object): string => {
         // Handle references with cardinality MANY
         const nestedFilter = buildSuqlFilter(value);
         const keyWithoutPrefix = key.replace('$parent.', '').replace(/^\[(.*)\]$/, '$1');
-        parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
+        parts.push(`array::flatten([${keyWithoutPrefix}])[WHERE id && ${nestedFilter}]`);
       } else if (key.startsWith('$parent')) {
         // Handle references with cardinality ONE
         const nestedFilter = buildSuqlFilter(value);
         const keyWithoutPrefix = key.replace('$parent.', '');
-        parts.push(`fn::as_array(${keyWithoutPrefix})[WHERE id && ${nestedFilter}]`);
+        parts.push(`array::flatten([${keyWithoutPrefix}])[WHERE id && ${nestedFilter}]`);
       } else if (key.startsWith('$')) {
         throw new Error(`Invalid key ${key}`);
       } else {

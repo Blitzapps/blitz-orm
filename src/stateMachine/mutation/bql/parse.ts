@@ -4,7 +4,7 @@ import { isArray, isObject, mapEntries, pick, shake } from 'radash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { computeField } from '../../../engine/compute';
-import { deepRemoveMetaData, getCurrentFields, getCurrentSchema, getParentNode, oFilter } from '../../../helpers';
+import { getCurrentFields, getCurrentSchema, getParentNode, oFilter } from '../../../helpers';
 import type {
   BormOperation,
   BQLMutationBlock,
@@ -531,30 +531,6 @@ export const parseBQLMutation = async (
 
     return [...acc, curr];
   }, [] as BQLMutationBlock[]);
-
-  //console.log('parsedThings', parsedThings);
-  //console.log('parsedEdges', parsedEdges);
-  //console.log('mergedEdges', mergedEdges);
-  /// VALIDATIONS
-
-  // VALIDATION: Check that every thing in the list that is an edge, has at least one player
-
-  mergedThings.forEach((thing) => {
-    if (thing.$thingType === 'relation' || 'relation' in thing) {
-      //if it is a relation, we need at lease one edge defined for it
-      if (
-        mergedEdges.filter((edge) => edge.$bzId === thing.$bzId || (edge.$tempId && edge.$tempId === thing.$tempId))
-          .length === 0
-      ) {
-        if (thing.$op === 'delete' || thing.$op === 'match' || thing.$op === 'update') {
-          return;
-        }
-        throw new Error(
-          `[Wrong format] Can't create a relation without any player. Node: ${JSON.stringify(deepRemoveMetaData(thing))}`,
-        );
-      }
-    }
-  });
 
   ///Validate that each tempId has at least one creation op:
   const allThings = [...mergedThings, ...mergedEdges];

@@ -11,9 +11,7 @@ export const query = async (props: {
   params: SurqlParams;
 }): Promise<any[][]> => {
   const { client, queries, config, params } = props;
-  const batchedQuery = `BEGIN TRANSACTION;
-${queries.join(';\n')};
-COMMIT TRANSACTION;`;
+  const batchedQuery = queries.join(';\n');
 
   log('query', 'query/batchedQuery\n', batchedQuery);
   if (config.query?.debugger) {

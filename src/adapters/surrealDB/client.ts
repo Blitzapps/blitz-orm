@@ -132,6 +132,13 @@ export class SurrealClient {
     return typeof query === 'string' ? this.#db.query<T[]>(query, bindings) : this.#db.query<T[]>(query);
   }
 
+  async beginTransaction() {
+    if (this.#closed) {
+      throw new Error('Client has been closed');
+    }
+    return this.#db.beginTransaction();
+  }
+
   get state(): ConnectionState {
     return this.#state;
   }

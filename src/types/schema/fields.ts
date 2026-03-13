@@ -13,6 +13,7 @@ export type RoleField = {
   // YES: validations => For exzample make one of the roles required
   // YES: default => Why not, one relation could have a default value
   cardinality: DiscreteCardinality;
+  onDelete?: 'CASCADE' | 'UNSET' | 'IGNORE';
   // MAYBE: rigths => Why not, maybe relation.particular child has better rigths than otherchild.relation.particular child
   // NO: ordered => This can be really messy. Probably roles should never be ordered as relations are precisely the ones having the index
   dbConnector?: DBConnector;
