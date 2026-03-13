@@ -191,7 +191,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
                 switch ($op) {
                   case 'link':
                   case 'replace':
-                    return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || NONE`;
+                    return `${rf} = ${arrayString}[0]`;
                   case 'unlink':
                     return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
                   default:
@@ -330,7 +330,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
             switch ($op) {
               case 'link':
               case 'replace':
-                return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || NONE`;
+                return `${rf} = ${arrayString}[0]`;
               case 'unlink':
                 return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
               default:
