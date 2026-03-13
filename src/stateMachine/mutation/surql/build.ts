@@ -139,7 +139,6 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
   };
 
   const buildEdges = (block: EnrichedBQLMutationBlock) => {
-    //console.log('currentEdge:', block);
     const { $thing, $bzId, $op, $tempId } = block;
     const currentSchema = getSchemaByThing(schema, $thing);
     const { usedRoleFields } = getCurrentFields(currentSchema, block);
@@ -192,7 +191,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
                 switch ($op) {
                   case 'link':
                   case 'replace':
-                    return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || ${arrayString}`; //todo: throw a custom error instead
+                    return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || NONE`;
                   case 'unlink':
                     return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
                   default:
@@ -331,7 +330,7 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
             switch ($op) {
               case 'link':
               case 'replace':
-                return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || ${arrayString}`; //todo: throw a custom error instead
+                return `${rf} = ((array::len(${arrayString})==1) && ${arrayString}[0]) || NONE`;
               case 'unlink':
                 return `${rf} = NONE`; //todo this is not necessarily correct if $id or $filter! Should be none only if the node has been found
               default:
@@ -393,8 +392,18 @@ export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: Enriched
     return `IF ${VAR} { (UPDATE ${VAR} ${SET} RETURN VALUE id) }; ${VAR};`;
   };
 
+  // Separate root-level match nodes (no parent) from the rest of the things.
+  // Root-level matches are simple `SELECT VALUE id FROM Table:⟨id⟩` lookups used
+  // for edge linking. They must execute BEFORE any DELETE operations because
+  // SurrealDB v3 has a bug where DELETE on records with REFERENCE ON DELETE CASCADE
+  // can cause subsequent direct table lookups on the referenced records to fail
+  // within the same transaction.
+  const rootMatches = flat.things.filter((t) => t.$op === 'match' && !t[Parent as any]?.bzId);
+  const otherThings = flat.things.filter((t) => !(t.$op === 'match' && !t[Parent as any]?.bzId));
+
   const result = [
-    ...flat.things.map(buildThings),
+    ...rootMatches.map(buildThings),
+    ...otherThings.map(buildThings),
     ...flat.edges.map(buildEdges),
     ...flat.arcs.flatMap(buildArcs),
     ...flat.references.map(buildReferences),
