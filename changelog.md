@@ -2,6 +2,24 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.16.0(2026-03-13)
+
+- **Breaking:** Migrate to SurrealDB v3; link fields now use COMPUTED fields instead of edge tables
+- **Breaking:** Requires SurrealDB server v3 (surrealdb/surrealdb:v3)
+- **Breaking:** Schema validation throws if field names conflict (e.g. link "user-tags" vs data "user_tags" after sanitization)
+- Feat: Sanitize field names in SurrealDB schema definition (spaces, dashes → underscores for COMPUTED fields)
+- Feat: Map spaces and dashes in computed field names to underscores (workaround for SurrealDB v3 COMPUTED naming)
+- Feat: waitForReady in bench script accepts timeout and throws if SurrealDB is not ready
+- Fix: SurrealDB schema generator inconsistencies and multi-table COMPUTED workarounds
+- Fix: Mutation issue with SurrealDB v3 (RETURN BEFORE, record-link dereference)
+- Fix: Put client.beginTransaction() inside try/catch for proper error handling
+- Fix: Normalize SurrealDB v3 coercion and ThrownError format for backward compatibility
+- Perf: Simplify generated surql mutations
+- Refactor: Consolidate schema.surql, remove legacy refs/edges mocks
+- Refactor: Remove old surql query builder (surql/), use surql2 exclusively
+- Chore: Remove plans, update bench scripts for v3
+- Tests: Unified schema and data mocks for SurrealDB
+
 ## 0.15.6(2026-03-05)
 
 - Feat: Allow using references in JSON data fields
