@@ -33,7 +33,7 @@ DATA_FILE="./tests/adapters/surrealDB/mocks/data.surql"
 NAMESPACE="test"
 
 # Start the container
-docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
+docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3.0.4 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
 
 until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
     sleep 0.1;
@@ -76,9 +76,9 @@ else
     TEST_FAILED=true
 fi
 
-echo "Press Ctrl+C to stop the script and remove the container."
+# echo "Press Ctrl+C to stop the script and remove the container."
 
-# Keep the script running, which keeps the container alive
-while true; do
-    sleep 1
-done
+# # Keep the script running, which keeps the container alive
+# while true; do
+#     sleep 1
+# done

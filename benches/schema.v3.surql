@@ -1,3 +1,4 @@
+OPTION IMPORT;
 USE NS borm_bench;
 USE DB borm_bench;
 

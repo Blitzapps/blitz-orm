@@ -35,7 +35,7 @@ DATA_FILE="./tests/adapters/surrealDB/mocks/data.surql"
 NAMESPACE="test"
 
 # Start the container
-docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000 || { echo "Failed to start SurrealDB container"; exit 1; }
+docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3.0.4 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000 || { echo "Failed to start SurrealDB container"; exit 1; }
 
 until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
     sleep 0.1;

@@ -12,7 +12,7 @@ const DATABASE = 'borm_bench';
 const USERNAME = 'borm_bench';
 const PASSWORD = 'borm_bench';
 const SCHEMA_FILE = resolve(__dirname, 'schema.v3.surql');
-const IMAGE = 'surrealdb/surrealdb:v3';
+const IMAGE = 'surrealdb/surrealdb:v3.0.4';
 
 // Docker helpers
 

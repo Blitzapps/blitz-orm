@@ -1,3 +1,4 @@
+OPTION IMPORT;
 USE NS test;
 USE DB test;
 
