@@ -51,9 +51,9 @@ DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;
 EOF
 
 # Create the schema
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://127.0.0.1:8000 $SCHEMA_FILE
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://127.0.0.1:8000 < $SCHEMA_FILE
 # Insert data
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://127.0.0.1:8000 $DATA_FILE
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://127.0.0.1:8000 < $DATA_FILE
 
 # Always stop container, but exit with 1 when tests are failing
 if CONTAINER_NAME=${CONTAINER_NAME} tsx "$(dirname "${BASH_SOURCE[0]}")/unit/bench/testsBench.ts" "${VITEST_ARGS[@]}"; then

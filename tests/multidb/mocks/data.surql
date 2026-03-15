@@ -1,4 +1,3 @@
-OPTION IMPORT;
 USE NS multi_db_test;
 USE DB test;
 

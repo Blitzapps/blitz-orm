@@ -49,9 +49,9 @@ DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;
 EOF
 
 # Create the schema
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 $SCHEMA_FILE
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 < $SCHEMA_FILE
 # Insert data
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 $DATA_FILE
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 < $DATA_FILE
 
 # Setup surrealdb database for the multidb test
 # Create the namespace, database, and user
@@ -63,9 +63,9 @@ DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;
 EOF
 
 # Create the schema
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace multi_db_test --database test --endpoint http://localhost:8000 ./tests/multidb/mocks/schema.surql
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace multi_db_test --database test --endpoint http://localhost:8000 < ./tests/multidb/mocks/schema.surql
 # Insert data
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace multi_db_test --database test --endpoint http://localhost:8000 ./tests/multidb/mocks/data.surql
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace multi_db_test --database test --endpoint http://localhost:8000 < ./tests/multidb/mocks/data.surql
 
 # Run tests and capture output
 if CONTAINER_NAME=${CONTAINER_NAME} npx vitest run "${VITEST_ARGS[@]}"; then

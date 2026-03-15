@@ -45,5 +45,4 @@ DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;
 EOF
 
 # Create the schema
-docker cp $SCHEMA_FILE $CONTAINER_NAME:/tmp/schema.surql
-docker exec -i $CONTAINER_NAME ./surreal import -u $USER -p $PASSWORD --namespace $NAMESPACE --database $DATABASE --endpoint http://localhost:8001 /tmp/schema.surql
+docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database $DATABASE --endpoint http://localhost:8001 < $SCHEMA_FILE
