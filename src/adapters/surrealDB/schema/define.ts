@@ -23,7 +23,9 @@ const indentPar = (str: string, level: number): string =>
 type DraftSchemaItem = DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
 
 const convertBQLToSurQL = (schema: DRAFT_EnrichedBormSchema): string => {
-  const header = `USE NS test;
+  const header = `OPTION IMPORT;
+
+USE NS test;
 USE DB test;
 
 BEGIN TRANSACTION;
