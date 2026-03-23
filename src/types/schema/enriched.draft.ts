@@ -41,6 +41,9 @@ export interface DRAFT_EnrichedBormConstantField {
   value: unknown;
 }
 
+/**
+ * Data fields that are computed at runtime by the BORM engine.
+ */
 export interface DRAFT_EnrichedBormComputedField {
   type: 'computed';
   name: string;
@@ -57,6 +60,7 @@ export interface DRAFT_EnrichedBormDataField {
   unique: boolean;
   validations?: Validations;
   isVirtual?: boolean;
+  // Defined only if isVirtual is true
   dbValue?: { surrealDB?: string; typeDB?: string };
 }
 
@@ -90,6 +94,7 @@ interface DRAFT_BaseEnrichedBormLinkField {
     cardinality: DiscreteCardinality;
   };
   isVirtual?: boolean;
+  // Defined only if isVirtual is true
   dbValue?: { surrealDB?: string; typeDB?: string };
 }
 
