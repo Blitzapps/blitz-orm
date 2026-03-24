@@ -98,7 +98,7 @@ const buildRefFieldProjection = (field: RefField | ComputedRefField, level: numb
   const escapedAlias = esc(alias || path);
   const subQuery =
     field.fieldCardinality === 'ONE'
-      ? `SELECT VALUE record::id(id) FROM $this.${internalPath}`
+      ? `SELECT VALUE record::id(id) FROM [$this.${internalPath}] WHERE id IS NOT NONE`
       : `SELECT VALUE record::id(id) FROM $this.${internalPath}[*]`;
   if (field.resultCardinality === 'ONE') {
     return indent(`array::first(${subQuery}) AS ${escapedAlias}`, level);

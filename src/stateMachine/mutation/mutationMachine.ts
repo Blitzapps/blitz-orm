@@ -18,7 +18,7 @@ import { dependenciesGuard } from './bql/guards/dependenciesGuard';
 import { parseBQLMutation } from './bql/parse';
 import { mutationPreQuery } from './bql/preQuery';
 import { stringify } from './bql/stringify';
-import { runSurrealDbMutationMachine } from './surql/machine';
+import { runSurrealDbMutationMachine2 } from './surql2/run';
 import { runTypeDbMutationMachine } from './tql/machine';
 
 const final = state;
@@ -123,6 +123,14 @@ const flattenBQL = async (ctx: MachineContext) => {
 
 // Guards
 // ============================================================================
+const isSurrealDB = (ctx: MachineContext) => {
+  const { dbConnectors } = ctx.config;
+  if (dbConnectors.length !== 1) {
+    return false;
+  }
+  return dbConnectors[0].provider === 'surrealDB';
+};
+
 const requiresPreQuery = (ctx: MachineContext) => {
   const { dbConnectors } = ctx.config;
   if (dbConnectors.length !== 1) {
@@ -165,6 +173,7 @@ export const machine = createMachine(
         logDebug(`>>> mutationMachine/stringify[${VERSION}]`, JSON.stringify(ctx.bql.raw));
         return stringify(ctx.bql.raw, ctx.schema);
       },
+      transition('done', 'adapter', guard(isSurrealDB), reduce(updateBqlReq)),
       transition('done', 'enrich', reduce(updateBqlReq)),
       errorTransition,
     ),
@@ -212,16 +221,7 @@ export const machine = createMachine(
           );
         }
         if (provider === 'surrealDB') {
-          //console.log('things!', ctx.bql.flat.things);
-          //console.log('edges!', ctx.bql.flat.edges);
-          return runSurrealDbMutationMachine(
-            ctx.bql.raw,
-            ctx.bql.enriched,
-            ctx.bql.flat,
-            ctx.schema,
-            ctx.config,
-            ctx.handles,
-          );
+          return runSurrealDbMutationMachine2(ctx.bql.raw, ctx.draftSchema, ctx.config, ctx.handles);
         }
         throw new Error(`Unsupported provider ${provider}.`);
       },

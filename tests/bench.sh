@@ -38,26 +38,19 @@ NAMESPACE="test"
 # Start the container
 docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3.0.4 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000 || { echo "Failed to start SurrealDB container"; exit 1; }
 
-until [ "$(docker inspect -f {{.State.Running}} $CONTAINER_NAME)" == "true" ]; do
-    sleep 0.1;
+# Wait for SurrealDB HTTP endpoint to be ready
+until curl -sf -o /dev/null http://localhost:8100/health 2>/dev/null; do
+    sleep 0.5;
 done;
 
-
-
+SURQL="curl -sf -X POST http://localhost:8100/sql -u $USER:$PASSWORD"
 
 # Setup surrealdb database for the surrealdb test
-# Create the namespace, database, and user
-docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD <<EOF
-DEFINE NAMESPACE $NAMESPACE;
-USE NS $NAMESPACE;
-DEFINE DATABASE test;
-DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;
-EOF
-
+$SURQL --data-binary "DEFINE NAMESPACE $NAMESPACE; USE NS $NAMESPACE; DEFINE DATABASE test; DEFINE USER $USER ON NAMESPACE PASSWORD '$PASSWORD' ROLES OWNER;"
 # Create the schema
-docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 < $SCHEMA_FILE
+$SURQL -H "surreal-ns: $NAMESPACE" -H "surreal-db: test" --data-binary @"$SCHEMA_FILE"
 # Insert data
-docker exec -i $CONTAINER_NAME ./surreal sql -u $USER -p $PASSWORD --namespace $NAMESPACE --database test --endpoint http://localhost:8000 < $DATA_FILE
+$SURQL -H "surreal-ns: $NAMESPACE" -H "surreal-db: test" --data-binary @"$DATA_FILE"
 
 # Always stop container, but exit with 1 when tests are failing
 if CONTAINER_NAME=${CONTAINER_NAME} npx vitest bench "${VITEST_ARGS[@]}"; then

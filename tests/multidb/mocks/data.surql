@@ -3,29 +3,11 @@ USE DB test;
 
 BEGIN TRANSACTION;
 
-INSERT INTO company [
-  {id: "company1", name: "Google"},
-  {id: "company2", name: "Apple"},
-  {id: "company3", name: "Microsoft"},
-	{id: "company4", name: "Facebook"},
-];
+INSERT INTO company [{id: "company1", name: "Google"}, {id: "company2", name: "Apple"}, {id: "company3", name: "Microsoft"}, {id: "company4", name: "Facebook"}];
 
-INSERT INTO person [
-  {id: "person1", name: "Antoine", email: "antoine@google.com"},
-  {id: "person2", name: "Loic", email: "loic@google.com"},
-  {id: "person3", name: "Ann", email: "ann@google.com"},
-  {id: "person4", name: "Ben", email: "ben@google.com"},
-  {id: "person5", name: "Charlize", email: "charlize@apple.com"},
-  {id: "person6", name: "Susi", email: "susi@apple.com"},
-  {id: "person7", name: "Budi", email: "budi@apple.com"},
-  {id: "person8", name: "Intan", email: "intan@apple.com"},
-  {id: "person9", name: "Satya", email: "satya@microsoft.com"},
-];
+INSERT INTO person [{id: "person1", name: "Antoine", email: "antoine@google.com"}, {id: "person2", name: "Loic", email: "loic@google.com"}, {id: "person3", name: "Ann", email: "ann@google.com"}, {id: "person4", name: "Ben", email: "ben@google.com"}, {id: "person5", name: "Charlize", email: "charlize@apple.com"}, {id: "person6", name: "Susi", email: "susi@apple.com"}, {id: "person7", name: "Budi", email: "budi@apple.com"}, {id: "person8", name: "Intan", email: "intan@apple.com"}, {id: "person9", name: "Satya", email: "satya@microsoft.com"}];
 
-INSERT INTO task [
-  {id: "task1", name: "Build search engine"},
-  {id: "task2", name: "Build Google Sheet"},
-];
+INSERT INTO task [{id: "task1", name: "Build search engine"}, {id: "task2", name: "Build Google Sheet"}];
 
 RELATE company:company1 -> company_employees -> person:person1;
 RELATE company:company1 -> company_employees -> person:person2;

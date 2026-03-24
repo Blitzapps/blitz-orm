@@ -13,6 +13,7 @@ import type {
   DRAFT_EnrichedBormRelation,
   DRAFT_EnrichedBormRoleField,
   DRAFT_EnrichedBormSchema,
+  DRAFT_Hooks,
 } from './types/schema/enriched.draft';
 
 export const enrichSchemaDraft = (schema: BormSchema): DRAFT_EnrichedBormSchema => {
@@ -70,6 +71,8 @@ const enrichThing = (
   enrichRefFields(fields, thing.refFields ?? {}, thingName);
   enrichLinkFields(fields, thing.linkFields ?? [], thingName, schema, rolePlayerMap);
 
+  const hooks: DRAFT_Hooks | undefined = thing.hooks as DRAFT_Hooks | undefined;
+
   if (type === 'entity') {
     assertNoFieldNameConflicts(thingName, fields);
     const enriched: DRAFT_EnrichedBormEntity = {
@@ -79,6 +82,7 @@ const enrichThing = (
       extends: extended ? extended.name : undefined,
       subTypes: [],
       indexes: thing.indexes ?? [],
+      hooks,
       fields: fields as DRAFT_EnrichedBormEntity['fields'],
     };
     mutEnrichedSchema[thingName] = enriched;
@@ -102,6 +106,7 @@ const enrichThing = (
     extends: extended ? extended.name : undefined,
     subTypes: [],
     indexes: thing.indexes ?? [],
+    hooks,
     fields,
   };
   mutEnrichedSchema[thingName] = enriched;
@@ -164,7 +169,8 @@ const enrichDataFields = (
       contentType: df.contentType,
       cardinality: df.cardinality ?? 'ONE',
       unique: df.validations?.unique ?? false,
-      validations: df.validations,
+      default: df.default as DRAFT_EnrichedBormDataField['default'],
+      validations: df.validations as DRAFT_EnrichedBormDataField['validations'],
       isVirtual: df.isVirtual,
       dbValue: df.dbValue,
     };
@@ -487,6 +493,7 @@ const extendEntity = (name: string, schema: BormSchema, mutExtendedSchema: BormS
       dataFields: extendDataFields(ancestor, entity),
       linkFields: extendLinkFields(ancestor, entity),
       refFields: extendRefFields(ancestor, entity),
+      hooks: mergeHooks(ancestor.hooks, entity.hooks),
     };
     mutExtendedSchema.entities[name] = extended;
     return extended;
@@ -512,6 +519,7 @@ const extendRelation = (name: string, schema: BormSchema, mutExtendedSchema: Bor
       linkFields: extendLinkFields(ancestor, relation),
       refFields: extendRefFields(ancestor, relation),
       roles: extendRoles(ancestor, relation),
+      hooks: mergeHooks(ancestor.hooks, relation.hooks),
     };
     mutExtendedSchema.relations[name] = extended;
     return extended;
@@ -545,4 +553,21 @@ const extendRefFields = (
 const extendRoles = (ancestor: BormRelation, entity: BormRelation): Record<string, RoleField> => {
   const inheritedRoles = Object.fromEntries(Object.entries(ancestor.roles ?? {}).filter(([k]) => !entity.roles?.[k]));
   return { ...inheritedRoles, ...(entity.roles ?? {}) };
+};
+
+import type { Hooks } from './types';
+
+const mergeHooks = (ancestorHooks: Hooks | undefined, childHooks: Hooks | undefined): Hooks | undefined => {
+  if (!ancestorHooks && !childHooks) {
+    return undefined;
+  }
+  if (!ancestorHooks) {
+    return childHooks;
+  }
+  if (!childHooks) {
+    return ancestorHooks;
+  }
+  return {
+    pre: [...(ancestorHooks.pre ?? []), ...(childHooks.pre ?? [])],
+  };
 };

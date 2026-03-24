@@ -203,7 +203,7 @@ const buildSimpleFieldProjection = (field: DRAFT_EnrichedBormField, alias?: stri
   };
 };
 
-const buildFilter = (
+export const buildFilter = (
   filter: BQLFilter | BQLFilter[],
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
   schema: DRAFT_EnrichedBormSchema,

@@ -367,99 +367,99 @@ export const testFilteredMutation = createTest('Mutation: Filtered', (ctx) => {
     ]);
   });
 
-  // it('df3[filter, delete] delete by filter should preserve non-matching siblings', async () => {
-  //   // Create a space with a dataField that has two values with different types
-  //   await ctx.mutate([
-  //     {
-  //       $entity: 'Space',
-  //       id: 'df3-space',
-  //       dataFields: [
-  //         {
-  //           id: 'df3-dataField',
-  //           type: 'TEXT',
-  //           values: [
-  //             { id: 'df3-dv-1', type: 'toDelete' },
-  //             { id: 'df3-dv-2', type: 'toKeep' },
-  //           ],
-  //         },
-  //       ],
-  //     },
-  //   ]);
+  it('df3[filter, delete] delete by filter should preserve non-matching siblings', async () => {
+    // Create a space with a dataField that has two values with different types
+    await ctx.mutate([
+      {
+        $entity: 'Space',
+        id: 'df3-space',
+        dataFields: [
+          {
+            id: 'df3-dataField',
+            type: 'TEXT',
+            values: [
+              { id: 'df3-dv-1', type: 'toDelete' },
+              { id: 'df3-dv-2', type: 'toKeep' },
+            ],
+          },
+        ],
+      },
+    ]);
 
-  //   // Verify both values exist
-  //   const before = await ctx.query(
-  //     {
-  //       $relation: 'DataField',
-  //       $id: 'df3-dataField',
-  //       $fields: [
-  //         'id',
-  //         {
-  //           $path: 'values',
-  //           $fields: ['id', 'type'],
-  //         },
-  //       ],
-  //     },
-  //     { noMetadata: true },
-  //   );
+    // Verify both values exist
+    const before = await ctx.query(
+      {
+        $relation: 'DataField',
+        $id: 'df3-dataField',
+        $fields: [
+          'id',
+          {
+            $path: 'values',
+            $fields: ['id', 'type'],
+          },
+        ],
+      },
+      { noMetadata: true },
+    );
 
-  //   expect(deepSort(before, 'id')).toEqual({
-  //     id: 'df3-dataField',
-  //     values: [
-  //       { id: 'df3-dv-1', type: 'toDelete' },
-  //       { id: 'df3-dv-2', type: 'toKeep' },
-  //     ],
-  //   });
+    expect(deepSort(before, 'id')).toEqual({
+      id: 'df3-dataField',
+      values: [
+        { id: 'df3-dv-1', type: 'toDelete' },
+        { id: 'df3-dv-2', type: 'toKeep' },
+      ],
+    });
 
-  //   // Delete only the value with type 'toDelete'
-  //   await ctx.mutate({
-  //     $relation: 'DataField',
-  //     $id: 'df3-dataField',
-  //     values: [
-  //       {
-  //         $op: 'delete',
-  //         $filter: {
-  //           type: 'toDelete',
-  //         },
-  //       },
-  //     ],
-  //   });
+    // Delete only the value with type 'toDelete'
+    await ctx.mutate({
+      $relation: 'DataField',
+      $id: 'df3-dataField',
+      values: [
+        {
+          $op: 'delete',
+          $filter: {
+            type: 'toDelete',
+          },
+        },
+      ],
+    });
 
-  //   // Verify that only the matching value was deleted
-  //   const after = await ctx.query(
-  //     {
-  //       $relation: 'DataField',
-  //       $id: 'df3-dataField',
-  //       $fields: [
-  //         'id',
-  //         {
-  //           $path: 'values',
-  //           $fields: ['id', 'type'],
-  //         },
-  //       ],
-  //     },
-  //     { noMetadata: true },
-  //   );
+    // Verify that only the matching value was deleted
+    const after = await ctx.query(
+      {
+        $relation: 'DataField',
+        $id: 'df3-dataField',
+        $fields: [
+          'id',
+          {
+            $path: 'values',
+            $fields: ['id', 'type'],
+          },
+        ],
+      },
+      { noMetadata: true },
+    );
 
-  //   expect(after).toEqual({
-  //     id: 'df3-dataField',
-  //     values: [{ id: 'df3-dv-2', type: 'toKeep' }],
-  //   });
+    expect(after).toEqual({
+      id: 'df3-dataField',
+      values: [{ id: 'df3-dv-2', type: 'toKeep' }],
+    });
 
-  //   // Cleanup
-  //   await ctx.mutate([
-  //     {
-  //       $entity: 'Space',
-  //       $id: 'df3-space',
-  //       $op: 'delete',
-  //       dataFields: [
-  //         {
-  //           $op: 'delete',
-  //           values: [{ $op: 'delete' }],
-  //         },
-  //       ],
-  //     },
-  //   ]);
-  // });
+    // Cleanup
+    await ctx.mutate([
+      {
+        $entity: 'Space',
+        $id: 'df3-space',
+        $op: 'delete',
+        dataFields: [
+          {
+            $op: 'delete',
+            values: [{ $op: 'delete' }],
+          },
+        ],
+      },
+    ]);
+  });
 
   it('TODO{T}:lf2[filter, linkfield, role] filter by rolefield:role', async () => {
     // revert tagGroup tags
