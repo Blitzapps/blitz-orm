@@ -2,10 +2,10 @@ import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../../../adap
 import { genAlphaId } from '../../../helpers';
 import type { BormConfig } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
+import { buildFilter, buildFrom, indent } from '../../query/surql2/buildSurql';
 import type {
   CreateMut,
   DeleteMut,
-  Filter,
   LinkAllOp,
   LogicalMutation,
   Match,
@@ -45,9 +45,31 @@ export const buildMutationSurql = (
   const stmtMap: StmtMap = [];
   const ignoreNonexisting = config.mutation?.ignoreNonexistingThings ?? false;
 
+  // Determine which matches require existence assertions.
+  // Only matches referenced by updates (not just deletes) need to assert.
+  // For sub-matches, propagate to the parent only if the sub-match itself
+  // is used by a non-delete operation.
+  const matchUsedByNonDelete = new Set<string>();
+  for (const update of mutation.updates) {
+    matchUsedByNonDelete.add(update.match);
+  }
+  for (const subMatch of mutation.subMatches) {
+    if (matchUsedByNonDelete.has(subMatch.name)) {
+      matchUsedByNonDelete.add(subMatch.parent);
+    }
+  }
+
+  // Collect IDs being created in this mutation so we can detect matches that
+  // reference not-yet-created records (matches run before creates).
+  const createdIds = new Set<string>();
+  for (const create of mutation.creates) {
+    createdIds.add(`${create.thing}:${create.id}`);
+  }
+
   // 1. Matches
   for (const match of mutation.matches) {
-    buildMatch(match, lines, stmtMap, params, ignoreNonexisting);
+    const assertExistence = !ignoreNonexisting && matchUsedByNonDelete.has(match.name);
+    buildMatch(match, lines, stmtMap, params, assertExistence, createdIds);
   }
 
   // 2. SubMatches (after their parent matches)
@@ -102,64 +124,60 @@ const buildMatch = (
   lines: string[],
   stmtMap: StmtMap,
   params: SurqlParams,
-  ignoreNonexisting: boolean,
+  assertExistence: boolean,
+  createdIds: Set<string>,
 ): void => {
   const source = match.source;
-  const hasFilter = match.filter && !Array.isArray(match.filter);
+  const filterStr = match.filter ? buildFilter(match.filter, params) : undefined;
 
-  if (source.type === 'record_pointer') {
-    if (!ignoreNonexisting && !hasFilter) {
-      // Emit pointer array, then assert
-      const recordRefs = buildRecordPointers(source.thing, source.ids, params);
-      lines.push(`LET $${match.name} = [${recordRefs.join(', ')}];`);
-      stmtMap.push({ type: 'match', name: match.name });
+  // When all matched IDs are being created in the same mutation, the SELECT
+  // would run before the CREATE and find nothing.  Use a reference array so
+  // the UPDATE that runs after CREATE can still resolve the record.
+  const allCreatedInSameMutation =
+    source.type === 'record_pointer' &&
+    source.ids.every((id) => source.thing.some((t) => createdIds.has(`${t}:${id}`)));
 
-      lines.push(
-        `IF array::len($${match.name}) != ${source.ids.length * source.thing.length} { THROW "Record not found" };`,
-      );
-      stmtMap.push({ type: 'assertion', name: match.name });
-    } else if (!ignoreNonexisting && hasFilter) {
-      // Two-step: pointer assertion, then filter
-      const ptrName = `${match.name}_ptr`;
-      const recordRefs = buildRecordPointers(source.thing, source.ids, params);
-      lines.push(`LET $${ptrName} = SELECT VALUE id FROM [${recordRefs.join(', ')}];`);
-      stmtMap.push({ type: 'match', name: ptrName });
-
-      lines.push(
-        `IF array::len($${ptrName}) != ${source.ids.length * source.thing.length} { THROW "Record not found" };`,
-      );
-      stmtMap.push({ type: 'assertion', name: ptrName });
-
-      const filterStr = buildFilterStr(match.filter as Filter, params);
-      lines.push(`LET $${match.name} = SELECT VALUE id FROM $${ptrName}${filterStr ? ` WHERE ${filterStr}` : ''};`);
-      stmtMap.push({ type: 'filter_submatch', name: match.name });
-    } else {
-      // ignoreNonexisting: combine pointer + filter
-      if (hasFilter) {
-        const recordRefs = buildRecordPointers(source.thing, source.ids, params);
-        const filterStr = buildFilterStr(match.filter as Filter, params);
-        lines.push(
-          `LET $${match.name} = SELECT VALUE id FROM [${recordRefs.join(', ')}]${filterStr ? ` WHERE ${filterStr}` : ''};`,
-        );
-      } else {
-        const recordRefs = buildRecordPointers(source.thing, source.ids, params);
-        lines.push(`LET $${match.name} = [${recordRefs.join(', ')}];`);
-      }
-      stmtMap.push({ type: 'match', name: match.name });
-    }
-  } else if (source.type === 'table_scan') {
-    const tables = source.thing.map((t) => sanitizeNameSurrealDB(t)).join(', ');
-    const filterStr = hasFilter ? buildFilterStr(match.filter as Filter, params) : undefined;
-    lines.push(`LET $${match.name} = SELECT VALUE id FROM ${tables}${filterStr ? ` WHERE ${filterStr}` : ''};`);
-    stmtMap.push({ type: 'match', name: match.name });
-  } else if (source.type === 'subquery') {
-    // SubQuery source
-    const innerSource = buildSourceExpr(source.source, params);
-    const path = source.oppositePath;
-    const filterStr = hasFilter ? buildFilterStr(match.filter as Filter, params) : undefined;
-    lines.push(
-      `LET $${match.name} = SELECT VALUE id FROM ${innerSource}.${sanitizeNameSurrealDB(path)}${filterStr ? ` WHERE ${filterStr}` : ''};`,
+  if (allCreatedInSameMutation && source.type === 'record_pointer') {
+    // Records are created later in the same mutation. Use a reference array
+    // instead of SELECT so the subsequent UPDATE resolves them after CREATE.
+    const refs = source.thing.flatMap((t) =>
+      source.ids.map((id) => {
+        const tableKey = insertParam(params, t);
+        const idKey = insertParam(params, id);
+        return `type::record($${tableKey}, $${idKey})`;
+      }),
     );
+    lines.push(`LET $${match.name} = [${refs.join(', ')}];`);
+    stmtMap.push({ type: 'match', name: match.name });
+  } else if (source.type === 'record_pointer' && assertExistence) {
+    // Assert records exist, then optionally filter.
+    const ptrName = filterStr ? `${match.name}_ptr` : match.name;
+    const subLines: string[] = [];
+    subLines.push('SELECT VALUE id');
+    subLines.push(buildFrom(source, 1, params));
+    lines.push(`LET $${ptrName} = ${subLines.join('\n')};`);
+    stmtMap.push({ type: 'match', name: ptrName });
+
+    lines.push(`IF array::len($${ptrName}) != ${source.ids.length} { THROW "Record not found" };`);
+    stmtMap.push({ type: 'assertion', name: ptrName });
+
+    if (filterStr) {
+      const filterLines: string[] = [];
+      filterLines.push('SELECT VALUE id');
+      filterLines.push(indent(`FROM $${ptrName}`, 1));
+      filterLines.push(indent(`WHERE ${filterStr}`, 1));
+      lines.push(`LET $${match.name} = ${filterLines.join('\n')};`);
+      stmtMap.push({ type: 'filter_submatch', name: match.name });
+    }
+  } else {
+    // Single SELECT with optional filter.
+    const subLines: string[] = [];
+    subLines.push('SELECT VALUE id');
+    subLines.push(buildFrom(source, 1, params));
+    if (filterStr) {
+      subLines.push(indent(`WHERE ${filterStr}`, 1));
+    }
+    lines.push(`LET $${match.name} = ${subLines.join('\n')};`);
     stmtMap.push({ type: 'match', name: match.name });
   }
 };
@@ -183,7 +201,7 @@ const buildSubMatch = (subMatch: SubMatch, lines: string[], stmtMap: StmtMap, pa
   if (subMatch.filter) {
     const filters = Array.isArray(subMatch.filter) ? subMatch.filter : [subMatch.filter];
     for (const f of filters) {
-      const filterStr = buildFilterStr(f, params);
+      const filterStr = buildFilter(f, params);
       if (filterStr) {
         conditions.push(filterStr);
       }
@@ -515,18 +533,6 @@ const buildRefExpr = (ref: Ref, params: SurqlParams, mutation: LogicalMutation):
 
 // --- Record reference helpers ---
 
-const buildRecordPointers = (things: string[], ids: string[], params: SurqlParams): string[] => {
-  const refs: string[] = [];
-  for (const thing of things) {
-    for (const id of ids) {
-      const tableKey = insertParam(params, thing);
-      const idKey = insertParam(params, id);
-      refs.push(`type::record($${tableKey}, $${idKey})`);
-    }
-  }
-  return refs;
-};
-
 const buildRecordRef = (ref: string, params: SurqlParams): string => {
   const parsed = ref.split(':');
   if (parsed.length !== 2) {
@@ -536,103 +542,6 @@ const buildRecordRef = (ref: string, params: SurqlParams): string => {
   const tableKey = insertParam(params, thing);
   const idKey = insertParam(params, id);
   return `type::record($${tableKey}, $${idKey})`;
-};
-
-const buildSourceExpr = (source: Match['source'], params: SurqlParams): string => {
-  if (source.type === 'record_pointer') {
-    const refs = buildRecordPointers(source.thing, source.ids, params);
-    return refs.join(', ');
-  }
-  if (source.type === 'table_scan') {
-    return source.thing.map((t) => sanitizeNameSurrealDB(t)).join(', ');
-  }
-  throw new Error('Unsupported source type for expression');
-};
-
-// --- Filter building ---
-
-const buildFilterStr = (filter: Filter, params: SurqlParams): string | undefined => {
-  switch (filter.type) {
-    case 'scalar': {
-      const path = filter.left === 'id' ? 'record::id(id)' : sanitizeNameSurrealDB(filter.left);
-      const key = insertParam(params, filter.right);
-      return `${path} ${filter.op} $${key}`;
-    }
-    case 'list': {
-      const items = filter.right.map((i) => `$${insertParam(params, i)}`).join(', ');
-      const path = sanitizeNameSurrealDB(filter.left);
-      return `${path} ${filter.op} [${items}]`;
-    }
-    case 'and': {
-      const conditions = filter.filters
-        .map((f) => buildFilterStr(f, params))
-        .filter((c): c is string => !!c)
-        .map((c) => `(${c})`);
-      return conditions.length > 0 ? conditions.join(' AND ') : undefined;
-    }
-    case 'or': {
-      const conditions = filter.filters
-        .map((f) => buildFilterStr(f, params))
-        .filter((c): c is string => !!c)
-        .map((c) => `(${c})`);
-      return conditions.length > 0 ? conditions.join(' OR ') : undefined;
-    }
-    case 'not': {
-      const sub = buildFilterStr(filter.filter, params);
-      return sub ? `NOT(${sub})` : undefined;
-    }
-    case 'null':
-      if (filter.emptyIsArray) {
-        return filter.op === 'IS'
-          ? `array::len(${sanitizeNameSurrealDB(filter.left)}) = 0`
-          : `array::len(${sanitizeNameSurrealDB(filter.left)}) > 0`;
-      }
-      return `${sanitizeNameSurrealDB(filter.left)} ${filter.op} NONE`;
-    case 'ref':
-    case 'biref':
-    case 'computed_biref': {
-      const escapedLeft =
-        filter.type === 'computed_biref' ? computedFieldNameSurrealDB(filter.left) : sanitizeNameSurrealDB(filter.left);
-      const path = filter.left === 'id' ? 'record::id(id)' : escapedLeft;
-      if (filter.thing) {
-        const right = filter.thing.flatMap((t) =>
-          filter.right.map((i) => {
-            const tableKey = insertParam(params, t);
-            const idKey = insertParam(params, i);
-            return `type::record($${tableKey}, $${idKey})`;
-          }),
-        );
-        if (right.length === 1) {
-          if (filter.op === 'IN') {
-            return `${path} = ${right[0]}`;
-          }
-          if (filter.op === 'NOT IN') {
-            return `${path} != ${right[0]}`;
-          }
-          if (filter.op === 'CONTAINSANY') {
-            return `${right[0]} IN ${path}`;
-          }
-          if (filter.op === 'CONTAINSNONE') {
-            return `${right[0]} NOT IN ${path}`;
-          }
-        }
-        return `${path} ${filter.op} [${right.join(', ')}]`;
-      }
-      if (filter.right.length === 1) {
-        if (filter.op === 'IN') {
-          return `${path} && record::id(${path}) = $${insertParam(params, filter.right[0])}`;
-        }
-        if (filter.op === 'NOT IN') {
-          return `${path} && record::id(${path}) != $${insertParam(params, filter.right[0])}`;
-        }
-      }
-      return `(${path} ?: []).map(|$i| record::id($i)) ${filter.op} [${filter.right.map((i) => `$${insertParam(params, i)}`).join(', ')}]`;
-    }
-    case 'falsy':
-      return 'false';
-    default:
-      return undefined;
-  }
 };
 
 // --- Link-all → SurQL ---

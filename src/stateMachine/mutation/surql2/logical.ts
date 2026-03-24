@@ -35,7 +35,7 @@ export interface LinkAllOp {
 export interface Match {
   name: string;
   source: DataSource;
-  filter?: Filter | Filter[];
+  filter?: Filter;
 }
 
 export interface SubMatch {
@@ -46,7 +46,7 @@ export interface SubMatch {
   /** True when path is a COMPUTED link field (use computedFieldNameSurrealDB for escaping) */
   isComputed?: boolean;
   ids?: string[];
-  filter?: Filter | Filter[];
+  filter?: Filter;
 }
 
 export interface CreateMut {

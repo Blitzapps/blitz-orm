@@ -30,6 +30,8 @@ export interface SubQuery {
    * The link/role field path of the `source` thing to the parent thing. Example: If the parent thing is "User" and the source thing is "Post" then the opposite path is "author", not "authoredPosts".
    */
   oppositePath: string;
+  /** True when oppositePath is a COMPUTED link field (use computedFieldNameSurrealDB for escaping). */
+  isComputedPath?: boolean;
   filter?: Filter;
   /**
    * The cardinality of the sub-query result. If the surql sub-query returns an array the cardinality is 'MANY'. Otherwise it is 'ONE'.

@@ -11,7 +11,7 @@ import type {
   DRAFT_EnrichedBormRoleField,
   DRAFT_EnrichedBormSchema,
 } from '../../../types/schema/enriched.draft';
-import { buildFilter as buildBQLFilterToLogical } from '../../query/surql2/buildLogical';
+import { buildFilter } from '../../query/surql2/buildLogical';
 import type {
   CreateMut,
   DeleteMut,
@@ -25,8 +25,6 @@ import type {
   ValueMut,
 } from './logical';
 import type { BQLMutation } from './parse';
-
-type ThingSchema = DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation;
 
 type BuildContext = {
   schema: DRAFT_EnrichedBormSchema;
@@ -328,6 +326,11 @@ const buildMatchOrSubMatch = (
   fieldCardinality?: 'ONE' | 'MANY',
   isComputed?: boolean,
 ): string => {
+  const idFieldName = getIdFieldName(thing);
+  const { ids: filterIds, remainingFilter } = extractIdFromBqlFilter(node.$filter, idFieldName);
+  const nodeIds = node.$id ? (Array.isArray(node.$id) ? node.$id : [node.$id]) : [];
+  const allIds = [...nodeIds, ...filterIds];
+
   if (parentMatch && parentFieldPath) {
     // SubMatch
     const name = genName(thing.name, ctx);
@@ -337,8 +340,8 @@ const buildMatchOrSubMatch = (
       path: parentFieldPath,
       cardinality: fieldCardinality ?? 'MANY',
       isComputed,
-      ids: node.$id ? (Array.isArray(node.$id) ? node.$id : [node.$id]) : undefined,
-      filter: buildBQLFilter(node.$filter, thing, ctx.schema),
+      ids: allIds.length > 0 ? allIds : undefined,
+      filter: remainingFilter ? buildFilter(remainingFilter, thing, ctx.schema) : undefined,
     };
     ctx.mutation.subMatches.push(subMatch);
     return name;
@@ -347,20 +350,20 @@ const buildMatchOrSubMatch = (
   // Root match
   const name = genName(thing.name, ctx);
   const thingNames: [string, ...string[]] = [thing.name, ...thing.subTypes];
+  const filter = remainingFilter ? buildFilter(remainingFilter, thing, ctx.schema) : undefined;
 
-  if (node.$id) {
-    const ids = Array.isArray(node.$id) ? node.$id : [node.$id];
+  if (allIds.length > 0) {
     const match: Match = {
       name,
-      source: { type: 'record_pointer', thing: thingNames, ids },
-      filter: buildBQLFilter(node.$filter, thing, ctx.schema),
+      source: { type: 'record_pointer', thing: thingNames, ids: allIds },
+      filter,
     };
     ctx.mutation.matches.push(match);
-  } else if (node.$filter) {
+  } else if (filter) {
     const match: Match = {
       name,
       source: { type: 'table_scan', thing: thingNames },
-      filter: buildBQLFilter(node.$filter, thing, ctx.schema),
+      filter,
     };
     ctx.mutation.matches.push(match);
   } else {
@@ -372,6 +375,39 @@ const buildMatchOrSubMatch = (
   }
 
   return name;
+};
+
+const extractIdFromBqlFilter = (
+  filter: BQLFilter | BQLFilter[] | undefined,
+  idFieldName: string,
+): { ids: string[]; remainingFilter?: BQLFilter | BQLFilter[] } => {
+  if (!filter || Array.isArray(filter)) {
+    return { ids: [], remainingFilter: filter };
+  }
+
+  const idValue = filter[idFieldName];
+  if (idValue === undefined) {
+    return { ids: [], remainingFilter: filter };
+  }
+
+  const remaining = { ...filter };
+  delete remaining[idFieldName];
+  const hasRemaining =
+    Object.keys(remaining).filter((k) => !k.startsWith('$')).length > 0 ||
+    remaining.$not !== undefined ||
+    remaining.$or !== undefined;
+  const remainingFilter = hasRemaining ? remaining : undefined;
+
+  if (typeof idValue === 'string') {
+    return { ids: [idValue], remainingFilter };
+  }
+
+  if (Array.isArray(idValue) && idValue.every((v) => typeof v === 'string')) {
+    return { ids: idValue as string[], remainingFilter };
+  }
+
+  // Can't extract (e.g. operator object); keep the filter as-is
+  return { ids: [], remainingFilter: filter };
 };
 
 // --- Field value building ---
@@ -2120,15 +2156,4 @@ const validateLinkFieldTargets = (
       relationTargets.set(field.relation, field.target);
     }
   }
-};
-
-const buildBQLFilter = (
-  filter: unknown,
-  thing?: ThingSchema,
-  schema?: DRAFT_EnrichedBormSchema,
-): Filter | undefined => {
-  if (!filter || !thing || !schema) {
-    return undefined;
-  }
-  return buildBQLFilterToLogical(filter as BQLFilter | BQLFilter[], thing, schema) ?? undefined;
 };
