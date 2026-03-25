@@ -853,8 +853,11 @@ const buildRoleFieldValue = (
   }
 
   // Plain string or string array = replace
+  // Include subTypes so that extended types (e.g. God extending User) resolve correctly.
+  const oppositeSchema = ctx.schema[field.opposite.thing];
+  const oppositeSubTypes = oppositeSchema?.subTypes?.length ? oppositeSchema.subTypes : undefined;
   if (typeof value === 'string') {
-    const ref: Ref = { thing: field.opposite.thing, id: value };
+    const ref: Ref = { thing: field.opposite.thing, subTypes: oppositeSubTypes, id: value };
     if (field.cardinality === 'ONE') {
       return { type: 'role_field', cardinality: 'ONE', path: fieldName, ref };
     }
@@ -862,7 +865,7 @@ const buildRoleFieldValue = (
   }
 
   if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-    const refs = (value as string[]).map((id) => ({ thing: field.opposite.thing, id }));
+    const refs = (value as string[]).map((id) => ({ thing: field.opposite.thing, subTypes: oppositeSubTypes, id }));
     return { type: 'role_field', cardinality: 'MANY', op: 'replace', path: fieldName, refs };
   }
 

@@ -2531,6 +2531,169 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
     });
   });
 
+  it('ext4[role, link, extended, resolve] Auto-resolve thing when linking to extended type via role', async () => {
+    // Case: UserTag has role "users". User has linkField "user-tags" that plays "users" in UserTag.
+    // God extends SuperUser extends User. Linking god1 (a God record) to UserTag.users
+    // without specifying $thing should resolve the thing as God, not User.
+    await ctx.mutate(
+      {
+        $relation: 'UserTag',
+        id: 'ext4-tag',
+        name: 'ext4-tag',
+        users: [{ $op: 'link', $id: 'god1' }],
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'UserTag',
+        $id: 'ext4-tag',
+        $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+      },
+      { noMetadata: false },
+    );
+
+    // clean up
+    await ctx.mutate([
+      {
+        $id: 'ext4-tag',
+        $relation: 'UserTag',
+        $op: 'delete',
+      },
+    ]);
+
+    expect(res).toEqual({
+      $id: 'ext4-tag',
+      $thing: 'UserTag',
+      $thingType: 'relation',
+      id: 'ext4-tag',
+      users: [
+        {
+          $id: 'god1',
+          $thing: 'God',
+          $thingType: 'entity',
+          id: 'god1',
+          name: 'Richard David James',
+        },
+      ],
+    });
+  });
+
+  it('ext5[role, link, extended, resolve] Auto-resolve thing when linking to extended type via role', async () => {
+    // Case: UserTag has role "users". User has linkField "user-tags" that plays "users" in UserTag.
+    // God extends SuperUser extends User. Creating a UserTag inside a God should correctly resolve the thing as God, not User.
+    await ctx.mutate(
+      {
+        $op: 'update',
+        $relation: 'God',
+        $id: 'god1',
+        'user-tags': [{ $op: 'create', id: 'ext5-tag', name: 'ext5-tag' }],
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'UserTag',
+        $id: 'ext5-tag',
+        $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+      },
+      { noMetadata: false },
+    );
+
+    // clean up
+    await ctx.mutate([
+      {
+        $id: 'ext5-tag',
+        $relation: 'UserTag',
+        $op: 'delete',
+      },
+    ]);
+
+    expect(res).toEqual({
+      $id: 'ext5-tag',
+      $thing: 'UserTag',
+      $thingType: 'relation',
+      id: 'ext5-tag',
+      users: [
+        {
+          $id: 'god1',
+          $thing: 'God',
+          $thingType: 'entity',
+          id: 'god1',
+          name: 'Richard David James',
+        },
+      ],
+    });
+  });
+
+  it('ext6[relation, link, extended, resolve] Auto-resolve thing when linking to extended relation', async () => {
+    // Case: Field defines role "kinds". DataField extends Field.
+    // Kind has linkField "fields" targeting Field relation with plays "kinds".
+    // Creating a DataField, then linking a Kind to it via "fields" without specifying $thing
+    // should resolve the linked record as DataField, not Field.
+    await ctx.mutate(
+      {
+        $relation: 'DataField',
+        id: 'ext6-df',
+        name: 'ext6-datafield',
+        space: { $op: 'link', $id: 'space-3' },
+      },
+      { noMetadata: true },
+    );
+
+    await ctx.mutate(
+      {
+        $relation: 'Kind',
+        id: 'ext6-kind',
+        name: 'ext6-kind',
+        space: { $op: 'link', $id: 'space-3' },
+        fields: [{ $op: 'link', $id: 'ext6-df' }],
+      },
+      { noMetadata: true },
+    );
+
+    const res = await ctx.query(
+      {
+        $relation: 'Kind',
+        $id: 'ext6-kind',
+        $fields: ['id', { $path: 'fields', $fields: ['id', 'name'] }],
+      },
+      { noMetadata: false },
+    );
+
+    // clean up
+    await ctx.mutate([
+      {
+        $id: 'ext6-kind',
+        $relation: 'Kind',
+        $op: 'delete',
+      },
+      {
+        $id: 'ext6-df',
+        $relation: 'DataField',
+        $op: 'delete',
+      },
+    ]);
+
+    expect(res).toEqual({
+      $id: 'ext6-kind',
+      $thing: 'Kind',
+      $thingType: 'relation',
+      id: 'ext6-kind',
+      fields: [
+        {
+          $id: 'ext6-df',
+          $thing: 'DataField',
+          $thingType: 'relation',
+          id: 'ext6-df',
+          name: 'ext6-datafield',
+        },
+      ],
+    });
+  });
+
   it('enum2[create, update, reset] Should not let reset on non nullable property', async () => {
     await ctx.mutate(
       {

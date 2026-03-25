@@ -898,8 +898,10 @@ export const schema: BormSchema = {
                   if (!fields) {
                     return true;
                   }
-                  fields.some((f: any) => f.name === 'forbiddenName');
-                  throw new Error("You can't have a field named 'forbiddenName'");
+                  if (fields.some((f: any) => f.name === 'forbiddenName')) {
+                    throw new Error("You can't have a field named 'forbiddenName'");
+                  }
+                  return true;
                 }, //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
                 severity: 'error',
                 message: 'Name must not exist, or be less than 15 characters',
