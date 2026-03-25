@@ -205,6 +205,9 @@ const buildCreate = (
     if (key === idFieldName) {
       continue; // Skip id field
     }
+    if (value === undefined) {
+      continue;
+    }
     const fieldValue = buildFieldValue(key, value, thing, node, name, ctx);
     if (fieldValue) {
       create.values[key] = fieldValue;
@@ -235,6 +238,9 @@ const buildUpdate = (
 
   for (const [key, value] of Object.entries(node)) {
     if (key.startsWith('$')) {
+      continue;
+    }
+    if (value === undefined) {
       continue;
     }
     const fieldValue = buildFieldValue(key, value, thing, node, matchName, ctx);

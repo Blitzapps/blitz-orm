@@ -120,6 +120,66 @@ export const testHooksUnit = () => {
       expect(child.$op).toBe('update');
     });
 
+    it('hu5[hooks, unit] Transform returning undefined strips field from mutation', () => {
+      const schema = makeSchema({
+        pre: [
+          {
+            triggers: { onUpdate: () => true },
+            actions: [
+              {
+                type: 'transform',
+                fn: () => {
+                  return { name: undefined };
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const mutation: BQLMutation = {
+        $id: 'child-1',
+        $op: 'update',
+        $thing: 'Child',
+        name: 'Foo',
+      };
+
+      applyDefaultsAndHooks(mutation, schema, config);
+
+      // undefined means "don't mutate this field", so name should be removed from the node
+      expect('name' in mutation).toBe(false);
+    });
+
+    it('hu6[hooks, unit] Transform returning null keeps field as null in mutation', () => {
+      const schema = makeSchema({
+        pre: [
+          {
+            triggers: { onUpdate: () => true },
+            actions: [
+              {
+                type: 'transform',
+                fn: () => {
+                  return { name: null };
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const mutation: BQLMutation = {
+        $id: 'child-1',
+        $op: 'update',
+        $thing: 'Child',
+        name: 'Foo',
+      };
+
+      applyDefaultsAndHooks(mutation, schema, config);
+
+      // null means "set to null/unlink", so name should remain with null value
+      expect(mutation.name).toBe(null);
+    });
+
     it('hu4[hooks, unit] Run validation hooks for delete-only children', () => {
       const schema = makeSchema({
         pre: [

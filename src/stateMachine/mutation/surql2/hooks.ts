@@ -257,6 +257,13 @@ const applyTransforms = (
     if (newProps && Object.keys(newProps).length > 0) {
       Object.assign(currentNode, newProps);
       Object.assign(node, newProps);
+      // undefined means "don't mutate this field" — remove it from the node
+      for (const key of Object.keys(newProps)) {
+        if (newProps[key] === undefined) {
+          delete currentNode[key];
+          delete (node as Record<string, unknown>)[key];
+        }
+      }
     }
   }
 };
