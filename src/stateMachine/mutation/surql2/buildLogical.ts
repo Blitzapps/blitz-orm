@@ -979,6 +979,16 @@ const buildRoleFieldValue = (
   }
 
   if (refs.length > 0) {
+    if (node.$op === 'update') {
+      return {
+        type: 'role_field',
+        cardinality: 'MANY',
+        op: 'patch',
+        path: fieldName,
+        links: refs,
+        unlinks: [],
+      };
+    }
     return { type: 'role_field', cardinality: 'MANY', op: 'replace', path: fieldName, refs };
   }
 
