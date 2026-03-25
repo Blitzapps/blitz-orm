@@ -591,10 +591,9 @@ The prefix applies to all name types (Match, SubMatch, CreateMut, UpdateMut, Del
 For `create` operations:
 - **ID field resolution**: The id field name is determined from the schema's `idFields` array on the thing definition. Use only the first entry (`thing.idFields[0]`). If `idFields` contains more than one field (composite ID), **throw an error**: `"Composite id fields are not supported for '<thingName>'"`. (Composite ID support is not yet implemented — this guard will be replaced with proper handling in a future update.)
 - **ID value resolution**: `CreateMut.id` is determined in this order:
-  1. Use `$id` if explicitly provided
-  2. Use the id field value if the user provided the id field by name (e.g., `{ $entity: 'User', ID: 'u1', ... }` where `ID` is the id field name from the schema)
-  3. Use the id field's `DRAFT_EnrichedBormDataField.default` if defined (call the default function or use the static value) — note this will already be set on the node from Phase 4
-  4. Fallback: generate a random 16-character alphanumeric ID
+  1. Use the id field value if the user provided the id field by name (e.g., `{ $entity: 'User', ID: 'u1', ... }` where `ID` is the id field name from the schema)
+  2. Use the id field's `DRAFT_EnrichedBormDataField.default` if defined (call the default function or use the static value) — note this will already be set on the node from Phase 4
+  3. Fallback: generate a random 16-character alphanumeric ID
   - The id field must **never** appear in `CreateMut.values` — it belongs exclusively in `CreateMut.id`. This invariant must hold regardless of how the id was resolved (from `$id`, from the named field, from a default, or from the fallback generator).
 - When iterating node fields to build `CreateMut.values`, always skip the id field name (determined from `thing.idFields[0]`). This applies even if Phase 4 (defaults) wrote it onto the node as a regular data field value — the id field is consumed into `CreateMut.id` and never propagated to `CreateMut.values`.
 - Build `CreateMut` with all field values resolved (excluding the id field)
@@ -953,13 +952,13 @@ LET $User_0 = SELECT VALUE id FROM User WHERE type = $p1;
 LET $User_0 = SELECT VALUE id FROM User, AdminUser WHERE type = $p1;
 
 -- Match with RecordPointer source (single id, single table)
-LET $User_0 = [type::record($p1, $p2)];
+LET $User_0 = SELECT VALUE id FROM type::record($p1, $p2);
 
 -- Match with RecordPointer source (single id, thing with subtypes)
-LET $User_0 = [type::record($p1, $p2), type::record($p3, $p2)];
+LET $User_0 = SELECT VALUE id FROM type::record($p1, $p2), type::record($p3, $p2);
 
 -- Match with RecordPointer source (multiple ids)
-LET $User_0 = [type::record($p1, $p2), type::record($p3, $p4)];
+LET $User_0 = SELECT VALUE id FROM type::record($p1, $p2), type::record($p3, $p4);
 
 -- Match with RecordPointer source and additional filter
 LET $User_0 = SELECT VALUE id FROM [type::record($p1, $p2)] WHERE status = $p3;

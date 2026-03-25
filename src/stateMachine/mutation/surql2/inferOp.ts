@@ -108,23 +108,34 @@ const recurseIntoPlainBlock = (
   isNestedUnderCreate: boolean,
   schema: DRAFT_EnrichedBormSchema,
 ): void => {
-  for (const [, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(obj)) {
     if (value === null || value === undefined) {
       continue;
     }
     if (Array.isArray(value)) {
+      const filtered: unknown[] = [];
       for (const item of value) {
         if (isObject(item)) {
           if (hasMutationKeys(item)) {
-            inferNodeOp(item as BQLMutation, isNestedUnderCreate, schema);
+            const result = inferNodeOp(item as BQLMutation, isNestedUnderCreate, schema);
+            if (result !== null) {
+              filtered.push(result);
+            }
           } else {
             recurseIntoPlainBlock(item, isNestedUnderCreate, schema);
+            filtered.push(item);
           }
+        } else {
+          filtered.push(item);
         }
       }
+      obj[key] = filtered;
     } else if (isObject(value)) {
       if (hasMutationKeys(value)) {
-        inferNodeOp(value as BQLMutation, isNestedUnderCreate, schema);
+        const result = inferNodeOp(value as BQLMutation, isNestedUnderCreate, schema);
+        if (result === null) {
+          delete obj[key];
+        }
       } else {
         recurseIntoPlainBlock(value, isNestedUnderCreate, schema);
       }

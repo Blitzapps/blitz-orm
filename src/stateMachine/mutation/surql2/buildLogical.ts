@@ -1,3 +1,4 @@
+import { customAlphabet } from 'nanoid';
 import { RecordId } from 'surrealdb';
 import type { BQLFilter } from '../../../types/requests/parser';
 import type {
@@ -84,14 +85,7 @@ const genName = (thing: string, ctx: BuildContext): string => {
 
 // --- Random ID generation ---
 
-const genRandomId = (): string => {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let id = '';
-  for (let i = 0; i < 16; i++) {
-    id += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return id;
-};
+const genRandomId = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 16);
 
 // --- TempId collection ---
 
@@ -561,10 +555,11 @@ const buildRefFieldValue = (
     }
     // Handle link for ONE cardinality
     if (isObject(value) && (value as Record<string, unknown>).$op === 'link') {
-      const ref = resolveRefLink(value as Record<string, unknown>, ctx);
-      if (!ref) {
+      const refResult = resolveRefLink(value as Record<string, unknown>, ctx);
+      if (!refResult) {
         return undefined;
       }
+      const ref = Array.isArray(refResult) ? refResult[0] : refResult;
       return {
         type: 'ref_field',
         cardinality: 'ONE',
@@ -608,15 +603,23 @@ const buildRefFieldValue = (
       hasCreate = true;
     } else if (isObject(item) && (item as Record<string, unknown>).$op === 'link') {
       const nested = item as Record<string, unknown>;
-      const ref = resolveRefLink(nested, ctx);
-      if (ref) {
-        links.push(ref);
+      const refResult = resolveRefLink(nested, ctx);
+      if (refResult) {
+        if (Array.isArray(refResult)) {
+          links.push(...refResult);
+        } else {
+          links.push(refResult);
+        }
       }
     } else if (isObject(item) && (item as Record<string, unknown>).$op === 'unlink') {
       const nested = item as Record<string, unknown>;
-      const ref = resolveRefLink(nested, ctx);
-      if (ref) {
-        unlinks.push(ref);
+      const refResult = resolveRefLink(nested, ctx);
+      if (refResult) {
+        if (Array.isArray(refResult)) {
+          unlinks.push(...refResult);
+        } else {
+          unlinks.push(refResult);
+        }
       }
     } else {
       const ref = resolveRefValue(item, node, parentName, ctx);
@@ -689,12 +692,12 @@ const resolveRefValue = (
   return undefined;
 };
 
-const resolveRefLink = (obj: Record<string, unknown>, ctx: BuildContext): Ref | undefined => {
+const resolveRefLink = (obj: Record<string, unknown>, ctx: BuildContext): Ref | Ref[] | undefined => {
   if (obj.$id) {
     const ids = Array.isArray(obj.$id) ? obj.$id : [obj.$id];
-    // Return first ref; for batch $id, caller handles it
     if (obj.$thing) {
-      return { thing: obj.$thing as string, id: ids[0] as string };
+      const refs = ids.map((id) => ({ thing: obj.$thing as string, id: id as string }));
+      return refs.length === 1 ? refs[0] : refs;
     }
   }
   if (obj.$tempId) {
@@ -1593,9 +1596,6 @@ const createIntermediary = (
   targetId: string,
   ctx: BuildContext,
 ): void => {
-  const intermediaryId = genRandomId();
-  const name = genName(field.relation, ctx);
-
   // Look up the target role's thing from the schema
   const relationSchema = ctx.schema[field.relation];
   if (!relationSchema || relationSchema.type !== 'relation') {
@@ -1606,58 +1606,7 @@ const createIntermediary = (
     throw new Error(`Role '${field.targetRole}' not found in relation '${field.relation}'`);
   }
   const targetRefThing = targetRoleField.opposite.thing;
-  const targetRefSchema = ctx.schema[targetRefThing];
-  const targetSubTypes = targetRefSchema?.subTypes?.length ? targetRefSchema.subTypes : undefined;
-  const parentSchema = ctx.schema[parentThing];
-  const parentSubTypes = parentSchema?.subTypes?.length ? parentSchema.subTypes : undefined;
-
-  // Check plays role cardinality
-  const playsRoleField = relationSchema.fields[field.plays];
-  const playsCardinality = playsRoleField?.type === 'role' ? playsRoleField.cardinality : 'MANY';
-
-  const parentRef: Ref = { thing: parentThing, subTypes: parentSubTypes, id: parentId };
-  const targetRef: Ref = { thing: targetRefThing, subTypes: targetSubTypes, id: targetId };
-
-  const create: CreateMut = {
-    name,
-    thing: field.relation,
-    id: intermediaryId,
-    op: 'create',
-    values: {
-      [field.plays]:
-        playsCardinality === 'ONE'
-          ? {
-              type: 'role_field' as const,
-              cardinality: 'ONE' as const,
-              path: field.plays,
-              ref: parentRef,
-            }
-          : {
-              type: 'role_field' as const,
-              cardinality: 'MANY' as const,
-              op: 'replace' as const,
-              path: field.plays,
-              refs: [parentRef],
-            },
-      [field.targetRole]:
-        field.targetRoleCardinality === 'ONE'
-          ? {
-              type: 'role_field' as const,
-              cardinality: 'ONE' as const,
-              path: field.targetRole,
-              ref: targetRef,
-            }
-          : {
-              type: 'role_field' as const,
-              cardinality: 'MANY' as const,
-              op: 'replace' as const,
-              path: field.targetRole,
-              refs: [targetRef],
-            },
-    },
-  };
-  create.isIntermediary = true;
-  ctx.mutation.creates.push(create);
+  createIntermediaryWithThing(field, parentId, parentThing, targetRefThing, targetId, ctx);
 };
 
 const unlinkThroughIntermediary = (

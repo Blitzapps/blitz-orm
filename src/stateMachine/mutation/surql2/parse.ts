@@ -61,7 +61,7 @@ const NestedBQLMutationParser = z
 
 export const parseBQLMutation = (raw: unknown, schema: DRAFT_EnrichedBormSchema): BQLMutation | BQLMutation[] => {
   // Deep clone to avoid mutating the caller's input (which may be frozen/readonly)
-  const cloned = deepClone(raw);
+  const cloned = structuredClone(raw);
   if (Array.isArray(cloned)) {
     return cloned.map((item: unknown) => parseSingleMutation(item, schema));
   }
@@ -114,23 +114,3 @@ const parseNestedBlock = (raw: unknown, schema: DRAFT_EnrichedBormSchema): unkno
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date);
-
-const deepClone = (value: unknown): unknown => {
-  if (value === null || value === undefined) {
-    return value;
-  }
-  if (value instanceof Date) {
-    return new Date(value.getTime());
-  }
-  if (Array.isArray(value)) {
-    return value.map(deepClone);
-  }
-  if (typeof value === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      result[k] = deepClone(v);
-    }
-    return result;
-  }
-  return value;
-};

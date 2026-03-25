@@ -286,30 +286,9 @@ const isRecordId = (value: unknown): boolean => {
   return 'tb' in obj && 'id' in obj;
 };
 
-const getThingFromRecord = (
-  record: Record<string, unknown>,
-  _schema: DRAFT_EnrichedBormSchema,
-  originalRecord?: Record<string, unknown>,
-): string | undefined => {
+const getThingFromRecord = (record: Record<string, unknown>, _schema: DRAFT_EnrichedBormSchema): string | undefined => {
   if (record.$thing) {
     return record.$thing as string;
-  }
-
-  // Try to extract table name from the original SurrealDB record ID
-  if (originalRecord?.id) {
-    const rid = originalRecord.id;
-    if (isRecordId(rid)) {
-      const obj = rid as { tb?: string };
-      if (obj.tb) {
-        return obj.tb;
-      }
-    }
-    if (typeof rid === 'string') {
-      const colonIdx = rid.indexOf(':');
-      if (colonIdx > 0) {
-        return rid.slice(0, colonIdx);
-      }
-    }
   }
 
   return undefined;
