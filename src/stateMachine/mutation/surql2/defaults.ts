@@ -42,13 +42,7 @@ const applyDefaultsToNode = (node: BQLMutation, schema: DRAFT_EnrichedBormSchema
           node[field.name] = field.default.value;
         }
       } else if (field.default.type === 'fn') {
-        const currentNode: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(node)) {
-          if (!k.startsWith('$')) {
-            currentNode[k] = v;
-          }
-        }
-        const result = field.default.fn(currentNode);
+        const result = field.default.fn(node);
         if (result !== null) {
           node[field.name] = result;
         }
