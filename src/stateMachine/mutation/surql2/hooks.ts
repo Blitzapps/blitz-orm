@@ -179,7 +179,9 @@ const inferChildThingAndOp = (
 
   const objKeys = Object.keys(child).filter((k) => !k.startsWith('$'));
   const looksLikeMutation =
-    objKeys.length > 0 && objKeys.some((k) => k in childSchema.fields || k === childSchema.idFields[0]);
+    child.$op !== undefined ||
+    child.$id !== undefined ||
+    (objKeys.length > 0 && objKeys.some((k) => k in childSchema.fields || k === childSchema.idFields[0]));
   if (!looksLikeMutation) {
     return;
   }
