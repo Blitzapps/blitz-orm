@@ -554,4 +554,43 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
       ]);
     }
   });
+
+  it('c7[roleField, implicit-link] Role field with $tempId and no $op is treated as link', async () => {
+    try {
+      await ctx.mutate([
+        {
+          $tempId: '_:c7-space',
+          $entity: 'Space',
+          id: 'c7-space',
+          name: 'C7 Space',
+        },
+        {
+          $relation: 'UserTagGroup',
+          id: 'c7-utg',
+          // Implicit link: { $tempId } without $op should link to the space
+          space: { $tempId: '_:c7-space' },
+        },
+      ]);
+
+      const utg = await ctx.query(
+        {
+          $relation: 'UserTagGroup',
+          $id: 'c7-utg',
+          $fields: ['id', { $path: 'space', $fields: ['id', 'name'] }],
+        },
+        { noMetadata: true },
+      );
+
+      expect(utg).toBeDefined();
+      expect(utg).toEqual({
+        id: 'c7-utg',
+        space: { id: 'c7-space', name: 'C7 Space' },
+      });
+    } finally {
+      await ctx.mutate([
+        { $relation: 'UserTagGroup', $id: 'c7-utg', $op: 'delete' },
+        { $entity: 'Space', $id: 'c7-space', $op: 'delete' },
+      ]);
+    }
+  });
 });

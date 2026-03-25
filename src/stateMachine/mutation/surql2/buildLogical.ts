@@ -948,6 +948,22 @@ const buildRoleFieldValue = (
         block.$thing = nestedThing.name;
       }
       buildDelete(block as BQLMutation, nestedThing, parentName, fieldName, ctx, field.cardinality);
+    } else if (!op && !hasNonDollarFields(block)) {
+      // Implicit link: object with only $-prefixed keys (e.g. { $tempId: '...' } or { $id: '...' })
+      if (block.$tempId) {
+        const resolved = ctx.tempIdMap.get(block.$tempId as string);
+        if (!resolved) {
+          throw new Error(
+            `Can't link a $tempId that has not been created in the current mutation: ${String(block.$tempId).replace(/^_:/, '')}`,
+          );
+        }
+        refs.push(resolved);
+      } else if (block.$id) {
+        const ids = Array.isArray(block.$id) ? block.$id : [block.$id];
+        for (const id of ids) {
+          refs.push(resolveRoleRef(id as string, block, field, ctx));
+        }
+      }
     }
   }
 
