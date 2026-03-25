@@ -857,7 +857,7 @@ const buildRoleFieldValue = (
   const oppositeSchema = ctx.schema[field.opposite.thing];
   const oppositeSubTypes = oppositeSchema?.subTypes?.length ? oppositeSchema.subTypes : undefined;
   if (typeof value === 'string') {
-    const ref: Ref = { thing: field.opposite.thing, subTypes: oppositeSubTypes, id: value };
+    const ref: Ref = resolveRoleStringRef(value, field, oppositeSubTypes, ctx);
     if (field.cardinality === 'ONE') {
       return { type: 'role_field', cardinality: 'ONE', path: fieldName, ref };
     }
@@ -865,7 +865,7 @@ const buildRoleFieldValue = (
   }
 
   if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-    const refs = (value as string[]).map((id) => ({ thing: field.opposite.thing, subTypes: oppositeSubTypes, id }));
+    const refs = (value as string[]).map((id) => resolveRoleStringRef(id, field, oppositeSubTypes, ctx));
     return { type: 'role_field', cardinality: 'MANY', op: 'replace', path: fieldName, refs };
   }
 
@@ -1034,6 +1034,25 @@ const resolveRoleRef = (
     return resolved;
   }
   return { thing, subTypes, id };
+};
+
+/** Resolve a plain string id for a role field, handling _:tempId references. */
+const resolveRoleStringRef = (
+  id: string,
+  field: DRAFT_EnrichedBormRoleField,
+  subTypes: string[] | undefined,
+  ctx: BuildContext,
+): Ref => {
+  if (id.startsWith('_:')) {
+    const resolved = ctx.tempIdMap.get(id);
+    if (!resolved) {
+      throw new Error(
+        `Can't link a $tempId that has not been created in the current mutation: ${id.replace(/^_:/, '')}`,
+      );
+    }
+    return resolved;
+  }
+  return { thing: field.opposite.thing, subTypes, id };
 };
 
 // --- Link field ---

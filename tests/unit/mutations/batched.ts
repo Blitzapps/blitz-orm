@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import type { BQLResponseSingle } from '../../../src';
 import { createTest } from '../../helpers/createTest';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
@@ -551,6 +552,51 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
           $id: 'c6-space2',
           $op: 'delete',
         },
+      ]);
+    }
+  });
+
+  it('c8[roleField, raw-tempId-string] Role field with raw _: tempId strings resolves correctly', async () => {
+    try {
+      await ctx.mutate([
+        {
+          $tempId: '_:c8-user',
+          $entity: 'User',
+          name: 'c8-raw-tempid',
+        },
+        {
+          $relation: 'UserTag',
+          id: 'c8-tag',
+          users: ['_:c8-user'],
+        },
+      ]);
+
+      const tag = await ctx.query(
+        {
+          $relation: 'UserTag',
+          $id: 'c8-tag',
+          $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+        },
+        { noMetadata: true },
+      );
+
+      expect(tag).toBeDefined();
+      expect(tag).toEqual({
+        id: 'c8-tag',
+        users: [{ id: expect.any(String), name: 'c8-raw-tempid' }],
+      });
+    } finally {
+      const tag = await ctx.query(
+        { $relation: 'UserTag', $id: 'c8-tag', $fields: ['id', { $path: 'users', $fields: ['id'] }] },
+        { noMetadata: true },
+      );
+      await ctx.mutate([
+        { $relation: 'UserTag', $id: 'c8-tag', $op: 'delete' },
+        ...((tag as BQLResponseSingle)?.users ?? []).map((u: { id: string }) => ({
+          $entity: 'User' as const,
+          $id: u.id,
+          $op: 'delete' as const,
+        })),
       ]);
     }
   });
