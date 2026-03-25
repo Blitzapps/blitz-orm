@@ -39,6 +39,8 @@ BEGIN TRANSACTION;
   DEFINE TABLE Space SCHEMAFULL PERMISSIONS FULL;
     -- DATA FIELDS
       DEFINE FIELD name ON TABLE Space TYPE option<string>;
+      DEFINE FIELD defaultStatus ON TABLE Space TYPE option<string>;
+      DEFINE FIELD nullableField ON TABLE Space TYPE option<string>;
     -- LINK FIELDS
       DEFINE FIELD users ON TABLE Space COMPUTED array::distinct(array::flatten(<~(⟨Space-User⟩ FIELD spaces).users ?? []));
       DEFINE FIELD objects ON TABLE Space COMPUTED array::distinct(array::concat(<~(SpaceObj FIELD space) ?? [], <~(SpaceDef FIELD space) ?? [], <~(Kind FIELD space) ?? [], <~(Field FIELD space) ?? [], <~(DataField FIELD space) ?? [], <~(Self FIELD space) ?? []));

@@ -4,8 +4,7 @@ import type { BormConfig, DBHandles } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
 import { buildLogicalMutation, validateValues } from './buildLogical';
 import { buildMutationSurql, type SurqlParams } from './buildSurql';
-import { applyDefaults } from './defaults';
-import { applyHooks } from './hooks';
+import { applyDefaultsAndHooks } from './hooks';
 import { inferOp } from './inferOp';
 import { inferThingFromSchema } from './inferThing';
 import { optimizeLogicalMutation } from './optimize';
@@ -40,34 +39,32 @@ export const runSurrealDbMutationMachine2 = async (
   inferThingFromSchema(withOp, schema);
   log(['runSurql', 'runSurql/withOp'], withOp);
 
-  // 3. Apply defaults (compute defaults for create nodes, convert string dates)
-  const withDefaults = applyDefaults(withOp, schema);
-
-  // 4. Apply hooks (transforms + validations; no pre-query)
-  const hooked = applyHooks(withDefaults, schema, config);
+  // 3. Apply defaults + hooks in a single top-down pass
+  //    For each node: apply defaults → apply transforms → infer $thing/$op for new children → recurse → validate
+  const hooked = applyDefaultsAndHooks(withOp, schema, config);
   log(['runSurql', 'runSurql/hooked'], hooked);
 
-  // 5. Build logical
+  // 4. Build logical
   const logical = buildLogicalMutation(hooked, schema);
   log(['runSurql', 'runSurql/logical'], JSON.stringify(logical, null, 2));
 
-  // 5.1 Validate values
+  // 4.1 Validate values
   validateValues(logical, schema);
 
-  // 6. Optimize
+  // 5. Optimize
   const optimized = optimizeLogicalMutation(logical, schema);
 
-  // 7. Build SurQL
+  // 6. Build SurQL
   const params: SurqlParams = {};
   const { surql, stmtMap } = buildMutationSurql(optimized, params, config, schema);
   log(['buildSurql', 'buildSurql/surql'], surql);
   log(['buildSurql', 'buildSurql/params'], params);
 
-  // 8. Execute
+  // 7. Execute
   const rawResults = await executeMutation(client, surql, params);
   log(['runSurql', 'runSurql/rawResults'], rawResults);
 
-  // 9. Process results
+  // 8. Process results
   const results = processResults(rawResults, stmtMap, optimized, schema, config);
   log(['processResults', 'processResults/output'], results);
   return results;

@@ -74,7 +74,9 @@ type StringField = BormField & {
     | 'RICH_TEXT'
     | 'TEXT'
     | 'JSON';
-  default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => string } | { type: 'value'; value: string };
+  default?:
+    | { type: 'fn'; fn: (currentNode: BQLMutationBlock) => string | null }
+    | { type: 'value'; value: string | null };
   validations?: {
     enum?: string[];
     unique?: boolean;
@@ -84,7 +86,9 @@ type StringField = BormField & {
 
 type NumberField = BormField & {
   contentType: 'DURATION' | 'HOUR' | 'RATING' | 'CURRENCY' | 'PERCENTAGE' | 'NUMBER_DECIMAL' | 'NUMBER';
-  default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => number } | { type: 'value'; value: number };
+  default?:
+    | { type: 'fn'; fn: (currentNode: BQLMutationBlock) => number | null }
+    | { type: 'value'; value: number | null };
   validations?: {
     enum?: number[];
     unique?: boolean;
@@ -94,7 +98,7 @@ type NumberField = BormField & {
 
 type DateField = BormField & {
   contentType: 'TIME';
-  default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => Date } | { type: 'value'; value: Date };
+  default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => Date | null } | { type: 'value'; value: Date | null };
   validations?: {
     enum: Date[];
     fn?: (value: Date) => boolean;
@@ -103,7 +107,9 @@ type DateField = BormField & {
 
 type BooleanField = BormField & {
   contentType: 'BOOLEAN';
-  default?: { type: 'fn'; fn: (currentNode: BQLMutationBlock) => boolean } | { type: 'value'; value: boolean };
+  default?:
+    | { type: 'fn'; fn: (currentNode: BQLMutationBlock) => boolean | null }
+    | { type: 'value'; value: boolean | null };
   validations?: {
     enum?: boolean[];
     fn?: (value: boolean) => boolean;

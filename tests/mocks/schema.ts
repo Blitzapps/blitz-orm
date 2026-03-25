@@ -156,6 +156,22 @@ export const schema: BormSchema = {
                       }
                     : {},
               },
+              {
+                name: 'Add space with non-null default',
+                type: 'transform',
+                fn: ({ $op, name, spaces }) =>
+                  $op === 'create' && name === 'hookDefaultNonNull' && !spaces
+                    ? { spaces: [{ id: 'hd-space-1', name: 'HookSpace' }] }
+                    : {},
+              },
+              {
+                name: 'Add space with null default',
+                type: 'transform',
+                fn: ({ $op, name, spaces }) =>
+                  $op === 'create' && name === 'hookDefaultNull' && !spaces
+                    ? { spaces: [{ id: 'hd-space-2', name: 'HookSpaceNull' }] }
+                    : {},
+              },
             ],
           },
           {
@@ -270,7 +286,20 @@ export const schema: BormSchema = {
           },
         ],
       },
-      dataFields: [{ ...id }, { ...name, rights: ['CREATE', 'UPDATE'] }],
+      dataFields: [
+        { ...id },
+        { ...name, rights: ['CREATE', 'UPDATE'] },
+        {
+          path: 'defaultStatus',
+          contentType: 'TEXT',
+          default: { type: 'value', value: 'active' },
+        },
+        {
+          path: 'nullableField',
+          contentType: 'TEXT',
+          default: { type: 'value', value: null },
+        },
+      ],
       linkFields: [
         {
           path: 'users',

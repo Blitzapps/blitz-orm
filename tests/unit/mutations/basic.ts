@@ -1239,7 +1239,7 @@ export const testBasicMutation = createTest('Mutation: Basic', (ctx) => {
       // { id: expect.any(String), name: 'newSpace1' },
       {
         id: secondUser.id,
-        spaces: [{ name: 'newSpace2', id: spaceTwo.id, users: [secondUser.id] }],
+        spaces: [{ name: 'newSpace2', id: spaceTwo.id, users: [secondUser.id], defaultStatus: 'active' }],
       },
     );
 
