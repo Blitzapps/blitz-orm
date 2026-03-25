@@ -30,23 +30,23 @@ export const runSurrealDbMutationMachine2 = async (
 
   // 1. Parse (validates and normalizes raw input with Zod)
   const parsed = parseBQLMutation(bql, schema);
-  log(['runSurql', 'runSurql/parsed'], parsed);
+  log(['runSurql', 'runSurql/parsed'], `> runSurql/parsed\n`, JSON.stringify(parsed));
 
   // 2. Infer $op for every node in the tree
   const withOp = inferOp(parsed, schema);
 
   // 2.5 Infer $thing for nested blocks using schema context
   inferThingFromSchema(withOp, schema);
-  log(['runSurql', 'runSurql/withOp'], withOp);
+  log(['runSurql', 'runSurql/withOp'], `> runSurql/withOp\n`, JSON.stringify(withOp));
 
   // 3. Apply defaults + hooks in a single top-down pass
   //    For each node: apply defaults → apply transforms → infer $thing/$op for new children → recurse → validate
   const hooked = applyDefaultsAndHooks(withOp, schema, config);
-  log(['runSurql', 'runSurql/hooked'], hooked);
+  log(['runSurql', 'runSurql/hooked'], `> runSurql/hooked\n`, JSON.stringify(hooked));
 
   // 4. Build logical
   const logical = buildLogicalMutation(hooked, schema);
-  log(['runSurql', 'runSurql/logical'], JSON.stringify(logical, null, 2));
+  log(['runSurql', 'runSurql/logical'], `> runSurql/logical\n`, JSON.stringify(logical));
 
   // 4.1 Validate values
   validateValues(logical, schema);
@@ -57,15 +57,15 @@ export const runSurrealDbMutationMachine2 = async (
   // 6. Build SurQL
   const params: SurqlParams = {};
   const { surql, stmtMap } = buildMutationSurql(optimized, params, config, schema);
-  log(['buildSurql', 'buildSurql/surql'], surql);
-  log(['buildSurql', 'buildSurql/params'], params);
+  log(['buildSurql', 'buildSurql/surql'], `> buildSurql/surql\n`, surql);
+  log(['buildSurql', 'buildSurql/params'], `> buildSurql/params\n`, JSON.stringify(params));
 
   // 7. Execute
   const rawResults = await executeMutation(client, surql, params);
-  log(['runSurql', 'runSurql/rawResults'], rawResults);
+  log(['runSurql', 'runSurql/rawResults'], `> runSurql/rawResults\n`, JSON.stringify(rawResults));
 
   // 8. Process results
   const results = processResults(rawResults, stmtMap, optimized, schema, config);
-  log(['processResults', 'processResults/output'], results);
+  log(['processResults', 'processResults/output'], `> processResults/output\n`, JSON.stringify(results));
   return results;
 };
