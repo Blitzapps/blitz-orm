@@ -1,7 +1,7 @@
-import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { log } from '../../../logger';
 import type { BormConfig, DBHandles } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
+import type { SurrealClient } from '../client';
 import { buildLogicalMutation, validateValues } from './buildLogical';
 import { buildMutationSurql, type SurqlParams } from './buildSurql';
 import { applyDefaultsAndHooks } from './hooks';

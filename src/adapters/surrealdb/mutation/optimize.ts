@@ -1,5 +1,5 @@
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
-import { optimizeLocalFilter, optimizeSource } from '../../query/surql2/optimize';
+import { optimizeLocalFilter, optimizeSource } from '../query/optimize';
 import type { LogicalMutation, Match, SubMatch } from './logical';
 
 /**

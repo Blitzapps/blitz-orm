@@ -1,7 +1,7 @@
 import type { RecordId } from 'surrealdb';
-import type { DataSource, Filter } from '../../query/surql2/logical';
+import type { DataSource, Filter } from '../query/logical';
 
-export type { DataSource, Filter } from '../../query/surql2/logical';
+export type { DataSource, Filter } from '../query/logical';
 
 export interface LogicalMutation {
   matches: Match[];

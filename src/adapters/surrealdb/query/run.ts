@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
-import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { log } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { BQLQueryParser } from '../../../types/requests/parser';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
+import type { SurrealClient } from '../client';
 import { buildLogicalQuery } from './buildLogical';
 import { buildSurql, type SurqlParams } from './buildSurql';
 import { optimizeLogicalQuery } from './optimize';

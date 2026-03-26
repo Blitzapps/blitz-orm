@@ -1,5 +1,5 @@
-import { computedFieldNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { genAlphaId } from '../../../helpers';
+import { computedFieldNameSurrealDB } from '../helpers';
 import type {
   ComputedRefField,
   DataField,

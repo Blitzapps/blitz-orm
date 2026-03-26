@@ -1,4 +1,4 @@
-import { defineSURQLSchema } from '../adapters/surrealDB/schema/define';
+import { defineSURQLSchema } from '../adapters/surrealdb/schema/define';
 import { defineTQLSchema } from '../adapters/typeDB/schema/define';
 import type { BormConfig, DBHandles, EnrichedBormSchema } from '../types';
 import type { DRAFT_EnrichedBormSchema } from '../types/schema/enriched.draft';

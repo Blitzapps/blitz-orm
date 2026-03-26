@@ -1,5 +1,6 @@
 import type { TypeDBDriver } from 'typedb-driver';
-import type { SurrealClient } from '../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../adapters/surrealdb/client';
+import { runSurrealDbQueryMachine2 } from '../../adapters/surrealdb/query/run';
 import { enrichBQLQuery } from '../../bql/query/enrich';
 import { getSchemaByThing } from '../../helpers';
 import { logDebug } from '../../logger';
@@ -7,7 +8,6 @@ import { createMachine, interpret, invoke, reduce, state, transition } from '../
 import type { BormConfig, DBHandles, EnrichedBormSchema, RawBQLQuery } from '../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../types/schema/enriched.draft';
 import { VERSION } from '../../version';
-import { runSurrealDbQueryMachine2 } from './surql2/run';
 import { runTypeDbQueryMachine } from './tql/machine';
 
 type MachineContext = {

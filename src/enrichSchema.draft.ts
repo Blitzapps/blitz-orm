@@ -1,5 +1,5 @@
 import { isEqual } from 'radash';
-import { computedFieldNameSurrealDB } from './adapters/surrealDB/helpers';
+import { computedFieldNameSurrealDB } from './adapters/surrealdb/helpers';
 import type { BormEntity, BormRelation, BormSchema, DataField, LinkField, RefField, RoleField } from './types';
 import type {
   DRAFT_EnrichedBormComputedField,

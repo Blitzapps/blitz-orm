@@ -1,5 +1,5 @@
 import { isArray, isSymbol } from 'radash';
-import { parseValueSurrealDB } from '../../adapters/surrealDB/parsing/values';
+import { parseValueSurrealDB } from '../../adapters/surrealdb/parsing/values';
 import { getCurrentFields, oFilter } from '../../helpers';
 import type { BormOperation, EnrichedBormSchema, EnrichedBQLMutationBlock, EnrichedLinkField } from '../../types';
 import { Parent } from '../../types/symbols';

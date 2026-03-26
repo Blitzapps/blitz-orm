@@ -1,5 +1,5 @@
-import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { log } from '../../../logger';
+import type { SurrealClient } from '../client';
 import type { SurqlParams } from './buildSurql';
 
 /**

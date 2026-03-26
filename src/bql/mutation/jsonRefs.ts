@@ -1,5 +1,5 @@
 import { RecordId } from 'surrealdb';
-import { sanitizeNameSurrealDB } from '../../adapters/surrealDB/helpers';
+import { sanitizeNameSurrealDB } from '../../adapters/surrealdb/helpers';
 import type { EnrichedBormSchema } from '../../types';
 
 /**

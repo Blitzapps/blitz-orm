@@ -1,7 +1,7 @@
-import type { SurrealClient } from '../../../adapters/surrealDB/client';
 import { log, logDebug } from '../../../logger';
 import type { BormConfig } from '../../../types';
 import { VERSION } from '../../../version';
+import type { SurrealClient } from '../client';
 import type { SurqlParams } from './buildSurql';
 
 export const query = async (props: {

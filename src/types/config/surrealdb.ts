@@ -1,4 +1,4 @@
-import type { SurrealClient } from '../../adapters/surrealDB/client';
+import type { SurrealClient } from '../../adapters/surrealdb/client';
 import type { CommonProvider } from './base';
 
 export interface SurrealDBProviderObject extends CommonProvider {

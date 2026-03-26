@@ -1,8 +1,8 @@
-import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { genAlphaId } from '../../../helpers';
 import type { BormConfig } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
-import { buildFilter, buildFrom, indent } from '../../query/surql2/buildSurql';
+import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../helpers';
+import { buildFilter, buildFrom, indent } from '../query/buildSurql';
 import type {
   CreateMut,
   DeleteMut,

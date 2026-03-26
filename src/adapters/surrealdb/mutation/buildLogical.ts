@@ -12,7 +12,7 @@ import type {
   DRAFT_EnrichedBormRoleField,
   DRAFT_EnrichedBormSchema,
 } from '../../../types/schema/enriched.draft';
-import { buildFilter } from '../../query/surql2/buildLogical';
+import { buildFilter } from '../query/buildLogical';
 import type {
   CreateMut,
   DeleteMut,
