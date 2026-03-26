@@ -1,11 +1,11 @@
 import { DateTime } from 'surrealdb';
+import { resolveJsonRecordLinks } from '../../../bql/mutation/jsonRefs';
 import type { BQLQuery, NestedBQL } from '../../../types/requests/parser';
 import type {
   DRAFT_EnrichedBormEntity,
   DRAFT_EnrichedBormRelation,
   DRAFT_EnrichedBormSchema,
 } from '../../../types/schema/enriched.draft';
-import { resolveJsonRecordLinks } from '../../mutation/bql/jsonRefs';
 
 type ResultObject = Record<string, unknown>;
 

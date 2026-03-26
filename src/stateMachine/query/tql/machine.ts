@@ -1,10 +1,10 @@
+import { cleanQueryRes } from '../../../bql/query/clean';
+import { enrichBQLQuery } from '../../../bql/query/enrich';
 import { assertDefined } from '../../../helpers';
 import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
 import type { BormConfig, DBHandles, EnrichedBormSchema, EnrichedBQLQuery, RawBQLQuery } from '../../../types';
 import { VERSION } from '../../../version';
-import { cleanQueryRes } from '../bql/clean';
-import { enrichBQLQuery } from '../bql/enrich';
 import { postHooks } from '../postHook';
 import { buildTQLQuery } from './build';
 import { parseTQLQuery } from './parse';

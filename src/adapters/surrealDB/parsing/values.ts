@@ -1,5 +1,5 @@
 import { isDate } from 'radash';
-import { serializeJson } from '../../../stateMachine/mutation/bql/jsonRefs';
+import { serializeJson } from '../../../bql/mutation/jsonRefs';
 import type { EnrichedBormSchema } from '../../../types';
 import { parseFlexValSurrealDB } from './parseFlexVal';
 

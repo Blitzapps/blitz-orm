@@ -2,10 +2,10 @@ import { isArray } from 'radash';
 import { buildSuqlFilter, parseFilter } from '../../../adapters/surrealDB/filters/filters';
 import { computedFieldNameSurrealDB, sanitizeNameSurrealDB } from '../../../adapters/surrealDB/helpers';
 import { parseValueSurrealDB } from '../../../adapters/surrealDB/parsing/values';
+import type { FlatBqlMutation } from '../../../bql/mutation/flatter';
 import { getCurrentFields, getSchemaByThing, oFilter } from '../../../helpers';
 import type { EnrichedBormRelation, EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { Parent } from '../../../types/symbols';
-import type { FlatBqlMutation } from '../bql/flatter';
 
 export const buildSURQLMutation = async (flat: FlatBqlMutation, schema: EnrichedBormSchema) => {
   // Sanitize parent edge field name for SurrealDB access.

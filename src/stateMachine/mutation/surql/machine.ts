@@ -1,5 +1,6 @@
 import { isArray } from 'radash';
 import type { SurrealClient } from '../../../adapters/surrealDB/client';
+import type { FlatBqlMutation } from '../../../bql/mutation/flatter';
 import { logDebug } from '../../../logger';
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
 import type {
@@ -10,7 +11,6 @@ import type {
   EnrichedBQLMutationBlock,
 } from '../../../types';
 import { VERSION } from '../../../version';
-import type { FlatBqlMutation } from '../bql/flatter';
 import type { bqlMutationContext } from '../mutationMachine';
 import { buildSURQLMutation } from './build';
 import type { EnrichedSURQLMutationRes } from './parse';
