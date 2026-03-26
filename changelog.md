@@ -2,13 +2,9 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
-## 0.16.0(2026-03-26)
+## 0.17.0(2026-03-26)
 
 - Feat: Rewrite SurrealDB mutation adapter
-- Feat: Migrate to SurrealDB v3; use COMPUTED fields for link fields
-- Feat: Sanitize field names (spaces/dashes to underscores) in SurrealDB schema definition
-- Feat: Throw an error on field name conflicts
-- Feat: waitForReady in bench script accepts timeout and throws if SurrealDB is not ready
 - Fix: Role field array handling — validate all elements and resolve tempIds
 - Fix: Role field dropping raw `_:` temp ID strings instead of resolving them
 - Fix: Role field dropping implicit links
@@ -17,21 +13,30 @@
 - Fix: Transform hook returning undefined leaking into mutation as NONE
 - Fix: Hooks not running for children with only `$id`/`$op` (e.g. delete)
 - Fix: Combine defaults and hooks into a single top-down pass so transform-hook-added create operations get default values applied
-- Fix: SurrealDB schema generator fixes
+- Perf: Move JSON.stringify into logger to avoid hot-path serialization when logging is off
+- Refactor: Restructure source files — colocate BQL, SurrealDB, and TypeDB query/mutation adapters
+- Refactor: Delete dead `.old`/`.older`/`.ts-old` backup files and stale docs
+- Tests: Add multi-level inheritance tests for enrichSchemaDraft
+- Tests: Add tests for preserving links during sub-creation
+- Chore: Update Node.js engine requirement to version 17.0.0
+
+## 0.16.0(2026-03-13)
+
+- **Breaking:** Migrate to SurrealDB v3; link fields now use COMPUTED fields instead of edge tables
+- **Breaking:** Requires SurrealDB server v3 (surrealdb/surrealdb:v3)
+- **Breaking:** Schema validation throws if field names conflict (e.g. link "user-tags" vs data "user_tags" after sanitization)
+- Feat: Sanitize field names in SurrealDB schema definition (spaces, dashes → underscores for COMPUTED fields)
+- Feat: Map spaces and dashes in computed field names to underscores (workaround for SurrealDB v3 COMPUTED naming)
+- Feat: waitForReady in bench script accepts timeout and throws if SurrealDB is not ready
+- Fix: SurrealDB schema generator inconsistencies and multi-table COMPUTED workarounds
 - Fix: Mutation issue with SurrealDB v3 (RETURN BEFORE, record-link dereference)
 - Fix: Put client.beginTransaction() inside try/catch for proper error handling
 - Fix: Normalize SurrealDB v3 coercion and ThrownError format for backward compatibility
-- Perf: Move JSON.stringify into logger to avoid hot-path serialization when logging is off
 - Perf: Simplify generated surql mutations
-- Refactor: Restructure source files — colocate BQL, SurrealDB, and TypeDB query/mutation adapters
-- Refactor: Delete dead `.old`/`.older`/`.ts-old` backup files and stale docs
 - Refactor: Consolidate schema.surql, remove legacy refs/edges mocks
 - Refactor: Remove old surql query builder (surql/), use surql2 exclusively
-- Tests: Add multi-level inheritance tests for enrichSchemaDraft
-- Tests: Add tests for preserving links during sub-creation
-- Tests: Unified schema and data mocks for SurrealDB
-- Chore: Update Node.js engine requirement to version 17.0.0
 - Chore: Remove plans, update bench scripts for v3
+- Tests: Unified schema and data mocks for SurrealDB
 
 ## 0.15.6(2026-03-05)
 
