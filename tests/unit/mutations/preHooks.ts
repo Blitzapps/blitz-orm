@@ -886,6 +886,78 @@ export const testMutationPrehooks = createTest('Mutation: PreHooks', (ctx) => {
     }
   });
 
+  it('thd1[transform, hook, default] Hook-added create gets non-null default', async () => {
+    try {
+      await ctx.mutate(
+        {
+          $thing: 'User',
+          id: 'thd1-u1',
+          name: 'hookDefaultNonNull',
+        },
+        { noMetadata: true },
+      );
+
+      const res = await ctx.query(
+        {
+          $thing: 'Space',
+          $thingType: 'entity',
+          $id: 'hd-space-1',
+          $fields: ['id', 'name', 'defaultStatus'],
+        },
+        { noMetadata: true },
+      );
+
+      expect(res).toEqual({
+        id: 'hd-space-1',
+        name: 'HookSpace',
+        defaultStatus: 'active',
+      });
+    } finally {
+      await ctx.mutate({
+        $thing: 'User',
+        $thingType: 'entity',
+        $op: 'delete',
+        $id: 'thd1-u1',
+      });
+    }
+  });
+
+  it('thd2[transform, hook, default] Hook-added create gets null default', async () => {
+    try {
+      await ctx.mutate(
+        {
+          $thing: 'User',
+          id: 'thd2-u1',
+          name: 'hookDefaultNull',
+        },
+        { noMetadata: true },
+      );
+
+      const res = await ctx.query(
+        {
+          $thing: 'Space',
+          $thingType: 'entity',
+          $id: 'hd-space-2',
+          $fields: ['id', 'name', 'nullableField'],
+        },
+        { noMetadata: true, returnNulls: true },
+      );
+
+      expect(res).toEqual({
+        id: 'hd-space-2',
+        name: 'HookSpaceNull',
+        nullableField: null,
+      });
+    } finally {
+      await ctx.mutate({
+        $thing: 'User',
+        $thingType: 'entity',
+        $op: 'delete',
+        $id: 'thd2-u1',
+      });
+    }
+  });
+
   it('tf6', async () => {
     await ctx.mutate([
       {

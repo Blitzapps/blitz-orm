@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import type { BQLResponseSingle } from '../../../src';
 import { createTest } from '../../helpers/createTest';
 import { deepSort, expectArraysInObjectToContainSameElements } from '../../helpers/matchers';
 
@@ -551,6 +552,90 @@ export const testBatchedMutation = createTest('Mutations: batched and tempId', (
           $id: 'c6-space2',
           $op: 'delete',
         },
+      ]);
+    }
+  });
+
+  it('c8[roleField, raw-tempId-string] Role field with raw _: tempId strings resolves correctly', async () => {
+    try {
+      await ctx.mutate([
+        {
+          $tempId: '_:c8-user',
+          $entity: 'User',
+          name: 'c8-raw-tempid',
+        },
+        {
+          $relation: 'UserTag',
+          id: 'c8-tag',
+          users: ['_:c8-user'],
+        },
+      ]);
+
+      const tag = await ctx.query(
+        {
+          $relation: 'UserTag',
+          $id: 'c8-tag',
+          $fields: ['id', { $path: 'users', $fields: ['id', 'name'] }],
+        },
+        { noMetadata: true },
+      );
+
+      expect(tag).toBeDefined();
+      expect(tag).toEqual({
+        id: 'c8-tag',
+        users: [{ id: expect.any(String), name: 'c8-raw-tempid' }],
+      });
+    } finally {
+      const tag = await ctx.query(
+        { $relation: 'UserTag', $id: 'c8-tag', $fields: ['id', { $path: 'users', $fields: ['id'] }] },
+        { noMetadata: true },
+      );
+      await ctx.mutate([
+        { $relation: 'UserTag', $id: 'c8-tag', $op: 'delete' },
+        ...((tag as BQLResponseSingle)?.users ?? []).map((u: { id: string }) => ({
+          $entity: 'User' as const,
+          $id: u.id,
+          $op: 'delete' as const,
+        })),
+      ]);
+    }
+  });
+
+  it('c7[roleField, implicit-link] Role field with $tempId and no $op is treated as link', async () => {
+    try {
+      await ctx.mutate([
+        {
+          $tempId: '_:c7-space',
+          $entity: 'Space',
+          id: 'c7-space',
+          name: 'C7 Space',
+        },
+        {
+          $relation: 'UserTagGroup',
+          id: 'c7-utg',
+          // Implicit link: { $tempId } without $op should link to the space
+          space: { $tempId: '_:c7-space' },
+        },
+      ]);
+
+      const utg = await ctx.query(
+        {
+          $relation: 'UserTagGroup',
+          $id: 'c7-utg',
+          $fields: ['id', { $path: 'space', $fields: ['id', 'name'] }],
+        },
+        { noMetadata: true },
+      );
+
+      expect(utg).toBeDefined();
+      expect(utg).toEqual({
+        id: 'c7-utg',
+        space: { id: 'c7-space', name: 'C7 Space' },
+      });
+    } finally {
+      await ctx.mutate([
+        { $relation: 'UserTagGroup', $id: 'c7-utg', $op: 'delete' },
+        { $entity: 'Space', $id: 'c7-space', $op: 'delete' },
       ]);
     }
   });

@@ -378,6 +378,149 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
     });
   });
 
+  it('l4b[create, nested, preserveLinks] sub-create in link field preserves existing links', async () => {
+    // Setup: create a user with an existing user-tag
+    await ctx.mutate(
+      [
+        {
+          $entity: 'User',
+          $op: 'create',
+          id: 'l4b-user',
+          name: 'L4b User',
+          email: 'l4b@test.com',
+        },
+        {
+          $relation: 'UserTag',
+          $op: 'create',
+          id: 'l4b-tag-1',
+          name: 'existing tag',
+          users: [{ $op: 'link', $id: 'l4b-user' }],
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    // Verify initial state: user is linked to l4b-tag-1
+    const initialUser = await ctx.query(
+      {
+        $entity: 'User',
+        $id: 'l4b-user',
+        $fields: ['id', 'user-tags'],
+      },
+      { noMetadata: true },
+    );
+    expect(initialUser).toEqual({
+      id: 'l4b-user',
+      'user-tags': ['l4b-tag-1'],
+    });
+
+    // Update: sub-create a new user-tag on the same user
+    await ctx.mutate(
+      {
+        $entity: 'User',
+        $id: 'l4b-user',
+        'user-tags': [{ $op: 'create', id: 'l4b-tag-2', name: 'new tag' }],
+      },
+      { noMetadata: true },
+    );
+
+    // Verify: both existing and newly created tags are linked
+    const updatedUser = await ctx.query(
+      {
+        $entity: 'User',
+        $id: 'l4b-user',
+        $fields: ['id', 'user-tags'],
+      },
+      { noMetadata: true },
+    );
+    expect(updatedUser).toBeDefined();
+    expect(deepSort(updatedUser, 'id')).toEqual({
+      id: 'l4b-user',
+      'user-tags': ['l4b-tag-1', 'l4b-tag-2'],
+    });
+
+    // Clean up
+    await ctx.mutate(
+      [
+        { $relation: 'UserTag', $id: ['l4b-tag-1', 'l4b-tag-2'], $op: 'delete' },
+        { $entity: 'User', $id: 'l4b-user', $op: 'delete' },
+      ],
+      { noMetadata: true },
+    );
+  });
+
+  it('l4c[create, nested, preserveLinks, role] sub-create in role field preserves existing links', async () => {
+    // Setup: create a DataField with an existing Kind in its 'kinds' role
+    await ctx.mutate(
+      [
+        {
+          $relation: 'Kind',
+          $op: 'create',
+          id: 'l4c-kind-1',
+          name: 'existingKind',
+          space: 'space-2',
+        },
+        {
+          $relation: 'DataField',
+          $op: 'create',
+          id: 'l4c-field',
+          name: 'testField',
+          space: 'space-2',
+          kinds: [{ $op: 'link', $id: 'l4c-kind-1' }],
+        },
+      ],
+      { noMetadata: true },
+    );
+
+    // Verify initial state: DataField has l4c-kind-1 in its kinds role
+    const initialField = await ctx.query(
+      {
+        $relation: 'DataField',
+        $id: 'l4c-field',
+        $fields: ['id', 'kinds'],
+      },
+      { noMetadata: true },
+    );
+    expect(initialField).toEqual({
+      id: 'l4c-field',
+      kinds: ['l4c-kind-1'],
+    });
+
+    // Update: sub-create a new Kind in the kinds role
+    await ctx.mutate(
+      {
+        $relation: 'DataField',
+        $id: 'l4c-field',
+        kinds: [{ $op: 'create', $thing: 'Kind', id: 'l4c-kind-2', name: 'newKind', space: 'space-2' }],
+      },
+      { noMetadata: true },
+    );
+
+    // Verify: both existing and newly created kinds are in the role
+    const updatedField = await ctx.query(
+      {
+        $relation: 'DataField',
+        $id: 'l4c-field',
+        $fields: ['id', 'kinds'],
+      },
+      { noMetadata: true },
+    );
+    expect(updatedField).toBeDefined();
+    expect(deepSort(updatedField, 'id')).toEqual({
+      id: 'l4c-field',
+      kinds: ['l4c-kind-1', 'l4c-kind-2'],
+    });
+
+    // Clean up
+    await ctx.mutate(
+      [
+        { $relation: 'DataField', $id: 'l4c-field', $op: 'delete' },
+        { $relation: 'Kind', $id: ['l4c-kind-1', 'l4c-kind-2'], $op: 'delete' },
+      ],
+      { noMetadata: true },
+    );
+  });
+
   it('l5[unlink, nested] unlink by id', async () => {
     await ctx.mutate(
       {

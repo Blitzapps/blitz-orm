@@ -156,6 +156,22 @@ export const schema: BormSchema = {
                       }
                     : {},
               },
+              {
+                name: 'Add space with non-null default',
+                type: 'transform',
+                fn: ({ $op, name, spaces }) =>
+                  $op === 'create' && name === 'hookDefaultNonNull' && !spaces
+                    ? { spaces: [{ id: 'hd-space-1', name: 'HookSpace' }] }
+                    : {},
+              },
+              {
+                name: 'Add space with null default',
+                type: 'transform',
+                fn: ({ $op, name, spaces }) =>
+                  $op === 'create' && name === 'hookDefaultNull' && !spaces
+                    ? { spaces: [{ id: 'hd-space-2', name: 'HookSpaceNull' }] }
+                    : {},
+              },
             ],
           },
           {
@@ -270,7 +286,20 @@ export const schema: BormSchema = {
           },
         ],
       },
-      dataFields: [{ ...id }, { ...name, rights: ['CREATE', 'UPDATE'] }],
+      dataFields: [
+        { ...id },
+        { ...name, rights: ['CREATE', 'UPDATE'] },
+        {
+          path: 'defaultStatus',
+          contentType: 'TEXT',
+          default: { type: 'value', value: 'active' },
+        },
+        {
+          path: 'nullableField',
+          contentType: 'TEXT',
+          default: { type: 'value', value: null },
+        },
+      ],
       linkFields: [
         {
           path: 'users',
@@ -869,8 +898,10 @@ export const schema: BormSchema = {
                   if (!fields) {
                     return true;
                   }
-                  fields.some((f: any) => f.name === 'forbiddenName');
-                  throw new Error("You can't have a field named 'forbiddenName'");
+                  if (fields.some((f: any) => f.name === 'forbiddenName')) {
+                    throw new Error("You can't have a field named 'forbiddenName'");
+                  }
+                  return true;
                 }, //in general this would be run at the attribute level instead, as we use a single attribute, but is for testing
                 severity: 'error',
                 message: 'Name must not exist, or be less than 15 characters',

@@ -98,7 +98,7 @@ const buildRefFieldProjection = (field: RefField | ComputedRefField, level: numb
   const escapedAlias = esc(alias || path);
   const subQuery =
     field.fieldCardinality === 'ONE'
-      ? `SELECT VALUE record::id(id) FROM $this.${internalPath}`
+      ? `SELECT VALUE record::id(id) FROM [$this.${internalPath}] WHERE id IS NOT NONE`
       : `SELECT VALUE record::id(id) FROM $this.${internalPath}[*]`;
   if (field.resultCardinality === 'ONE') {
     return indent(`array::first(${subQuery}) AS ${escapedAlias}`, level);
@@ -170,7 +170,7 @@ const buildFlexFieldProjection = (field: FlexField, level: number) => {
   );
 };
 
-const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): string => {
+export const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): string => {
   const lines: string[] = [];
   switch (source.type) {
     case 'table_scan': {
@@ -192,7 +192,10 @@ const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): s
     }
     case 'subquery': {
       lines.push(indent(source.cardinality === 'MANY' ? 'FROM array::distinct(array::flatten(' : 'FROM (', level));
-      lines.push(indent(`SELECT VALUE ${esc(source.oppositePath)}`, level + 1));
+      const oppositePathEscaped = source.isComputedPath
+        ? computedFieldNameSurrealDB(source.oppositePath)
+        : esc(source.oppositePath);
+      lines.push(indent(`SELECT VALUE ${oppositePathEscaped}`, level + 1));
       lines.push(buildFrom(source.source, level + 1, mutParams));
       const filter = source.filter ? buildFilter(source.filter, mutParams) : undefined;
       if (filter) {
@@ -205,7 +208,11 @@ const buildFrom = (source: DataSource, level: number, mutParams: SurqlParams): s
   return lines.join('\n');
 };
 
-const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?: string): string | undefined => {
+export const buildFilter = (
+  filter: Filter,
+  mutParams: Record<string, unknown>,
+  prefix?: string,
+): string | undefined => {
   const _prefix = prefix ?? '';
   switch (filter.type) {
     case 'scalar': {
@@ -298,6 +305,8 @@ const buildFilter = (filter: Filter, mutParams: Record<string, unknown>, prefix?
       }
       return `NOT(${subFilter})`;
     }
+    case 'falsy':
+      return 'false';
     case 'nested_ref':
     case 'nested_computed_ref': {
       const filterPath =
@@ -320,7 +329,7 @@ const buildOrderBy = (sort: Sort[], level: number): string => {
   return indent(`ORDER BY ${sorters}`, level);
 };
 
-const indent = (text: string, level: number) => {
+export const indent = (text: string, level: number) => {
   const spaces = ' '.repeat(level * 2);
   return `${spaces}${text}`;
 };

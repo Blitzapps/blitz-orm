@@ -44,7 +44,7 @@ export const optimizeLogicalQuery = (query: LogicalQuery, schema: DRAFT_Enriched
  * If the source is a table scan, convert a filter to a pointer or a relationship traversal.
  * Return the optimized source and the other filters that are not converted.
  */
-const optimizeSource = (params: {
+export const optimizeSource = (params: {
   source: DataSource;
   filter?: Filter;
   schema: DRAFT_EnrichedBormSchema;
@@ -170,10 +170,12 @@ const convertRefFilterToRelationshipTraversal = (
     thing: [oppositeThing, ...oppositeThingSchema.subTypes],
     ids: filter.right,
   };
+  const oppositeField = oppositeThingSchema.fields[oppositePath];
   const traversal: SubQuery = {
     type: 'subquery',
     source,
     oppositePath,
+    isComputedPath: oppositeField?.type === 'link',
     cardinality,
   };
   return traversal;
@@ -196,10 +198,12 @@ const convertNestedFilterToRelationshipTraversal = (
   const oppositeThingSchema = getThingSchema(oppositeThing, schema);
   const source: TableScan = { type: 'table_scan', thing: [oppositeThing, ...oppositeThingSchema.subTypes] };
   const optimized = optimizeSource({ source, filter: filter.filter, schema, thing: oppositeThingSchema });
+  const oppositeField = oppositeThingSchema.fields[oppositePath];
   const traversal: SubQuery = {
     type: 'subquery',
     source: optimized.source,
     oppositePath,
+    isComputedPath: oppositeField?.type === 'link',
     cardinality,
     filter: optimized.filter,
   };
@@ -288,7 +292,7 @@ const optimizeProjectionField = (
  * Flatten "and" and "or" filters into a single filter. Order the filters by cost.
  * This optimization doesn't consider indexes.
  */
-const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
+export const optimizeLocalFilter = (filter: Filter): Filter | undefined => {
   if (filter.type === 'list') {
     if (filter.right.length === 0) {
       if (filter.op === 'IN' || filter.op === 'CONTAINSANY') {
@@ -569,7 +573,7 @@ const isIndexed = (field: DRAFT_EnrichedBormField, indexes: Index[]): boolean =>
   );
 };
 
-const getThingSchema = (
+export const getThingSchema = (
   thing: string,
   schema: DRAFT_EnrichedBormSchema,
 ): DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation => {
@@ -604,8 +608,6 @@ const getSourceThing = (
   return thing;
 };
 
-function findFilter<T extends Filter>(filters: Filter[], cb: (f: Filter) => f is T): T | undefined;
-function findFilter(filters: Filter[], cb: (f: Filter) => boolean): Filter | undefined;
-function findFilter<T extends Filter>(filters: Filter[], cb: (f: Filter) => boolean): T | undefined {
-  return filters.find(cb) as T | undefined;
-}
+const findFilter = <T extends Filter>(filters: Filter[], cb: (f: Filter) => f is T): T | undefined => {
+  return filters.find(cb);
+};

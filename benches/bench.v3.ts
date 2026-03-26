@@ -12,7 +12,7 @@ const DATABASE = 'borm_bench';
 const USERNAME = 'borm_bench';
 const PASSWORD = 'borm_bench';
 const SCHEMA_FILE = resolve(__dirname, 'schema.v3.surql');
-const IMAGE = 'surrealdb/surrealdb:v3';
+const IMAGE = 'surrealdb/surrealdb:v3.0.4';
 
 // Docker helpers
 
@@ -83,9 +83,9 @@ const setupDatabase = () => {
 
 const importSchema = () => {
   console.log('Importing schema...');
-  exec(`docker cp ${SCHEMA_FILE} ${CONTAINER_NAME}:/tmp/schema.surql`);
-  exec(
-    `docker exec ${CONTAINER_NAME} ./surreal import -u ${USERNAME} -p ${PASSWORD} --namespace ${NAMESPACE} --database ${DATABASE} --endpoint http://localhost:${PORT} /tmp/schema.surql`,
+  execSync(
+    `docker exec -i ${CONTAINER_NAME} ./surreal sql -u ${USERNAME} -p ${PASSWORD} --namespace ${NAMESPACE} --database ${DATABASE} --endpoint http://localhost:${PORT} < ${SCHEMA_FILE}`,
+    { stdio: 'pipe' },
   );
 };
 

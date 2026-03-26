@@ -2,7 +2,7 @@
  * These types are design for SurrealDB query in mind. For other DBs or for mutation, they may be missing some fields.
  */
 
-import type { DataField, DiscreteCardinality, Validations } from './fields';
+import type { ContentType, ContentTypeMapping, DataField, DiscreteCardinality } from './fields';
 
 export type DRAFT_EnrichedBormSchema = Record<string, DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation>;
 
@@ -22,6 +22,7 @@ interface EnrichedBormThing {
   extends?: string;
   subTypes: string[];
   indexes: Index[];
+  hooks?: DRAFT_Hooks;
 }
 
 export type DRAFT_EnrichedBaseBormField =
@@ -41,6 +42,9 @@ export interface DRAFT_EnrichedBormConstantField {
   value: unknown;
 }
 
+/**
+ * Data fields that are computed at runtime by the BORM engine.
+ */
 export interface DRAFT_EnrichedBormComputedField {
   type: 'computed';
   name: string;
@@ -49,13 +53,25 @@ export interface DRAFT_EnrichedBormComputedField {
   fn: (currentNode: Record<string, unknown>) => unknown;
 }
 
-export interface DRAFT_EnrichedBormDataField {
+export type DRAFT_DataFieldDefault<CT extends ContentType = ContentType> =
+  | { type: 'value'; value: ContentTypeMapping[CT] | null }
+  | { type: 'fn'; fn: (currentNode: Record<string, unknown>) => ContentTypeMapping[CT] | null };
+
+export type DRAFT_Validations<CT extends ContentType = ContentType> = {
+  required?: boolean;
+  unique?: boolean;
+  enum?: ContentTypeMapping[CT][];
+  fn?: (value: ContentTypeMapping[CT]) => boolean;
+};
+
+export interface DRAFT_EnrichedBormDataField<CT extends ContentType = ContentType> {
   type: 'data';
   name: string;
-  contentType: DataField['contentType'];
+  contentType: CT;
   cardinality: DiscreteCardinality;
   unique: boolean;
-  validations?: Validations;
+  default?: DRAFT_DataFieldDefault<CT>;
+  validations?: DRAFT_Validations<CT>;
   isVirtual?: boolean;
   dbValue?: { surrealDB?: string; typeDB?: string };
 }
@@ -90,6 +106,7 @@ interface DRAFT_BaseEnrichedBormLinkField {
     cardinality: DiscreteCardinality;
   };
   isVirtual?: boolean;
+  // Defined only if isVirtual is true
   dbValue?: { surrealDB?: string; typeDB?: string };
 }
 
@@ -130,3 +147,44 @@ export interface CompositeIndex {
   type: 'composite';
   fields: [string, ...string[]];
 }
+
+// --- Hook types ---
+
+export type DRAFT_BormTrigger = 'onCreate' | 'onUpdate' | 'onDelete' | 'onLink' | 'onUnlink' | 'onReplace' | 'onMatch';
+
+export type DRAFT_TransformAction = {
+  type: 'transform';
+  fn: (
+    currentNode: Record<string, unknown>,
+    parentNode: Record<string, unknown>,
+    context: Record<string, unknown>,
+    // TODO: Pre-query is not implemented for the SurrealDB mutation adapter.
+    // Once implemented, this will contain the current DB state of the node.
+    dbNode: Record<string, unknown>,
+  ) => Partial<Record<string, unknown>>;
+};
+
+export type DRAFT_ValidateAction = {
+  type: 'validate';
+  fn: (
+    currentNode: Record<string, unknown>,
+    parentNode: Record<string, unknown>,
+    context: Record<string, unknown>,
+    // TODO: Pre-query is not implemented for the SurrealDB mutation adapter.
+    // Once implemented, this will contain the current DB state of the node.
+    dbNode: Record<string, unknown>,
+  ) => boolean;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+};
+
+export type DRAFT_Action = { name?: string; description?: string } & (DRAFT_TransformAction | DRAFT_ValidateAction);
+
+export type DRAFT_PreHook = {
+  triggers?: { [K in DRAFT_BormTrigger]?: () => boolean };
+  actions: readonly DRAFT_Action[];
+};
+
+export type DRAFT_Hooks = {
+  pre?: readonly DRAFT_PreHook[];
+};
