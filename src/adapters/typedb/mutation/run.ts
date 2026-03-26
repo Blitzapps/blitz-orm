@@ -1,6 +1,6 @@
 import { TransactionType } from 'typedb-driver';
-import { getSessionOrOpenNewOne } from '../../../adapters/typeDB/helpers';
 import type { BormConfig, DBHandles } from '../../../types';
+import { getSessionOrOpenNewOne } from '../helpers';
 
 export type TqlMutation = {
   deletions: string;

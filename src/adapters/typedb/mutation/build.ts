@@ -1,9 +1,8 @@
 import { isArray, listify, mapEntries, shake } from 'radash';
-
-import { parseFlexValTypeDB } from '../../../adapters/typeDB/parseFlexVal';
 import { genId, getCurrentSchema, isBQLBlock } from '../../../helpers';
 import type { EnrichedBormSchema, EnrichedBQLMutationBlock } from '../../../types';
 import { EdgeType } from '../../../types/symbols';
+import { parseFlexValTypeDB } from '../parseFlexVal';
 
 export const buildTQLMutation = async (things: any[], edges: any[], schema: EnrichedBormSchema) => {
   if ((!things && !edges) || (!things.length && !edges.length)) {

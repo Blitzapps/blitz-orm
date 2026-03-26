@@ -1,4 +1,5 @@
 import { createMachine, interpret, invoke, reduce, state, transition } from '../../../robot3';
+import type { bqlMutationContext } from '../../../stateMachine/mutation/mutationMachine';
 import type {
   BormConfig,
   BQLMutationBlock,
@@ -6,7 +7,6 @@ import type {
   EnrichedBormSchema,
   EnrichedBQLMutationBlock,
 } from '../../../types';
-import type { bqlMutationContext } from '../mutationMachine';
 import { buildTQLMutation } from './build';
 import type { TqlRes } from './parse';
 import { parseTQLMutation } from './parse';
