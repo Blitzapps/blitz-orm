@@ -870,8 +870,8 @@ const buildRoleFieldValue = (
     return { type: 'role_field', cardinality: 'MANY', op: 'replace', path: fieldName, refs: [ref] };
   }
 
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-    const refs = (value as string[]).map((id) => resolveRoleStringRef(id, field, oppositeSubTypes, ctx));
+  if (Array.isArray(value) && value.length > 0 && value.every((v) => typeof v === 'string')) {
+    const refs = value.map((id) => resolveRoleStringRef(id, field, oppositeSubTypes, ctx));
     return { type: 'role_field', cardinality: 'MANY', op: 'replace', path: fieldName, refs };
   }
 
@@ -886,7 +886,7 @@ const buildRoleFieldValue = (
   for (const item of items) {
     if (!isObject(item)) {
       // Plain string id in array
-      refs.push({ thing: field.opposite.thing, id: item as string });
+      refs.push(resolveRoleStringRef(item as string, field, oppositeSubTypes, ctx));
       continue;
     }
 
