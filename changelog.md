@@ -4,10 +4,11 @@
 
 ## 0.16.0(2026-03-26)
 
-- Feat: Migrate to SurrealDB v3; use COMPUTED fields for link fields
 - Feat: Rewrite SurrealDB mutation adapter
+- Feat: Migrate to SurrealDB v3; use COMPUTED fields for link fields
 - Feat: Sanitize field names (spaces/dashes to underscores) in SurrealDB schema definition
 - Feat: Throw an error on field name conflicts
+- Feat: waitForReady in bench script accepts timeout and throws if SurrealDB is not ready
 - Fix: Role field array handling — validate all elements and resolve tempIds
 - Fix: Role field dropping raw `_:` temp ID strings instead of resolving them
 - Fix: Role field dropping implicit links
@@ -17,12 +18,20 @@
 - Fix: Hooks not running for children with only `$id`/`$op` (e.g. delete)
 - Fix: Combine defaults and hooks into a single top-down pass so transform-hook-added create operations get default values applied
 - Fix: SurrealDB schema generator fixes
+- Fix: Mutation issue with SurrealDB v3 (RETURN BEFORE, record-link dereference)
+- Fix: Put client.beginTransaction() inside try/catch for proper error handling
+- Fix: Normalize SurrealDB v3 coercion and ThrownError format for backward compatibility
 - Perf: Move JSON.stringify into logger to avoid hot-path serialization when logging is off
+- Perf: Simplify generated surql mutations
 - Refactor: Restructure source files — colocate BQL, SurrealDB, and TypeDB query/mutation adapters
 - Refactor: Delete dead `.old`/`.older`/`.ts-old` backup files and stale docs
+- Refactor: Consolidate schema.surql, remove legacy refs/edges mocks
+- Refactor: Remove old surql query builder (surql/), use surql2 exclusively
 - Tests: Add multi-level inheritance tests for enrichSchemaDraft
 - Tests: Add tests for preserving links during sub-creation
+- Tests: Unified schema and data mocks for SurrealDB
 - Chore: Update Node.js engine requirement to version 17.0.0
+- Chore: Remove plans, update bench scripts for v3
 
 ## 0.15.6(2026-03-05)
 

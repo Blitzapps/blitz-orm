@@ -67,7 +67,7 @@
     "object-traversal": "^1.0.1",
     "radash": "^12.1.1",
     "robot3": "^1.1.1",
-    "surrealdb": "2.0.1",
+    "surrealdb": "2.0.2",
     "typedb-driver": "^2.29.2",
     "uuid": "^11.1.0",
     "zod": "^4.2.1"
