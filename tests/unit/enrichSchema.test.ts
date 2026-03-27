@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DBHandles } from '../../src';
-import { SurrealClient } from '../../src/adapters/surrealDB/client';
+import { SurrealClient } from '../../src/adapters/surrealdb/client';
 import { enrichSchema } from '../../src/enrichSchema';
 import { schema } from '../mocks/schema';
 

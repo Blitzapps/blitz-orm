@@ -1,3 +1,14 @@
+import { runSurrealDbMutationMachine2 } from '../../adapters/surrealdb/mutation/run';
+import { runSurrealDbMutationMachine } from '../../adapters/surrealdb/mutation-legacy/machine';
+import { runTypeDbMutationMachine } from '../../adapters/typedb/mutation/machine';
+import { enrichBQLMutation } from '../../bql/mutation/enrich';
+import { preHookDependencies } from '../../bql/mutation/enrichSteps/preHookDependencies';
+import type { FlatBqlMutation } from '../../bql/mutation/flatter';
+import { flattenBQLMutation } from '../../bql/mutation/flatter';
+import { dependenciesGuard } from '../../bql/mutation/guards/dependenciesGuard';
+import { parseBQLMutation } from '../../bql/mutation/parse';
+import { mutationPreQuery } from '../../bql/mutation/preQuery';
+import { stringify } from '../../bql/mutation/stringify';
 import { logDebug } from '../../logger';
 import { createMachine, guard, interpret, invoke, reduce, state, transition } from '../../robot3';
 import type {
@@ -10,17 +21,6 @@ import type {
 } from '../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../types/schema/enriched.draft';
 import { VERSION } from '../../version';
-import { enrichBQLMutation } from './bql/enrich';
-import { preHookDependencies } from './bql/enrichSteps/preHookDependencies';
-import type { FlatBqlMutation } from './bql/flatter';
-import { flattenBQLMutation } from './bql/flatter';
-import { dependenciesGuard } from './bql/guards/dependenciesGuard';
-import { parseBQLMutation } from './bql/parse';
-import { mutationPreQuery } from './bql/preQuery';
-import { stringify } from './bql/stringify';
-import { runSurrealDbMutationMachine } from './surql/machine';
-import { runSurrealDbMutationMachine2 } from './surql2/run';
-import { runTypeDbMutationMachine } from './tql/machine';
 
 const final = state;
 

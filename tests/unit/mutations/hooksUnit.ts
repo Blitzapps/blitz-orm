@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyDefaultsAndHooks } from '../../../src/stateMachine/mutation/surql2/hooks';
-import type { BQLMutation } from '../../../src/stateMachine/mutation/surql2/parse';
+import { applyDefaultsAndHooks } from '../../../src/adapters/surrealdb/mutation/hooks';
+import type { BQLMutation } from '../../../src/adapters/surrealdb/mutation/parse';
 import type { BormConfig } from '../../../src/types';
 import type { DRAFT_EnrichedBormSchema } from '../../../src/types/schema/enriched.draft';
 

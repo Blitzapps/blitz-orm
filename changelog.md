@@ -2,6 +2,24 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.0(2026-03-26)
+
+- Feat: Rewrite SurrealDB mutation adapter
+- Fix: Role field array handling — validate all elements and resolve tempIds
+- Fix: Role field dropping raw `_:` temp ID strings instead of resolving them
+- Fix: Role field dropping implicit links
+- Fix: Role field refs resolving to base type instead of concrete subtype
+- Fix: Sub-create in role fields replacing existing links during update
+- Fix: Transform hook returning undefined leaking into mutation as NONE
+- Fix: Hooks not running for children with only `$id`/`$op` (e.g. delete)
+- Fix: Combine defaults and hooks into a single top-down pass so transform-hook-added create operations get default values applied
+- Perf: Move JSON.stringify into logger to avoid hot-path serialization when logging is off
+- Refactor: Restructure source files — colocate BQL, SurrealDB, and TypeDB query/mutation adapters
+- Refactor: Delete dead `.old`/`.older`/`.ts-old` backup files and stale docs
+- Tests: Add multi-level inheritance tests for enrichSchemaDraft
+- Tests: Add tests for preserving links during sub-creation
+- Chore: Update Node.js engine requirement to version 17.0.0
+
 ## 0.16.0(2026-03-13)
 
 - **Breaking:** Migrate to SurrealDB v3; link fields now use COMPUTED fields instead of edge tables

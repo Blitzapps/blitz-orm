@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { SurrealClient } from '../../src/adapters/surrealDB/client';
+import { SurrealClient } from '../../src/adapters/surrealdb/client';
 
 const TEST_CONFIG = {
   url: 'ws://127.0.0.1:8100',

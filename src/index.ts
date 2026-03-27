@@ -1,7 +1,7 @@
 import { enableMapSet } from 'immer';
 import { tryit } from 'radash';
 import { SessionType, TypeDB, TypeDBCredential } from 'typedb-driver';
-import { SurrealClient } from './adapters/surrealDB/client';
+import { SurrealClient } from './adapters/surrealdb/client';
 import { defaultConfig } from './default.config';
 import { bormDefine } from './define';
 import { enrichSchema } from './enrichSchema';
