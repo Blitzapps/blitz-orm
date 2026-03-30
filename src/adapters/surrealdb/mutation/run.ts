@@ -53,6 +53,7 @@ export const runSurrealDbMutationMachine2 = async (
 
   // 5. Optimize
   const optimized = optimizeLogicalMutation(logical, schema);
+  log(['runSurql', 'runSurql/optimized'], `> runSurql/optimized\n`, optimized);
 
   // 6. Build SurQL
   const params: SurqlParams = {};

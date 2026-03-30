@@ -1399,26 +1399,35 @@ const linkToRelation = (
   };
   ctx.mutation.matches.push(match);
 
+  const roleCardinality = getPlaysRoleCardinality(field.relation, field.plays, ctx);
+  const ref = {
+    thing: parentThing,
+    subTypes: ctx.schema[parentThing]?.subTypes?.length ? ctx.schema[parentThing].subTypes : undefined,
+    id: parentId,
+  };
+
   const updateName = genName(field.relation, ctx);
   const update: UpdateMut = {
     name: updateName,
     match: name,
     op: 'update',
     values: {
-      [field.plays]: {
-        type: 'role_field',
-        cardinality: 'MANY',
-        op: 'patch',
-        path: field.plays,
-        links: [
-          {
-            thing: parentThing,
-            subTypes: ctx.schema[parentThing]?.subTypes?.length ? ctx.schema[parentThing].subTypes : undefined,
-            id: parentId,
-          },
-        ],
-        unlinks: [],
-      },
+      [field.plays]:
+        roleCardinality === 'ONE'
+          ? {
+              type: 'role_field',
+              cardinality: 'ONE',
+              path: field.plays,
+              ref,
+            }
+          : {
+              type: 'role_field',
+              cardinality: 'MANY',
+              op: 'patch',
+              path: field.plays,
+              links: [ref],
+              unlinks: [],
+            },
     },
   };
   ctx.mutation.updates.push(update);
