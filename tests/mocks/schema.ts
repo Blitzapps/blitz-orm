@@ -365,6 +365,20 @@ export const schema: BormSchema = {
           plays: 'space',
           target: 'relation',
         },
+        {
+          path: 'widgetBases',
+          cardinality: 'MANY',
+          relation: 'WidgetBase',
+          plays: 'space',
+          target: 'relation',
+        },
+        {
+          path: 'widgets',
+          cardinality: 'MANY',
+          relation: 'Widget',
+          plays: 'space',
+          target: 'relation',
+        },
       ],
     },
     Account: {
@@ -747,6 +761,54 @@ export const schema: BormSchema = {
     },
   },
   relations: {
+    // --- Circular reference test types ---
+    WidgetBase: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default', path: 'WidgetBase' },
+      dataFields: [id],
+      roles: {
+        space: { cardinality: 'ONE' },
+        mainPanel: { cardinality: 'ONE' },
+      },
+      linkFields: [
+        {
+          path: 'panels',
+          cardinality: 'MANY',
+          relation: 'Panel',
+          plays: 'widget',
+          target: 'relation',
+        },
+      ],
+    },
+    Widget: {
+      extends: 'WidgetBase',
+      defaultDBConnector: { id: 'default', as: 'WidgetBase', path: 'Widget' },
+      dataFields: [name],
+    },
+    Panel: {
+      idFields: ['id'],
+      defaultDBConnector: { id: 'default', path: 'Panel' },
+      dataFields: [id, { path: 'type', contentType: 'TEXT' }],
+      roles: {
+        widget: { cardinality: 'ONE' },
+      },
+      linkFields: [
+        {
+          path: 'asMainOfBase',
+          cardinality: 'ONE',
+          relation: 'WidgetBase',
+          plays: 'mainPanel',
+          target: 'relation',
+        },
+        {
+          path: 'asMainOf',
+          cardinality: 'ONE',
+          relation: 'Widget',
+          plays: 'mainPanel',
+          target: 'relation',
+        },
+      ],
+    },
     'User-Accounts': {
       idFields: ['id'],
       defaultDBConnector: { id: 'default', path: 'User-Accounts' },

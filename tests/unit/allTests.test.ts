@@ -2,6 +2,7 @@
 import { init } from '../helpers/init';
 import { testBasicMutation } from './mutations/basic';
 import { testBatchedMutation } from './mutations/batched';
+import { testCircularRefsMutation } from './mutations/circularRefs';
 import { testEdgesMutation } from './mutations/edges';
 import { testMutationErrors } from './mutations/errors';
 import { testFilteredMutation } from './mutations/filtered';
@@ -28,4 +29,5 @@ testReplaceMutation(init);
 testFilteredMutation(init);
 testUnsupportedMutation(init);
 testJsonRefsMutation(init);
+testCircularRefsMutation(init);
 testHooksUnit();

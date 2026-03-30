@@ -1956,19 +1956,31 @@ const orderMutations = (mutation: LogicalMutation): void => {
   mutation.creates = sorted;
 };
 
+/** Check if a ref matches a create, accounting for subTypes (e.g. ref.thing="Interface" with subTypes=["Component"] matches create.thing="Component"). */
+const refMatchesCreate = (
+  refThing: string,
+  refId: string,
+  refSubTypes: string[] | undefined,
+  create: CreateMut,
+): boolean => {
+  if (create.id !== refId) {
+    return false;
+  }
+  return create.thing === refThing || (refSubTypes?.includes(create.thing) ?? false);
+};
+
 const collectRefDeps = (valueMut: ValueMut, createMap: Map<string, CreateMut>, deps: Set<string>): void => {
   if (valueMut.type === 'role_field') {
     if (valueMut.cardinality === 'ONE') {
-      const _refKey = `${valueMut.ref.thing}:${valueMut.ref.id}`;
       for (const [name, create] of createMap) {
-        if (create.thing === valueMut.ref.thing && create.id === valueMut.ref.id) {
+        if (refMatchesCreate(valueMut.ref.thing, valueMut.ref.id, valueMut.ref.subTypes, create)) {
           deps.add(name);
         }
       }
     } else if ('refs' in valueMut) {
       for (const ref of valueMut.refs) {
         for (const [name, create] of createMap) {
-          if (create.thing === ref.thing && create.id === ref.id) {
+          if (refMatchesCreate(ref.thing, ref.id, ref.subTypes, create)) {
             deps.add(name);
           }
         }
@@ -1976,7 +1988,7 @@ const collectRefDeps = (valueMut: ValueMut, createMap: Map<string, CreateMut>, d
     } else if ('links' in valueMut) {
       for (const ref of valueMut.links) {
         for (const [name, create] of createMap) {
-          if (create.thing === ref.thing && create.id === ref.id) {
+          if (refMatchesCreate(ref.thing, ref.id, ref.subTypes, create)) {
             deps.add(name);
           }
         }
@@ -1999,34 +2011,36 @@ const collectRefDeps = (valueMut: ValueMut, createMap: Map<string, CreateMut>, d
 };
 
 const resolveCycle = (cycleName: string, deps: Map<string, Set<string>>, mutation: LogicalMutation): void => {
-  // Find the cycle edge and break it by deferring one reference to an update
+  // Find the cycle edge and break it by deferring one reference to an update.
+  // We break dep→cycleName (not cycleName→dep) because in the DFS, dep finishes
+  // before cycleName. By removing dep's reference to cycleName, dep can be safely
+  // created first without referencing the not-yet-created cycleName record.
   const createDeps = deps.get(cycleName);
   if (!createDeps) {
     return;
   }
 
-  // Pick first cyclic dep to break
   for (const dep of createDeps) {
     const depDeps = deps.get(dep);
     if (depDeps?.has(cycleName)) {
-      // Break: remove the reference from cycleName's create and emit an update
-      const create = mutation.creates.find((c) => c.name === cycleName);
-      if (!create) {
+      // Break dep→cycleName: remove the reference from dep's create and emit a deferred update
+      const depCreate = mutation.creates.find((c) => c.name === dep);
+      if (!depCreate) {
         return;
       }
 
-      for (const [fieldName, valueMut] of Object.entries(create.values)) {
-        if (referencesCreate(valueMut, dep, mutation)) {
+      for (const [fieldName, valueMut] of Object.entries(depCreate.values)) {
+        if (referencesCreate(valueMut, cycleName, mutation)) {
           // Move this field to a deferred update
           const update: UpdateMut = {
-            name: genDeferredName(cycleName),
-            match: cycleName,
+            name: genDeferredName(dep),
+            match: dep,
             op: 'update',
             values: { [fieldName]: valueMut },
           };
           mutation.updates.push(update);
-          delete create.values[fieldName];
-          createDeps.delete(dep);
+          delete depCreate.values[fieldName];
+          depDeps.delete(cycleName);
           return;
         }
       }
@@ -2042,13 +2056,13 @@ const referencesCreate = (valueMut: ValueMut, createName: string, mutation: Logi
 
   if (valueMut.type === 'role_field') {
     if (valueMut.cardinality === 'ONE') {
-      return valueMut.ref.thing === create.thing && valueMut.ref.id === create.id;
+      return refMatchesCreate(valueMut.ref.thing, valueMut.ref.id, valueMut.ref.subTypes, create);
     }
     if ('refs' in valueMut) {
-      return valueMut.refs.some((r) => r.thing === create.thing && r.id === create.id);
+      return valueMut.refs.some((r) => refMatchesCreate(r.thing, r.id, r.subTypes, create));
     }
     if ('links' in valueMut) {
-      return valueMut.links.some((r) => r.thing === create.thing && r.id === create.id);
+      return valueMut.links.some((r) => refMatchesCreate(r.thing, r.id, r.subTypes, create));
     }
   }
   return false;
