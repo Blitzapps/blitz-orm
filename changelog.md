@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.1(2026-03-30)
+
+- Fix: Circular reference detection in SurrealDB mutations when refs use inherited types
+- Fix: linkToRelation no longer hardcodes MANY cardinality for ONE-cardinality role fields
+- Tests: Add circular reference mutation coverage and edge cases
+
 ## 0.17.0(2026-03-26)
 
 - Feat: Rewrite SurrealDB mutation adapter
