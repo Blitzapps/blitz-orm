@@ -3846,4 +3846,50 @@ export const testEdgesMutation = createTest('Mutation: Edges', (ctx) => {
     expect(fields).toContainEqual({ id: 'm3-f2' });
     expect(fields).not.toContainEqual({ id: 'm3-f1' });
   });
+
+  it('l18[link, ONE cardinality] Link entity to existing relation via ONE cardinality target:relation link field', async () => {
+    // Create a ThingRelation with no root set
+    await ctx.mutate({
+      $relation: 'ThingRelation',
+      $op: 'create',
+      id: 'l18-tr-1',
+    });
+
+    // Link thing1 to the ThingRelation via 'root' (ONE cardinality, target: 'relation')
+    // This triggers linkToRelation which should set root = Thing:thing1
+    // Bug: it generates SET root += [Thing:thing1] (MANY) instead of SET root = Thing:thing1 (ONE)
+    await ctx.mutate({
+      $entity: 'Thing',
+      $id: 'thing1',
+      root: 'l18-tr-1',
+    });
+
+    const res = await ctx.query(
+      {
+        $entity: 'Thing',
+        $id: 'thing1',
+        $fields: ['id', 'root'],
+      },
+      { noMetadata: true },
+    );
+
+    expect(res).toEqual({
+      id: 'thing1',
+      root: 'l18-tr-1',
+    });
+
+    // Cleanup
+    await ctx.mutate([
+      {
+        $entity: 'Thing',
+        $id: 'thing1',
+        root: { $op: 'unlink', $id: 'l18-tr-1' },
+      },
+      {
+        $relation: 'ThingRelation',
+        $id: 'l18-tr-1',
+        $op: 'delete',
+      },
+    ]);
+  });
 });

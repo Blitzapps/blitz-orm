@@ -51,6 +51,8 @@ BEGIN TRANSACTION;
       DEFINE FIELD selfs ON TABLE Space COMPUTED <~(Self FIELD space);
       DEFINE FIELD userTagGroups ON TABLE Space COMPUTED <~(UserTagGroup FIELD space);
       DEFINE FIELD flexRefRels ON TABLE Space COMPUTED <~(FlexRefRel FIELD space);
+      DEFINE FIELD widgetBases ON TABLE Space COMPUTED <~(WidgetBase FIELD space);
+      DEFINE FIELD widgets ON TABLE Space COMPUTED <~(Widget FIELD space);
 
   DEFINE TABLE Account SCHEMAFULL PERMISSIONS FULL;
     -- DATA FIELDS
@@ -273,6 +275,31 @@ BEGIN TRANSACTION;
       DEFINE FIELD name ON TABLE Employee TYPE string;
     -- ROLES
       DEFINE FIELD company ON TABLE Employee TYPE option<record<Company>> REFERENCE ON DELETE UNSET;
+
+  DEFINE TABLE WidgetBase SCHEMAFULL PERMISSIONS FULL;
+    -- LINK FIELDS
+      DEFINE FIELD panels ON TABLE WidgetBase COMPUTED <~(Panel FIELD widget);
+    -- ROLES
+      DEFINE FIELD space ON TABLE WidgetBase TYPE option<record<Space>> REFERENCE ON DELETE UNSET;
+      DEFINE FIELD mainPanel ON TABLE WidgetBase TYPE option<record<Panel>> REFERENCE ON DELETE UNSET;
+
+  DEFINE TABLE Widget SCHEMAFULL PERMISSIONS FULL; //EXTENDS WidgetBase;
+    -- DATA FIELDS
+      DEFINE FIELD name ON TABLE Widget TYPE option<string>;
+    -- LINK FIELDS
+      DEFINE FIELD panels ON TABLE Widget COMPUTED <~(Panel FIELD widget);
+    -- ROLES
+      DEFINE FIELD space ON TABLE Widget TYPE option<record<Space>> REFERENCE ON DELETE UNSET;
+      DEFINE FIELD mainPanel ON TABLE Widget TYPE option<record<Panel>> REFERENCE ON DELETE UNSET;
+
+  DEFINE TABLE Panel SCHEMAFULL PERMISSIONS FULL;
+    -- DATA FIELDS
+      DEFINE FIELD type ON TABLE Panel TYPE option<string>;
+    -- LINK FIELDS
+      DEFINE FIELD asMainOfBase ON TABLE Panel COMPUTED array::first(<~(WidgetBase FIELD mainPanel) ?? []);
+      DEFINE FIELD asMainOf ON TABLE Panel COMPUTED array::first(<~(Widget FIELD mainPanel) ?? []);
+    -- ROLES
+      DEFINE FIELD widget ON TABLE Panel TYPE option<record<WidgetBase|Widget>> REFERENCE ON DELETE UNSET;
 
 -- INTERNAL
   DEFINE TABLE Delta SCHEMALESS PERMISSIONS FULL;
