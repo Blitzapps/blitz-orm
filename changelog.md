@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.4(2026-04-09)
+
+- Fix: Build — ensure published `dist` matches the tagged release sources
+
 ## 0.17.3(2026-04-08)
 
 - Chore: Upgrade to SurrealDB v3.0.5
