@@ -2,6 +2,10 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.2(2026-04-08)
+
+- Fix: `isRecordId` now uses `instanceof RecordId` instead of `constructor.name` check, which broke in minified production builds
+
 ## 0.17.1(2026-03-30)
 
 - Fix: Circular reference detection in SurrealDB mutations when refs use inherited types

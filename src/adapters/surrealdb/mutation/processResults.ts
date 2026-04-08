@@ -1,4 +1,5 @@
 import { isArray, isObject } from 'radash';
+import { RecordId } from 'surrealdb';
 import type { BormConfig } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
 import type { StmtMap, StmtMapEntry } from './buildSurql';
@@ -275,15 +276,7 @@ const extractTableName = (value: unknown): string | undefined => {
 };
 
 const isRecordId = (value: unknown): boolean => {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  // SurrealDB v3 RecordId class
-  if ((value as any).constructor?.name === 'RecordId') {
-    return true;
-  }
-  const obj = value as Record<string, unknown>;
-  return 'tb' in obj && 'id' in obj;
+  return value instanceof RecordId;
 };
 
 const getThingFromRecord = (record: Record<string, unknown>, _schema: DRAFT_EnrichedBormSchema): string | undefined => {
