@@ -66,7 +66,7 @@ export const runSurrealDbMutationMachine2 = async (
   log(['runSurql', 'runSurql/rawResults'], `> runSurql/rawResults\n`, rawResults);
 
   // 8. Process results
-  const results = processResults(rawResults, stmtMap, optimized, schema, config);
+  const results = processResults(rawResults, stmtMap, schema, config);
   log(['processResults', 'processResults/output'], `> processResults/output\n`, results);
   return results;
 };

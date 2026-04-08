@@ -3,7 +3,6 @@ import { RecordId } from 'surrealdb';
 import type { BormConfig } from '../../../types';
 import type { DRAFT_EnrichedBormSchema } from '../../../types/schema/enriched.draft';
 import type { StmtMap, StmtMapEntry } from './buildSurql';
-import type { LogicalMutation } from './logical';
 
 /**
  * Process raw SurrealDB results into a flat mutation result array.
@@ -11,7 +10,6 @@ import type { LogicalMutation } from './logical';
 export const processResults = (
   rawResults: unknown[],
   stmtMap: StmtMap,
-  mutation: LogicalMutation,
   schema: DRAFT_EnrichedBormSchema,
   config: BormConfig,
 ): any[] => {
@@ -25,7 +23,8 @@ export const processResults = (
   );
 
   for (const entry of mutationEntries) {
-    const raw = entry.resultIndex! < rawResults.length ? rawResults[entry.resultIndex!] : null;
+    const resultIndex = entry.resultIndex ?? -1;
+    const raw = resultIndex < rawResults.length ? rawResults[resultIndex] : null;
 
     // Skip auto-generated intermediary creates from user-visible results
     if (entry.isIntermediary) {
@@ -35,9 +34,9 @@ export const processResults = (
     if (entry.type === 'create') {
       processCreateResult(raw, entry, schema, noMetadata, results);
     } else if (entry.type === 'update') {
-      processUpdateResult(raw, entry, mutation, schema, noMetadata, results);
+      processUpdateResult(raw, entry, schema, noMetadata, results);
     } else if (entry.type === 'delete') {
-      processDeleteResult(raw, entry, mutation, schema, noMetadata, results);
+      processDeleteResult(raw, entry, schema, noMetadata, results);
     }
   }
 
@@ -56,7 +55,7 @@ const processCreateResult = (
     if (!record || typeof record !== 'object') {
       continue;
     }
-    const processed = processRecord(record as Record<string, unknown>, schema);
+    const processed = processRecord(record as Record<string, unknown>);
     const tableName = processed._tableName as string | undefined;
     delete processed._tableName;
     const thing = entry.thing ?? tableName ?? (processed.$thing as string | undefined);
@@ -83,7 +82,6 @@ const processCreateResult = (
 const processUpdateResult = (
   raw: unknown,
   entry: StmtMapEntry,
-  _mutation: LogicalMutation,
   schema: DRAFT_EnrichedBormSchema,
   noMetadata: boolean,
   results: any[],
@@ -93,7 +91,7 @@ const processUpdateResult = (
     if (!record || typeof record !== 'object') {
       continue;
     }
-    const processed = processRecord(record as Record<string, unknown>, schema);
+    const processed = processRecord(record as Record<string, unknown>);
     const tableName = processed._tableName as string | undefined;
     delete processed._tableName;
     const thing = entry.thing ?? tableName ?? getThingFromRecord(processed, schema);
@@ -117,7 +115,6 @@ const processUpdateResult = (
 const processDeleteResult = (
   raw: unknown,
   entry: StmtMapEntry,
-  _mutation: LogicalMutation,
   schema: DRAFT_EnrichedBormSchema,
   noMetadata: boolean,
   results: any[],
@@ -127,7 +124,7 @@ const processDeleteResult = (
     if (!record || typeof record !== 'object') {
       continue;
     }
-    const processed = processRecord(record as Record<string, unknown>, schema);
+    const processed = processRecord(record as Record<string, unknown>);
     const tableName = processed._tableName as string | undefined;
     delete processed._tableName;
     const thing = entry.thing ?? tableName ?? getThingFromRecord(processed, schema);
@@ -151,18 +148,13 @@ const processDeleteResult = (
 /**
  * Process a single SurrealDB record: resolve record IDs, dates, empty arrays.
  */
-export const processRecord = (
-  record: Record<string, unknown>,
-  _schema: DRAFT_EnrichedBormSchema,
-): Record<string, unknown> => {
+export const processRecord = (record: Record<string, unknown>): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(record)) {
-    if (key === 'id') {
-      // Extract record ID: SurrealDB returns { tb: 'User', id: 'u1' } or a RecordId object
-      result.id = extractRecordId(value);
-      // Also extract the table name for metadata
-      result._tableName = extractTableName(value);
+    if (key === 'id' && value instanceof RecordId) {
+      result.id = value.id;
+      result._tableName = value.table.name;
       continue;
     }
 
@@ -177,22 +169,9 @@ const processValue = (value: unknown): unknown => {
     return value;
   }
 
-  // Empty arrays → undefined (matching existing behavior)
-  if (isArray(value) && value.length === 0) {
-    return undefined;
-  }
-
   // RecordId → plain id string
-  if (isRecordId(value)) {
-    return extractRecordId(value);
-  }
-
-  // String record reference "Table:⟨id⟩" → plain id (only with angle brackets to avoid false positives)
-  if (typeof value === 'string') {
-    const match = /^[A-Za-z][A-Za-z0-9_-]*:⟨(.+?)⟩$/.exec(value);
-    if (match) {
-      return match[1];
-    }
+  if (value instanceof RecordId) {
+    return value.id;
   }
 
   // Date objects pass through
@@ -200,8 +179,12 @@ const processValue = (value: unknown): unknown => {
     return value;
   }
 
-  // Arrays: process each element
   if (isArray(value)) {
+    // Empty arrays → undefined (matching existing behavior)
+    if (value.length === 0) {
+      return undefined;
+    }
+    // Arrays: process each element
     return value.map(processValue);
   }
 
@@ -218,65 +201,6 @@ const processValue = (value: unknown): unknown => {
   }
 
   return value;
-};
-
-const extractRecordId = (value: unknown): string => {
-  if (typeof value === 'string') {
-    // Could be "User:u1" or "User:⟨u1⟩" format
-    const colonIdx = value.indexOf(':');
-    if (colonIdx > 0) {
-      return stripAngleBrackets(value.slice(colonIdx + 1));
-    }
-    return stripAngleBrackets(value);
-  }
-  if (isRecordId(value)) {
-    const rid = value as { tb?: string; id?: unknown; toJSON?: () => string };
-    if (rid.id !== undefined) {
-      return stripAngleBrackets(String(rid.id));
-    }
-    // Fallback: parse the string representation
-    const str = String(value);
-    const colonIdx = str.indexOf(':');
-    if (colonIdx > 0) {
-      return stripAngleBrackets(str.slice(colonIdx + 1));
-    }
-    return stripAngleBrackets(str);
-  }
-  return stripAngleBrackets(String(value));
-};
-
-const stripAngleBrackets = (s: string): string => {
-  if (s.startsWith('⟨') && s.endsWith('⟩')) {
-    return s.slice(1, -1);
-  }
-  return s;
-};
-
-const extractTableName = (value: unknown): string | undefined => {
-  if (typeof value === 'string') {
-    const colonIdx = value.indexOf(':');
-    if (colonIdx > 0) {
-      return stripAngleBrackets(value.slice(0, colonIdx));
-    }
-    return undefined;
-  }
-  if (isRecordId(value)) {
-    const rid = value as { tb?: string };
-    if (rid.tb) {
-      return stripAngleBrackets(rid.tb);
-    }
-    // Fallback: parse the string representation
-    const str = String(value);
-    const colonIdx = str.indexOf(':');
-    if (colonIdx > 0) {
-      return stripAngleBrackets(str.slice(0, colonIdx));
-    }
-  }
-  return undefined;
-};
-
-const isRecordId = (value: unknown): boolean => {
-  return value instanceof RecordId;
 };
 
 const getThingFromRecord = (record: Record<string, unknown>, _schema: DRAFT_EnrichedBormSchema): string | undefined => {
