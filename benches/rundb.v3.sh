@@ -17,7 +17,7 @@ docker run \
   --user root \
   -p 8001:8001 \
   --pull always \
-  surrealdb/surrealdb:v3.0.4 \
+  surrealdb/surrealdb:v3.0.5 \
   start \
   -u $USER \
   -p $PASSWORD \

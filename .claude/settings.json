@@ -10,21 +10,9 @@
       "WebFetch(domain:surrealdb.com)",
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:helgesver.re)",
-      "Bash(curl -s https://registry.npmjs.org/surrealdb)",
-      "Bash(curl -s https://registry.npmjs.org/surrealdb/2.0.1)",
-      "Bash(python3 -c \":*)",
-      "Bash(gh api repos/surrealdb/surrealdb/releases --jq '.[].tag_name')",
-      "Bash(gh api repos/surrealdb/surrealdb/releases/tags/v3.0.0 --jq '.body')",
-      "Bash(curl -sL \"https://github.com/surrealdb/surrealdb.js/releases/tag/v2.0.0\")",
-      "Bash(gh api repos/surrealdb/surrealdb/releases/tags/v3.0.0 --jq '{name, body, html_url, created_at}')",
-      "Bash(gh api repos/surrealdb/surrealdb.js/releases --jq '.[] | \"\"\\\\\\(.tag_name\\) - \\\\\\(.name\\)\"\"')",
-      "Bash(gh api repos/surrealdb/surrealdb.js/releases/tags/v2.0.0 --jq '.body')",
       "Bash(pnpm install)",
       "Bash(npx tsc --noEmit)",
-      "Bash(docker ps --format '{{.Names}}')",
-      "Bash(BORM_TEST_ADAPTER=surrealDB npx vitest run tests/unit/allTests.test.ts)",
-      "Bash(BORM_TEST_ADAPTER=surrealDB npx vitest run tests/unit/allTests.test.ts -t \"e1\\\\[entity\\\\]\")"
+      "Bash(docker ps --format '{{.Names}}')"
     ]
   }
 }

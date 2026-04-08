@@ -27,6 +27,7 @@ export const runSurrealDbMutationMachine2 = async (
   handles: DBHandles,
 ): Promise<any[]> => {
   const client = getClient(handles);
+  const start = performance.now();
 
   // 1. Parse (validates and normalizes raw input with Zod)
   const parsed = parseBQLMutation(bql, schema);
@@ -66,7 +67,10 @@ export const runSurrealDbMutationMachine2 = async (
   log(['runSurql', 'runSurql/rawResults'], `> runSurql/rawResults\n`, rawResults);
 
   // 8. Process results
-  const results = processResults(rawResults, stmtMap, optimized, schema, config);
+  const results = processResults(rawResults, stmtMap, schema, config);
   log(['processResults', 'processResults/output'], `> processResults/output\n`, results);
+
+  const end = performance.now();
+  log(['runSurql', 'runSurql/duration'], `> runSurql/duration\n`, `${(end - start).toFixed(2)}ms`);
   return results;
 };

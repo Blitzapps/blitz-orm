@@ -2,6 +2,11 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.3(2026-04-08)
+
+- Chore: Upgrade to SurrealDB v3.0.5
+- Refactor: Simplify SurrealDB mutation result processing
+
 ## 0.17.2(2026-04-08)
 
 - Fix: `isRecordId` now uses `instanceof RecordId` instead of `constructor.name` check, which broke in minified production builds

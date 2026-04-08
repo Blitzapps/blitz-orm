@@ -33,7 +33,7 @@ DATA_FILE="./tests/adapters/surrealDB/mocks/data.surql"
 NAMESPACE="test"
 
 # Start the container
-docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3.0.4 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
+docker run --detach --rm --pull always -v "$(pwd)/tests":/tests -p 8100:8000 --name $CONTAINER_NAME surrealdb/surrealdb:v3.0.5 start --allow-all -u $USER -p $PASSWORD --bind 0.0.0.0:8000
 
 # Wait for SurrealDB HTTP endpoint to be ready
 until curl -sf -o /dev/null http://localhost:8100/health 2>/dev/null; do
