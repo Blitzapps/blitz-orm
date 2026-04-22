@@ -40,7 +40,7 @@ const DEFAULT_RECONNECT: ReconnectConfig = {
   retryDelayJitter: 0,
 };
 
-function assertWebSocketProtocol(url: string): void {
+const assertWebSocketProtocol = (url: string): void => {
   const protocol = url.split('://', 1)[0]?.toLowerCase();
   if (protocol !== 'ws' && protocol !== 'wss') {
     throw new Error(
@@ -48,7 +48,7 @@ function assertWebSocketProtocol(url: string): void {
         `Multi-query transactions are not supported over HTTP.`,
     );
   }
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Client
