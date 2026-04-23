@@ -149,12 +149,19 @@ const convertIdFilterToRecordPointer = (
 
 /**
  * Return sub query if the filter can be converted to a relationship traversal.
+ *
+ * Only `IN` and `CONTAINSANY` preserve semantics when rewritten as
+ * "fetch the linked records and return their parents". Operators like
+ * `NOT IN`, `CONTAINSALL`, and `CONTAINSNONE` need the full filter form.
  */
 const convertRefFilterToRelationshipTraversal = (
   filter: BiRefFilter | ComputedBiRefFilter,
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
+  if (filter.op !== 'IN' && filter.op !== 'CONTAINSANY') {
+    return undefined;
+  }
   const field = thing.fields[filter.left];
   if (!field) {
     throw new Error(`Field ${filter.left} not found in ${thing.name}`);

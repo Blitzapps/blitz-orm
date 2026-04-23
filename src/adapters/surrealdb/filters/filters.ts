@@ -5,13 +5,27 @@ import { SuqlMetadata } from '../../../types/symbols';
 
 const surqlOperators = {
   $eq: '$=',
+  $neq: '$!=',
+  $gt: '$>',
+  $lt: '$<',
+  $gte: '$>=',
+  $lte: '$<=',
+  $contains: '$CONTAINS',
+  $containsNot: '$CONTAINSNOT',
   $not: '$!',
   $or: '$OR',
   $and: '$AND',
   $in: '$IN',
+  $nin: '$NOT IN',
+  $containsAll: '$CONTAINSALL',
+  $containsAny: '$CONTAINSANY',
+  $containsNone: '$CONTAINSNONE',
   $id: 'record::id(id)',
   $exists: '$exists',
 };
+
+const SCALAR_VALUE_OPERATORS = ['$eq', '$neq', '$gt', '$lt', '$gte', '$lte', '$contains', '$containsNot'] as const;
+const LIST_VALUE_OPERATORS = ['$in', '$nin', '$containsAll', '$containsAny', '$containsNone'] as const;
 
 export const parseFilter = (filter: Filter, currentThing: string, schema: EnrichedBormSchema): Filter | Filter[] => {
   if (filter === null || filter === undefined) {
@@ -52,11 +66,11 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
         }
 
         //VALUE OPERATORS
-        if (key === '$eq') {
-          return { ...acc, $eq: undefined, [surqlOperators[key]]: value };
+        if ((SCALAR_VALUE_OPERATORS as readonly string[]).includes(key)) {
+          return { ...acc, [key]: undefined, [surqlOperators[key as keyof typeof surqlOperators]]: value };
         }
-        if (key === '$in') {
-          return { ...acc, $in: undefined, [surqlOperators[key]]: value };
+        if ((LIST_VALUE_OPERATORS as readonly string[]).includes(key)) {
+          return { ...acc, [key]: undefined, [surqlOperators[key as keyof typeof surqlOperators]]: value };
         }
 
         throw new Error(`Unknown filter operator ${key}`);

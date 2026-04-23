@@ -309,7 +309,7 @@ const buildDataFieldFilter = (
         });
         continue;
       }
-      if ((op === '$eq' || op === '$ne') && right === null) {
+      if ((op === '$eq' || op === '$neq') && right === null) {
         filters.push({
           type: 'null',
           op: op === '$eq' ? 'IS' : 'IS NOT',
@@ -507,7 +507,7 @@ const buildLinkFieldFilter = (
 
   const {
     $eq: _eq,
-    $ne: _ne,
+    $neq: _neq,
     $contains: _contains,
     $containsNot: _containsNot,
     $in: _in,
@@ -526,7 +526,7 @@ const buildLinkFieldFilter = (
 
   const filters: Filter[] = [];
 
-  for (const op of ['$exists', '$eq', '$ne', '$contains', '$containsNot']) {
+  for (const op of ['$exists', '$eq', '$neq', '$contains', '$containsNot']) {
     const value = nestedFilter.data[op];
     if (value === undefined) {
       continue;
@@ -540,7 +540,7 @@ const buildLinkFieldFilter = (
       });
       continue;
     }
-    if ((op === '$eq' || op === '$ne') && value === null) {
+    if ((op === '$eq' || op === '$neq') && value === null) {
       filters.push({
         type: 'null',
         op: op === '$eq' ? 'IS' : 'IS NOT',
@@ -653,7 +653,7 @@ const buildSort = (sort?: ({ field: string; desc?: boolean } | string)[]): Sort[
 
 const scalarOpMap: Record<string, ScalarFilter['op']> = {
   $eq: '=',
-  $ne: '!=',
+  $neq: '!=',
   $gt: '>',
   $lt: '<',
   $gte: '>=',
