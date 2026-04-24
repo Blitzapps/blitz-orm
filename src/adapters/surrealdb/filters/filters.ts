@@ -123,6 +123,21 @@ export const parseFilter = (filter: Filter, currentThing: string, schema: Enrich
   return wasArray ? resultArray : resultArray[0];
 };
 
+const serializeLiteral = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return 'NONE';
+  }
+  if (typeof value === 'string') {
+    // JSON.stringify produces a double-quoted string with proper escaping,
+    // which SurrealDB accepts as a string literal.
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  throw new Error(`Cannot serialize filter value of type ${typeof value}: ${JSON.stringify(value)}`);
+};
+
 export const buildSuqlFilter = (filter: object): string => {
   if (filter === null || filter === undefined) {
     return '';
@@ -185,14 +200,12 @@ export const buildSuqlFilter = (filter: object): string => {
             // Handle other operators
             const surrealOperator = operator.replace('$', '');
             if (Array.isArray(nextValue)) {
-              parts.push(
-                `${key} ${surrealOperator} [${nextValue.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`,
-              );
+              parts.push(`${key} ${surrealOperator} [${nextValue.map(serializeLiteral).join(', ')}]`);
             } else if (isObject(nextValue)) {
               const nestedFilter = buildSuqlFilter(nextValue);
               parts.push(`${key} ${surrealOperator} ${nestedFilter}`);
             } else {
-              parts.push(`${key} ${surrealOperator} ${nextValue === null ? 'NONE' : `'${nextValue}'`}`);
+              parts.push(`${key} ${surrealOperator} ${serializeLiteral(nextValue)}`);
             }
           }
         } else {
@@ -203,10 +216,10 @@ export const buildSuqlFilter = (filter: object): string => {
       // Handle simple field equality
       if (Array.isArray(value)) {
         const operator = key.startsWith('$') ? key.replace('$', '') : 'IN'; //maybe  could do const operator = 'IN';
-        parts.push(`${key} ${operator} [${value.map((v) => (v === null ? 'NONE' : `'${v}'`)).join(', ')}]`);
+        parts.push(`${key} ${operator} [${value.map(serializeLiteral).join(', ')}]`);
       } else {
         const operator = key.startsWith('$') ? key.replace('$', '') : '='; //maybe  could do const operator = '=';
-        parts.push(`${key} ${operator} ${value === null ? 'NONE' : `'${value}'`}`);
+        parts.push(`${key} ${operator} ${serializeLiteral(value)}`);
       }
     }
   }
