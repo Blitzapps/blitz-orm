@@ -40,6 +40,16 @@ const DEFAULT_RECONNECT: ReconnectConfig = {
   retryDelayJitter: 0,
 };
 
+const assertWebSocketProtocol = (url: string): void => {
+  const protocol = url.split('://', 1)[0]?.toLowerCase();
+  if (protocol !== 'ws' && protocol !== 'wss') {
+    throw new Error(
+      `SurrealDB connection requires a WebSocket URL (ws:// or wss://), got "${url}". ` +
+        `Multi-query transactions are not supported over HTTP.`,
+    );
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Client
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,6 +68,7 @@ export class SurrealClient {
   #latestError = '';
 
   constructor(config: ConnectionConfig, options: SurrealClientOptions = {}) {
+    assertWebSocketProtocol(config.url);
     this.#config = config;
     this.#reconnect = { ...DEFAULT_RECONNECT, ...options.reconnect };
     this.#versionCheck = options.versionCheck ?? false;
