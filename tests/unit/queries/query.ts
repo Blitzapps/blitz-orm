@@ -3061,4 +3061,186 @@ export const testQuery = createTest('Query', (ctx) => {
       ],
     });
   });
+
+  // FILTER OPERATORS
+  // One test per operator defined in BQLFilter / NestedBQLFilter.
+
+  it('op-eq[filter, $eq] - scalar equality', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $eq: 'google' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account2-1' }]);
+  });
+
+  it('op-neq[filter, $neq] - scalar inequality', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $neq: 'google' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account1-3' }, { id: 'account3-1' }]);
+  });
+
+  it('op-gt[filter, $gt] - greater than', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $gt: 'facebook' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account1-3' }, { id: 'account2-1' }]);
+  });
+
+  it('op-gte[filter, $gte] - greater than or equal', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $gte: 'github' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account1-3' }, { id: 'account2-1' }]);
+  });
+
+  it('op-lt[filter, $lt] - less than', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $lt: 'github' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account3-1' }]);
+  });
+
+  it('op-lte[filter, $lte] - less than or equal', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $lte: 'facebook' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account3-1' }]);
+  });
+
+  it('op-contains[filter, $contains] - string substring match', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $contains: 'oogle' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account2-1' }]);
+  });
+
+  it('op-containsNot[filter, $containsNot] - string substring negation', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $containsNot: 'oogle' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account1-3' }, { id: 'account3-1' }]);
+  });
+
+  it('op-in[filter, $in] - value in list', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $in: ['github', 'facebook'] } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account1-3' }, { id: 'account3-1' }]);
+  });
+
+  it('op-nin[filter, $nin] - value not in list', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { provider: { $nin: ['github', 'facebook'] } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account2-1' }]);
+  });
+
+  it('op-containsAll[filter, $containsAll] - link field contains all ids', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'User',
+        $filter: { accounts: { $containsAll: ['account1-1', 'account1-2'] } },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'user1' }]);
+  });
+
+  it('op-containsAny[filter, $containsAny] - link field contains any id', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'User',
+        $filter: { accounts: { $containsAny: ['account1-1', 'account2-1'] } },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'user1' }, { id: 'user2' }]);
+  });
+
+  it('op-containsNone[filter, $containsNone] - link field contains none of ids', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'User',
+        $filter: { accounts: { $containsNone: ['account1-1', 'account1-2', 'account1-3'] } },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([
+      { id: 'god1' },
+      { id: 'superuser1' },
+      { id: 'user2' },
+      { id: 'user3' },
+      { id: 'user4' },
+      { id: 'user5' },
+    ]);
+  });
+
+  it('op-exists-true[filter, $exists] - field is set', async () => {
+    const res = await ctx.query(
+      { $entity: 'User', $filter: { email: { $exists: true } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([
+      { id: 'god1' },
+      { id: 'superuser1' },
+      { id: 'user1' },
+      { id: 'user2' },
+      { id: 'user3' },
+      { id: 'user5' },
+    ]);
+  });
+
+  it('op-exists-false[filter, $exists] - field is unset', async () => {
+    const res = await ctx.query(
+      { $entity: 'User', $filter: { email: { $exists: false } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'user4' }]);
+  });
+
+  it('op-not[filter, $not] - logical negation', async () => {
+    const res = await ctx.query(
+      { $entity: 'Account', $filter: { $not: { provider: 'google' } }, $fields: ['id'] },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-2' }, { id: 'account1-3' }, { id: 'account3-1' }]);
+  });
+
+  it('op-or[filter, $or] - logical disjunction via array of filters', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'Account',
+        // @ts-expect-error - TODO: This is valid syntax but requires refactoring the filters
+        $filter: [{ provider: 'google' }, { provider: 'github' }],
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(deepSort(res, 'id')).toEqual([{ id: 'account1-1' }, { id: 'account1-3' }, { id: 'account2-1' }]);
+  });
+
+  it('op-and[filter, implicit $and] - multiple fields', async () => {
+    const res = await ctx.query(
+      {
+        $entity: 'User',
+        $filter: { name: 'Antoine', email: 'antoine@test.com' },
+        $fields: ['id'],
+      },
+      { noMetadata: true },
+    );
+    expect(res).toEqual({ id: 'user1' });
+  });
 });

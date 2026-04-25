@@ -487,7 +487,24 @@ export const enrichFilter = ($filter: Filter | Filter[], $thing: string, schema:
         } else if (['$not', '$or', '$and'].includes(key)) {
           // We don't want to enrich the special keys; we enrich nested things instead
           acc[key] = enrichFilter(value, $thing, schema);
-        } else if (['$eq', '$in', '$exists'].includes(key)) {
+        } else if (
+          [
+            '$exists',
+            '$eq',
+            '$neq',
+            '$gt',
+            '$lt',
+            '$gte',
+            '$lte',
+            '$contains',
+            '$containsNot',
+            '$in',
+            '$nin',
+            '$containsAll',
+            '$containsAny',
+            '$containsNone',
+          ].includes(key)
+        ) {
           acc[key] = value;
         } else {
           throw new Error(`[Internal] Unknown filter operator ${key}`);

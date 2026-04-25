@@ -77,15 +77,21 @@ export const optimizeSource = (params: {
   // computed_biref takes precedence because it converts to a sub-query that traverses a normal ref,
   // which is faster than traversing a computed ref directly.
   // The same logic applies to nested filters.
+  // Only filters with ops that preserve relationship-traversal semantics are eligible;
+  // otherwise an unsupported op on a higher-priority filter would block lower-priority eligible ones.
 
   const biRefFilter =
     findFilter(
       filters,
-      (f): f is ComputedBiRefFilter => f.type === 'computed_biref' && f.oppositeCardinality === 'ONE',
+      (f): f is ComputedBiRefFilter =>
+        f.type === 'computed_biref' && f.oppositeCardinality === 'ONE' && isRefTraversalOp(f.op),
     ) ??
-    findFilter(filters, (f): f is ComputedBiRefFilter => f.type === 'computed_biref') ??
-    findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE') ??
-    findFilter(filters, (f): f is BiRefFilter => f.type === 'biref');
+    findFilter(filters, (f): f is ComputedBiRefFilter => f.type === 'computed_biref' && isRefTraversalOp(f.op)) ??
+    findFilter(
+      filters,
+      (f): f is BiRefFilter => f.type === 'biref' && f.oppositeCardinality === 'ONE' && isRefTraversalOp(f.op),
+    ) ??
+    findFilter(filters, (f): f is BiRefFilter => f.type === 'biref' && isRefTraversalOp(f.op));
   if (biRefFilter) {
     const subQuery = convertRefFilterToRelationshipTraversal(biRefFilter, schema, thing);
     if (subQuery) {
@@ -148,6 +154,13 @@ const convertIdFilterToRecordPointer = (
 };
 
 /**
+ * Only `IN` and `CONTAINSANY` preserve semantics when a (computed) biref filter is rewritten as
+ * "fetch the linked records and return their parents". Operators like
+ * `NOT IN`, `CONTAINSALL`, and `CONTAINSNONE` need the full filter form.
+ */
+const isRefTraversalOp = (op: BiRefFilter['op']): boolean => op === 'IN' || op === 'CONTAINSANY';
+
+/**
  * Return sub query if the filter can be converted to a relationship traversal.
  */
 const convertRefFilterToRelationshipTraversal = (
@@ -155,6 +168,9 @@ const convertRefFilterToRelationshipTraversal = (
   schema: DRAFT_EnrichedBormSchema,
   thing: DRAFT_EnrichedBormEntity | DRAFT_EnrichedBormRelation,
 ): SubQuery | undefined => {
+  if (!isRefTraversalOp(filter.op)) {
+    return undefined;
+  }
   const field = thing.fields[filter.left];
   if (!field) {
     throw new Error(`Field ${filter.left} not found in ${thing.name}`);
