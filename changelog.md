@@ -2,6 +2,12 @@
 
 📝 following beta format X.Y.Z where Y = breaking change and Z = feature and fix. Later => FAIL.FEATURE.FIX
 
+## 0.17.5(2026-04-25)
+
+- Fix: Implement missing SurrealDB filter operators in query generation
+- Fix: Adjust query optimization/buildLogical handling for filter operator paths
+- Tests: Add coverage for missing filter operator scenarios in query tests
+
 ## 0.17.4(2026-04-09)
 
 - Fix: Build — ensure published `dist` matches the tagged release sources
